@@ -7,6 +7,7 @@
 typedef struct {
   int cmd;
   char *arg;
+  int next_cmd;
 } Flcmd_macro_t;
 
 #endif

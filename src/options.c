@@ -460,13 +460,25 @@ void parse_options_line (char *ligne, int flag)
     int lettre;
     char *buf2, *buf3;
     int res, mode=-1; /* mode=0 : commande mode=1 : menu mode=2 : pager */
+    int add=0;
     buf=strtok(NULL,delim);
     if (!buf) return;
-    if (strncasecmp(buf,"menu",7)==0) mode=CONTEXT_MENU; else
-      if (strncasecmp(buf,"pager",5)==0) mode=CONTEXT_PAGER; else
-	if (strncasecmp(buf,"command",7)==0) mode=CONTEXT_COMMAND;
+    if (strcasecmp(buf,"add")==0) {
+      add =1;
+      buf=strtok(NULL,delim);
+      if (!buf) return;
+    }
+    if (strcasecmp(buf,"menu")==0) mode=CONTEXT_MENU; else
+      if (strcasecmp(buf,"pager")==0) mode=CONTEXT_PAGER; else
+	if (strcasecmp(buf,"command")==0) mode=CONTEXT_COMMAND;
     if (mode!=-1) buf=strtok(NULL,delim); else
       mode=0;
+    if (!buf) return;
+    if (strcasecmp(buf,"add")==0) {
+      add =1;
+      buf=strtok(NULL,delim);
+      if (!buf) return;
+    }
     lettre = *buf;
     if (buf[1]) {
       if (*buf == '\\') buf++;
@@ -484,9 +496,9 @@ void parse_options_line (char *ligne, int flag)
     if (buf3) 
       buf3+=strspn(buf3, delim);
 
-    res=(mode==CONTEXT_MENU ? Bind_command_menu(buf2,lettre,buf3) :
-	 mode==CONTEXT_PAGER ? Bind_command_pager(buf2,lettre,buf3) : 
-	           Bind_command_explicite(buf2,lettre,buf3));
+    res=(mode==CONTEXT_MENU ? Bind_command_menu(buf2,lettre,buf3,add) :
+	 mode==CONTEXT_PAGER ? Bind_command_pager(buf2,lettre,buf3,add) : 
+	           Bind_command_explicite(buf2,lettre,buf3,add));
     if (res <0) {
       if (flag) Aff_error_fin("Echec de la commande bind.",1); else
       {

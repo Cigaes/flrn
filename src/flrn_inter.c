@@ -48,6 +48,7 @@ struct etat_var {
    /* explicites...							    */
    Newsgroup_List *Newsgroup_nouveau; /* Pour les changement de newsgroup */
    int num_futur_article;
+   int next_cmd;
    Article_List *Article_nouveau; /* utilisé si num_futur_article == -1 */
 } etat_loop, etat_save;
 
@@ -235,6 +236,7 @@ int loop(char *opt) {
    etat_loop.hors_struct=11;
    etat_loop.etat=etat_loop.num_message=0;
    etat_loop.Newsgroup_nouveau=NULL;
+   etat_loop.next_cmd=-1;
    /* On cherche un newsgroup pour partir */
    Newsgroup_courant=NULL;
    Last_head_cmd.Article_vu=NULL;
@@ -371,12 +373,18 @@ int loop(char *opt) {
 	     to_build=0;
 	   }
 	   if (key<0) key=0; /* Aff_article_courant a renvoyé une erreur */
-	   res=get_command(key);
+	   if (etat_loop.next_cmd>=0) {
+	     res=etat_loop.next_cmd;
+	     etat_loop.next_cmd=-1;
+	     Arg_str[0]='\0';
+	   } else
+	     res=get_command(key);
 	   if (debug) fprintf(stderr, "retour de get_command : %d\n", res);
 	   if ((res >0) && (res & FLCMD_MACRO)) {
 	     int num_macro= res ^FLCMD_MACRO;
 	     res = Flcmd_macro[num_macro].cmd;
 	     res = parse_arg_string(Flcmd_macro[num_macro].arg,res);
+	     etat_loop.next_cmd = Flcmd_macro[num_macro].next_cmd;
 	   }
 	   if (res==-2) etat_loop.etat=3; else
 	   if (res==FLCMD_UNDEF) 
@@ -445,7 +453,7 @@ void init_Flcmd_rev() {
      Flcmd_rev_command[Flcmds[i].key]=Flcmd_rev_command[Flcmds[i].key_nm]=i;
   for (i=0;i<CMD_DEF_PLUS;i++) 
     Bind_command_new(Cmd_Def_Plus[i].key,Cmd_Def_Plus[i].cmd,
-	Cmd_Def_Plus[i].args,CONTEXT_COMMAND);
+	Cmd_Def_Plus[i].args,CONTEXT_COMMAND, Cmd_Def_Plus[i].add);
   Flcmd_rev_command[0]=FLCMD_UNDEF;
   return;
 }
@@ -477,7 +485,7 @@ int call_func(int number, char *arg) {
 /* -2 touche invalide */
 /* -3 touche verrouillee */
 /* -4 plus de macro disponible */
-int Bind_command_explicite(char *nom, int key, char *arg) {
+int Bind_command_explicite(char *nom, int key, char *arg, int add) {
   int i;
   if ((key<1)  || key >= MAX_FL_KEY)
     return -2;
@@ -493,14 +501,9 @@ int Bind_command_explicite(char *nom, int key, char *arg) {
   }
   for (i=0;i<NB_FLCMD;i++)
     if (strcmp(nom, Flcmds[i].nom)==0) {
-      if (arg ==NULL) {
-	Flcmd_rev_command[key]=i;
-	return 0;
-      } else {
-	if (Bind_command_new(key,i,arg,CONTEXT_COMMAND)<0) return -4;
-	return 0;
-      }
-  }
+      if (Bind_command_new(key,i,arg,CONTEXT_COMMAND, add)<0) return -4;
+      return 0;
+    }
   return -1;
 }
 

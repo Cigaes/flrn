@@ -24,7 +24,7 @@ extern int loop(char * /*opt*/);
 extern void aff_opt_c(void);
 extern void init_Flcmd_rev(void);
 extern int Comp_cmd_explicite(char * /*str*/, int /*len*/);
-extern int Bind_command_explicite(char * /*nom*/, int /*key*/, char * /*arg*/);
+extern int Bind_command_explicite(char * /*nom*/, int /*key*/, char *, int);
 extern void save_etat_loop(void);
 extern void restore_etat_loop(void);
 

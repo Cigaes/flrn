@@ -120,7 +120,7 @@ void init_Flcmd_pager_rev() {
 /* -2 touche invalide */
 /* -3 touche verrouillee : n'existe pas dans le pager */
 /* -4 plus de macro */
-int Bind_command_pager(char *nom, int key, char *arg) {
+int Bind_command_pager(char *nom, int key, char *arg, int add) {
   int i;
   if ((key<1)  || key >= MAX_FL_KEY)
     return -2;
@@ -132,13 +132,8 @@ int Bind_command_pager(char *nom, int key, char *arg) {
   }
   for (i=0;i<NB_FLCMD_PAGER;i++)
     if (strcmp(nom, Flcmds_pager[i])==0) {
-      if (arg ==NULL) {
-	Flcmd_pager_rev[key]=i;
-	return 0;
-      } else {
-	if (Bind_command_new(key,i,arg,CONTEXT_PAGER)< 0) return -4;
-	return 0;
-      }
+      if (Bind_command_new(key,i,arg,CONTEXT_PAGER, add)< 0) return -4;
+      return 0;
     }
   return -1;
 }

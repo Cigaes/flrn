@@ -17,7 +17,7 @@ extern int Flcmd_num_macros;
 
 /* les fonctions */
 
-extern int Bind_command_new(int, int, char *, int);
+extern int Bind_command_new(int, int, char *, int, int);
 extern void free_Macros(void);
 
 #endif

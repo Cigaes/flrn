@@ -231,17 +231,18 @@ struct cmd_predef {
   int key;
   int cmd;
   char *args;
+  int add;
 } Cmd_Def_Plus[] = {
-  { 'b', FLCMD_LEFT, NULL },
-  { 'f', FLCMD_RIGHT, NULL },
-  { 'n', FLCMD_SUIV, NULL },
-  { 'P', FLCMD_HPREV, NULL },
-  { '[', FLCMD_LEFT, NULL },
-  { ']', FLCMD_RIGHT, NULL },
-  { '(', FLCMD_UP, NULL },
-  { ')', FLCMD_DOWN, NULL },
-  { 2  , FLCMD_PIPE, "urlview" },
-  { '+', FLCMD_SELECT, "1-,unread" },
+  { 'b', FLCMD_LEFT, NULL, 0 },
+  { 'f', FLCMD_RIGHT, NULL, 0 },
+  { 'n', FLCMD_SUIV, NULL, 0 },
+  { 'P', FLCMD_HPREV, NULL, 0 },
+  { '[', FLCMD_LEFT, NULL, 0 },
+  { ']', FLCMD_RIGHT, NULL, 0 },
+  { '(', FLCMD_UP, NULL, 0 },
+  { ')', FLCMD_DOWN, NULL, 0 },
+  { 2  , FLCMD_PIPE, "urlview", 0 },
+  { '+', FLCMD_SELECT, "1-,unread", 0 },
 };
 
 #else

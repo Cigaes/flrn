@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. reprise des macros, ajout de bind add ...
 . ajout de l'option short_errors
 . modif de l'éditeur. Si y'a pas de bugs, je suis un génie.
 . modif des messages d'erreur. Ça semble mieux.
