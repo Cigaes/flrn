@@ -662,7 +662,7 @@ void increase_size_header_list(int newsize) {
     Options.header_list=new_list;
     new_list=safe_calloc(newsize,sizeof(int));
     memcpy(new_list,Options.weak_header_list,sizeof(int)*size_header_list);
-    if (Options.hidden_header_list!=&(deb_weak_header_list[0])) 
+    if (Options.weak_header_list!=&(deb_weak_header_list[0])) 
 	 free(Options.weak_header_list);
     Options.weak_header_list=new_list;
     new_list=safe_calloc(newsize,sizeof(int));
