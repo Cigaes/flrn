@@ -1105,10 +1105,48 @@ int conversion_to_message(const flrn_char *flstr, char **resbuf, size_t len,
     return conversion_to_generic(&(conv_base[MESS_CONV]),
 	    flstr,resbuf,len,fllen);
 }
+#ifdef USE_CONTENT_ENCODING
+static int QPmode=0;
+extern int Index_hex[128]; /* defini dans rfc2047.c */
+void change_QP_mode(int nm) {
+    QPmode=nm;
+}
+#endif
 int conversion_from_message(const char *str, flrn_char **resbuf, size_t fllen,
 	size_t len) {
-    return conversion_from_generic(&(conv_base[MESS_CONV]),
+    int res;
+#ifdef USE_CONTENT_ENCODING
+    char *strbis=NULL;
+    if (QPmode) {  /* assert fllen = 0, len = (-1) */
+	char *p,*q;
+	if (strchr(str,'=')) {
+	  strbis = safe_strdup(str);
+	  p=q=strbis;
+	  while (*p) {
+	      if (*p == '=')
+	      {
+		  if ((*(p+1) == '\0') || *(p+2) == '\0')
+		     { *(++p)='\0'; *(q++)='?'; }
+		  else 
+		     { *(q++) = Index_hex[(*(p+1))%128] << 4 | 
+		              Index_hex[*(p+2)%128] ; 
+	               p+=3;
+		     }
+	     } else { *(q++)=*(p++); }
+	  }
+	  *q='\0';
+          str=strbis;
+        }
+    }
+#endif
+    res = conversion_from_generic(&(conv_base[MESS_CONV]),
 	    str,resbuf,fllen,len);
+#ifdef USE_CONTENT_ENCODING
+    if (strbis) {
+	if (res!=1) free(strbis); else res=0;
+    }
+#endif
+    return res;
 }
 int conversion_to_utf8(const flrn_char *flstr, char **resbuf, size_t len,
 	size_t fllen) {

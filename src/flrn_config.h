@@ -126,6 +126,9 @@
    défini via configure dans config.h */
 #define MAILER_CMD SENDMAIL " -t"
 
+/* Cette option permet de décoder le quoted-printable de
+ * messages à partir de Content-Transfer-Encoding. Un peu hackesque... */
+#define USE_CONTENT_ENCODING
 
 /* -- ne rien modifier ensuite, normalement -- */
 

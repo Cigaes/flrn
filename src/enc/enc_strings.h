@@ -81,4 +81,9 @@ int Parse_editorcharset_line(flrn_char *);
 /* change for message */
 int Change_message_conversion(char *);
 
+/* QP */
+#ifdef USE_CONTENT_ENCODING
+extern void change_QP_mode(int);
+#endif
+
 #endif

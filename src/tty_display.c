@@ -61,6 +61,11 @@ Colored_Char_Type **table_petit_arbre;
 /* Espace actuellement conservé dans l'affichage de l'article */
 int saved_field, saved_space, en_deca;
 
+/* affichage en quoted-printable */
+#ifdef USE_CONTENT_ENCODING
+   int isinQP=-1;
+#endif
+
 /* (re-)Determinations des caractéristiques de la fenêtre */
 /* si col_num!=0, c'est la taille à réserver pour les numéros */
 static int Size_Window(int flag, int col_num) {
@@ -2017,7 +2022,15 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
    while (1) {
      buf2=strchr(buf,(from_file ? '\n' : '\r'));
      if ((!buf2) && (!from_file)) buf2=strchr(buf,'\n');
-     if (buf2) *buf2='\0';
+     if (buf2) {
+	 *buf2='\0';
+#ifdef USE_CONTENT_ENCODING
+	 if ((isinQP==1) && (buf2!=buf) && (*(buf2-1)=='=')) {
+	     *(buf2-1)='\0';
+	     buf2=NULL;  /* hack pour un soft line break */
+	 }
+#endif
+     }
      if (from_file) rc=conversion_from_file(buf,&trad,0,(size_t)(-1));
        else rc=conversion_from_message(buf,&trad,0,(size_t)(-1));
      create_Color_line(add_line_aff_line,saved_field,trad,fl_strlen(trad),
@@ -2298,6 +2311,12 @@ int Aff_article_courant(int to_build) {
    {
       tmp=Last_head_cmd.headers;
       while (tmp) {
+#ifdef USE_CONTENT_ENCODING
+	 if (fl_strncasecmp(tmp->header_head,
+		     fl_static("content-transfer-encoding:"),26)==0) {
+	     isinQP =  (fl_strstr(tmp->header_body,"uoted")!=NULL);
+	 }
+#endif
          if (fl_strncasecmp(tmp->header_head,
 		     fl_static("content-type:"),13)==0) {
 	     parse_ContentType_header(tmp->header_body);
@@ -2306,6 +2325,17 @@ int Aff_article_courant(int to_build) {
 	 tmp=tmp->next;
       }
       if (tmp==NULL) parse_ContentType_header(NULL);
+#ifdef USE_CONTENT_ENCODING
+      else if (isinQP==-1) 
+      while (tmp) {
+	 if (fl_strncasecmp(tmp->header_head,
+		     fl_static("content-transfer-encoding:"),26)==0) {
+	     isinQP =  (fl_strstr(tmp->header_body,"uoted")!=NULL);
+	     break;
+	 }
+	 tmp = tmp -> next;
+      }
+#endif
    }
    if ((actual_row>Screen_Rows-2) || (Options.headers_scroll)) {
       Ajoute_color_Line(NULL,NULL,0,0,0,0,0);
@@ -2361,6 +2391,9 @@ int Aff_article_courant(int to_build) {
      free_text_scroll(); 
      return -1;
    }
+#ifdef USE_CONTENT_ENCODING
+   if (isinQP==1) change_QP_mode(1);
+#endif
    do {
       res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
       if (res<1) { 
@@ -2369,6 +2402,10 @@ int Aff_article_courant(int to_build) {
       actual_row=Ajoute_aff_formated_line(actual_row, read_line,0);
       read_line++;
    } while (actual_row>0);
+#ifdef USE_CONTENT_ENCODING
+   change_QP_mode(0);
+   isinQP=-1;
+#endif
    if (actual_row<0)  /* On entame un scrolling */
 	  res=Gere_Scroll_Message(actual_row,
 	    (scroll_headers ? 1+Options.skip_line : first_line), scroll_headers, to_build);

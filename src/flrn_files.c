@@ -274,6 +274,10 @@ void Copy_article (FILE *dest, Article_List *article, int copie_head,
    int in_headers = (copie_head==1) || (encoding>0), quit_headers=0;
    int flag=2; /* flag & 1 : debut de ligne     */
                /*      & 2 : fin de ligne       */
+/* affichage en quoted-printable */
+#ifdef USE_CONTENT_ENCODING
+   int isinQP=-1;
+#endif
 
    num=safe_malloc(260*sizeof(char));
    if (article->numero>0) sprintf(num, "%d", article->numero); else
@@ -342,7 +346,13 @@ void Copy_article (FILE *dest, Article_List *article, int copie_head,
 		  if (fl_strncasecmp(newheader,
 			      fl_static("content-type:"),13)==0) {
 		      parse_ContentType_header(newheader+13);
-		  }
+		  } else
+#ifdef USE_CONTENT_ENCODING
+                  if (fl_strncasecmp(newheader,
+		             fl_static("content-transfer-encoding:"),26)==0) {
+                      isinQP =  (fl_strstr(newheader+26,"uoted")!=NULL);
+                  }
+#endif
 		  if (encoding%2==1) 
 		     resconv=conversion_to_file(newheader,&trad,0,(size_t)(-1));
 		  else
@@ -366,6 +376,14 @@ void Copy_article (FILE *dest, Article_List *article, int copie_head,
 	 if (encoding) {
 	     int resconv2;
 	     flrn_char *trad2;
+#ifdef USE_CONTENT_ENCODING
+	     if ((isinQP==1) && (tcp_line_read[res-1]=='\n') &&
+		     (tcp_line_read[res-2]=='=')) {
+		 /* cas du soft line break */
+		 res-=2;
+		 tcp_line_read[res]='\0';
+             }
+#endif
 	     resconv2=conversion_from_message(buf,&trad2,0,(size_t)(-1));
 	     if (encoding%2==1)
 	       resconv=conversion_to_file(trad2,&trad,0,(size_t)(-1));
@@ -405,8 +423,14 @@ void Copy_article (FILE *dest, Article_List *article, int copie_head,
 	      if (avant) fputs(avant,dest);
 	      putc('\n',dest);
 	  }
+#ifdef USE_CONTENT_ENCODING
+          if (isinQP==1) change_QP_mode(1);
+#endif
       }
    } while (1);
+#ifdef USE_CONTENT_ENCODING
+   change_QP_mode(0);
+#endif
    if ((trad) && (resconv==0)) free(trad);
    if (newheader) free(newheader);
    if (newline) free(newline);
