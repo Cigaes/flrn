@@ -225,7 +225,7 @@ int parse_option_color(int func, char *line)
     if (res !=0) {
       free(new_pat); return -4;
     }
-    /* On n'est presque arrivé... Juste le cas des sous-exp a traiter... */
+    /* On est presque arrivé... Juste le cas des sous-exp à traiter... */
     if (!(new_pat->flags&HIGH_FLAGS_LINE) && 
     		(new_pat->pat_num>(new_pat->regexp).re_nsub)) {
       regfree(&new_pat->regexp); free(new_pat); return -6;
