@@ -76,7 +76,7 @@ int Launch_Editor (int flag) {
     }
 
     Screen_resume();
-    Init_keyboard(); /* Ca remet SIGTSTP correct */
+    Init_keyboard(0); /* Ca remet SIGTSTP correct */
     signal(SIGWINCH, sig_winch);
     if (sigwinchcatch) sig_winch(0);
     sigwinch_received=0; /* pas nécessaire d'arreter l'édition */
@@ -148,7 +148,7 @@ int Pipe_Msg_Stop(int fd) {
    if (fd>0) close(fd);
    while ((wait(NULL)<0) && (errno==EINTR));
    Screen_resume();
-   Init_keyboard(); /* Ca remet SIGTSTP correct */
+   Init_keyboard(0); /* Ca remet SIGTSTP correct */
    signal(SIGWINCH, sig_winch);
    if (sigwinchcatch) sig_winch(0);
    sigwinch_received=0; /* On n'en a rien a faire... */

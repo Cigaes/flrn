@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
      load_history();
      res=Init_screen(stupid_terminal);
      if (res==0) return 1;
-     res=Init_keyboard();
+     res=Init_keyboard(1);
      if (res<0) return 1;
   }
 

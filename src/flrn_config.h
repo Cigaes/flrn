@@ -16,6 +16,77 @@
 /* L'utilisateur peut modifier la valeurs qui suivent jusqu'au
    "-- ne rien modifier ensuite --" */
 
+/********************************************************************/
+/******** Options du GNKSA (Brevet du Bon Citoyen de Usenet) ********/
+/********************************************************************/
+/* Les options qui suivent (jusqu'à USE_GNKSA) sont destinées à     */
+/* montrer que flrn satisfait toutes les recommandations, moyennant */
+/* quelques options, du GNKSA (en français). Tout ceci devrait      */
+/* passer à terme dans le config.h.in, pour le configure.           */
+/* Pour l'instant, presque rien n'est défini par défaut 	    */
+/* on peut définir tout à la fois en definissant USE_GKNSA          */
+/********************************************************************/
+/* NdDamien : les fonctions commentées ne sont pas implémentées :-) */
+
+/* Cette option change la configuration par défaut pour afficher
+ * les entêtes standards (From, Subject, Newsgroups, Followup-To,
+ * Reply-To */
+/* #undef GNKSA_DISPLAY_HEADERS */
+
+/* Cette option change le nom des commandes standards pour avoir
+ * une terminologie "GNKSA" (française) pour les posts et cancels */
+/* #undef GNKSA_STANDARD_COMMANDS */
+
+/* Cette option vérifie la gueule des posts :
+   _ prévient si un large crosspost est fait.
+   _ vérifie la tête du sujet et refuse de poster avec un sujet vide
+   _ vérifie la tête du from
+   _ vérifie la taille des lignes, de la signature
+   _ refuse les articles vides, les articles de quotés 
+   _ remplace les tabulations par des espaces */
+/* #undef GNKSA_ANALYSE_POSTS */
+
+/* Cette option met un champ Newsgroups conforme au GNKSA (il n'y est
+ * pas par défaut car je n'aime pas cette feature */
+/* #undef GNKSA_NEWSGROUPS_HEADER */
+
+/* Cette option vérifie les references d'un article posté, en met le
+ * maximum dans la limite de 998 caractères */
+/* #undef GNKSA_REFERENCES_HEADER */
+
+/* Cette option (qui devrait ne pas en être une) permet une meilleure
+ * gestion des réponses (point numéro 9 du GNKSA). Elle sera par défaut
+ * dès que possible, mais ces lignes permettent de m'en souvenir :-) */
+/* #undef GNKSA_POINT_9 */
+
+/* Le point 10e du GNKSA est difficile à suivre pour une interface
+ * texte... je ne peux le faire correctement. Deja offrir l'option
+ * de quote de la signature */
+/* #undef GNKSA_QUOTE_SIGNATURE */
+
+/* Cette option ajoute la fonction de "rewrapping" du texte quoté, et
+ * propose un "rewrapping" du texte après édition */
+/* #undef GNKSA_REWRAP_TEXT */
+
+/* Cette option active les autres :-) */
+#undef USE_GNKSA
+#ifdef USE_GNKSA
+  #define GNKSA_DISPLAY_HEADERS
+  #define GNKSA_STANDARD_COMMANDS
+  #define GNKSA_ANALYSE_POSTS
+  #define GNKSA_NEWSGROUPS_HEADER
+  #define GNKSA_REFERENCES_HEADER
+  #define GNKSA_QUOTE_SIGNATURE
+  #define GNKSA_REWRAP_TEXT
+#endif
+
+/* - fin des options du GNKSA - */
+
+/* Cette option supprime l'éditeur interne de flrn... Elle pose problème
+ * si l'utilisateur ne réussit pas à définir un bon éditeur. Bien entendu
+ * l'option auto_edit est alors supprimée. (non implanté encore) */
+/* #undef NO_INTERN_EDITOR */
+
 /* Répertoire où chercher les fichiers de config chez l'utilisateur */
 #define DEFAULT_DIR_FILE        ".flrn"
 

@@ -60,16 +60,18 @@ static void init_signals (void) {
 
 /* Initialisation du clavier. On suppose que SLtt_get_terminfo a déjà 	*/
 /* été lancé (appel à Init_screen).					*/
-int Init_keyboard() {
+int Init_keyboard(int first) {
    int res;
 
 /*   SLsig_block_signals (); */
 
-   res=init_clavier();
-   if (res<0) {
-      fprintf(stderr, "Echec dans le lancement des routines clavier\n");
+   if (first) {
+     res=init_clavier();
+     if (res<0) {
+        fprintf(stderr, "Echec dans le lancement des routines clavier\n");
 /*      SLsig_unblock_signals ();  */
-      return -1;
+        return -1;
+     }
    }
    
    init_signals ();  /* Signaux (de base) */

@@ -13,7 +13,7 @@
 
 /* les fonctions */
 
-extern int Init_keyboard(void);
+extern int Init_keyboard(int);
 extern int Attend_touche(void);
 extern int getline(char * /*buf*/, int /*buffsize*/, int /*row*/, int /*col*/);
 extern int magic_getline(char * /*buf*/, int /*buffsize*/, int /*row*/,
