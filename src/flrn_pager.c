@@ -288,7 +288,11 @@ int ajoute_pager(char *ligne, int row) {
 /* -3 touche verrouillee : n'existe pas dans le pager */
 /* -4 plus de macro */
 int Bind_command_pager(char *nom, int key, char *arg, int add) {
-  int i;
+  int res;
+  Cmd_return commande;
+#ifdef USE_SLANG_LANGUAGE
+  commande.fun_slang=NULL;
+#endif
   if ((key<1)  || key >= MAX_FL_KEY)
     return -2;
   if (arg ==NULL) {
@@ -297,11 +301,14 @@ int Bind_command_pager(char *nom, int key, char *arg, int add) {
       return 0;
     }
   }
-  for (i=0;i<NB_FLCMD_PAGER;i++)
-    if (strcmp(nom, Flcmds_pager[i])==0) {
-      if (Bind_command_new(key,i,arg,CONTEXT_PAGER, add)< 0) return -4;
-      return 0;
-    }
-  return -1;
+  res=Lit_cmd_explicite(nom, CONTEXT_PAGER, -1, &commande);
+  if (res==-1) return -1;
+  res=Bind_command_new(key, commande.cmd[CONTEXT_PAGER], arg,
+#ifdef USE_SLANG_LANGUAGE
+      commande.fun_slang, CONTEXT_PAGER, add);
+  if (commande.fun_slang) free(commande.fun_slang);
+#else
+     CONTEXT_COMMAND, add);
+#endif
+  return (res<0 ? -4 : 0);
 }
-

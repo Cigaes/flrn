@@ -14,6 +14,7 @@
 #define FLRN_FLRN_CONFIG_H
 
 #include "pathdef.h"
+#include "config.h"
 
 /* L'utilisateur peut modifier la valeurs qui suivent jusqu'au
    "-- ne rien modifier ensuite --" */

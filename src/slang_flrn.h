@@ -17,12 +17,16 @@
 
 #ifdef USE_SLANG_LANGUAGE
 
+#include "slang.h"
+
 extern int flrn_SLang_inited;
 
 extern int flrn_init_SLang(void);
 extern int source_SLang_string(char *, char **);
 extern int source_SLang_file (char *);
 extern void change_SLang_Error_Hook(int);
+extern SLang_Name_Type *Parse_fun_slang (char *, int *);
+extern int Parse_type_fun_slang(char *);
 
 #endif
 

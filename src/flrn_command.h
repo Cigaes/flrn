@@ -13,6 +13,7 @@
 #ifndef FLRN_COMMAND_H
 #define FLRN_COMMAND_H
 
+#include "config.h"
 #include "flrn_config.h"
 #include "flrn_macros.h"
 
@@ -31,7 +32,11 @@ extern int Flcmd_num_macros;
 
 /* les fonctions */
 
-extern int Bind_command_new(int, int, char *, int, int);
+extern int Bind_command_new(int, int, char *,
+#ifdef USE_SLANG_LANGUAGE
+  char *,
+#endif
+  int, int);
 extern void free_Macros(void);
 extern int aff_ligne_binding(int, int, char *, int);
 
@@ -41,6 +46,10 @@ extern int Comp_cmd_explicite(char *, int , Liste_Chaine *);
 /* Entrée de commandes */
 typedef struct command_return {
    int cmd[NUMBER_OF_CONTEXTS];
+#ifdef USE_SLANG_LANGUAGE
+/* Dans le cas où ce n'est pas obtenu par une macro... */
+   char *fun_slang;
+#endif
    char *before;
    char *after;
    int maybe_after;

@@ -20,162 +20,6 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: ENCODING\n"
 
-#: art_group.c:32
-msgid "$Id$"
-msgstr ""
-
-#: art_group.c:35
-msgid "From:"
-msgstr ""
-
-#: art_group.c:36
-msgid "References:"
-msgstr ""
-
-#: art_group.c:37
-msgid "Subject:"
-msgstr ""
-
-#: art_group.c:38
-msgid "Date:"
-msgstr ""
-
-#: art_group.c:39
-msgid "Newsgroups:"
-msgstr ""
-
-#: art_group.c:40
-msgid "Followup-To:"
-msgstr ""
-
-#: art_group.c:41
-msgid "Organization:"
-msgstr ""
-
-#: art_group.c:42
-msgid "Lines:"
-msgstr ""
-
-#: art_group.c:43
-msgid "Sender:"
-msgstr ""
-
-#: art_group.c:44
-msgid "Reply-To:"
-msgstr ""
-
-#: art_group.c:45
-msgid "Expires:"
-msgstr ""
-
-#: art_group.c:46
-msgid "X-Newsreader:"
-msgstr ""
-
-#: art_group.c:47
-msgid "To:"
-msgstr ""
-
-#: art_group.c:48
-msgid "Cc:"
-msgstr ""
-
-#: art_group.c:49
-msgid "Bcc:"
-msgstr ""
-
-#: art_group.c:50
-msgid "Xref:"
-msgstr ""
-
-#: art_group.c:51 flrn_xover.c:62
-msgid "Message-Id:"
-msgstr ""
-
-#: art_group.c:52
-msgid "X-Censorship:"
-msgstr ""
-
-#: art_group.c:284
-#, c-format
-msgid "Header référence qui buggue : %s !\n"
-msgstr ""
-
-#: art_group.c:416 art_group.c:696 flrn_files.c:252 flrn_format.c:536
-#: group.c:398 tty_display.c:1782
-#, c-format
-msgid "%d"
-msgstr ""
-
-#: art_group.c:463 art_group.c:470 flrn_color.c:229 flrn_inter.c:2453
-#: options.c:339 options.c:622 options.c:679 options.c:733 post.c:187
-msgid "\n"
-msgstr ""
-
-#: art_group.c:923
-#, c-format
-msgid "appel a next_in_thread... %d\n"
-msgstr ""
-
-#: art_group.c:1016
-msgid "Echec de next_in_thread...\n"
-msgstr ""
-
-#: art_group.c:1131 flrn_command.c:143 flrn_command.c:211 flrn_command.c:264
-#: flrn_comp.c:75 flrn_comp.c:95 flrn_filter.c:790 flrn_filter.c:820
-#: flrn_filter.c:852 flrn_inter.c:2480 options.c:80 options.c:208
-#: options.c:212 post.c:1247 post.c:1275 post.c:1279 tty_display.c:1331
-msgid " "
-msgstr ""
-
-#: art_group.c:1132 flrn_inter.c:2481
-msgid " :"
-msgstr ""
-
-#: art_group.c:1134 flrn_inter.c:2482 tty_display.c:101
-msgid ": "
-msgstr ""
-
-#: compatibility.c:21
-msgid "$Id$"
-msgstr ""
-
-#: compatibility.c:44 compatibility.c:65 compatibility.c:90
-msgid "Mémoire insuffisante !\n"
-msgstr ""
-
-#: compatibility.c:48
-#, c-format
-msgid "%8lx malloc %ld, %s :%s, %d\n"
-msgstr ""
-
-#: compatibility.c:69
-#, c-format
-msgid "%8lx calloc %ld * %ld, %s :%s, %d\n"
-msgstr ""
-
-#: compatibility.c:94
-#, c-format
-msgid "%8lx free *realloc* (%8lx) %ld, %s :%s, %d\n"
-msgstr ""
-
-#: compatibility.c:97
-#, c-format
-msgid "%8lx malloc *realloc* (%8lx) %ld, %s :%s, %d\n"
-msgstr ""
-
-#: compatibility.c:113
-msgid "*safe_strdup* "
-msgstr ""
-
-#: compatibility.c:130
-msgid "*safe_strappend* "
-msgstr ""
-
-#: flrn_color.c:26
-msgid "$Id$"
-msgstr ""
-
 #: flrn_color.c:46 flrn_color.c:47 flrn_color.c:48 flrn_color.c:50
 #: flrn_color.c:51 flrn_color.c:52 flrn_color.c:54 flrn_color.c:55
 #: flrn_color.c:56 flrn_color.c:57
@@ -196,10 +40,6 @@ msgstr ""
 
 #: flrn_color.c:54
 msgid "blue"
-msgstr ""
-
-#: flrn_color.c:63 options.c:39
-msgid "=: \t\n"
 msgstr ""
 
 #: flrn_color.c:87
@@ -230,28 +70,12 @@ msgstr ""
 msgid "reverse"
 msgstr ""
 
-#: flrn_color.c:109
-msgid "std"
-msgstr ""
-
-#: flrn_color.c:111
-msgid "std-"
-msgstr ""
-
 #: flrn_color.c:139 options.c:533
 msgid "clear"
 msgstr ""
 
-#: flrn_color.c:158 flrn_color.c:223
-msgid "-"
-msgstr ""
-
 #: flrn_color.c:158 flrn_filter.c:754
 msgid "all"
-msgstr ""
-
-#: flrn_color.c:174
-msgid "0123456789"
 msgstr ""
 
 #: flrn_color.c:223 flrn_color.h:20
@@ -260,12 +84,6 @@ msgstr ""
 
 #: flrn_color.c:469
 msgid " normal"
-msgstr ""
-
-#: flrn_color.c:473 flrn_color.c:477 flrn_color.c:481 flrn_color.c:485
-#: flrn_color.c:513 flrn_color.c:529
-#, c-format
-msgid "%c%s"
 msgstr ""
 
 #: flrn_color.c:496
@@ -300,20 +118,6 @@ msgstr ""
 
 #: flrn_color.c:509
 msgid " all"
-msgstr ""
-
-#: flrn_color.c:520 options.c:801 options.c:806 options.c:811
-#, c-format
-msgid " %d"
-msgstr ""
-
-#: flrn_color.c:525
-msgid " -"
-msgstr ""
-
-#: flrn_color.c:534
-#, c-format
-msgid " %s %s"
 msgstr ""
 
 #: flrn_color.c:538
@@ -363,15 +167,7 @@ msgstr ""
 msgid "search"
 msgstr ""
 
-#: flrn_command.c:34
-msgid "$Id$"
-msgstr ""
-
-#: flrn_command.c:175
-msgid "            "
-msgstr ""
-
-#: flrn_command.c:179
+#: flrn_command.c:214
 msgid "touche de commande explicite"
 msgstr ""
 
@@ -395,14 +191,6 @@ msgstr ""
 msgid "(macro)"
 msgstr ""
 
-#: flrn_command.c:215
-msgid "..."
-msgstr ""
-
-#: flrn_command.c:258 flrn_command.c:482
-msgid "\\"
-msgstr ""
-
 #: flrn_command.c:345 options.c:178 options.c:600
 msgid "command"
 msgstr ""
@@ -413,18 +201,6 @@ msgstr ""
 
 #: flrn_command.c:345 options.c:176 options.c:598
 msgid "menu"
-msgstr ""
-
-#: flrn_command.c:358
-#, c-format
-msgid "(%s"
-msgstr ""
-
-#: flrn_command.c:360 flrn_files.c:60 flrn_files.c:76 flrn_files.c:80
-#: flrn_files.c:148 flrn_files.c:166 flrn_files.c:171 flrn_files.c:205
-#: flrn_files.c:218 flrn_format.c:622 flrn_inter.c:2086 flrn_inter.c:2164
-#: flrn_shell.c:59 flrn_shell.c:110
-msgid "/"
 msgstr ""
 
 #: flrn_command.c:363 flrn_inter.c:794
@@ -445,14 +221,6 @@ msgstr ""
 
 #: flrn_command.c:432
 msgid "key-right "
-msgstr ""
-
-#: flrn_command.c:487 flrn_inter.c:804 flrn_inter.c:2830
-msgid "\t"
-msgstr ""
-
-#: flrn_comp.c:24
-msgid "$Id$"
 msgstr ""
 
 #: flrn_config.h:231
@@ -559,19 +327,19 @@ msgstr ""
 msgid "option"
 msgstr ""
 
-#: flrn_config.h:285 flrn_menus.h:38 flrn_pager.h:23 flrn_slang.c:465
+#: flrn_config.h:285 flrn_menus.h:38 flrn_pager.h:23
 msgid "up"
 msgstr ""
 
-#: flrn_config.h:287 flrn_menus.h:40 flrn_pager.h:25 flrn_slang.c:465
+#: flrn_config.h:287 flrn_menus.h:40 flrn_pager.h:25
 msgid "down"
 msgstr ""
 
-#: flrn_config.h:289 flrn_slang.c:465
+#: flrn_config.h:289
 msgid "left"
 msgstr ""
 
-#: flrn_config.h:291 flrn_slang.c:465
+#: flrn_config.h:291
 msgid "right"
 msgstr ""
 
@@ -719,96 +487,20 @@ msgstr ""
 msgid "1-,unread"
 msgstr ""
 
-#: flrn_files.c:30
-msgid "$Id$"
-msgstr ""
-
-#: flrn_files.c:54 flrn_files.c:141 flrn_files.c:201 flrn_files.c:214
-#: flrn_format.c:618 flrn_inter.c:2160 flrn_shell.c:55 flrn_shell.c:106
-msgid "FLRNHOME"
-msgstr ""
-
-#: flrn_files.c:55 flrn_files.c:143 flrn_files.c:202 flrn_files.c:215
-#: flrn_format.c:619 flrn_inter.c:2161 flrn_shell.c:56 flrn_shell.c:107
-msgid "HOME"
-msgstr ""
-
-#: flrn_files.c:69 flrn_files.c:159
-msgid "./"
-msgstr ""
-
-#: flrn_files.c:94
-#, c-format
-msgid "On essaie d'ouvrir %s\n"
-msgstr ""
-
-#: flrn_files.c:110
-msgid "On va essayer de le créer\n"
-msgstr ""
-
-#: flrn_files.c:111 group.c:374
-msgid "w+"
-msgstr ""
-
-#: flrn_files.c:113
-msgid "fopen"
-msgstr ""
-
 #: flrn_files.c:119
 msgid "Ouverture du fichier par défaut\n"
-msgstr ""
-
-#: flrn_files.c:124 flrn_files.c:240 flrn_files.c:296 flrn_files.c:308
-#: flrn_format.c:623 flrn_inter.c:2165 flrn_tags.c:37 group.c:105 group.c:109
-#: options.c:1001 options.c:1026 post.c:131 post.c:316 post.c:336 post.c:418
-#: post.c:420
-msgid "r"
-msgstr ""
-
-#: flrn_files.c:126
-msgid "Fichier de config inexistant ??\n"
-msgstr ""
-
-#: flrn_files.c:158
-msgid "HOME semble non défini... On essaie un chemin local\n"
 msgstr ""
 
 #: flrn_files.c:190
 msgid "Echec dans le renommage du .flnewsrc.new.\n"
 msgstr ""
 
-#: flrn_files.c:239
-#, c-format
-msgid "%s%s%c"
-msgstr ""
-
-#: flrn_files.c:274 flrn_tcp.c:336 post.c:1054
-msgid ".\r\n"
-msgstr ""
-
-#: flrn_files.c:275
-msgid "-- \r\n"
-msgstr ""
-
 #: flrn_files.c:299
 msgid "Kill-file invalide, ignoré !\n"
 msgstr ""
 
-#: flrn_files.c:329
-msgid ".swp"
-msgstr ""
-
-#: flrn_files.c:330 flrn_inter.c:2103 flrn_inter.c:2138 flrn_inter.c:2235
-#: flrn_tags.c:86 post.c:286 post.c:1065
-msgid "w"
-msgstr ""
-
 #: flrn_files.c:336
 msgid "Erreur dans l'écriture de la liste de censure.\n"
-msgstr ""
-
-#: flrn_filter.c:27
-msgid "$Id$"
 msgstr ""
 
 #: flrn_filter.c:399
@@ -851,408 +543,12 @@ msgstr ""
 msgid "unselected"
 msgstr ""
 
-#: flrn_format.c:32
-msgid "$Id$"
-msgstr ""
-
-#: flrn_format.c:39
-msgid "Jan"
-msgstr ""
-
-#: flrn_format.c:39
-msgid "Feb"
-msgstr ""
-
-#: flrn_format.c:39
-msgid "Mar"
-msgstr ""
-
-#: flrn_format.c:39
-msgid "Apr"
-msgstr ""
-
-#: flrn_format.c:39
-msgid "May"
-msgstr ""
-
-#: flrn_format.c:39
-msgid "Jun"
-msgstr ""
-
-#: flrn_format.c:39
-msgid "Jul"
-msgstr ""
-
-#: flrn_format.c:39
-msgid "Aug"
-msgstr ""
-
-#: flrn_format.c:40
-msgid "Sep"
-msgstr ""
-
-#: flrn_format.c:40
-msgid "Oct"
-msgstr ""
-
-#: flrn_format.c:40
-msgid "Nov"
-msgstr ""
-
-#: flrn_format.c:40
-msgid "Dec"
-msgstr ""
-
-#: flrn_format.c:40
-msgid "ERR"
-msgstr ""
-
-#: flrn_format.c:52
-msgid "sst"
-msgstr ""
-
-#: flrn_format.c:53
-msgid "pst"
-msgstr ""
-
-#: flrn_format.c:54
-msgid "mst"
-msgstr ""
-
-#: flrn_format.c:55
-msgid "pdt"
-msgstr ""
-
-#: flrn_format.c:56
-msgid "cst"
-msgstr ""
-
-#: flrn_format.c:57
-msgid "mdt"
-msgstr ""
-
-#: flrn_format.c:58
-msgid "cdt"
-msgstr ""
-
-#: flrn_format.c:59
-msgid "est"
-msgstr ""
-
-#: flrn_format.c:60 flrn_format.c:80
-msgid "ast"
-msgstr ""
-
-#: flrn_format.c:61
-msgid "edt"
-msgstr ""
-
-#: flrn_format.c:62
-msgid "wgt"
-msgstr ""
-
-#: flrn_format.c:63
-msgid "wgst"
-msgstr ""
-
-#: flrn_format.c:64
-msgid "aat"
-msgstr ""
-
-#: flrn_format.c:65
-msgid "egt"
-msgstr ""
-
-#: flrn_format.c:66
-msgid "egst"
-msgstr ""
-
-#: flrn_format.c:67
-msgid "gmt"
-msgstr ""
-
-#: flrn_format.c:68
-msgid "utc"
-msgstr ""
-
-#: flrn_format.c:69
-msgid "wat"
-msgstr ""
-
-#: flrn_format.c:70
-msgid "wet"
-msgstr ""
-
-#: flrn_format.c:71
-msgid "bst"
-msgstr ""
-
-#: flrn_format.c:72
-msgid "cat"
-msgstr ""
-
-#: flrn_format.c:73
-msgid "cet"
-msgstr ""
-
-#: flrn_format.c:74
-msgid "met"
-msgstr ""
-
-#: flrn_format.c:75
-msgid "west"
-msgstr ""
-
-#: flrn_format.c:76
-msgid "cest"
-msgstr ""
-
-#: flrn_format.c:77
-msgid "eet"
-msgstr ""
-
-#: flrn_format.c:78 flrn_format.c:89
-msgid "ist"
-msgstr ""
-
-#: flrn_format.c:79
-msgid "sat"
-msgstr ""
-
-#: flrn_format.c:81
-msgid "eat"
-msgstr ""
-
-#: flrn_format.c:82
-msgid "eest"
-msgstr ""
-
-#: flrn_format.c:83
-msgid "idt"
-msgstr ""
-
-#: flrn_format.c:84
-msgid "msk"
-msgstr ""
-
-#: flrn_format.c:85
-msgid "adt"
-msgstr ""
-
-#: flrn_format.c:86
-msgid "msd"
-msgstr ""
-
-#: flrn_format.c:87
-msgid "gst"
-msgstr ""
-
-#: flrn_format.c:88
-msgid "smt"
-msgstr ""
-
-#: flrn_format.c:90
-msgid "ict"
-msgstr ""
-
-#: flrn_format.c:92
-msgid "hkt"
-msgstr ""
-
-#: flrn_format.c:94
-msgid "wst"
-msgstr ""
-
-#: flrn_format.c:95
-msgid "jst"
-msgstr ""
-
-#: flrn_format.c:97
-msgid "kst"
-msgstr ""
-
-#: flrn_format.c:98
-msgid "nzst"
-msgstr ""
-
-#: flrn_format.c:99
-msgid "nzdt"
-msgstr ""
-
-#: flrn_format.c:122
-msgid " )"
-msgstr ""
-
-#: flrn_format.c:196 flrn_format.c:270 options.c:493 post.c:195
-msgid " \t"
-msgstr ""
-
-#: flrn_format.c:227
-#, c-format
-msgid "%d:%d:%d"
-msgstr ""
-
-#: flrn_format.c:229
-#, c-format
-msgid "%d:%d"
-msgstr ""
-
-#: flrn_format.c:233
-#, c-format
-msgid "parse_date: beurk : %s\n"
-msgstr ""
-
-#: flrn_format.c:268
-msgid "MET"
-msgstr ""
-
-#: flrn_format.c:272
-msgid "DST"
-msgstr ""
-
-#: flrn_format.c:334 flrn_format.c:346 tty_display.c:1254
-msgid "???"
-msgstr ""
-
-#: flrn_format.c:339
-#, c-format
-msgid "%d %s %d %d:%d:%d"
-msgstr ""
-
-#: flrn_format.c:343
-#, c-format
-msgid "%3s %2d %2d:%2d"
-msgstr ""
-
-#: flrn_format.c:395 flrn_format.c:415 flrn_format.c:427 flrn_inter.c:208
-#: flrn_inter.c:2405 flrn_lists.c:87 options.c:773 post.c:105 post.c:119
-#: version.c:141
-#, c-format
-msgid "%s\n"
-msgstr ""
-
-#: flrn_format.c:479
-#, c-format
-msgid "Bug dans Copy_format : ne peut faire la traduction de %s\n"
-msgstr ""
-
-#: flrn_format.c:502 flrn_format.c:503 flrn_format.c:504
-#, c-format
-msgid "%"
-msgstr ""
-
-#: flrn_format.c:663
-msgid "%%%c"
-msgstr ""
-
-#: flrn_format.c:664
-msgid "Mauvaise formatage : %%%s\n"
-msgstr ""
-
-#: flrn_format.c:710
-#, c-format
-msgid "%c%5d"
-msgstr ""
-
-#: flrn_format.c:711
-#, c-format
-msgid "%-*.*s "
-msgstr ""
-
-#: flrn_format.c:714 flrn_format.c:728 flrn_format.c:736
-#, c-format
-msgid "%-*.*s"
-msgstr ""
-
-#: flrn_format.c:718 flrn_format.c:719 post.c:1444
-msgid "Re: "
-msgstr ""
-
-#: flrn_format.c:725
-#, c-format
-msgid "%*s%-*s"
-msgstr ""
-
-#: flrn_format.c:725 post.c:1191 post.c:1196
-msgid "."
-msgstr ""
-
-#: flrn_format.c:729
-#, c-format
-msgid "%*s"
-msgstr ""
-
-#: flrn_format.c:742
-#, c-format
-msgid "[%5d]"
-msgstr ""
-
-#: flrn_format.c:744
-#, c-format
-msgid "%-7s"
-msgstr ""
-
-#: flrn_format.c:744
-msgid "[ ? ]"
-msgstr ""
-
-#: flrn_format.c:746
-#, c-format
-msgid "%7.7s"
-msgstr ""
-
-#: flrn_format.c:761 post.c:878 post.c:1512
-msgid " ("
-msgstr ""
-
-#: flrn_format.c:777 post.c:883 post.c:1517
-msgid ")"
-msgstr ""
-
-#: flrn_format.c:783
-msgid " ["
-msgstr ""
-
-#: flrn_format.c:785
-msgid "]"
-msgstr ""
-
-#: flrn_func.c:36
-msgid "$Id$"
-msgstr ""
-
-#: flrn_func.c:204 group.c:508 group.c:510 group.c:552 group.c:555
-#: tty_display.c:660
-msgid "*"
-msgstr ""
-
-#: flrn_func.c:235 flrn_inter.c:2547 post.c:841
-msgid "Quel groupe ?"
-msgstr ""
-
-#: flrn_func.c:245
-#, c-format
-msgid "get-group : %s\n"
-msgstr ""
-
-#: flrn_help.c:24
-msgid "$Id$"
-msgstr ""
-
-#: flrn_help.c:26
-msgid "0123456789mq"
-msgstr ""
-
 #: flrn_help.c:27
 msgid "Aide de flrn, à vous [0-9qm] :"
 msgstr ""
 
 #: flrn_help.c:38
 msgid "Erreur : ne trouve pas le fichier d'aide cherché."
-msgstr ""
-
-#: flrn_inter.c:44
-msgid "$Id$"
 msgstr ""
 
 #: flrn_inter.c:196
@@ -1274,15 +570,6 @@ msgstr ""
 msgid "  Il y a au total %d article%s non lu%s."
 msgstr ""
 
-#: flrn_inter.c:382
-msgid "Liste créée\n"
-msgstr ""
-
-#: flrn_inter.c:427
-#, c-format
-msgid "etat %d num_message %d\n"
-msgstr ""
-
 #: flrn_inter.c:446 flrn_inter.c:498 flrn_pager.c:227 flrn_pager.c:240
 #: flrn_pager.c:277 tty_display.c:1550
 msgid "Patientez..."
@@ -1290,16 +577,6 @@ msgstr ""
 
 #: flrn_inter.c:834 tty_display.c:1567
 msgid "A vous : "
-msgstr ""
-
-#: flrn_inter.c:1130
-#, c-format
-msgid "%s:?"
-msgstr ""
-
-#: flrn_inter.c:1132
-#, c-format
-msgid "%s:%ld"
 msgstr ""
 
 #: flrn_inter.c:1143
@@ -1326,31 +603,8 @@ msgstr ""
 msgid "  Lignes : "
 msgstr ""
 
-#: flrn_inter.c:1583
-#, c-format
-msgid "%i"
-msgstr ""
-
-#: flrn_inter.c:1587 rfc2047.c:279
-msgid "?"
-msgstr ""
-
 #: flrn_inter.c:1712
 msgid "Résumé (q pour quitter)."
-msgstr ""
-
-#: flrn_inter.c:1830 flrn_inter.c:1833
-msgid " *** "
-msgstr ""
-
-#: flrn_inter.c:1831
-#, c-format
-msgid " %4d "
-msgstr ""
-
-#: flrn_inter.c:1834
-#, c-format
-msgid "%4d "
 msgstr ""
 
 #: flrn_inter.c:1846
@@ -1373,38 +627,12 @@ msgstr ""
 msgid "yYoO"
 msgstr ""
 
-#: flrn_inter.c:2104
-msgid "a"
-msgstr ""
-
-#: flrn_inter.c:2170
-msgid "! "
-msgstr ""
-
-#: flrn_inter.c:2171
-msgid "| "
-msgstr ""
-
 #: flrn_inter.c:2173 post.c:772
 msgid " : "
 msgstr ""
 
 #: flrn_inter.c:2220
 msgid "Piper dans : "
-msgstr ""
-
-#: flrn_inter.c:2441
-#, c-format
-msgid "From %s %s"
-msgstr ""
-
-#: flrn_inter.c:2445
-#, c-format
-msgid "From %s%s %s"
-msgstr ""
-
-#: flrn_inter.c:2445
-msgid "@localhost"
 msgstr ""
 
 #: flrn_inter.c:2448
@@ -1415,10 +643,6 @@ msgstr ""
 #: flrn_inter.c:2450
 #, c-format
 msgid "Newsgroup : %s     No : %d\n"
-msgstr ""
-
-#: flrn_inter.c:2622 flrn_inter.c:2623
-msgid "<news:"
 msgstr ""
 
 #: flrn_inter.c:2708
@@ -1441,18 +665,6 @@ msgstr ""
 msgid "mono"
 msgstr ""
 
-#: flrn_inter.c:2917
-msgid "Euh.... un thread lu non lu ???\n"
-msgstr ""
-
-#: flrn_lists.c:21
-msgid "$Id$"
-msgstr ""
-
-#: flrn_menus.c:24
-msgid "$Id$"
-msgstr ""
-
 #: flrn_menus.h:42 flrn_pager.h:27
 msgid "pgup"
 msgstr ""
@@ -1473,23 +685,19 @@ msgstr ""
 msgid "cmd"
 msgstr ""
 
-#: flrn_messages.c:20
-msgid "$Id$"
-msgstr ""
-
-#: flrn_messages.c:23
+#: flrn_messages.c:22
 msgid "Commande inconnue ou hors contexte !"
 msgstr ""
 
-#: flrn_messages.c:24
+#: flrn_messages.c:23
 msgid "Rien de nouveau."
 msgstr ""
 
-#: flrn_messages.c:25
+#: flrn_messages.c:24
 msgid "Fin du newsgroup."
 msgstr ""
 
-#: flrn_messages.c:26
+#: flrn_messages.c:25
 msgid "Message(s) inexistant(s)."
 msgstr ""
 
@@ -1661,8 +869,180 @@ msgstr ""
 msgid "Passage en mode normal."
 msgstr ""
 
-#: flrn_pager.c:28
-msgid "$Id$"
+#: flrn_pager.c:43
+msgid "Search : "
+msgstr ""
+
+#: flrn_pager.c:231
+msgid "(100%%)-more-"
+msgstr ""
+
+#: flrn_pager.c:246 tty_display.c:1434 tty_display.c:1555
+msgid "-More-"
+msgstr ""
+
+#: flrn_messages.c:27
+msgid "Post envoyé."
+msgstr ""
+
+#: flrn_messages.c:28 post.c:1653
+msgid "Post annulé."
+msgstr ""
+
+#: flrn_messages.c:29
+msgid "Article(s) sauvé(s)."
+msgstr ""
+
+#: flrn_messages.c:30
+msgid "Abonnement effectué."
+msgstr ""
+
+#: flrn_messages.c:31
+msgid "Désabonnement effectué."
+msgstr ""
+
+#: flrn_messages.c:32
+msgid "Pas de thread sélectionné."
+msgstr ""
+
+#: flrn_messages.c:33
+msgid "Groupe zappé."
+msgstr ""
+
+#: flrn_messages.c:34
+msgid "Pas d'autres newsgroups."
+msgstr ""
+
+#: flrn_messages.c:35
+msgid "Xref non trouvé !"
+msgstr ""
+
+#: flrn_messages.c:36
+msgid "(continue)"
+msgstr ""
+
+#: flrn_messages.c:37
+msgid "Tag mis"
+msgstr ""
+
+#: flrn_messages.c:38
+msgid "Cancel annulé"
+msgstr ""
+
+#: flrn_messages.c:39
+msgid "Article(s) cancelé(s)"
+msgstr ""
+
+#: flrn_messages.c:40
+msgid "Opération effectuée"
+msgstr ""
+
+#: flrn_messages.c:41
+msgid "Mail envoyé"
+msgstr ""
+
+#: flrn_messages.c:42
+msgid "Mail envoyé, article posté"
+msgstr ""
+
+#: flrn_messages.c:43
+msgid "Article(s) lu(s) temporairement."
+msgstr ""
+
+#: flrn_messages.c:44
+msgid "Vous n'êtes abonné à aucun groupe"
+msgstr ""
+
+#: flrn_messages.c:45
+msgid "Newsgroup vide"
+msgstr ""
+
+#: flrn_messages.c:46
+msgid "Vous n'êtes dans aucun groupe"
+msgstr ""
+
+#: flrn_messages.c:47
+msgid "Pas d'article négatif"
+msgstr ""
+
+#: flrn_messages.c:48
+msgid "Echec de la sauvegarde."
+msgstr ""
+
+#: flrn_messages.c:49
+msgid "Newsgroup inconnu, supprimé !"
+msgstr ""
+
+#: flrn_messages.c:50
+msgid "Pas de newsgroup trouvé"
+msgstr ""
+
+#: flrn_messages.c:51
+msgid "Regexp invalide !"
+msgstr ""
+
+#: flrn_messages.c:52
+msgid "Echec du pipe..."
+msgstr ""
+
+#: flrn_messages.c:53
+msgid "L'article n'est plus dans le groupe"
+msgstr ""
+
+#: flrn_messages.c:54
+msgid "Tag invalide"
+msgstr ""
+
+#: flrn_messages.c:55
+msgid "Cancel refusé"
+msgstr ""
+
+#: flrn_messages.c:56
+msgid "Historique vide."
+msgstr ""
+
+#: flrn_messages.c:57
+msgid "Pas de header !"
+msgstr ""
+
+#: flrn_messages.c:58
+msgid "Header refusé !"
+msgstr ""
+
+#: flrn_messages.c:59
+msgid "Erreur fatale !!!"
+msgstr ""
+
+#: flrn_messages.c:60
+msgid "Pas de recherche."
+msgstr ""
+
+#: flrn_messages.c:61
+msgid "Rien trouvé."
+msgstr ""
+
+#: flrn_messages.c:62
+msgid "Flag invalide."
+msgstr ""
+
+#: flrn_messages.c:63
+msgid "Flag appliqué."
+msgstr ""
+
+#: flrn_messages.c:64
+msgid "Macro interdite."
+msgstr ""
+
+#: flrn_messages.c:65
+msgid "Message-ID inconnu."
+msgstr ""
+
+#: flrn_messages.c:66
+msgid "Passage en mode thread."
+msgstr ""
+
+#: flrn_messages.c:67
+msgid "Passage en mode normal."
 msgstr ""
 
 #: flrn_pager.c:43
@@ -1673,112 +1053,8 @@ msgstr ""
 msgid "(100%%)-more-"
 msgstr ""
 
-#: flrn_pager.c:245 tty_display.c:1432 tty_display.c:1554
-msgid "(%d%%)"
-msgstr ""
-
 #: flrn_pager.c:246 tty_display.c:1434 tty_display.c:1555
 msgid "-More-"
-msgstr ""
-
-#: flrn_regexp.c:27
-msgid "$Id$"
-msgstr ""
-
-#: flrn_regexp.c:53
-msgid ".^$*[]+{}()\\"
-msgstr ""
-
-#: flrn_regexp.c:77
-msgid "[]{}()"
-msgstr ""
-
-#: flrn_regexp.c:79
-msgid "*?"
-msgstr ""
-
-#: flrn_regexp.c:80
-msgid "*?+."
-msgstr ""
-
-#: flrn_regexp.c:83
-msgid "^$"
-msgstr ""
-
-#: flrn_regexp.c:84
-msgid ".^$*?[]+\\{}()"
-msgstr ""
-
-#: flrn_shell.c:36
-msgid "$Id$"
-msgstr ""
-
-#: flrn_shell.c:67
-msgid "EDITOR"
-msgstr ""
-
-#: flrn_shell.c:69
-msgid "VISUAL"
-msgstr ""
-
-#: flrn_shell.c:71
-msgid "vi"
-msgstr ""
-
-#: flrn_shell.c:99
-msgid "PAGER"
-msgstr ""
-
-#: flrn_shell.c:101
-msgid "less"
-msgstr ""
-
-#: flrn_slang.c:24
-msgid "$Id$"
-msgstr ""
-
-#: flrn_slang.c:466
-msgid "pageup"
-msgstr ""
-
-#: flrn_slang.c:466
-msgid "pagedown"
-msgstr ""
-
-#: flrn_slang.c:466
-msgid "home"
-msgstr ""
-
-#: flrn_slang.c:466
-msgid "end"
-msgstr ""
-
-#: flrn_slang.c:467
-msgid "a1"
-msgstr ""
-
-#: flrn_slang.c:467
-msgid "a2"
-msgstr ""
-
-#: flrn_slang.c:467
-msgid "b2"
-msgstr ""
-
-#: flrn_slang.c:467
-msgid "c1"
-msgstr ""
-
-#: flrn_slang.c:468
-msgid "c3"
-msgstr ""
-
-#: flrn_slang.c:468
-msgid "redo"
-msgstr ""
-
-#: flrn_slang.c:468
-msgid "undo"
 msgstr ""
 
 #: flrn_slang.c:496
@@ -1801,150 +1077,12 @@ msgstr ""
 msgid "M- "
 msgstr ""
 
-#: flrn_slang.c:518
-#, c-format
-msgid "F%i"
-msgstr ""
-
-#: flrn_slang.c:522
-#, c-format
-msgid "(%4i)"
-msgstr ""
-
-#: flrn_string.c:20
-msgid "$Id$"
-msgstr ""
-
-#: flrn_tags.c:23
-msgid "$Id$"
-msgstr ""
-
-#: flrn_tags.c:91
-#, c-format
-msgid "%s%c%ld\n"
-msgstr ""
-
-#: flrn_tags.c:97
-#, c-format
-msgid "%s:%ld/%c\n"
-msgstr ""
-
-#: flrn_tcp.c:33
-msgid "$Id$"
-msgstr ""
-
-#: flrn_tcp.c:40
-msgid "MODE READER"
-msgstr ""
-
-#: flrn_tcp.c:40
-msgid "NEWGROUPS"
-msgstr ""
-
-#: flrn_tcp.c:40
-msgid "NEWNEWS"
-msgstr ""
-
-#: flrn_tcp.c:40
-msgid "GROUP"
-msgstr ""
-
-#: flrn_tcp.c:41
-msgid "STAT"
-msgstr ""
-
-#: flrn_tcp.c:41
-msgid "HEAD"
-msgstr ""
-
-#: flrn_tcp.c:41
-msgid "BODY"
-msgstr ""
-
-#: flrn_tcp.c:41
-msgid "XHDR"
-msgstr ""
-
-#: flrn_tcp.c:41
-msgid "XOVER"
-msgstr ""
-
-#: flrn_tcp.c:41
-msgid "POST"
-msgstr ""
-
-#: flrn_tcp.c:41
-msgid "DATE"
-msgstr ""
-
-#: flrn_tcp.c:42
-msgid "ARTICLE"
-msgstr ""
-
-#: flrn_tcp.c:42
-msgid "AUTHINFO"
-msgstr ""
-
-#: flrn_tcp.c:84
-#, c-format
-msgid "%s : Unknown host.\n"
-msgstr ""
-
-#: flrn_tcp.c:97
-msgid "socket"
-msgstr ""
-
-#: flrn_tcp.c:110
-msgid "connect"
-msgstr ""
-
-#: flrn_tcp.c:151
-msgid "Temps d'attente dépassé... "
-msgstr ""
-
-#: flrn_tcp.c:152
-msgid "select dans raw_read"
-msgstr ""
-
-#: flrn_tcp.c:155
-msgid "On abandonne.\n"
-msgstr ""
-
-#: flrn_tcp.c:157
-msgid "On reprend.\n"
-msgstr ""
-
-#: flrn_tcp.c:163
-msgid "interruption en lecture...\n"
-msgstr ""
-
 #: flrn_tcp.c:167
 msgid "Read : "
 msgstr ""
 
 #: flrn_tcp.c:170
 msgid "Qu'est-ce que signifie read=0 ?\n"
-msgstr ""
-
-#: flrn_tcp.c:269
-msgid "imeout"
-msgstr ""
-
-#: flrn_tcp.c:269
-msgid "timed"
-msgstr ""
-
-#: flrn_tcp.c:285 flrn_tcp.c:503 group.c:266 group.c:303
-msgid "Echec en lecture du serveur\n"
-msgstr ""
-
-#: flrn_tcp.c:288
-msgid "Un timeout ?\n"
-msgstr ""
-
-#: flrn_tcp.c:299
-#, c-format
-msgid "Un timeout... %s"
 msgstr ""
 
 #: flrn_tcp.c:389
@@ -1956,18 +1094,6 @@ msgstr ""
 msgid "Echec de la connexion au serveur : %s\n"
 msgstr ""
 
-#: flrn_tcp.c:404
-msgid "Accès refusé. On va donc quitter :-( \n"
-msgstr ""
-
-#: flrn_tcp.c:428
-msgid "user"
-msgstr ""
-
-#: flrn_tcp.c:433
-msgid "pass"
-msgstr ""
-
 #: flrn_tcp.c:439
 msgid "Le serveur demande un mot de passe.\n"
 msgstr ""
@@ -1976,130 +1102,12 @@ msgstr ""
 msgid "Mot de passe : "
 msgstr ""
 
-#: flrn_tcp.c:464
-#, c-format
-msgid "Yo :%s\n"
-msgstr ""
-
-#: flrn_tcp.c:480
-#, c-format
-msgid "Yu :%ld %ld %d\n"
-msgstr ""
-
-#: flrn_tcp.c:499
-msgid "ligne tres longue ???\n"
-msgstr ""
-
-#: flrn_tcp.c:506 group.c:413 tty_display.c:663
-#, c-format
-msgid "%s"
-msgstr ""
-
-#: flrn_tcp.c:521
-#, c-format
-msgid "%s %ld %ld y\r\n"
-msgstr ""
-
-#: flrn_tcp.c:558
-msgid "Erreur en ecriture\n"
-msgstr ""
-
-#: flrn_tcp.c:585
-msgid "Ligne a envoyer trop longue !"
-msgstr ""
-
-#: flrn_tcp.c:641 flrn_xover.c:45
-msgid "overview.fmt"
-msgstr ""
-
-#: flrn_tcp.c:646 tty_display.c:655
-msgid "active"
-msgstr ""
-
-#: flrn_tcp.c:649 group.c:470 group.c:506 group.c:550 group.c:656 group.c:719
-#: group.c:988
-msgid "active "
-msgstr ""
-
-#: flrn_tcp.c:710
-msgid "Reste a renvoyer la commande bugguante\n"
-msgstr ""
-
-#: flrn_tcp.c:714
-msgid "Reconnexion réussie ...\n"
-msgstr ""
-
-#: flrn_xover.c:24
-msgid "$Id$"
-msgstr ""
-
-#: flrn_xover.c:66 flrn_xover.c:74
-msgid "full"
-msgstr ""
-
-#: flrn_xover.c:120
-#, c-format
-msgid "%d-%d"
-msgstr ""
-
-#: flrn_xover.c:314
-#, c-format
-msgid "Message-ID %d-%d"
-msgstr ""
-
-#: flrn_xover.c:332
-#, c-format
-msgid "%d %s"
-msgstr ""
-
-#: flrn_xover.c:372
-#, c-format
-msgid "References %d-%d"
-msgstr ""
-
-#: flrn_xover.c:385
-msgid "xhdr References se passe mal\n"
-msgstr ""
-
-#: flrn_xover.c:418
-msgid "Cree_liste: Echec en lecture du serveur\n"
-msgstr ""
-
-#: flrn_xover.c:423
-msgid "Serveur grotesque : ligne trop longue\n"
-msgstr ""
-
-#: flrn_xover.c:429
-msgid "Newsgroup invalide !\n"
-msgstr ""
-
-#: flrn_xover.c:465
-msgid "Problème de max de Newsgroup_courant\n"
-msgstr ""
-
-#: flrn_xover.c:467
-msgid "Patientez svp..."
-msgstr ""
-
-#: flrn_xover.c:537
-#, c-format
-msgid "%s %d-%d"
-msgstr ""
-
 #: flrn_xover.c:557
 msgid "(none)"
 msgstr ""
 
-#: group.c:34
-msgid "$Id$"
-msgstr ""
-
 #: group.c:73
 msgid "Erreur dans le fichier .flnewsrc\n"
-msgstr ""
-
-#: group.c:122
-msgid "On agrandit la taille de buf (init_groups)\n"
 msgstr ""
 
 #: group.c:134
@@ -2107,37 +1115,9 @@ msgstr ""
 msgid "Nom du newsgroup %s dans le .flnewsrc trop long !!! \n"
 msgstr ""
 
-#: group.c:139
-msgid "\t,"
-msgstr ""
-
 #: group.c:140
 #, c-format
 msgid "Nom du newsgroup %s invalide dans le .flnewsrc !!! \n"
-msgstr ""
-
-#: group.c:239
-msgid "%y%m%d %H%M%S GMT"
-msgstr ""
-
-#: group.c:241 group.c:599
-#, c-format
-msgid "Date formée : %s\n"
-msgstr ""
-
-#: group.c:254
-#, c-format
-msgid "Code d'erreur %d\n"
-msgstr ""
-
-#: group.c:277
-#, c-format
-msgid "Goodreg : %s\n"
-msgstr ""
-
-#: group.c:288
-#, c-format
-msgid "Badreg : %s\n"
 msgstr ""
 
 #: group.c:335
@@ -2161,10 +1141,6 @@ msgstr ""
 msgid "Appuyez sur entree pour continuer...\n"
 msgstr ""
 
-#: group.c:370
-msgid "Sauvegarde du .flnewsrc\n"
-msgstr ""
-
 #: group.c:373
 msgid ".new"
 msgstr ""
@@ -2184,18 +1160,6 @@ msgstr ""
 msgid "-%d"
 msgstr ""
 
-#: group.c:408
-msgid "Ecriture du .flnewsrc.new finie.\n"
-msgstr ""
-
-#: group.c:410
-msgid "Renommage du .flnewsrc fini.\n"
-msgstr ""
-
-#: group.c:413
-msgid "C'est fini\n"
-msgstr ""
-
 #: group.c:427
 msgid "Erreur dans la sauvegarde du .flnewsrc\n"
 msgstr ""
@@ -2204,25 +1168,12 @@ msgstr ""
 msgid "On garde l'ancien .flnewsrc.\n"
 msgstr ""
 
-#: group.c:595
-msgid " %y%m%d %H%M%S GMT"
-msgstr ""
-
-#: group.c:630
-#, c-format
-msgid "New news - %s\n"
-msgstr ""
-
 #: group.c:1047
 msgid "newsgroups"
 msgstr ""
 
 #: group.c:1062 group.c:1064
 msgid "  (pas de description)  "
-msgstr ""
-
-#: main.c:43
-msgid "$Id$"
 msgstr ""
 
 #: main.c:54
@@ -2248,73 +1199,9 @@ msgid ""
 "%s\n"
 msgstr ""
 
-#: main.c:94
-msgid "-d"
-msgstr ""
-
-#: main.c:94
-msgid "--debug"
-msgstr ""
-
-#: main.c:96
-msgid "-n"
-msgstr ""
-
-#: main.c:96
-msgid "--name"
-msgstr ""
-
-#: main.c:101
-msgid "-v"
-msgstr ""
-
-#: main.c:101
-msgid "--version"
-msgstr ""
-
-#: main.c:102
-msgid "flrn"
-msgstr ""
-
-#: main.c:103
-msgid "-c"
-msgstr ""
-
-#: main.c:103
-msgid "--co"
-msgstr ""
-
-#: main.c:105
-msgid "--stupid-term"
-msgstr ""
-
-#: main.c:106
-msgid "-h"
-msgstr ""
-
-#: main.c:106
-msgid "--help"
-msgstr ""
-
-#: main.c:108
-msgid "--show-config"
-msgstr ""
-
-#: main.c:110
-msgid "-s"
-msgstr ""
-
-#: main.c:110
-msgid "--server"
-msgstr ""
-
 #: main.c:116
 #, c-format
 msgid "Option non reconnue :%s\n"
-msgstr ""
-
-#: main.c:122 main.c:195
-msgid "MAIL"
 msgstr ""
 
 #: main.c:135

@@ -594,7 +594,11 @@ void init_Flcmd_menu_rev() {
 /* -3 touche verrouillee */
 /* -4 plus de macro disponible */
 int Bind_command_menu(char *nom, int key, char *arg, int add) {
-  int i;
+  int res;
+  Cmd_return commande;
+#ifdef USE_SLANG_LANGUAGE
+  commande.fun_slang=NULL;
+#endif
   if ((key<1)  || key >= MAX_FL_KEY)
     return -2;
   if (arg ==NULL) {
@@ -603,10 +607,14 @@ int Bind_command_menu(char *nom, int key, char *arg, int add) {
       return 0;
     }
   }
-  for (i=0;i<NB_FLCMD_MENU;i++)
-    if (strcmp(nom, Flcmds_menu[i])==0) {
-      if (Bind_command_new(key,i,arg,CONTEXT_MENU, add)<0) return -4;
-      return 0;
-    }
-  return -1;
+  res=Lit_cmd_explicite(nom, CONTEXT_MENU, -1, &commande);
+  if (res==-1) return -1;
+    res=Bind_command_new(key, commande.cmd[CONTEXT_MENU], arg,
+#ifdef USE_SLANG_LANGUAGE
+       commande.fun_slang, CONTEXT_MENU, add);
+  if (commande.fun_slang) free(commande.fun_slang);
+#else
+       CONTEXT_MENU, add);
+#endif
+  return (res<0 ? -4 : 0);
 }

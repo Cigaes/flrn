@@ -250,4 +250,21 @@ void change_SLang_Error_Hook (int param)
    }
 }
 
+int Parse_type_fun_slang(char *str_int) {
+    return strtol(str_int, NULL, 10);
+}
+
+extern SLang_Name_Type *Parse_fun_slang (char *str, int *num) {
+    char *comma;
+    SLang_Name_Type *result;
+    comma=strchr(str,',');
+    if (comma) {
+       *comma='\0';
+       *num=Parse_type_fun_slang(comma+1);
+    } else *num=0;
+    result=SLang_get_function(str);
+    if (comma) *comma=',';
+    return result;
+}
+
 #endif

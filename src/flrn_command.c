@@ -47,7 +47,11 @@ static int Flcmd_num_macros_max=0;
  * maintenant, on recherche une place libre avant d'ajouter a la fin...
  * donc plusieurs bind sur la meme touche ne doivent plus faire augmenter
  * la consommation memoire */
-static int do_macro(int cmd, char *arg) {
+static int do_macro(int cmd, 
+#ifdef USE_SLANG_LANGUAGE
+    char *fun_slang,
+#endif
+    char *arg) {
   int num;
   for (num=0; num < Flcmd_num_macros; num++) {
     if (Flcmd_macro[num].cmd < 0)
@@ -61,6 +65,12 @@ static int do_macro(int cmd, char *arg) {
   if (num == Flcmd_num_macros)
     Flcmd_num_macros++;
   Flcmd_macro[num].cmd = cmd;
+#ifdef USE_SLANG_LANGUAGE
+  if (fun_slang != NULL) 
+    Flcmd_macro[num].fun_slang = safe_strdup(fun_slang);
+  else
+    Flcmd_macro[num].fun_slang = NULL;
+#endif
   if (arg != NULL) 
     Flcmd_macro[num].arg = safe_strdup(arg);
   else
@@ -70,6 +80,10 @@ static int do_macro(int cmd, char *arg) {
 }
 
 static void del_macro(int num) {
+#ifdef USE_SLANG_LANGUAGE
+  if (Flcmd_macro[num].fun_slang)
+    free(Flcmd_macro[num].fun_slang);
+#endif
   if (Flcmd_macro[num].arg)
     free(Flcmd_macro[num].arg);
   Flcmd_macro[num].cmd = -1;
@@ -78,7 +92,11 @@ static void del_macro(int num) {
 
 /* renvoie -1 en cas de pb
  * si add!=0, on ajoute la commande... */
-int Bind_command_new(int key, int command, char *arg, int context, int add ) {
+int Bind_command_new(int key, int command, char *arg,
+#ifdef USE_SLANG_LANGUAGE
+   char *fun_slang,
+#endif
+   int context, int add ) {
   int parcours,*to_add=NULL;
   int mac_num,mac_prec=-1;
   if (add) {
@@ -91,7 +109,11 @@ int Bind_command_new(int key, int command, char *arg, int context, int add ) {
       parcours=Flcmd_macro[parcours ^ FLCMD_MACRO].next_cmd;
     }
     if (parcours>-1) {
-      mac_num = do_macro(parcours ,NULL);
+      mac_num = do_macro(parcours,
+#ifdef USE_SLANG_LANGUAGE
+      NULL,
+#endif
+      NULL);
       if (mac_prec==-1) Flcmd_rev[context][key] = mac_num | FLCMD_MACRO;
           else Flcmd_macro[mac_prec].next_cmd=mac_num | FLCMD_MACRO;
       to_add = & Flcmd_macro[mac_num].next_cmd;
@@ -108,8 +130,16 @@ int Bind_command_new(int key, int command, char *arg, int context, int add ) {
        del_macro(mac_prec);
     }
   }
-  if (arg != NULL) {
-    mac_num = do_macro(command,arg);
+  if ((arg != NULL) 
+#ifdef USE_SLANG_LANGUAGE
+    || (fun_slang != NULL)
+#endif
+  ) {
+    mac_num = do_macro(command,
+#ifdef USE_SLANG_LANGUAGE
+        fun_slang,
+#endif
+        arg);
     *to_add = mac_num | FLCMD_MACRO;
     return 0;
   } else {
@@ -123,6 +153,10 @@ void free_Macros(void) {
    for (i=0;i<Flcmd_num_macros;i++) {
      if (Flcmd_macro[i].arg);
        free(Flcmd_macro[i].arg);
+#ifdef USE_SLANG_LANGUAGE
+     if (Flcmd_macro[i].fun_slang)
+       free(Flcmd_macro[i].fun_slang);
+#endif
    }
    Flcmd_num_macros=0;
    Flcmd_num_macros_max=0;
@@ -199,6 +233,9 @@ int aff_ligne_binding(int ch, int contexte, char *ligne, int len) {
 	      int cmd2;
 	      cmd2=Flcmd_macro[cmd ^ FLCMD_MACRO].cmd;
 	      compte=strlen(buf);
+#ifdef USE_SLANG_LANGUAGE
+              if (Flcmd_macro[cmd ^ FLCMD_MACRO].fun_slang==NULL) {
+#endif
 	      switch (i) {
 	        case CONTEXT_COMMAND : strncat(buf,Flcmds[cmd2].nom,taille-compte-1); 
 				break;
@@ -207,13 +244,25 @@ int aff_ligne_binding(int ch, int contexte, char *ligne, int len) {
                 case CONTEXT_MENU : strncat(buf,Flcmds_menu[cmd2],taille-compte-1); 
 				break;
 	      }
+#ifdef USE_SLANG_LANGUAGE
+              } else 
+	      {
+	        strncat (buf, "[", taille-compte-1);
+	        strncat (buf, Flcmd_macro[cmd ^ FLCMD_MACRO].fun_slang, taille-compte-2);
+	        compte=strlen(buf);
+		if (compte<taille-2) {
+		   strcat (buf, "]");
+                }
+              }
+#endif	      
 	      compte=strlen(buf);
 	      if (compte<taille-2) {
 	         strcat(buf," ");
 		 if (Flcmd_macro[cmd ^ FLCMD_MACRO].arg) 
 		    strncat(buf,Flcmd_macro[cmd ^ FLCMD_MACRO].arg,
 		                taille-compte-1);
-	         else strncat(buf,"...",taille-compte-1);
+	         else if (Flcmd_macro[cmd ^ FLCMD_MACRO].next_cmd!=-1) 
+		    strncat(buf,"...",taille-compte-1);
               }
 	   }
 	} else {
@@ -371,7 +420,11 @@ int get_command(int key_depart, int princip, int second,
 
    la_commande->before=la_commande->after=NULL;
    la_commande->maybe_after=0;
-   for (i=0; i<NUMBER_OF_CONTEXTS; i++) la_commande->cmd[i]=FLCMD_UNDEF;
+   for (i=0; i<NUMBER_OF_CONTEXTS; i++) 
+      la_commande->cmd[i]=FLCMD_UNDEF;
+#ifdef USE_SLANG_LANGUAGE
+   la_commande->fun_slang=NULL;
+#endif
    if (!Options.cbreak) {
       col=aff_context(princip, second);
       return get_command_nocbreak(key_depart,col,princip,second,
@@ -400,6 +453,8 @@ int get_command(int key_depart, int princip, int second,
 }
 
 /* Renvoie le nom d'une commande par touche raccourcie */
+/* on ne peut pas obtenir une fonction slang, par exemple, autrement */
+/* que par une commande de macro, alors non indiquée */
 int Lit_cmd_key(int key, int princip, int second, Cmd_return *la_commande) {
    int res=-1, j, context;
    if ((key <0) || (key >= MAX_FL_KEY)) return -1;
@@ -434,6 +489,41 @@ int Lit_cmd_explicite(char *str, int princip, int second, Cmd_return *la_command
         return Lit_cmd_key(FL_KEY_RIGHT, princip, second, la_commande);
    /* cas "normal" */
    
+#ifdef USE_SLANG_LANGUAGE
+   if (str[0]=='[') {
+      char *end_str, *comma;
+      int ctxt=-1, flg=0;
+      str++;
+      if ((end_str=strchr(str,']'))==NULL) return -1;
+      *end_str='\0';
+      comma=strchr(end_str,',');
+      if (comma) {
+	 *comma='\0';     
+         for (i=0;i<NUMBER_OF_CONTEXTS;i++) {
+           if (strcmp(str, Noms_contextes[i])==0) {
+ 	      ctxt=i;
+	      break;
+           }
+	 }
+	 if (ctxt!=-1) {
+	    str=comma+1;
+	    *comma=',';
+	    if ((ctxt!=princip) && (ctxt!=second)) {
+	       *end_str=']';
+	       return -1;
+	    }
+	 }
+      }
+      la_commande->fun_slang=safe_strdup(str);
+      comma=strchr(str,',');
+      if (comma) flg = Parse_type_fun_slang(comma+1);
+      *end_str=']';
+      la_commande->cmd[CONTEXT_COMMAND]=NB_FLCMD+flg;
+      la_commande->cmd[CONTEXT_PAGER]=NB_FLCMD_PAGER+flg;
+      la_commande->cmd[CONTEXT_MENU]=NB_FLCMD_MENU+flg;
+      return (((ctxt==princip) || (ctxt==-1)) ? 0 : 1);
+   }
+#endif      
    for (j=0;j<2;j++) {
       switch (j==0 ? princip : second) {
       /* TODO : unifier un peu mieux ça. C'est vrai quoâ ! */

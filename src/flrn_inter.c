@@ -40,6 +40,10 @@
 #include "flrn_messages.h"
 #include "flrn_xover.h"
 #include "flrn_func.h"
+#ifdef USE_SLANG_LANGUAGE
+#include "slang.h"
+#include "slang_flrn.h"
+#endif
 
 static UNUSED char rcsid[]="$Id$";
 
@@ -125,7 +129,12 @@ static long min_kill_l, max_kill_l;
 int parse_arg_string(char *str,int command, int annu16);
 /* On prédéfinit ici les fonctions appelés par loop... A l'exception de */
 /* get_command, elles DOIVENT être de la forme int do_* (int res)       */ 
+#ifdef USE_SLANG_LANGUAGE
+int get_command_command(int get_com, SLang_Name_Type **slang_fun);
+int Execute_function_slang_command(int, SLang_Name_Type *slang_fun);
+#else
 int get_command_command(int get_com);
+#endif
 int do_deplace(int res); 
 int do_goto(int res); /* renvoie change */
 int do_unsubscribe(int res);
@@ -316,6 +325,9 @@ int loop(char *opt) {
    int change, a_change=1;
    Numeros_List *fin_de_param=NULL;
    char Str_macro[MAX_CHAR_STRING];
+#ifdef USE_SLANG_LANGUAGE
+   SLang_Name_Type *slang_fun;
+#endif
    
    Str_macro[0]='\0';
    etat_loop.hors_struct=11;
@@ -456,7 +468,11 @@ int loop(char *opt) {
 	     if (fin_de_param==NULL) Arg_do_funcs.flags=0; else
 	     if (fin_de_param->next) fin_de_param->next->flags=0;
 	   } else {
+#ifdef USE_SLANG_LANGUAGE
+	     res=get_command_command(ret-1,&slang_fun);
+#else
 	     res=get_command_command(ret-1);
+#endif
 	     if ((res>0) && (res & FLCMD_MACRO)) {
 	        strncpy(Str_macro,Arg_str,99);
 	        fin_de_param=&Arg_do_funcs;
@@ -475,7 +491,13 @@ int loop(char *opt) {
 	   if (res==-2) etat_loop.etat=3; else
 	   if (res==FLCMD_UNDEF) 
 	        { etat_loop.etat=2; etat_loop.num_message=-9; }
-	   else  {
+	   else  
+#ifdef USE_SLANG_LANGUAGE
+	   if (res>=NB_FLCMD) 
+	       change=Execute_function_slang_command(res-NB_FLCMD, slang_fun);
+	   else
+#endif
+	   {
 	     if ((Flcmds[res].flags & CMD_NEED_GROUP) &&
 		 (etat_loop.hors_struct & 8)) {
 	       etat_loop.etat=2; etat_loop.num_message=-3; change=0;
@@ -548,7 +570,7 @@ void init_Flcmd_rev() {
      Flcmd_rev_command[Flcmds[i].key]=Flcmd_rev_command[Flcmds[i].key_nm]=i;
   for (i=0;i<CMD_DEF_PLUS;i++) 
     Bind_command_new(Cmd_Def_Plus[i].key,Cmd_Def_Plus[i].cmd,
-	Cmd_Def_Plus[i].args,CONTEXT_COMMAND, Cmd_Def_Plus[i].add);
+	Cmd_Def_Plus[i].args,NULL,CONTEXT_COMMAND, Cmd_Def_Plus[i].add);
   Flcmd_rev_command[0]=FLCMD_UNDEF;
   return;
 }
@@ -587,7 +609,11 @@ void apply_autocmd(int flag, char *name) {
 /* -3 touche verrouillee */
 /* -4 plus de macro disponible */
 int Bind_command_explicite(char *nom, int key, char *arg, int add) {
-  int i;
+  int i, res;
+  Cmd_return commande;
+#ifdef USE_SLANG_LANGUAGE
+  commande.fun_slang=NULL;
+#endif
   if ((key<1)  || key >= MAX_FL_KEY)
     return -2;
   /* les commandes non rebindables... Je trouve ca moche */
@@ -600,12 +626,16 @@ int Bind_command_explicite(char *nom, int key, char *arg, int add) {
       return 0;
     }
   }
-  for (i=0;i<NB_FLCMD;i++)
-    if (strcmp(nom, Flcmds[i].nom)==0) {
-      if (Bind_command_new(key,i,arg,CONTEXT_COMMAND, add)<0) return -4;
-      return 0;
-    }
-  return -1;
+  res=Lit_cmd_explicite(nom, CONTEXT_COMMAND, -1, &commande);
+  if (res==-1) return -1;
+  res=Bind_command_new(key, commande.cmd[CONTEXT_COMMAND], arg,
+#ifdef USE_SLANG_LANGUAGE
+     commande.fun_slang, CONTEXT_COMMAND, add);
+  if (commande.fun_slang) free(commande.fun_slang);
+#else
+     CONTEXT_COMMAND, add);
+#endif
+  return (res<0 ? -4 : 0);
 }
 
 
@@ -765,7 +795,12 @@ int parse_arg_string(char *str,int command, int annu16)
    if (cmd & FLCMD_MACRO) {
      cmd = Flcmd_macro[cmd ^ FLCMD_MACRO].cmd;
    }
-   flag=Flcmds[cmd].flags & 19; /* c'est crade... */
+#ifdef USE_SLANG_LANGUAGE
+   if (cmd>=NB_FLCMD)
+      flag=cmd-NB_FLCMD;
+   else
+#endif
+      flag=Flcmds[cmd].flags & 19; /* c'est crade... */
    /* un truc quand même : le flag 16 n'a pas de valeur si macro et appele */
    /* depuis get_command_command */
    if ((annu16) && (command & FLCMD_MACRO)) flag=flag & 3;
@@ -822,8 +857,13 @@ static int get_str_arg(int res, char *beg) {
 /* Renvoie -1 si commande non défini				         */
 /*         -2 si rien							 */
 /*         -3 si l'état est déjà défini...				 */
-int get_command_command(int get_com) {
-   int res, res2, key;
+/*         -4 si on renvoie en fait une fonction slang                   */
+int get_command_command(int get_com
+#ifdef USE_SLANG_LANGUAGE
+                        , SLang_Name_Type **slang_fun
+#endif
+) {
+   int res, res2, key, a;
 
    Arg_do_funcs.flags=0;
    Arg_str[0]='\0';
@@ -842,7 +882,23 @@ int get_command_command(int get_com) {
       return res;
    }
    /* res = 0 */
-   res2=une_commande.cmd[CONTEXT_COMMAND];
+#ifdef USE_SLANG_LANGUAGE
+   if (une_commande.fun_slang) {
+      *slang_fun = Parse_fun_slang(une_commande.fun_slang, &a);
+      free(une_commande.fun_slang);
+      une_commande.fun_slang=NULL;
+      if (*slang_fun==NULL) {
+         if (une_commande.before) free(une_commande.before);
+	 if (une_commande.after) free(une_commande.after);
+	 return -1;
+      }
+      res2=NB_FLCMD+a; /* pour signifier une fonction slang ,
+                    on pourra éventuellement penser à modifier ça, ensuite */
+      une_commande.maybe_after=0;
+   }
+   else 
+#endif
+     res2=une_commande.cmd[CONTEXT_COMMAND];
    if (une_commande.before) 
       Parse_nums_article(une_commande.before,NULL,0);
    if (une_commande.after) {
@@ -850,7 +906,7 @@ int get_command_command(int get_com) {
       free(une_commande.after);
    }
    if ((res2!=FLCMD_UNDEF) && ((res2 & FLCMD_MACRO)==0)) {
-     /* Testons si on a besoin d'un (ou plusieurs) parametres */
+   /* Testons si on a besoin d'un (ou plusieurs) parametres */
      if ((une_commande.maybe_after) && 
          ( ((!Options.forum_mode) && (Flcmds[res2].flags & 8))
          || ((Options.forum_mode) && (Flcmds[res2].flags & 4)) )) {
@@ -3164,4 +3220,14 @@ void restore_etat_loop() {
   memcpy(&etat_loop,&etat_save,sizeof(etat_loop));
 }
 
-
+#ifdef USE_SLANG_LANGUAGE
+int Execute_function_slang_command(int type_fun, SLang_Name_Type *slang_fun)
+{
+  /* TODO : faire un truc plus correct... */
+  if (SLexecute_function(slang_fun)==-1) {
+     SLang_restart (1);
+     SLang_Error = 0;
+  }
+  return 0;
+}
+#endif
