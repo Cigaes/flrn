@@ -409,7 +409,22 @@ static int abon_group_not_in (Liste_Menu *courant, char *arg) {
    courant->changed=('A'!=nom_int);
    return courant->changed;
 }
+static int unsu_group_not_in (Liste_Menu *courant, char *arg) {
+   Newsgroup_List *creation;
+   char *nom_groupe=(char *)(courant->lobjet);
+   char nom_int=*(courant->nom);
 
+   creation=Newsgroup_deb;
+   while (creation) {
+      if (strcmp(creation->name,nom_groupe)==0) break;
+      creation=creation->next;
+   }
+   if (!creation) return -2;
+   creation->flags|=GROUP_UNSUBSCRIBED;
+   *(courant->nom)=' ';
+   courant->changed=(' '!=nom_int);
+   return courant->changed;
+}
 
 /* Cette fonction NE DOIT PAS renvoyer -1 si on veut éviter une horreur de 
    typage */
@@ -417,12 +432,18 @@ int chg_grp_not_in(Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int
    int ret,cmd;
    Action_on_menu action=abon_group_not_in;
 
-   if (la_commande->cmd[CONTEXT_MENU]!=FLCMD_UNDEF) return -2;
+   if (la_commande->cmd[CONTEXT_MENU]!=FLCMD_UNDEF) return -1;
    cmd=la_commande->cmd[CONTEXT_COMMAND];
    if (cmd==FLCMD_ABON) {
       strncpy(name,Messages[MES_ABON],len);
       *affiche=1;
-   } else {
+   } else if (cmd==FLCMD_UNSU) {
+      action=unsu_group_not_in;
+      strncpy(name,Messages[MES_DESABON],len);
+      *affiche=1;
+   } else if ((cmd==FLCMD_GOTO) || (cmd==FLCMD_GGTO)) 
+      action=goto_group_in;
+   else {
       strncpy(name,Messages[MES_UNKNOWN_CMD],len);
       name[len-1]='\0';
       *affiche=1;
@@ -533,7 +554,18 @@ int fin_passage_menu (void **retour, int passage, int flags) {
    		(passage<2 ? Ligne_carac_du_groupe : NULL),
 		    (passage<2 ? chg_grp_in : chg_grp_not_in),
 	        (passage<2 ? chaine1 : chaine2));
-   if (passage==2) *retour=NULL;
+   if ((*retour) && (passage==2)) {
+      /* on va essayer de sauver le truc */
+      char *nom=(char *)(*retour);
+      Newsgroup_List *creation;
+      creation=cherche_newsgroup(nom, 1, 0);
+      *retour=creation;
+      if ((creation) && 
+           (Options.auto_kill) && (!in_main_list(creation->name))) {
+        creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
+        add_to_main_list(creation->name);
+      }
+   }
    Libere_menu_noms(menu_liste);
    menu_liste=start_liste=courant_liste=NULL;
    if (*retour) return 1;

@@ -745,12 +745,15 @@ int in_main_list (char *name) {
 /* Je met ca la pour une éventuelle unification */
 int parse_flags(char *name, int *toset, int *flag) {
    char *buf=name;
+   int l;
    *flag=0;
    if (strcasecmp(buf,"all")==0) return -2; /* cas pour les filtres */
    if (strncasecmp(name,"un",2)==0) {
       buf+=2;
       *toset=0;
    } else *toset=1;
+   l=strlen(buf)-1;
+   while ((l>0) && (isblank(buf[l]))) buf[l--]='\0';
    if (strcasecmp(buf,"read")==0) *flag=FLAG_READ; else
    if (strcasecmp(buf,"killed")==0) *flag=FLAG_KILLED; else
    if (strcasecmp(buf,"interesting")==0) *flag=FLAG_IMPORTANT; else
