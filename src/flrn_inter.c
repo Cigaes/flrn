@@ -165,7 +165,7 @@ int aff_opt_c(char *newsgroup) {
 	    Article_courant=Article_deb;
 	    while (Article_courant) {
 	       if (!(Article_courant->flag & FLAG_READ)) {
-	          fprintf(stdout,"%s\n",Prepare_summary_line(Article_courant,NULL, 0, ligne, 79, 0));
+	          fprintf(stdout,"%s\n",Prepare_summary_line(Article_courant,NULL, 0, ligne, 79, 0)+1);
 	       }
 	       Article_courant=Article_courant->next;
 	    }
@@ -187,7 +187,7 @@ int aff_opt_c(char *newsgroup) {
       }
       Newsgroup_courant=Newsgroup_courant->next;
    }
-   if (newsgroup) {
+   if (newsgroup==NULL) {
       if (nb_non_lus==0) 
         fprintf(stdout, "Rien de nouveau.\n"); 
       else
