@@ -834,6 +834,8 @@ Article_List * raw_next_in_thread(Article_List *start, int *level)
  * On se limite entre deb et fin
  * modifie *level si level!=NULL;
  * set vaut 0 ou flag... */
+/* Note : si big_thread=1, on peut très bien revenir avant l'article */
+/* dans l'ordre du thread. A priori, c'est normal... (en tout cas ce me semble */
 Article_List * next_in_thread(Article_List *start, long flag, int *level,
     int deb, int fin, int set, int big_thread)
 {
@@ -894,6 +896,8 @@ Article_List * next_in_thread(Article_List *start, long flag, int *level,
        if (parcours) {
           famille=root_of_thread(parcours->article,0);
 	  if (level) *level=1;
+          if (((famille->flag & flag)==set) &&
+              (famille->numero<=fin) && (famille->numero>=deb)) return famille;
 	  famille2=next_in_thread(famille,flag,level,deb,fin,set,0);
 	  if (famille2) return famille2;
        } else break;
