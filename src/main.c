@@ -51,7 +51,7 @@ char *name_program;
 
 void Usage(char *argv[])
 {
-  printf("Utilisation : %s [-d] [-c] [-v] [-s server[:port]] [--show-config] [--stupid-term] [-n name] [<newsgroup>]\n",argv[0]);
+  printf("Utilisation : %s [-d] [-c] [-C] [-v] [-s server[:port]] [--show-config] [--stupid-term] [-n name] [<newsgroup>]\n",argv[0]);
 }
 
 void Help(char *argv[])
@@ -60,6 +60,7 @@ void Help(char *argv[])
   printf(
 " -d|--debug  : affiche plein d'informations sur la sortie d'erreur\n"
 " -c|--co     : donne les nouveaux newsgroups, et le nombre d'articles non lus\n"
+" -C|--Co     : comme -c, mais sans distinguer abonné/non abonné\n"
 " -s|--server : impose le nom du serveur (et éventuellement le port)\n"
 " -n|--name   : change le nom d'appel\n"
 " --stupid-term : cette option activee, le terminal ne defile jamais\n"
@@ -102,6 +103,8 @@ int main(int argc, char *argv[])
     {print_version_info(stdout, "flrn"); exit(0);}
     if ((strncmp(argv[i],"-c",2)==0)||(strcmp(argv[i],"--co")==0))
     {opt_c=1; continue;}
+    if ((strncmp(argv[i],"-C",2)==0)||(strcmp(argv[i],"--Co")==0))
+    {opt_c=2; continue;}
     if (strcmp(argv[i],"--stupid-term")==0) { stupid_terminal=1; continue; }
     if ((strncmp(argv[i],"-h",2)==0)||(strcmp(argv[i],"--help")==0))
     {Help(argv); exit(0);}
@@ -170,7 +173,7 @@ int main(int argc, char *argv[])
   init_groups(); /* on y voit un exit */
   		 /* donc il faut le faire avant l'init de l'ecran */
   if ((opt_c==0) || (newsgroup==NULL)) new_groups(opt_c); 
-  if (!opt_c) {
+  if (opt_c==0) {
      load_history();
      res=Init_screen(stupid_terminal);
      if (res==0) return 1;
@@ -178,7 +181,7 @@ int main(int argc, char *argv[])
      if (res<0) return 1;
   }
 
-  if (!opt_c) res=loop(newsgroup); else res_opt_c=aff_opt_c(newsgroup);
+  if (!opt_c) res=loop(newsgroup); else res_opt_c=aff_opt_c(newsgroup,opt_c==1);
   if (!opt_c) {
     Reset_screen();
     Reset_keyboard();

@@ -333,7 +333,7 @@ void new_groups(int opt_c) {
       }
       if ((opt_c) || (Options.warn_if_new && (wait_for_key!=-1))) {
           fprintf(stdout, "Nouveau groupe : %s ", creation->name); 
-	  if (!opt_c) {
+	  if (opt_c==0) {
 	     if (creation->flags & GROUP_UNSUBSCRIBED) 
 	        fputs("Non abonné",stdout);
 	     else

@@ -179,14 +179,14 @@ static int push_tag();
 /* aff_opt_c : affiche simplement une liste de messages non lus vers stdout */
 /* A la demande de Sbi, j'affiche aussi le nombre total de messages    	*/
 /* non lus...								    */
-int aff_opt_c(char *newsgroup) {
+int aff_opt_c(char *newsgroup, int with_abon) {
    int deb, res, nb_non_lus=0;
    int to_build; /* sans intérêt ici, mais on doit l'utiliser pour un appel */
    char ligne[80];
    
    Newsgroup_courant=Newsgroup_deb;
    while (Newsgroup_courant) {
-      if ((Newsgroup_courant->flags & GROUP_UNSUBSCRIBED) ||
+      if (((with_abon) && (Newsgroup_courant->flags & GROUP_UNSUBSCRIBED)) ||
           (newsgroup && (strstr(truncate_group(Newsgroup_courant->name,0),newsgroup)==NULL))) {
          Newsgroup_courant=Newsgroup_courant->next;
 	 continue;

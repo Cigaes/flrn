@@ -36,7 +36,7 @@ typedef struct command_desc {
 extern int fonction_to_number(char *);
 extern int call_func(int, char *);
 extern int loop(char * /*opt*/);
-extern int aff_opt_c(char *);
+extern int aff_opt_c(char *, int);
 extern void init_Flcmd_rev(void);
 extern int Bind_command_explicite(char * /*nom*/, int /*key*/, char *, int);
 extern void save_etat_loop(void);
