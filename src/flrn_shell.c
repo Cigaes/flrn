@@ -120,8 +120,7 @@ int Pipe_Msg_Start (int flagin ,int flagout, char *cmdline) {
                     if (dup2(fd[0],0)<0) _exit(-1);
                   }
                   if (flagout) {
-                    if ((fdfile=open(name,O_CREAT|O_WRONLY|O_TRUNC,S_IRUSR|S_IWU
-		    SR))<0)
+                    if ((fdfile=open(name,O_CREAT|O_WRONLY|O_TRUNC,S_IRUSR|S_IWUSR))<0)
                       _exit(-1);
                     if (dup2(fdfile,1)<0) _exit(-1);
                   }
