@@ -379,7 +379,7 @@ void copy_bout (FILE *tmp_file, char *chaine) {
      copy_bout(tmp_file,buf+1);
      return;
   }
-  len1=to_make_len(chaine,78,len);
+  len1=to_make_len(chaine,72,len);
   if (len1==0) { /* On peut vouloir couper avant dans ce cas */
      char *tmp_string, *buf2;
      buf=strrchr(ligne,' ');
@@ -411,65 +411,133 @@ void copy_bout (FILE *tmp_file, char *chaine) {
 
 /* Copie d'une chaine formatée de headers dans un fichier... */
 /* Et ca va marcher, parce qu'on y croit...  */
-/* Meme si, pour l'instant, y'a pas de saut de lignes... :-( */
-void Copy_format (FILE *tmp_file, char *chaine, Article_List *article) {
+/* Mais si on veut copier dans une chaine ? */
+/* Je passe aussi une chaine avec la taille limite... */
+void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
+                  char *result, int len) {
    char *att=safe_strdup(chaine), *ptr_att;
    char *buf;
+   int len2=len;
 
    if (article->headers==NULL) return; /* Beurk ! */
-   copy_bout(NULL,NULL);
+   if (tmp_file) copy_bout(NULL,NULL); else result[0]=0;
    ptr_att=att;
    while (ptr_att && (*ptr_att)) {
      buf=strchr(ptr_att,'%');
      if (buf==NULL) {
-       copy_bout(tmp_file,ptr_att);
+       if (tmp_file) copy_bout(tmp_file,ptr_att); else
+        { strncat(result,ptr_att,len2); len2-=strlen(ptr_att); 
+	  if (len2<=0) { result[len]=0; free(att) ;return; } 
+	  else result[len-len2]=0; }
        break;
      } else {
        *buf='\0';
-       copy_bout(tmp_file,ptr_att);
+       if (tmp_file) copy_bout(tmp_file,ptr_att); else
+        { strncat(result,ptr_att,len2); len2-=strlen(ptr_att); 
+	  if (len2<=0) { result[len]=0; free(att); return; } 
+	  else result[len-len2]=0; }
        ptr_att=(++buf);
        switch (*buf) {
          case '%' : copy_bout(tmp_file,"%");
+                    if (tmp_file) copy_bout(tmp_file,"%"); else
+                    { strcat(result,"%"); len2--; 
+		      if (len2<=0) { free(att); return; }
+		      else result[len-len2]=0; }
                     ptr_att++;
                     break;
          case 'n' : { char *vrai_n;
                       vrai_n=vrai_nom(article->headers->k_headers
                                                 [FROM_HEADER]);
-                      copy_bout(tmp_file,vrai_n);
+                      if (tmp_file) copy_bout(tmp_file,vrai_n); else
+                      { strncat(result,vrai_n,len2); len2-=strlen(vrai_n); 
+		        if (len2<=0) { result[len]=0; free(att); 
+			               free(vrai_n); return; } else 
+			result[len-len2]=0; }
                       free(vrai_n);
                       ptr_att++;
                       break;
                     }
          case 'i' : { char *msgid=safe_strdup(article->msgid);
-		      copy_bout(tmp_file,msgid);
+                      if (tmp_file) copy_bout(tmp_file,msgid); else
+                      { strncat(result,msgid,len2); len2-=strlen(msgid); 
+		        if (len2<=0) { result[len]=0; free(att); free(msgid); 
+			               return; } else 
+			result[len-len2]=0; }
                       ptr_att++;
 		      free(msgid);
                       break;
 		    }
          case 'C' : { char *num=safe_malloc(sizeof(int)*3+2);
 		      snprintf(num,sizeof(int)*3+1,"%d",article->numero);
-		      copy_bout(tmp_file,num);
+                      if (tmp_file) copy_bout(tmp_file,num); else
+                      { strncat(result,num,len2); len2-=strlen(num); 
+		        if (len2<=0) { result[len]=0; free(att); free(num); 
+			               return; } else 
+			result[len-len2]=0; }
 		      free(num);
                       ptr_att++;
                       break;
 		    }
-         case 'g' : { char *str=safe_strdup(Newsgroup_courant->name);
-		      copy_bout(tmp_file, truncate_group(str,1)); 
+         case 'g' : { char *bla;
+	              char *str=safe_strdup(Newsgroup_courant->name);
+		      bla=truncate_group(str,1);
+                      if (tmp_file) copy_bout(tmp_file,bla); else
+                      { strncat(result,bla,len2); len2-=strlen(bla); 
+		        if (len2<=0) { result[len]=0; free(att); 
+			               free(str); return; } else 
+			          result[len-len2]=0; }
 		      free(str);
                       ptr_att++;
                       break;
 		    }
          case 'G' : { char *str=safe_strdup(Newsgroup_courant->name);
-		      copy_bout(tmp_file,str);
+                      if (tmp_file) copy_bout(tmp_file,str); else
+                      { strncat(result,str,len2); len2-=strlen(str); 
+		        if (len2<=0) { result[len]=0; free(att); 
+			               free(str); return; } else 
+			result[len-len2]=0; }
 		      free(str);
                       ptr_att++;
                       break;
+		    }
+	 case '{' : /* un header du message */
+	            { buf++;
+		      ptr_att=strchr(buf,'}'); 
+		      if (ptr_att) {
+		         /* on suppose le header connu */
+		         int n,len;
+			 char *str;
+		         *ptr_att='\0';
+			 len=strlen(buf);
+			 ptr_att++;
+			 for (n=0;n<NB_KNOWN_HEADERS;n++) {
+			    if ((len!=Headers[n].header_len) &&
+			        (len!=Headers[n].header_len-1)) continue;
+			    if (strncasecmp(buf,Headers[n].header,len)!=0)
+			      continue;
+		            str=article->headers->k_headers[n];	
+			    if (str) {
+			       str=safe_strdup(str);
+                               if (tmp_file) copy_bout(tmp_file,str); else
+                               { strncat(result,str,len2); len2-=strlen(str); if
+	                         (len2<=0) { result[len]=0; free(str);
+				             free(att); return; } else 
+			         result[len-len2]=0; }
+			    }
+			    break;
+			 }
+		         break;
+	  	      } else ptr_att=buf; /* -> default */
 		    }
          default : { char *str=safe_malloc(3);
 		     sprintf(str,"%%%c",*buf);
 		     if (debug) fprintf(stderr, "Mauvaise attribution : %s\n",
                                         Options.attribution);
-                     copy_bout(tmp_file,str);
+                      if (tmp_file) copy_bout(tmp_file,str); else
+                      { strncat(result,str,len2); len2-=strlen(str); if
+	                (len2<=0) { result[len]=0; free(str); 
+			            free(att); return; } else 
+			result[len-len2]=0; }
 		     free(str);
                      ptr_att++;
                      break;
@@ -477,7 +545,7 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article) {
        }
      }
    }
-   copy_bout(tmp_file,NULL);
+   if (tmp_file) copy_bout(tmp_file,NULL);
    free(att);
 }
 

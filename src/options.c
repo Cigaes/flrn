@@ -113,7 +113,7 @@ int options_comp(char *str, int len, Liste_Chaine *debut)
     if (Optcmd_liste[res].comp) {
       return (*Optcmd_liste[res].comp)(str,len,debut);
     } else {
-      debut->complet=0;
+      if (str[0]) debut->complet=0;
       strcat(debut->une_chaine,str);
       return 0;
     }
@@ -139,7 +139,7 @@ int options_comp(char *str, int len, Liste_Chaine *debut)
          }
        } else {
          strcat(courant->une_chaine,str);
-	 courant->complet=0;
+	 if (str[0]) courant->complet=0;
        }
        if (res==-1) bon+=2; else bon++;
        pere=courant;

@@ -830,7 +830,7 @@ int Comp_cmd_explicite(char *str, int len, Liste_Chaine *debut)
        return (*Flcmds[res].comp)(str,len,debut);
     } else {
       strcat(debut->une_chaine,str);
-      debut->complet=0;
+      if (str[0]) debut->complet=0;
       return 0;
     }
   }
@@ -855,7 +855,7 @@ int Comp_cmd_explicite(char *str, int len, Liste_Chaine *debut)
 	 } 
        } else {
          strcat(courant->une_chaine,str);
-	 courant->complet=0;
+	 if (str[0]) courant->complet=0;
        }
        if (res2==-1) bon+=2; else bon++;
        pere=courant;

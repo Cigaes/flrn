@@ -108,7 +108,7 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
    }
    fprintf(tmp_file, "\n");
    if (Pere_post && ((incl==1) || ((incl==-1) && (Options.include_in_edit)))) { 
-       if (!supersedes) Copy_format (tmp_file,Options.attribution,Pere_post);
+       if (!supersedes) Copy_format (tmp_file,Options.attribution,Pere_post,NULL,0);
        Copy_article(tmp_file,Pere_post, 0, (supersedes ? NULL : Options.index_string));
        fprintf(tmp_file,"\n");
    }
@@ -1044,7 +1044,7 @@ static char *extract_post_references (char *str, int len_id) {
 
 /* Creation des headers du futur article */
 /* Flag : 0 : normal 1 : mail -1 : cancel ou supersedes */
-static int Get_base_headers(int flag) {
+static int Get_base_headers(int flag, Article_List *article) {
    int res, len1, len2=0, len3, key, i;
    char *real_name, *buf;
    string_list_type *parcours;
@@ -1054,7 +1054,7 @@ static int Get_base_headers(int flag) {
    par_mail=(flag==1);
    /* On va d'abord gérer les headers persos... */
    /* Comme ca ils vont se faire écraser par les autres... */
-   /* ces headers sont bien formatés...	*/
+   /* ces headers sont bien formatés... mais ils peuvent etre "reformates" */
    if (flag!=-1) {
       parcours=Options.user_header;
       while (parcours) {
@@ -1065,7 +1065,10 @@ static int Get_base_headers(int flag) {
 	                          Headers[i].header_len)==0) break;
         if ((i!=NB_KNOWN_HEADERS) && (is_modifiable(i))) 
 	  /* c'est a revoir... */
-	   Header_post->k_header[i]=safe_strdup(buf+2); /* pas l'espace */
+	{
+	   Header_post->k_header[i]=safe_malloc(513);
+	   Copy_format (NULL, buf+2, article, Header_post->k_header[i], 512);
+	}
 	else if (i==NB_KNOWN_HEADERS) {
 	   Header_List *parcours2=Header_post->autres;
 	   while (parcours2 && (parcours2->next)) parcours2=parcours2->next;
@@ -1076,7 +1079,9 @@ static int Get_base_headers(int flag) {
 	     parcours2=parcours2->next;
 	   }
 	   parcours2->next=NULL;
-	   parcours2->header=safe_strdup(parcours->str);
+	   parcours2->header=safe_malloc(513);
+	   Copy_format (NULL, parcours->str, article, 
+	                   parcours2->header, 512);
 	   parcours2->num_af=0;
 	}
 	parcours=parcours->next;
@@ -1278,7 +1283,7 @@ int cancel_message (Article_List *origine) {
    key=toupper(key);
    if (key!='O') return 0;
    /* Bon... Tant pis */
-   res=Get_base_headers(-1);
+   res=Get_base_headers(-1,origine);
    if (res==-1) {
      Free_post_headers();
      return -1;
@@ -1321,7 +1326,7 @@ int post_message (Article_List *origine, char *name_file,int flag) {
     Deb_article=Deb_body=NULL;
     /* On détermine les headers par défaut de l'article */
     /* D'ou l'intérêt de Followup-to			*/
-    res=Get_base_headers(flag);
+    res=Get_base_headers(flag,origine);
     if (res==-1) {
       Free_post_headers();
        return 0;

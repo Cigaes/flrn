@@ -12,7 +12,7 @@ extern char *local_date (char * /*date*/);
 extern int str_estime_len (char *, int , int );
 extern int to_make_len (char *, int , int );
 extern void Copy_format (FILE * /*tmp_file*/, char * /*chaine*/,
-    Article_List * /*article*/);
+    Article_List * /*article*/, char *, int);
 extern void ajoute_parsed_from (char *, char *);
 
 #endif
