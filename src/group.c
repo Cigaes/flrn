@@ -128,7 +128,16 @@ void init_groups() {
       if (deb) *(deb++)='\0';
       if (strlen(ptr)>MAX_NEWSGROUP_LEN)
             { fprintf(stderr,"Nom du newsgroup %s dans le .flnewsrc trop long !!! \n",ptr);
-	      exit(1); }
+	      deb=buf;
+	      sleep(1);
+	      continue; }
+      /* ce qui gène dans un nom de groupe : on met "\t,", ca devrait suffire */
+      if (strpbrk(ptr,"\t,")) {
+          fprintf(stderr,"Nom du newsgroup %s invalide dans le .flnewsrc !!! \n",ptr);
+	  sleep(1);
+	  deb=buf;
+	  continue;
+      }
       creation = add_group(&Newsgroup_courant);
       strncpy(creation->name, ptr, strlen(ptr)-1);
       creation->flags=(ptr[strlen(ptr)-1]==':' ? 0 : GROUP_UNSUBSCRIBED);

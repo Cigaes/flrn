@@ -388,7 +388,7 @@ int loop(char *opt) {
 	if (!(etat_loop.hors_struct & 8)) 
 	{
 	  if (etat_loop.num_futur_article==0)
-           change=-prochain_non_lu(etat_loop.num_message==1,&Article_courant,1,0);
+           change=-prochain_non_lu(etat_loop.etat>0,&Article_courant,1,0);
 	  else {
 	    if (etat_loop.num_futur_article !=-1) {
 	      Arg_do_funcs.elem1.num=etat_loop.num_futur_article;
@@ -509,7 +509,7 @@ int loop(char *opt) {
 	   } 
 	} else if (res==-2) {
 	   to_build=0;
-	   etat_loop.etat=2; etat_loop.num_message=-20;
+	   etat_loop.etat=2; etat_loop.num_message=-25;
 	}
       }
       if (to_build==1) {
