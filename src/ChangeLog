@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. split et reprise de parse_option_line, reste options_comp a faire...
 . reprise des macros, ajout de bind add ...
 . ajout de l'option short_errors
 . modif de l'éditeur. Si y'a pas de bugs, je suis un génie.

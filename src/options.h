@@ -13,37 +13,66 @@
 #include "art_group.h"
 #include "flrn_color.h"
 
-#define OPT_COMMENT_CHAR '#'
+#ifdef IN_OPTION_C
+#  define OPT_COMMENT_CHAR '#'
 
-#define WORD_NAME_PROG "name"
-#define WORD_NAME_PROG_LEN 4
+#  define WORD_NAME_PROG "name"
+#  define WORD_NAME_PROG_LEN 4
 
-#define OPT_HEADER "header"
-#define OPT_HEADER_LEN 6
+#  define OPT_HEADER "header"
+#  define OPT_HEADER_LEN 6
 
-#define OPT_MY_HEADER "my_hdr"
-#define OPT_MY_HEADER_LEN 6
+#  define OPT_MY_HEADER "my_hdr"
+#  define OPT_MY_HEADER_LEN 6
 
-#define OPT_INCLUDE "include"
-#define OPT_INCLUDE_LEN 7
+#  define OPT_INCLUDE "include"
+#  define OPT_INCLUDE_LEN 7
 
-#define OPT_MY_FLAGS "my_flags"
-#define OPT_MY_FLAGS_LEN 8
+#  define OPT_MY_FLAGS "my_flags"
+#  define OPT_MY_FLAGS_LEN 8
 
-#define OPT_SET_COLOR "color"
-#define OPT_SET_COLOR_LEN 5
+#  define OPT_SET_COLOR "color"
+#  define OPT_SET_COLOR_LEN 5
 
-#define OPT_SET_MONO "mono"
-#define OPT_SET_MONO_LEN 4
+#  define OPT_SET_MONO "mono"
+#  define OPT_SET_MONO_LEN 4
 
-#define OPT_SET_NEWCOLOR "regcolor"
-#define OPT_SET_NEWCOLOR_LEN 8
+#  define OPT_SET_NEWCOLOR "regcolor"
+#  define OPT_SET_NEWCOLOR_LEN 8
 
-#define OPT_SET "set"
-#define OPT_SET_LEN 3
+#  define OPT_SET "set"
+#  define OPT_SET_LEN 3
 
-#define OPT_BIND "bind"
-#define OPT_BIND_LEN 4
+#  define OPT_BIND "bind"
+#  define OPT_BIND_LEN 4
+
+int opt_do_header(char *, int);
+int opt_do_my_hdr(char *, int);
+int opt_do_color(char *, int);
+int opt_do_mono(char *, int);
+int opt_do_regcolor(char *, int);
+int opt_do_set(char *, int);
+int opt_do_bind(char *, int);
+int opt_do_my_flags(char *, int);
+
+struct {
+  char *name;
+  int (*parse)(char *, int);
+  int (*comp)(char *, int);
+} Optcmd_liste[] = {
+  {"header", &opt_do_header, NULL},
+  {"my_hdr", &opt_do_my_hdr, NULL},
+  {"my_flags", &opt_do_my_flags, NULL},
+  {"color", &opt_do_color, NULL},
+  {"mono", &opt_do_mono, NULL},
+  {"regcolor", &opt_do_regcolor, NULL},
+  {"set", &opt_do_set, NULL},
+  {"bind", &opt_do_bind, NULL},
+};
+
+#define NUMBER_OF_OPT_CMD (sizeof(Optcmd_liste)/sizeof(Optcmd_liste[0]))
+
+#endif
 
 #define MAX_HEADER_LIST 20
 extern Known_Headers unknown_Headers[MAX_HEADER_LIST];
