@@ -14,28 +14,30 @@ dnl En fait, on peut s'en passer...
 AC_CHECK_PROGS(MAKEDEPEND,gccmakedep makedepend, echo)
 
 AC_PATH_PROG(SENDMAIL, sendmail, no, `echo $PATH`:/usr/sbin:/usr/lib)
-AC_DEFINE_UNQUOTED(SENDMAIL, "$ac_cv_path_SENDMAIL")
+AC_DEFINE_UNQUOTED(SENDMAIL, "$ac_cv_path_SENDMAIL", [Path to sendmail])
 if test "$ac_cv_path_SENDMAIL" = no; then
    AC_MSG_WARN(no sendmail found. \\mail-answer will not work !)
 fi
 
 AC_ARG_WITH(default-host, [  --with-default-host[=MACHINE] default host for adresses],
-  AC_DEFINE_UNQUOTED(DEFAULT_HOST, "$withval")
+  AC_DEFINE_UNQUOTED(DEFAULT_HOST, "$withval", [Default host for adresses])
   AC_MSG_RESULT(default host : $withval)
 )
 
 AC_ARG_WITH(domain, [  --with-domain[=DOMAIN]   default domain for adresses],[
-  AC_DEFINE_UNQUOTED(DOMAIN, "$withval")
   AC_MSG_RESULT(domain : $withval)
+  AC_DEFINE_UNQUOTED(DOMAIN, "$flrn_domain", [Default domain for adresses])
 ],
-  AC_DEFINE_UNQUOTED(DOMAIN, "nodomain")
-  AC_MSG_WARN(domain : nodomain, use --with-domain to change this)
+  AC_MSG_WARN(no domain defined, use --with-domain to change this)
 )
 
-AC_ARG_WITH(headers, [  --with-headers=nb        Set the number of headers that flrn can handle to nb],AC_DEFINE_UNQUOTED(MAX_HEADER_LIST,$withval))
+AC_ARG_WITH(headers, [  --with-headers=nb        Set the number of headers that flrn can handle to nb],AC_DEFINE_UNQUOTED(MAX_HEADER_LIST,$withval,[Number of headers that flrn can handle for header options]))
 
 AC_ARG_ENABLE(expert, [  --enable-expert          Compile flrn in expert mode],
-  AC_DEFINE_UNQUOTED(MODE_EXPERT))
+  AC_DEFINE_UNQUOTED(MODE_EXPERT, , [Mode expert]))
+
+AC_ARG_ENABLE(slang, [  --enable-slang           Enable use of S-Lang (v1.4 or more) script language],
+  AC_DEFINE_UNQUOTED(USE_SLANG_LANGUAGE, , [Use of S-Lang script language]))
 
 if test "$ac_cv_prog_CC" = gcc; then
   CFLAGS="-Wall $CFLAGS"

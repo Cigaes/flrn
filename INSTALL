@@ -22,8 +22,14 @@ configure dipose d'un certain nombre d'options. Entre autres :
 --with-default-host=DIR : précise le nom de la machine d'où sont censés
 			  provenir les posts (indispensable si gethostname
 			  n'existe pas)
---with-domain=DOMAIN : précise le nom de domaine, indispensable si
-	 	       on ne veut pas ens.fr  ;-)
+
+--with-domain=DOMAIN : précise le nom de domaine. Si ceci n'est pas
+                       défini, il est vivement conseillé de mettre
+                       set default_domain correct dans le flrnrc par défaut.
+
+--enable_slang  :  autorise l'utilisation du langage de script S-Lang.
+                   La version de S-Lang doit être 1.4 ou plus récente pour
+                   que flrn compile.
 
 Il faut d'autre part que configure puisse trouver sendmail, soit dans
 le chemin d'accès courant, soit dans /usr/lib ou /usr/sbin.

@@ -41,7 +41,8 @@ _ flags_group : la chaine "M DDm*dd" est probablement meilleure
 _ hist_file_name : mettre ".flrnhist" n'est pas plus mal
 _ warn_if_new : mettre 1 n'est pas plus mal non plus
 _ default_flnewsfile : mettre "flnewsrc" n'est pas plus mal
-_ help_line : vu la gueule des lignes d'aide, on peut mettre 0 sans risque
+_ help_line : vu la tête des lignes d'aide, on peut mettre 0 sans risque
+_ default_domain : à la place d'une option --with-domain=
 
 
 Comme ces modifications sont un peu lourde, on peut tout simplement ne
