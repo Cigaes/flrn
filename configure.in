@@ -50,6 +50,7 @@ fi
 
 ROOTDIR=`pwd`
 
+CPPFLAGS="-I. $CPPFLAGS"
 
 
 AC_ARG_WITH(slang, [  --with-slang[=DIR]         use S-Lang in dir DIR],
