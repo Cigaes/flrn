@@ -8,6 +8,8 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
+
 /* liste chainée de regexp à matcher sur les headers */
 #ifndef FLRN_FILTER_H
 #define FLRN_FILTER_H

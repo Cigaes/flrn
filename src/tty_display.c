@@ -8,6 +8,8 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
+
 /*  Programme de gestion de l'écran et d'affichage des articles.        */
 /*  S'occupe aussi des entrees des posts.                               */
 /*  Faisait aussi la gestion des scrollings.                            */

@@ -8,6 +8,8 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
+
 /*  Liens avec les fonctions slang					   */
 /*  Ce fichier ne devrait pas être indispensable... si on passe à ncurses  */
 

@@ -8,6 +8,8 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
+
 /* FLRN : les messages */
 
 #include "flrn_messages.h"

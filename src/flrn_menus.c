@@ -8,6 +8,8 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
+
 #define IN_FLRN_MENUS_C
 
 #include <stdlib.h>

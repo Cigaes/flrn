@@ -8,6 +8,8 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
+
 #include "flrn.h"
 
 #ifdef USE_SLANG_LANGUAGE

@@ -8,6 +8,8 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
+
 /*   getdate.h  */
 
 #ifdef TIME_WITH_SYS_TIME

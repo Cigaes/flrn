@@ -6,6 +6,7 @@
  * Ce code est soumis à la GNU General Public License
  */ 
 
+/* $Id$ */
 
 #include "rfc2047.h"
 

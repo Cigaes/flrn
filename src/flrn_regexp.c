@@ -8,6 +8,8 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
+
 /* Traitement de regexp pour flrn 
  * en fait, qqes fonctions qui enrichissent les regexp POSIX */
 

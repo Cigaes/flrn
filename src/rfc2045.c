@@ -8,6 +8,8 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
+
 /* Actuellement, ce fichier sait :
    _ lire un header Content-Type, renvoyer -1, 0 ou 1 selon qu'il est
      non compris, sans décodage nécessaire, ou décodable

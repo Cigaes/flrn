@@ -8,6 +8,8 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
+
 /*
  * Gestion des bindings de touches
  * Commun a tous les contextes */

@@ -8,6 +8,8 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
+
 #ifndef FLRN_TAGS_H
 #define FLRN_TAGS_H
 

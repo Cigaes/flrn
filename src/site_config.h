@@ -3,6 +3,9 @@
  *      site_config.h : configuration par défaut de flrn
  *
  */
+
+/* $Id$ */
+
 #ifndef FLRN_SITE_CONFIG_H
 #define FLRN_SITE_CONFIG_H
 /* On définit ici la configuration par défaut

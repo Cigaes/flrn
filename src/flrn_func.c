@@ -8,6 +8,8 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
+
 /* Ces fonctions doivent être prévues pour, par la suite, servir de base
    au langage de script... Elles doivent avoir des noms compréhensible et
    respecter un format standard. En particulier, on rendra toujours un

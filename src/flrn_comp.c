@@ -8,6 +8,8 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
+
 #include <stdlib.h>
 #include "flrn.h"
 #include "flrn_slang.h"

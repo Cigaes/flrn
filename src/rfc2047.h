@@ -8,6 +8,8 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
+
 #ifndef FLRN_RFC_2047_H
 #define FLRN_RFC_2047_H
 

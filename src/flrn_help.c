@@ -8,6 +8,8 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
+
 #include <stdlib.h> 
 #include <stdio.h>      
 #include <strings.h>

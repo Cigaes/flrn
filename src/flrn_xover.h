@@ -7,6 +7,9 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation. See the file COPYING for details.
  */
+
+/* $Id$ */
+
 #ifndef FLRN_FLRN_XOVER_H
 #define FLRN_FLRN_XOVER_H
 

@@ -8,6 +8,7 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
 
 #include <ctype.h>      /* a voir */
 #include <sys/types.h>  /* socket */

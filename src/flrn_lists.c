@@ -8,6 +8,8 @@
  * the Free Software Foundation. See the file COPYING for details.
  */
 
+/* $Id$ */
+
 /* gestion de listes de chaines pour flrn */
 
 #include <stdlib.h>
