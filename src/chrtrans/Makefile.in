@@ -39,7 +39,7 @@ TABLES= \
 tables: $(TABLES)
 
 makeuctb: makeuctb.o
-	$(CC) $(CFLAGS) -o $@ makeuctb.o $(MISCLIBS)
+	$(CC) $(CFLAGS) ${LDFLAGS} -o $@ makeuctb.o $(MISCLIBS)
 
 makeuctb.o: $(SRCDIR)/UCkd.h $(SRCDIR)/makeuctb.c
 
