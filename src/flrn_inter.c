@@ -569,8 +569,13 @@ void init_Flcmd_rev() {
   for (i=0;i<NB_FLCMD;i++) 
      Flcmd_rev_command[Flcmds[i].key]=Flcmd_rev_command[Flcmds[i].key_nm]=i;
   for (i=0;i<CMD_DEF_PLUS;i++) 
+#ifdef USE_SLANG_LANGUAGE
     Bind_command_new(Cmd_Def_Plus[i].key,Cmd_Def_Plus[i].cmd,
 	Cmd_Def_Plus[i].args,NULL,CONTEXT_COMMAND, Cmd_Def_Plus[i].add);
+#else
+    Bind_command_new(Cmd_Def_Plus[i].key,Cmd_Def_Plus[i].cmd,
+	Cmd_Def_Plus[i].args,CONTEXT_COMMAND, Cmd_Def_Plus[i].add);
+#endif
   Flcmd_rev_command[0]=FLCMD_UNDEF;
   return;
 }
@@ -863,7 +868,10 @@ int get_command_command(int get_com
                         , SLang_Name_Type **slang_fun
 #endif
 ) {
-   int res, res2, key, a;
+   int res, res2, key;
+#ifdef USE_SLANG_LANGUAGE
+   int a;
+#endif
 
    Arg_do_funcs.flags=0;
    Arg_str[0]='\0';
