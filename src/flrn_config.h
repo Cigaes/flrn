@@ -12,6 +12,11 @@
 #define DEFAULT_HELP_DIRECTORY	PATH_HELP_DIRECTORY /* defined in pathdef.h */
 #define DEFAULT_HELP_FILES	"Help_"
 #define DEFAULT_NNTP_PORT 119
+#define CHECK_MAIL	1
+#ifdef CHECK_MAIL
+/* peut-être à mettre dans le configure... */
+#define DEFAULT_MAIL_PATH "/var/spool/mail" 
+#endif
 #define MAX_BUF_SIZE    8192  /* taille maximum de lecture brute */
 #define MAX_READ_SIZE   2048  /* taille maximum de lecture raffinee */
 #define MAX_REGEXP_SIZE 1024  /* taille max d'une regexp */

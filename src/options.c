@@ -337,7 +337,10 @@ void parse_options_line (char *ligne, int flag)
     i=0;
 
     buf=strtok(NULL,delim);
-    if (buf==NULL) Options.header_list[i]=-1;
+    if (buf==NULL) {
+      Options.header_list[0]=-1;
+      return;
+    }
     if (strcasecmp(buf,"weak")==0) weak=1; else
       if (strcasecmp(buf,"hide")==0) hidden=1; else
          if (strcasecmp(buf,"list")!=0) Options.header_list[i++]=Le_header(buf);

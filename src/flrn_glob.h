@@ -7,6 +7,10 @@
 
 #include "flrn_config.h"
 
+#ifdef CHECK_MAIL
+extern char *mailbox;
+#endif
+
 /* l'erreur entre notre heure et celle du serveur */
 extern int Date_offset;
 

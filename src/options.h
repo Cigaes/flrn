@@ -58,6 +58,9 @@ struct Option_struct {
   int  skip_line;                /* nombre de lignes avant le header */
   int  color;
   int  cbreak;
+#ifdef CHECK_MAIL
+  int  check_mail;
+#endif
   int  forum_mode;
   int  space_is_return;
   int  inexistant_arrow;
@@ -139,6 +142,9 @@ static struct {
   MAKE_STRING_OPT(auto_ignore,"Expression régulières de newsgroups à ignorer"),
   MAKE_STRING_OPT(auto_subscribe,"Expression régulière de newsgroups à accepter"),
   MAKE_OPT(cbreak,"En mode nocbreak, toute commande finit par enter."),
+#ifdef CHECK_MAIL
+  MAKE_OPT(check_mail,"Vous informe si vous avez du nouveau mail."),
+#endif
   MAKE_OPT(color,"Pour forcer l'utilisation des couleurs."),
   MAKE_OPT_REVNAME(cool_arrows,inexistant_arrow,"Supprime les messages d'erreur liés aux mauvais usages des flèches."),
   MAKE_OPT(date_in_summary,"Ajoute la date dans les résumés."),

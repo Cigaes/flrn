@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. teste du nouveau mail, option check_mail
 . ajoute d'une description de chaque option
 . option with_cousins
 . bugfix dans do_goto

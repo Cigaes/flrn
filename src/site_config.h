@@ -18,6 +18,9 @@ struct Option_struct Options = {
   1,			/* skip_line */
   -1,			/* color, -1 = autodetect */
   1,			/* cbreak */
+#ifdef CHECK_MAIL
+  1,			/* check_mail */
+#endif
   0,			/* forum_mode */
   0,			/* space_is_return */
   0,			/* cool_arrows, inversé ! */

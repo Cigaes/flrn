@@ -33,6 +33,7 @@ extern FILE *open_flhelpfile (char /*ext*/);
 extern void Copy_article (FILE * /*dest*/, Article_List * /*article*/,
     int /*copie_head*/, char * /*avant*/);
 extern int init_kill_file(void);
+extern int newmail(char *);
 
 /* flrn_shell.c */
 extern int Launch_Editor (int /*flags*/);

@@ -20,6 +20,7 @@
 
 int debug;
 struct passwd *flrn_user;
+char *mailbox;
 
 void Usage(char *argv[])
 {
@@ -73,6 +74,15 @@ int main(int argc, char *argv[])
     exit(1);
   }
   flrn_user=getpwuid(getuid());
+#ifdef CHECK_MAIL
+  mailbox = getenv("MAIL");
+  if (!mailbox) {
+     mailbox=safe_malloc(strlen(DEFAULT_MAIL_PATH)+
+     				strlen(flrn_user->pw_gecos)+1);
+     strcpy(mailbox,DEFAULT_MAIL_PATH);
+     strcat(mailbox,flrn_user->pw_gecos);
+  }
+#endif
   init_Flcmd_rev();
   init_Flcmd_pager_rev();
   init_options();
@@ -104,6 +114,9 @@ int main(int argc, char *argv[])
     Reset_keyboard();
   }
   free_options();
+#ifdef CHECK_MAIL
+  if (getenv("MAIL")==NULL) free(mailbox);
+#endif
   fprintf(stdout,"That's all folks !\n");
   return 0;
 }

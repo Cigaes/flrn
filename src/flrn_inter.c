@@ -616,7 +616,7 @@ int parse_arg_string(char *str,int command)
 /* asked est le nom de la touche tapée si on n'est pas en mode nocbreak */
 /* asked peut eventuellement ne pas etre fl_key_nocbreak, auquel cas    */
 /* elle provient de l'interruption de aff_article_courant...		*/
-int get_command_nocbreak(int asked) {
+int get_command_nocbreak(int asked,int col) {
    char cmd_line[MAX_CHAR_STRING];
    char *str=cmd_line;
    int res;
@@ -628,7 +628,7 @@ int get_command_nocbreak(int asked) {
    if (asked && (asked!=fl_key_nocbreak))  *(str++)=asked; 
    *str='\0';
    str=cmd_line;
-   if ((res=getline(str,MAX_CHAR_STRING,Screen_Rows-1,9+(asked && (asked==fl_key_nocbreak))))<0)
+   if ((res=getline(str,MAX_CHAR_STRING,Screen_Rows-1,col+(asked && (asked==fl_key_nocbreak))))<0)
      return -2;
    while(*str==fl_key_nocbreak) str++;
    if (str[0]=='\0') return Flcmd_rev['\r'];
@@ -685,7 +685,7 @@ int Comp_cmd_explicite(char *str, int len)
 
 /* Prend une commande explicite */
 /* returne -2 si rien */
-int get_command_explicite(char *start) {
+int get_command_explicite(char *start, int col) {
    int res=0;
    char cmd_line[MAX_CHAR_STRING], *str=cmd_line;
    int prefix_len=0;
@@ -697,10 +697,10 @@ int get_command_explicite(char *start) {
    strcat(cmd_line,"\\");
    prefix_len++;
    do {
-     Cursor_gotorc(Screen_Rows-1,9); Screen_erase_eol();
+     Cursor_gotorc(Screen_Rows-1,col); Screen_erase_eol();
      Screen_write_string(str);
      if ((res=magic_getline(str+prefix_len,MAX_CHAR_STRING-prefix_len,
-	 Screen_Rows-1,9+prefix_len,"\011",0))<0)
+	 Screen_Rows-1,col+prefix_len,"\011",0))<0)
        return -2;
      if (res>0) Comp_cmd_explicite(str+prefix_len,MAX_CHAR_STRING-prefix_len); 
    } while (res!=0);
@@ -714,7 +714,7 @@ int get_command_explicite(char *start) {
 }
 
 /* Prend une commande avec le nouveau mode */
-int get_command_newmode(int key) {
+int get_command_newmode(int key,int col) {
    int res;
    char cmd_line[MAX_CHAR_STRING];
    char *str=cmd_line;
@@ -722,10 +722,10 @@ int get_command_newmode(int key) {
    cmd_line[0]=key; cmd_line[1]='\0';
    Screen_write_char(key);
    /* On appelle magic_getline avec flag=1 */
-   if ((res=magic_getline(str,MAX_CHAR_STRING,Screen_Rows-1,9,"1234567890,<>._-",1))<0)
+   if ((res=magic_getline(str,MAX_CHAR_STRING,Screen_Rows-1,col,"1234567890,<>._-",1))<0)
      return -2;
    Parse_nums_article(str, &str, 0);
-   if (res==fl_key_explicite) res=get_command_explicite(cmd_line); else {
+   if (res==fl_key_explicite) res=get_command_explicite(cmd_line,col); else {
       if (res!='\n') res=Lit_cmd_key(res); else res=FLCMD_VIEW;
    }
    return res;
@@ -735,11 +735,11 @@ int get_command_newmode(int key) {
 /* On ajoute key dans le cas ou isdigit(key) ou key=='<' */
 /* Renvoie -1 si annulation */
 static int get_str_arg(int res) {
-   int col=9, ret;
+   int col, ret;
    char cmd_line[MAX_CHAR_STRING];
    char *str=cmd_line;
 
-   Aff_fin("A vous : ");
+   col=Aff_fin("A vous : ");
    Screen_write_string(Flcmds[res].nom);
    Screen_write_char(' ');
    col+=1+strlen(Flcmds[res].nom) /* +1 */;
@@ -758,21 +758,21 @@ static int get_str_arg(int res) {
 /*         -2 si rien							 */
 /*         -3 si l'état est déjà défini...				 */
 int get_command(int key_depart) {
-   int key, res, res2;
+   int key, res, res2, col;
 
    Arg_do_funcs.flags=0;
    Arg_str[0]='\0';
 
-   Aff_fin("A vous : ");
-   if (!Options.cbreak) return get_command_nocbreak(key_depart);
+   col=Aff_fin("A vous : ");
+   if (!Options.cbreak) return get_command_nocbreak(key_depart,col);
    if (key_depart) key=key_depart; else key=Attend_touche();
-   if (key==fl_key_nocbreak) return get_command_nocbreak(fl_key_nocbreak);
-   if (key==fl_key_explicite) return get_command_explicite(NULL);
+   if (key==fl_key_nocbreak) return get_command_nocbreak(fl_key_nocbreak,col);
+   if (key==fl_key_explicite) return get_command_explicite(NULL,col);
    else {
       /* Beurk pour '-' et ',' */
       if (index(",-",key)) return Flcmd_rev[key];
       if (strchr("0123456789<>.,_",key)==NULL) res=Lit_cmd_key(key);
-         else res=get_command_newmode(key);
+         else res=get_command_newmode(key,col);
    }
    if (res==FLCMD_UNDEF) return FLCMD_UNDEF;
    if (res & FLCMD_MACRO) return res;
@@ -1368,7 +1368,7 @@ static int Sauve_article(Article_List *a_sauver, void *fichier);
 int do_save(int res) { 
   FILE *fichier;
   char *name=Arg_str;
-  int ret, key, use_argstr=0;
+  int ret, key, use_argstr=0, col;
   struct stat status;
   Numeros_List *courant=&Arg_do_funcs;
 
@@ -1377,8 +1377,8 @@ int do_save(int res) {
     use_argstr=1;
     name=safe_malloc(MAX_PATH_LEN*sizeof(char));
     name[0]='\0';
-    Aff_fin("Sauver dans : ");
-    if ((ret=getline(name, MAX_PATH_LEN, Screen_Rows-1,14)<0)) {
+    col=Aff_fin("Sauver dans : ");
+    if ((ret=getline(name, MAX_PATH_LEN, Screen_Rows-1,col)<0)) {
       free(name);
       etat_loop.etat=3;
       return 0;
@@ -1473,7 +1473,7 @@ int display_filter_file(char *cmd, int flag) {
 int do_pipe(int res) { 
   FILE *fichier;
   char *name=Arg_str;
-  int ret, use_argstr=0;
+  int ret, use_argstr=0, col;
   Numeros_List *courant=&Arg_do_funcs;
   int fd;
 
@@ -1482,8 +1482,8 @@ int do_pipe(int res) {
     use_argstr=1;
     name=safe_malloc(MAX_PATH_LEN*sizeof(char));
     name[0]='\0';
-    Aff_fin("Piper dans : ");
-    if ((ret=getline(name, MAX_PATH_LEN, Screen_Rows-1,14)<0)) {
+    col=Aff_fin("Piper dans : ");
+    if ((ret=getline(name, MAX_PATH_LEN, Screen_Rows-1,col)<0)) {
       free(name);
       etat_loop.etat=3;
       return 0;
@@ -1727,18 +1727,18 @@ void Get_option_line(char *argument)
 {
   int res=0, use_arg=1;
   char *buf=argument;
-  int color=0;
+  int color=0, col;
   while (isblank(*buf)) buf++;
   if (*buf=='\0') {
     use_arg=0;
     buf = safe_malloc(MAX_BUF_SIZE);
     *buf='\0';
-    Aff_fin("Option: ");
+    col=Aff_fin("Option: ");
     do {
-      if (res>0) {Cursor_gotorc(Screen_Rows-1,8); Screen_erase_eol();
+      if (res>0) {Cursor_gotorc(Screen_Rows-1,col); Screen_erase_eol();
         Screen_write_string(buf);
       }
-      if ((res=magic_getline(buf,MAX_BUF_SIZE,Screen_Rows-1,8,
+      if ((res=magic_getline(buf,MAX_BUF_SIZE,Screen_Rows-1,col,
 	  "\011",0))<0) {
         free(buf);
         return;

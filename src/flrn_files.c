@@ -155,6 +155,16 @@ int stat_postfile(char *file,struct stat *st) {
    return stat(name,st);
 }
 
+/* teste si un fichier type mailbox a du nouveau */
+/* (reprise du code de forum) */
+int newmail(char *name) {
+   static struct stat s;
+
+   if (stat(name, &s)==0) 
+      return ((s.st_size>0) && (s.st_atime<s.st_mtime));
+   return 0;
+}
+
 /* Ouverture d'un fichier d'aide en mode read_only. Pas a se poser de  */
 /* questions.							       */
 FILE *open_flhelpfile (char ext)

@@ -114,16 +114,25 @@ int Init_screen() {
 
 
 /* Affiche un message en bas de l'ecran.				*/
+/* renvoie la colonne d'arrivée */
 int Aff_fin(const char *str) {
+   int col=0;
    Cursor_gotorc(Screen_Rows-1,0);
+#ifdef CHECK_MAIL
+   Screen_set_color(FIELD_NORMAL);
+   if (Options.check_mail && newmail(mailbox)) {
+      Screen_write_string("(Mail)");
+      col=6;
+   }
+#endif
    Screen_set_color(FIELD_AFF_FIN);
    Screen_write_string((char *)str);
    Screen_set_color(FIELD_NORMAL);
    Screen_erase_eol();
-   Cursor_gotorc(Screen_Rows-1, strlen(str)); /* En changeant l'objet */
-    				              /* on change la pos du  */
-   					      /* curseur.		  */
-   return 0;
+   Cursor_gotorc(Screen_Rows-1, col+strlen(str)); /* En changeant l'objet */
+    				                  /* on change la pos du  */
+   					          /* curseur.		  */
+   return (col+strlen(str));
 }
 
 /* Affiche un message sur l'écran (pour l'instant d'une seule ligne max). */
