@@ -245,7 +245,8 @@ void Copy_article (FILE *dest, Article_List *article, int copie_head, char *avan
 
    num=safe_malloc(260*sizeof(char));
    if (article->numero>0) sprintf(num, "%d", article->numero); else
-      strcpy(num,article->msgid);
+      if (article->msgid) strcpy(num,article->msgid); else
+      return;
    res=write_command(copie_head ? CMD_ARTICLE : CMD_BODY, 1, &num);
    free(num);
    if (res<0) return;
