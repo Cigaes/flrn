@@ -147,7 +147,7 @@ int magic_getline(char *buf, int buffsize, int row, int col, char *magic, int fl
           buf[--place]='\0';	       /* l'ai oublie ! (NdDamien) */
           return key;
      }
-     Screen_write_char(key);
+     if (key!='\r') Screen_write_char(key);
    } while ((key != '\r')&&(place < buffsize-1));
    buf[--place]='\0';           /* He oui... */
    return 0;
