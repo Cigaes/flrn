@@ -104,6 +104,7 @@ struct Option_struct {
   char *savepath;
   char *prefixe_groupe;
   char *flags_group;
+  char *hist_file_name;
 };
 
 extern struct Option_struct Options;
@@ -175,6 +176,7 @@ static struct {
   MAKE_STRING_OPT_L(flnews_ext,"Extension sur le nom du .flnewsrc."),
   MAKE_OPT(forum_mode,"Mode de commande forum-like."),
   MAKE_OPT(headers_scroll,"Les headers scrollent avec le reste des messages."),
+  MAKE_STRING_OPT(hist_file_name,"Nom de fichier pour sauvegarder l'historique."),
   MAKE_OPT(include_in_edit,"Lorsque auto_edit est défini, inclut automatiquement le message d'origine."),
   MAKE_STRING_OPT(index_string,"Caractères précédents un quote."),
   MAKE_STRING_OPT(kill_file_name,"Nom du fichier de kill utilisé."),

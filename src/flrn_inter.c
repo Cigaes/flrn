@@ -19,6 +19,7 @@
 #include "group.h"
 #include "flrn_menus.h"
 #include "flrn_filter.h"
+#include "flrn_tags.h"
 
 /* On va définir ici des structures et des variables qui seront utilisées */
 /* pour loop, et les fonctions qui y sont associés. Il faudrait en fait   */
@@ -67,11 +68,6 @@ struct {
 } Flcmd_macro[MAX_FL_MACRO];
 
 int Flcmd_num_macros=0;
-
-#define NUM_SPECIAL_TAGS 256
-#define MAX_TAGS 256+NUM_SPECIAL_TAGS
-Flrn_Tag tags[MAX_TAGS];
-int max_tags_ptr=0,tags_ptr=0;
 
 /* Cette horrible structure sert a stocker une action et son argument en un */
 /* seul pointeur...							    */
@@ -832,10 +828,6 @@ int do_deplace(int res) {
    Article_List *parcours, *parcours2;
    int parc_eq_cour=0, peut_changer, ret=0;
 
-   /* est-ce mieux avec ou sans ??? */
-   /* ou avec max_tags_ptr=tags_ptr; ? */
-   tags_ptr=max_tags_ptr;
-
    peut_changer=(etat_loop.hors_struct & 2) && (!Options.space_is_return);
 
    if (etat_loop.hors_struct & 8) {
@@ -948,10 +940,25 @@ int do_deplace(int res) {
 }
 
 static int my_goto_tag (int tag) {
+  int ret;
+
   if (tag >= MAX_TAGS) return -1;
   if (tag <0 ) return -1;
   if (tags[tag].article_deb_key) { /* le tag existe */
+    if (tags[tag].article_deb_key==-1) {
+       if (Newsgroup_courant && (strcmp(Newsgroup_courant->name,tags[tag].newsgroup_name)==0)) 
+         tags[tag].article_deb_key=Newsgroup_courant->article_deb_key;
+    }
     if (Newsgroup_courant && (tags[tag].article_deb_key == Newsgroup_courant->article_deb_key)) {
+      if (tags[tag].article==NULL) {
+        ret=Recherche_article(tags[tag].numero,&(tags[tag].article),0);
+	if (ret<0) {
+           etat_loop.etat=1;
+           etat_loop.hors_struct|=1;
+           etat_loop.num_message=3;
+	   return 0;
+	}
+      }
       Article_courant=tags[tag].article;
       etat_loop.etat=0;
     } else {
@@ -959,11 +966,11 @@ static int my_goto_tag (int tag) {
       etat_loop.Newsgroup_nouveau =
 	cherche_newsgroup(tags[tag].newsgroup_name,1,0);
       if(etat_loop.Newsgroup_nouveau == NULL) {
-	etat_loop.etat=2; etat_loop.num_message=-8;
+	etat_loop.etat=1; etat_loop.num_message=-8;
         etat_loop.hors_struct|=1;
 	return 0;
       }
-       /* si le pointeur est valide, c'est gagné ! */
+      /* si le pointeur est valide, c'est gagné ! */
       if (tags[tag].article_deb_key ==
 	  etat_loop.Newsgroup_nouveau->article_deb_key) {
 	etat_loop.Article_nouveau=tags[tag].article;
@@ -981,7 +988,9 @@ static int my_goto_tag (int tag) {
 }
 
 int do_goto_tag(int res) {
-  return my_goto_tag(((unsigned char)Arg_str[0])+NUM_SPECIAL_TAGS);
+  int ret;
+  ret=my_goto_tag(((unsigned char)Arg_str[0])+NUM_SPECIAL_TAGS);
+  return (ret > 0 ? 1 : 0);
 }
 
 /* Attention, je suppose que Newsgroup_courant->name
@@ -1012,31 +1021,39 @@ int do_tag (int res) {
 
 static int push_tag() {
   int res;
-  if (tags[(tags_ptr+NUM_SPECIAL_TAGS-1)%NUM_SPECIAL_TAGS].article
-      ==Article_courant) 
-    return 0;
-  res=my_tag(Article_courant,tags_ptr);
-  if (max_tags_ptr == tags_ptr) {
-    tags_ptr++;
-    tags_ptr %= NUM_SPECIAL_TAGS;
-    max_tags_ptr=tags_ptr;
-  } else {
-    tags_ptr++;
-    tags_ptr %= NUM_SPECIAL_TAGS;
+  if (tags_ptr>=0) {
+    if (tags[tags_ptr].article==Article_courant) 
+      return 0;
+    /* On laisse le tag si ils sont bien egaux */
+    if ((tags[tags_ptr].article_deb_key==-1) &&
+        (tags[tags_ptr].newsgroup_name==Newsgroup_courant->name) &&
+        (tags[tags_ptr].numero==Article_courant->numero)) {
+        tags[tags_ptr].article_deb_key=Newsgroup_courant->article_deb_key;
+        tags[tags_ptr].article=Article_courant;
+        return 0;
+    }
   }
+  /* Le push est du à l'affichage d'un nouveau truc. Logiquement, on */
+  /* reprend sur max_tags_ptr... */
+  max_tags_ptr++;
+  max_tags_ptr%=NUM_SPECIAL_TAGS;
+  tags_ptr=max_tags_ptr;
+  res=my_tag(Article_courant,tags_ptr);
   return res;
 }
 
 int do_next(int res) {
-  int ret;
-  ret=my_goto_tag(tags_ptr);
-  return ret;
+  if (tags_ptr!=max_tags_ptr) {
+    tags_ptr++;
+    tags_ptr%=NUM_SPECIAL_TAGS;
+  }
+  return my_goto_tag(tags_ptr);
 }
 
 int do_back(int res) {
-  tags_ptr += NUM_SPECIAL_TAGS-2;
+  tags_ptr += NUM_SPECIAL_TAGS-1;
   tags_ptr %= NUM_SPECIAL_TAGS;
-  if (tags[tags_ptr].article_deb_key==0) {
+  if ((tags_ptr==max_tags_ptr) || (tags[tags_ptr].article_deb_key==0)) {
     tags_ptr++;
     tags_ptr %= NUM_SPECIAL_TAGS;
   }
@@ -1068,18 +1085,26 @@ int do_hist_menu(int res) {
   int valeur;
   int j, dup, bla;
 
-  bla=(max_tags_ptr ? max_tags_ptr-1 : NUM_SPECIAL_TAGS-1);
-  for (i=bla; (i!=max_tags_ptr) && (tags[i].article_deb_key);
+  if (max_tags_ptr==-1) {
+    etat_loop.etat=2; etat_loop.num_message=-15; 
+    return 0;
+  }
+  bla=(max_tags_ptr+1)%NUM_SPECIAL_TAGS;
+  for (i=max_tags_ptr; tags[i].article_deb_key;
       i= (i+NUM_SPECIAL_TAGS-1)%NUM_SPECIAL_TAGS) {
     dup=0;
-    for (j=bla; j!=i; j= (j+NUM_SPECIAL_TAGS-1)%NUM_SPECIAL_TAGS) {
-      if ((tags[j].article_deb_key == tags[i].article_deb_key) &&
-	  ((tags[j].article == tags[i].article))) {
+    for (j=max_tags_ptr; j!=i; j= (j+NUM_SPECIAL_TAGS-1)%NUM_SPECIAL_TAGS) {
+      if (((tags[i].article_deb_key == -1) &&
+           (tags[i].newsgroup_name == tags[j].newsgroup_name) &&
+	   (tags[i].numero == tags[j].numero)) ||
+	  ((tags[i].article_deb_key != -1) &&
+	   (tags[i].article_deb_key == tags[j].article_deb_key) &&
+	   (tags[i].article == tags[j].article))) {
 	dup=1;
 	break;
       }
     }
-    if (dup) continue;
+    if (dup) { if (i==bla) break; else continue; }
     if (tags[i].numero <0) {
       snprintf(buf,80,"%s:?",tags[i].newsgroup_name);
     } else
@@ -1087,6 +1112,7 @@ int do_hist_menu(int res) {
     courant=ajoute_menu(courant,safe_strdup(buf),(void *)(long)(i+1));
     if (tags[i].article==Article_courant) start=courant;
     if (!menu) menu=courant;
+    if (i==bla) break;
   }
   if (!menu) {
     etat_loop.etat=2; etat_loop.num_message=-15; 
@@ -1094,7 +1120,7 @@ int do_hist_menu(int res) {
   }
   valeur = (int)(long) Menu_simple(menu, start, hist_menu_summary, NULL, "Historique. <entrée> pour choisir, q pour quitter...");
   if (!valeur) {
-    etat_loop.etat=3; etat_loop.num_message=-15; 
+    etat_loop.etat=3;
     return 0;
   }
   valeur --;

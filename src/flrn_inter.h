@@ -18,11 +18,5 @@ typedef struct command_desc {
    int (*appel)(int);
 } Flcmd;
 
-typedef struct {
-  long article_deb_key;
-  Article_List *article;
-  long numero;
-  char *newsgroup_name; /*[MAX_NEWSGROUP_LEN + 1];*/
-} Flrn_Tag;
 #endif
 

@@ -14,6 +14,7 @@
 #include <signal.h>
 
 #include "flrn.h"
+#include "flrn_tags.h"
 #include "options.h"
 #include "group.h"
 #include "version.h"
@@ -112,6 +113,7 @@ int main(int argc, char *argv[])
   		 /* donc il faut le faire avant l'init de l'ecran */
   new_groups(opt_c); 
   if (!opt_c) {
+     load_history();
      res=Init_screen();
      if (res==0) return 1;
      res=Init_keyboard();
@@ -121,6 +123,7 @@ int main(int argc, char *argv[])
   if (!opt_c) res=loop(newsgroup); else aff_opt_c();
   if (res) new_groups(0);
   quit_server();
+  if (res) save_history();
   free_groups(res);
   if (!opt_c) {
     Reset_screen();

@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. sauvegarde de l'historique
 . remplacement de malloc.h par stdlib.h.
 . utilisation de $HOME/.flrn de préférence à $HOME
 . bugfix du pager

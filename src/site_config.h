@@ -55,6 +55,7 @@ struct Option_struct Options = {
   "",			/* savepath */
   "",			/* prefixe_groupe */
   " TDD*tdd",		/* flags_group */
+  NULL,			/* hist_file_name */
   };
 
 #endif
