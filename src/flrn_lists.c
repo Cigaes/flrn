@@ -1,5 +1,7 @@
 /* gestion de listes de chaines pour flrn */
 
+#include <malloc.h>
+
 #include "flrn.h"
 #include "flrn_config.h"
 #include "flrn_lists.h"
