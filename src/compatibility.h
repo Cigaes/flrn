@@ -44,6 +44,9 @@ extern int snprintf(char * /*out*/, int /*len*/, char * /*fmt*/, ...);
 static inline int isblank(int c) {
   return (c==' ') || (c=='\t');
 }
+#else
+/* not always declared */
+extern int isblank(int);
 #endif
 
 #ifndef HAVE_ISDIGIT

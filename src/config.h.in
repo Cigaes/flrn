@@ -21,6 +21,9 @@
 /* Define if you have the gethostname function.  */
 #undef HAVE_GETHOSTNAME
 
+/* Define if you have the gettext function.  */
+#undef HAVE_GETTEXT
+
 /* Define if you have the iconv function.  */
 #undef HAVE_ICONV
 

@@ -1822,10 +1822,10 @@ static int Get_base_headers(int flag, Article_List *article) {
         buf=fl_strchr(parcours->str,fl_static(':'));
 	if (buf==NULL) { parcours = parcours->next; continue; }
 	len1=buf-parcours->str+1;
-	for (i=0;i<NB_DECODED_HEADERS;i++) 
+	for (i=0;i<NB_KNOWN_HEADERS;i++) 
 	  if (fl_strncasecmp(parcours->str,Headers[i].header,
 	                          Headers[i].header_len)==0) break;
-        if ((i!=NB_DECODED_HEADERS) && (is_modifiable(i))) 
+        if ((i<NB_DECODED_HEADERS) && (is_modifiable(i))) 
 	  /* c'est a revoir... */
 	{
 	   Header_post->k_header[i]=safe_malloc(513*sizeof(flrn_char));
@@ -1843,7 +1843,7 @@ static int Get_base_headers(int flag, Article_List *article) {
 		   (par_mail==0)) par_mail=2;
 	   }
 	}
-	else if (i==NB_DECODED_HEADERS) {
+	else if (i==NB_KNOWN_HEADERS) {
 	   Header_List *parcours2=Header_post->autres;
 	   while (parcours2 && (parcours2->next)) parcours2=parcours2->next;
 	   if (Header_post->autres==NULL) 
@@ -2193,6 +2193,7 @@ void Create_header_encoding () {
 	fl_strcat(liste->header_body,fl_static_tran(bla));
 	free(bla);
     }
+    find_best_conversion(NULL,0,NULL,NULL);
 }
 
 /* Poste un message (fonction principale de ce fichier).		*/

@@ -631,7 +631,7 @@ msgid "Inclut la signature dans la partie quotée."
 msgstr ""
 
 #: options.h:288
-msgid "Répertoire ou sauver les articles."
+msgid "Répertoire où sauver les articles."
 msgstr ""
 
 #: options.h:289
@@ -655,7 +655,7 @@ msgid "Nombre de lignes blanches après la barre de statut."
 msgstr ""
 
 #: options.h:294
-msgid "La commande \\next ne permet pas de changer de groupe."
+msgid "La commande \\next-unread ne permet pas de changer de groupe."
 msgstr ""
 
 #: options.h:295
@@ -675,7 +675,7 @@ msgid "Jeu de caractères du terminal."
 msgstr ""
 
 #: options.h:299
-msgid "La commande \\next agit en fonction du thread, et non des numéros."
+msgid "La commande \\next-unread agit en fonction du thread, et non des numéros."
 msgstr ""
 
 #: options.h:300
@@ -1038,4 +1038,8 @@ msgstr ""
 
 #: tty_display.c:2402
 msgid "Article incompréhensible."
+msgstr ""
+
+#: main.c
+msgid "That's all folks !\n"
 msgstr ""

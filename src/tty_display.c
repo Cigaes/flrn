@@ -1809,7 +1809,7 @@ int Aff_headers (int flag) {
 	      {
 		 int rc;
 		 flrn_char *trad;
-		 rc=conversion_from_utf8(_("Réponse àun message non disponible."),&trad,0, (size_t)(-1));
+		 rc=conversion_from_utf8(_("Réponse à un message non disponible."),&trad,0, (size_t)(-1));
 	         une_ligne=safe_flstrdup(trad);
 		 if (rc==0) free(trad);
 	      }

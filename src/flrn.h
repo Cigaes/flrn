@@ -19,11 +19,15 @@
 #include "enc/enc_base.h"   /* fonctions chaînes de base */
 #include "flrn_glob.h"      /* Variables externes */
 
-/* #define I18N_GETTEXT 1 */
+#ifdef HAVE_GETTEXT
+#define I18N_GETTEXT 1 
+#else
 #undef I18N_GETTEXT
+#endif
 #ifdef I18N_GETTEXT
 #include <libintl.h>
 
+#define PACKAGE "flrn"
 #define _(String) gettext(String)
 #define N_(String) (String)
 #else

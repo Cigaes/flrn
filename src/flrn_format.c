@@ -270,11 +270,11 @@ int format_flstring_from_right (char *dest, flrn_char *src, int mwidth,
     char *dummy=&(trad1[0]);
 
     memset(dummy,0,15);
-    *(buf--)='\0';
+    *buf='\0';
     while ((prc!=src) && (width<mwidth) && (sdest>1)) {
-	if ((*prc==fl_static(' ')) || (*prc==fl_static('\t'))) {
+	if ((*(prc-1)==fl_static(' ')) || (*(prc-1)==fl_static('\t'))) {
 	    width++;
-	    *(buf--)=' '; sdest--;
+	    *(--buf)=' '; sdest--;
 	    prc--;
 	    continue;
 	}
@@ -317,7 +317,7 @@ int format_flstring_from_right (char *dest, flrn_char *src, int mwidth,
 /* Copie d'une chaine dans un fichier pour l'éditeur, limitée... */
 /* tmp_file=NULL : initialise... chaine=NULL : flush */
 void copy_bout (FILE *tmp_file, flrn_char *flchaine) {
-  static char ligne[100];
+  static char ligne[512];
   char *chaine,*buf,*ptr;
   int resconv;
   static int col;
@@ -342,17 +342,23 @@ void copy_bout (FILE *tmp_file, flrn_char *flchaine) {
         *(ptr++)='\0';
      }
      len1=to_make_width(buf,72,&col,1);
+       /* FIXME : to_make_width n'a pas le bon encodage....
+	* ça me semble relativement insoluble.
+	* Seule solution : garder en flrn_char *, utiliser 
+	* l'encodage terminal (ou la largeur utf8 en référence,
+	* et corriger au dernier moment...
+	* Pour l'instant on laisse tomber */
      if (len1==0) { /* On peut vouloir couper avant dans ce cas */
         char *tmp_string, *buf2;
-        tmp_string=strrchr(buf,' ');
-	if (tmp_string==NULL) tmp_string=strrchr(buf,'\t');
+        tmp_string=strrchr(ligne,' ');
+	if (tmp_string==NULL) tmp_string=strrchr(ligne,'\t');
 	else { buf2=strrchr(tmp_string,'\t');
 	       if (buf2) tmp_string=buf2; }
         if (tmp_string) {
 	   *(tmp_string++)='\0';
 	   fprintf(tmp_file, "%s\n", ligne);
 	   ligne[0]='\0';
-	   col=str_estime_width(tmp_string,0,(size_t)-1);
+	   col=str_estime_width(tmp_string,0,(size_t)(-1));
 	   memmove(ligne,tmp_string,strlen(tmp_string)+1);
 	   if (ptr) *(--ptr)='\0'; 
 	   ptr=buf; continue;
@@ -436,7 +442,7 @@ void Copy_format (FILE *tmp_file, flrn_char *chaine, Article_List *article,
           copy_bout(tmp_file,ptr_att);
        }
        else { 
-          fl_strncat(result,ptr_att,len2); 
+          fl_strncat(result,ptr_att,len-len2); 
 	  len2+=fl_strlen(ptr_att);
 	  if (len2>=len) { result[len]=fl_static('\0');
 	                   free(att); return; } 
@@ -448,7 +454,7 @@ void Copy_format (FILE *tmp_file, flrn_char *chaine, Article_List *article,
           copy_bout(tmp_file,ptr_att);
        }
        else { 
-          fl_strncat(result,ptr_att,len2); 
+          fl_strncat(result,ptr_att,len-len2); 
 	  len2+=strlen(ptr_att); 
 	  if (len2>=len) { result[len]=fl_static('\0'); free(att) ;return; } 
 	  result[len2]=fl_static('\0');
@@ -468,7 +474,7 @@ void Copy_format (FILE *tmp_file, flrn_char *chaine, Article_List *article,
                       vrai_n=vrai_nom(article->headers->k_headers
                                                 [FROM_HEADER]);
                       if (tmp_file) copy_bout(tmp_file,vrai_n); else
-                      { fl_strncat(result,vrai_n,len2); 
+                      { fl_strncat(result,vrai_n,len-len2); 
 			len2+=strlen(vrai_n); 
 		        if (len2>=len) { result[len]=fl_static('\0');
 			                 free(att); 
@@ -482,7 +488,8 @@ void Copy_format (FILE *tmp_file, flrn_char *chaine, Article_List *article,
 		      if (article==NULL) break;
 	              msgid=safe_flstrdup(fl_static_tran(article->msgid));
                       if (tmp_file) copy_bout(tmp_file,msgid); else
-                      { fl_strncat(result,msgid,len2); len2+=fl_strlen(msgid); 
+                      { fl_strncat(result,msgid,len-len2);
+			  len2+=fl_strlen(msgid); 
 		        if (len2>=len) { result[len]=fl_static('\0');
 			                 free(att); free(msgid); 
 			                 return; } else 
@@ -496,7 +503,8 @@ void Copy_format (FILE *tmp_file, flrn_char *chaine, Article_List *article,
 		      fl_snprintf(num,sizeof(int)*3+1,fl_static("%d"),
 			      article ? article->numero : 0);
                       if (tmp_file) copy_bout(tmp_file,num); else
-                      { fl_strncat(result,num,len2); len2+=fl_strlen(num); 
+                      { fl_strncat(result,num,len-len2);
+			  len2+=fl_strlen(num); 
 		        if (len2>=len) { result[len]=fl_static('\0');
 			               free(att); free(num); 
 			               return; } else 
@@ -510,7 +518,8 @@ void Copy_format (FILE *tmp_file, flrn_char *chaine, Article_List *article,
 		      bla=truncate_group(Newsgroup_courant->name,1);
 		      str=safe_flstrdup(bla);
                       if (tmp_file) copy_bout(tmp_file,str); else
-                      { fl_strncat(result,str,len2); len2+=fl_strlen(str); 
+                      { fl_strncat(result,str,len-len2);
+			  len2+=fl_strlen(str); 
 		        if (len2>=len) { result[len]=fl_static('\0');
 			               free(att); free(str); return; }
 			else result[len2]=fl_static('\0'); }
@@ -521,7 +530,8 @@ void Copy_format (FILE *tmp_file, flrn_char *chaine, Article_List *article,
          case fl_static('G') : 
 		  { flrn_char *str=safe_flstrdup(Newsgroup_courant->name);
                       if (tmp_file) copy_bout(tmp_file,str); else
-                      { fl_strncat(result,str,len2); len2+=strlen(str); 
+                      { fl_strncat(result,str,len-len2);
+			  len2+=strlen(str); 
 		        if (len2>=len) { result[len]=fl_static('\0');
 			               free(att); free(str); return; } 
 			else result[len2]=fl_static('\0'); }
@@ -548,7 +558,8 @@ void Copy_format (FILE *tmp_file, flrn_char *chaine, Article_List *article,
 			 if (str) {
 			       if (tofree==0) str=safe_flstrdup(str);
                                if (tmp_file) copy_bout(tmp_file,str); else
-                               { strncat(result,str,len2); len2+=strlen(str);
+                               { strncat(result,str,len-len2);
+				   len2+=strlen(str);
 				 if (len2>=len) { result[len]=fl_static('\0');
 				             free(str); free(att); return; }
 				 else result[len2]=fl_static('\0'); }
@@ -579,7 +590,7 @@ void Copy_format (FILE *tmp_file, flrn_char *chaine, Article_List *article,
 			   resconv=conversion_from_file(tcp_line_read,&trad,0,(size_t)(-1));
 			   if (tmp_file) copy_bout(tmp_file,trad);
 			    else {
-			      fl_strncat(result,trad,len2);
+			      fl_strncat(result,trad,len-len2);
 			      len2+=strlen(trad);
 			      if (len2>=len) { result[len]=fl_static('\0'); 
 				             if (resconv==0) free(trad);
@@ -610,7 +621,7 @@ void Copy_format (FILE *tmp_file, flrn_char *chaine, Article_List *article,
 			 ptr_att++;
 			 if (str!=NULL) {
                             if (tmp_file) copy_bout(tmp_file,str); else
-                            { fl_strncat(result,str,len2);
+                            { fl_strncat(result,str,len-len2);
 				len2+=strlen(str); if
 	                       (len2>=len) { result[len]=fl_static('\0');
 				     free(str);
@@ -629,7 +640,7 @@ void Copy_format (FILE *tmp_file, flrn_char *chaine, Article_List *article,
 		     *(buf+1)=fl_static('\0');
 		     *(--buf)=fl_static('%');
                       if (tmp_file) copy_bout(tmp_file,buf); else
-                      { strncat(result,buf,len2); len2+=strlen(buf); if
+                      { strncat(result,buf,len-len2); len2+=strlen(buf); if
 	                (len2>=len) { result[len]=fl_static('\0');
 			            free(att); return; } else 
 			result[len2]=fl_static('\0'); }

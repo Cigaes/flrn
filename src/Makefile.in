@@ -36,6 +36,10 @@ mandir = @mandir@
 flrndir = $(datadir)/flrn
 helpdir = $(flrndir)/help
 
+# intl
+localedir = $(datadir)/locale
+CFLAGS = @CFLAGS@
+
 #Sources
 
 Y_FILES = getdate.y
@@ -97,3 +101,5 @@ pathdef.h: Makefile
 	-@echo ' * DO NOT EDIT!  Change Makefile only. */' >> pathdef.h
 	-@echo '#define PATH_HELP_DIRECTORY "$(helpdir)/"' >> pathdef.h
 	-@echo '#define PATH_CONFIG_DIRECTORY "$(flrndir)/"' >> pathdef.h
+	-@echo '#define LOCALEDIR "$(localedir)/"' >> pathdef.h
+
