@@ -408,7 +408,7 @@ int create_Color_line (add_line_fun add_line,
 	   }
 	   len-=(prefix_len+match_len);
 	   passe+=(prefix_len+match_len);
-	   pline+=passe;
+	   pline+=(prefix_len+match_len);
 	   high_num--;
 	   if (high_num>=0) {
 	       cur=high[high_num].cur;
