@@ -595,7 +595,7 @@ void Copy_format (FILE *tmp_file, flrn_char *chaine, Article_List *article,
 			      if (len2>=len) { result[len]=fl_static('\0'); 
 				             if (resconv==0) free(trad);
 					     free(att);
-#ifdef USE_MKSTEMP
+#if (defined(USE_MKSTEMP) || defined(USE_TMPEXT))
 				             unlink(name);
 #endif
 				             return; }
@@ -603,7 +603,7 @@ void Copy_format (FILE *tmp_file, flrn_char *chaine, Article_List *article,
 			    }
 			    if (resconv==0) free(trad);
 			}
-#ifdef USE_MKSTEMP
+#if (defined(USE_MKSTEMP) || defined(USE_TMPEXT))
 			unlink (name);
 #endif
 			break;

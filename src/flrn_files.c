@@ -213,12 +213,14 @@ void rename_flnewsfile (char *old_link,char *new_link)
 FILE *open_postfile (char *file,char *mode,char *name, int tmp) {
    char *home;
    FILE *tmppostfile;
+#ifdef USE_MKSTEMP
    int fdfile;
+#endif
 
    if (NULL == (home = getenv ("FLRNHOME")))
            home = getenv ("HOME");
    if (home==NULL) return NULL;
-#ifdef USE_MKSTEMP
+#if (defined(USE_MKSTEMP) || defined(USE_TMPEXT))
    if (tmp)
       strncpy(name,home,MAX_PATH_LEN-10-strlen(TMP_POST_FILE));
    else
@@ -233,6 +235,20 @@ FILE *open_postfile (char *file,char *mode,char *name, int tmp) {
      if (fdfile==-1) return NULL;
      tmppostfile=fdopen(fdfile,mode);
    } else
+#else
+#ifdef USE_TMPEXT
+   if (tmp) {
+     int a = 0;
+     char *de=name+strlen(name);
+     struct stat sf;
+     while (a<1000000) {
+        fl_snprintf(de,8,".%06d",a);
+        if ((stat(name,&sf)<0) && (errno==ENOENT)) break;
+	a++;
+     }
+     tmppostfile=fopen(name,mode);
+   } else
+#endif
 #endif
    tmppostfile=fopen(name,mode);
    return tmppostfile;

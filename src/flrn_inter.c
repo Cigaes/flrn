@@ -2338,7 +2338,7 @@ int do_save(int res) {
       return Sauve_article(a_sauver, vfichier, 0);
   }
 
-  if (Article_courant==&Article_bidon) {
+  if ((Article_courant==&Article_bidon) && (res!=FLCMD_SAVE_OPT)) {
       etat_loop.etat=1; etat_loop.num_message=3; 
       etat_loop.hors_struct=7; return 0;
   }
@@ -2451,7 +2451,7 @@ int do_launch_pager(int res) {
 
   if (fd>0) fclose(fichier);
   Pipe_Msg_Stop(fd);
-#ifdef USE_MKSTEMP
+#if (defined(USE_MKSTEMP) || defined(USE_TMPEXT))
   unlink(name);
 #endif
   etat_loop.etat=3;
@@ -2577,7 +2577,7 @@ int do_pipe(int res) {
   if ((res == FLCMD_FILTER ) || (res == FLCMD_GFILTER)
       || (res == FLCMD_SHELLIN))
     display_filter_file(name, res == FLCMD_SHELLIN, filename);
-#ifdef USE_MKSTEMP
+#if (defined(USE_MKSTEMP) || defined(USE_TMPEXT))
   unlink(filename);
 #endif
   etat_loop.etat=1; etat_loop.num_message=14;

@@ -110,7 +110,13 @@
  * et .pipe_flrn), pour que plusieurs flrn puissent tourner simultanément.
  * L'extension utilise mkstemp, qui est plus rigoureux que de rajouter
  * le pid du process */
-#define USE_MKSTEMP	1
+#define USE_MKSTEMP	1 
+/* a la place de MKSTEMP, on peut ajouter un numéro de "recherche",
+ * (000000, puis 000001, puis 000002, et ainsi de suite...)
+ * ce qui devrait éviter (un peu) l'accumulation de .article.XXXXX~ . */
+#ifndef USE_MKSTEMP
+#define USE_TMPEXT	1
+#endif
 
 /* Lieu où sauver un message qui a été refusé par le serveur */
 #define REJECT_POST_FILE    "dead.article"

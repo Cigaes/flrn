@@ -447,14 +447,14 @@ static int Summon_Editor (int incl) {
    }
    if (after.st_size == 0) {
       put_string_utf8(_("Fichier temporaire vide."));
-#ifdef USE_MKSTEMP
+#if (defined(USE_MKSTEMP) || defined(USE_TMPEXT))
       unlink(name);
 #endif
       return 1;
    }
    if (after.st_mtime == before.st_mtime) {
        put_string_utf8(_("Message non modifié."));
-#ifdef USE_MKSTEMP
+#if (defined(USE_MKSTEMP) || defined(USE_TMPEXT))
        unlink(name);
 #endif
        return 2;
@@ -466,7 +466,7 @@ static int Summon_Editor (int incl) {
    }
    res=Lit_Post_Edit(tmp_file);
    fclose (tmp_file);
-#ifdef USE_MKSTEMP
+#if (defined(USE_MKSTEMP) || defined(USE_TMPEXT))
    unlink(name);
 #endif
    return res;
@@ -1127,7 +1127,7 @@ static int Mail_article() {
      a_ecrire=a_ecrire->suivant;
    } while (a_ecrire);
    Pipe_Msg_Stop(fd);
-#ifdef USE_MKSTEMP
+#if (defined(USE_MKSTEMP) || defined(USE_TMPEXT))
    unlink(name);
 #endif
    return 1;

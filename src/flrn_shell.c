@@ -109,7 +109,7 @@ int Pipe_Msg_Start (int flagin ,int flagout, flrn_char *cmd, char *name) {
 	  if (rc==0) free(cmdline);
 	  return -1;  /* TRES improbable :-) */
       }
-#ifdef USE_MKSTEMP
+#if (defined(USE_MKSTEMP) || defined(USE_TMPEXT))
       strncpy(name,home,MAX_PATH_LEN-10-strlen(TMP_PIPE_FILE));
 #else
       strncpy(name,home,MAX_PATH_LEN-2-strlen(TMP_PIPE_FILE));
@@ -122,7 +122,20 @@ int Pipe_Msg_Start (int flagin ,int flagout, flrn_char *cmd, char *name) {
       fdfile = mkstemp(name);
       close (fdfile);
 #else
+#ifdef USE_TMPEXT
+      {
+	  int a = 0;
+	  struct stat sf;
+	  while (a<1000000) {
+              fl_snprintf(tmpchr,strlen(TMP_PIPE_FILE)+9,
+		      "/%s.%06d",TMP_PIPE_FILE,a);
+	      if ((stat(name,&sf)<0) && (errno==ENOENT)) break;
+	      a++;
+	  }
+      }
+#else
       sprintf(tmpchr,"/%s",TMP_PIPE_FILE);
+#endif
 #endif
     }
 

@@ -111,7 +111,11 @@ void print_version_defines(FILE *out)
 #ifdef USE_MKSTEMP
    fputs("+USE_MKSTEMP\n",out);
 #else
+#ifdef USE_TMPEXT
+   fputs("+USE_TMPEXT\n",out);
+#else
    fputs("-USE_MKSTEMP\n",out);
+#endif
 #endif
    fprintf(out,"REJECT_POST_FILE=\"%s\"\n",REJECT_POST_FILE); 
 #ifdef CHECK_MAIL
