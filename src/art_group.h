@@ -169,5 +169,6 @@ extern void apply_kill_file(int, int);
 extern Article_List *cousin_prev(Article_List *article);
 extern Article_List *cousin_next(Article_List *article);
 extern void free_one_article(Article_List *, int);
+extern int calcul_hash(char *);
 
 #endif

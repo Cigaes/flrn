@@ -75,7 +75,7 @@ static void free_article_headers(Article_Header *headers) {
   free(headers);
 }
 
-static int calcul_hash(char *id) {
+int calcul_hash(char *id) {
   int toto=0;
   toto=0; for(; *id; id++) toto += *id;
   toto %= HASH_SIZE;

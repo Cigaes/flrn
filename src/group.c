@@ -1097,3 +1097,30 @@ int calcul_order_re(char *nom_gr, regex_t *sreg) {
     } while ((ret==0) && (*buf!='\0'));
     if (bon) return order; else return -1;
 }
+
+void recherche_article_par_msgid(Article_List **larticle, 
+		Newsgroup_List **legroupe, char *msgid) {
+   int h=calcul_hash(msgid);
+   Hash_List *recherche=(*Hash_table)[h];
+   while (recherche) {
+      if ((recherche->article) && (strcmp(msgid,recherche->msgid)==0)) {
+	 *legroupe=Newsgroup_courant;
+	 *larticle=recherche->article;
+	 return;
+      }
+      recherche=recherche->prev_hash;
+   }
+   for (*legroupe=Newsgroup_deb;*legroupe;*legroupe=(*legroupe)->next) {
+      if ((*legroupe)->Hash_table==NULL) continue;
+      if (*legroupe==Newsgroup_courant) continue;
+      recherche=(*((*legroupe)->Hash_table))[h];
+      while (recherche) {
+         if ((recherche->article) && (strcmp(msgid,recherche->msgid)==0)) {
+	    *larticle=recherche->article;
+	    return;
+         }
+      }
+      recherche=recherche->prev_hash;
+   }
+   *larticle=NULL;
+}

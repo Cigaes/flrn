@@ -2502,15 +2502,15 @@ static int art_swap_grp(char *xref, char *arg, Newsgroup_List *exclu) {
          mygroup=objet->gpe;
 	 numero=objet->numero;
 	 free(lemenu->lobjet);
-	 if (mygroup==Newsgroup_courant) {
-	    if (exclu==NULL) {
-	        Article_List *nouveau=Article_courant;
-		Recherche_article(numero,&nouveau,0);
-		if (nouveau) Article_courant=nouveau; /* sur ! */
-		etat_loop.etat=0;
-		return 0;
-            }
+	 if (exclu==mygroup) {
 	    etat_loop.etat=1; etat_loop.num_message=12;
+	    return 0;
+	 }
+	 if (mygroup==Newsgroup_courant) {
+	    Article_List *nouveau=Article_courant;
+	    Recherche_article(numero,&nouveau,0);
+	    if (nouveau) Article_courant=nouveau; /* sur ! */
+    	    etat_loop.etat=0;
 	    return 0;
 	 } else {
     	    etat_loop.Newsgroup_nouveau=mygroup;
@@ -2579,7 +2579,8 @@ int do_swap_grp(int res) {
     etat_loop.etat=1; etat_loop.num_message=13; return 0;
   }
   buf=safe_strdup(article_considere->headers->k_headers[XREF_HEADER]);
-  ret=art_swap_grp(buf,gpe,Newsgroup_courant);
+  ret=art_swap_grp(buf,gpe,(article_considere==Article_courant ?
+			  	Newsgroup_courant : NULL));
   free(buf);
   return ret;
 }
@@ -2605,6 +2606,27 @@ int do_art_msgid(int res) {
    if (article_temp.headers==NULL) {
       etat_loop.etat=2; etat_loop.num_message=-21;
       return 0;
+   }
+   if (article_temp.headers->k_headers[XREF_HEADER]==NULL) {
+      /* cas de leafnode : on peut toujours faire une recherche dans les
+       * groupes */
+      Article_List *larticle;
+      Newsgroup_List *legroup;
+      recherche_article_par_msgid(&larticle,&legroup,article_temp.msgid);
+      free_one_article(&article_temp,0);
+      if (larticle) {
+	 if (legroup==Newsgroup_courant) {
+	    Article_courant=larticle;
+    	    etat_loop.etat=0;
+	    return 0;
+	 } else {
+	   etat_loop.Newsgroup_nouveau=legroup;
+	   etat_loop.num_futur_article=-1;
+	   etat_loop.Article_nouveau=larticle;
+	   return 1;
+	 }
+      }
+      etat_loop.etat=1; etat_loop.num_message=13; return 0;
    }
    ret=art_swap_grp(article_temp.headers->k_headers[XREF_HEADER],NULL,NULL);
    free_one_article(&article_temp,0);
