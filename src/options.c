@@ -108,7 +108,7 @@ int bind_comp(char *str, int len)
   int res;
   int offset;
   if (len <2) return -1;
-  if (str[1]==' ') {
+  if ((str[1]==' ')||(str[1]=='\0')) {
     return Comp_cmd_explicite(str+2,len-2);
   }
   if (str[0]=='\\') {

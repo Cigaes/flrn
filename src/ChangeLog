@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. bugfixes
 . reprise de toute la completion automatique. Possibilite de relancer
   directement la completion sur les arguments d'une fonction.
   Faut-il faire une fonction generique aussi pour juste trouver le nom
