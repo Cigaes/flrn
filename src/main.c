@@ -110,6 +110,9 @@ int main(int argc, char *argv[])
   adjust_time();
   get_overview_fmt();
 
+  init_groups(); /* on y voit un exit */
+  		 /* donc il faut le faire avant l'init de l'ecran */
+  new_groups(opt_c); 
   if (!opt_c) {
      res=Init_screen();
      if (res==0) return 1;
@@ -117,8 +120,6 @@ int main(int argc, char *argv[])
      if (res<0) return 1;
   }
 
-  init_groups();
-  new_groups(opt_c); 
   if (!opt_c) res=loop(newsgroup); else aff_opt_c();
   quit_server();
   free_groups(res);

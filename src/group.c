@@ -56,7 +56,8 @@ Range_List *init_range(char *buf, int *max)
      if (*index==',') /* le delimiteur */
        index++;
      else {
-       if (debug) fprintf(stderr,"Erreur dans le fichier .flnewsrc\n");
+       fprintf(stderr,"Erreur dans le fichier .flnewsrc\n");
+       sleep(1); /* on n'a pas encore initialisé l'écran */
        return NULL;
      }
      i++;
@@ -80,8 +81,9 @@ static Newsgroup_List *add_group(Newsgroup_List **p) {
 void init_groups() {
    FILE *flnews_file;
    Newsgroup_List *creation;
-   char buf[MAX_BUF_SIZE], *deb, *ptr;
+   char *buf, *deb, *ptr;
    char name[MAX_PATH_LEN];
+   int size_buf=1024;
    
    Newsgroup_courant=Newsgroup_deb=NULL;
    strcpy(name,DEFAULT_FLNEWS_FILE);
@@ -89,19 +91,29 @@ void init_groups() {
    flnews_file = open_flrnfile(name,"r",1,&Last_check);
 
    if (flnews_file==NULL) return;
-   
-   while (fgets(buf,MAX_BUF_SIZE,flnews_file))
+
+   buf=deb=safe_malloc(size_buf*sizeof(char));
+   while (fgets(deb,(deb==buf ? size_buf : 1025),flnews_file))
+   	 /* si deb!=buf, on vient d'agrandir buf... */
    {
-      /* on vire le \n de la fin de la ligne */
-      if ((deb=strchr(buf,(int) '\n')))
+      /* on vire le \n de la fin de la ligne, qui peut ne pas exister ? */
+      if ((deb=strchr(deb,(int) '\n')))
         *deb='\0';
+      if (strlen(buf)==size_buf-1) { /* on n'a pas lu le \n */
+         if (debug) 
+	 	fprintf(stderr,"On agrandit la taille de buf (init_groups)\n");
+      	 size_buf+=1024;
+	 buf=safe_realloc(buf,size_buf*sizeof(char));
+	 deb=buf+(size_buf-1025); /* on peut lire 1024 caractères, et non 1023 */
+	 continue;
+      }
       /* on cherche le debut de la liste des articles lus */
-      ptr=buf; while (*ptr==' ') ptr++;
+      ptr=deb=buf; while (*ptr==' ') ptr++;
       if (*ptr=='\0') continue;
       deb=strchr(ptr,(int) ' ');
       if (deb) *(deb++)='\0';
       if (strlen(ptr)>MAX_NEWSGROUP_LEN)
-            { if (debug) fprintf(stderr,"Nom du newsgroup trop long !!! \n");
+            { fprintf(stderr,"Nom du newsgroup %s dans le .flnewsrc trop long !!! \n",ptr);
 	      exit(1); }
       creation = add_group(&Newsgroup_courant);
       strncpy(creation->name, ptr, strlen(ptr)-1);
@@ -110,8 +122,10 @@ void init_groups() {
       creation->min=1;
       creation->max=0;
       creation->read=init_range(deb,&(creation->max));
+      deb=buf;
    }
    if (Newsgroup_courant) Newsgroup_courant->next=NULL;
+   free(buf);
    fclose (flnews_file);
 }
 
