@@ -60,6 +60,8 @@ struct Option_struct Options = {
   0,			/* short_errors */
   1,			/* help_line */
   NULL,			/* help_line_file */
+  NULL,			/* auth_user */
+  NULL,			/* auth_pass */
   };
 
 #endif

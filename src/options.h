@@ -120,6 +120,8 @@ struct Option_struct {
   int short_errors;
   int help_line;
   char *help_lines_file;
+  char *auth_user;
+  char *auth_pass;
 };
 
 extern struct Option_struct Options;
@@ -173,6 +175,8 @@ static struct {
 } All_options[] = {
   MAKE_OPT(alpha_tree,"Pour avoir les arbres de thread (alpha)."),
   MAKE_STRING_OPT(attribution,"Chaine précédent les citations."),
+  MAKE_STRING_OPT_L(auth_user,"Nom de l'utilisateur pour l'authentification par le serveur"),
+  MAKE_STRING_OPT_L(auth_pass,"Mot de passe pour l'authentification par le serveur"),
   MAKE_OPT(auto_edit,"Lancement automatique de l'éditeur dans les posts."),
   MAKE_STRING_OPT(auto_ignore,"Expression régulières de newsgroups à ignorer."),
   MAKE_OPT(auto_kill,"Met le groupe dans le kill-file au moment de l'abonnement."),

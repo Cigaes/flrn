@@ -32,8 +32,8 @@ int Date_offset;
 static const char *tcp_command[NB_TCP_CMD] = {
     "QUIT", "MODE READER", "NEWGROUPS", "NEWNEWS", "GROUP",
     "STAT", "HEAD", "BODY", "XHDR", "XOVER", "POST", "LIST", "DATE", 
-    "ARTICLE" };
-int server_command_status[NB_TCP_CMD] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    "ARTICLE", "AUTHINFO" };
+int server_command_status[NB_TCP_CMD] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 /* Ligne lue (cf flrn_glob.h) */
 char tcp_line_read[MAX_READ_SIZE];
@@ -400,6 +400,7 @@ int connect_server (char *host, int port) {
     }
     server_command_status[CMD_QUIT]=CMD_FLAG_MAXIMAL;
     server_command_status[CMD_MODE_READER]=CMD_FLAG_MAXIMAL;
+    server_command_status[CMD_AUTHINFO]=CMD_FLAG_MAXIMAL;
     server_command_status[CMD_POST]=(code==200 ? CMD_FLAG_MAXIMAL : 
     						 CMD_FLAG_TESTED);
     write_command(CMD_MODE_READER, 0, NULL);
@@ -414,6 +415,32 @@ int connect_server (char *host, int port) {
       ret=return_code();
     }
 */
+    /* Authentification */
+    if ((ret<400) && (Options.auth_user)) {
+        char *strvar[2];
+	strvar[0]="user";
+	strvar[1]=Options.auth_user;
+        write_command(CMD_AUTHINFO,2,strvar);
+	ret=return_code();
+	if ((ret>300) && (ret<400)) {
+	   strvar[0]="pass";
+	   if (Options.auth_pass) 
+	     strvar[1]=Options.auth_pass;
+	   else {
+	     char *strpipo;
+	     /* on peut supposer que ça n'arrive que la première fois */
+	     fprintf(stdout,"Le serveur demande un mot de passe.\n");
+	     strpipo=getpass("Mot de passe : ");
+	     if (strpipo!=NULL) Options.auth_pass=safe_strdup(strpipo);
+	     strvar[1]=Options.auth_pass;
+	   }
+	   if (Options.auth_pass) {
+             write_command(CMD_AUTHINFO,2,strvar);
+	     ret=return_code();
+	   } else ret=502;
+	}
+	if (ret==502) code=ret;
+    }
 
     return code;
 }

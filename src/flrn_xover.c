@@ -27,7 +27,8 @@ int overview_usable=0;
 /* Cette fonction teste si overview.fmt existe et remplit la structure
  * du xover si possible...
  * Résultat : 0 Ok (il faut Message-Id et References au moins
- *           -1 Bug ou xover inutilisable */
+ *           -1 Bug ou xover inutilisable 
+ *	     -2 authentification ?  */
 int get_overview_fmt() {
    int res, code, num, i;
    char *buf;
@@ -40,6 +41,7 @@ int get_overview_fmt() {
    if (res<0) return -1;
 
    code=return_code();
+   if (code==480) return -2;
    if (code>=400) return -1;
 
    num=0; 

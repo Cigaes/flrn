@@ -140,7 +140,12 @@ int main(int argc, char *argv[])
      return 1;
   }
   adjust_time();
-  get_overview_fmt();
+  code=get_overview_fmt();
+  if (code==-2) {
+     fprintf(stderr, "Il semble que le serveur cherche une authentification pour continuer...\n");
+     quit_server();
+     return 1;
+  }
 
   init_groups(); /* on y voit un exit */
   		 /* donc il faut le faire avant l'init de l'ecran */

@@ -47,7 +47,8 @@
 #define CMD_LIST 11
 #define CMD_DATE 12
 #define CMD_ARTICLE 13
-#define NB_TCP_CMD 14
+#define CMD_AUTHINFO 14
+#define NB_TCP_CMD 15
 
 
 /* Touches de Commande */
