@@ -908,13 +908,46 @@ Article_List * next_in_thread(Article_List *start, long flag, int *level,
  } while(famille && (famille != famille2));
  if (famille && (famille == famille2)) {
     /* on a un cycle !!! */
-    /* on essaie de trouver des freres pour en sortir */
+    /* attention, ca ne prouve pas que famille et famille2 sont dans le
+       cycle même, ils peuvent être dans les frere_prev du cycle */
+    /* Il n'est même pas prouvé qu'on ait un message non lu dans ces
+       frere_prev... Pour tester ça :
+        1) on revient dans le cycle avec des pere
+	2) a chaque frere_prev, on teste la sous-branche
+	3) si on ne trouve rien, on teste pour les frere_suiv, qui permettent
+	   de sortir du cycle à tout coup */
+    do {
+       famille=famille->pere;
+       famille2=famille2->pere;
+       famille2=famille2->pere;
+    } while (famille!=famille2);
+    /* là on est dans le cycle */
+    {
+      Article_List *famille3;
+      do {
+         if (famille->frere_prev) {
+           famille3=famille->frere_prev;
+	   /* famille3 est hors du cycle */
+	   while (famille3 && (famille3!=famille)) {
+	     if ((famille3) && ((famille3->flag & flag)==set) &&
+                (famille3->numero<=fin) && (famille3->numero>=deb)) {
+                if (level) *level=mylevel;
+                return famille3;
+             }
+	     famille3=raw_next_in_thread(famille3,&mylevel);
+	   }
+	 }
+	 famille=famille->pere;
+      } while (famille!=famille2);
+    }
+    /* rien dans les frere_prev */
+    /* on prend les frere_suiv */
     while(!(famille->frere_suiv)){
       famille = famille->pere;
       if (famille==famille2) return NULL;
     }
     /* y'a un embranchement */
-    /* le frere ne peut pas etre dans le cycle, donc on en est sorti */
+    /* le frere_suiv ne peut pas etre dans le cycle, donc on en est sorti */
     famille=famille->frere_suiv;
     famille2=famille;
     do {
