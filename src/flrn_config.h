@@ -48,6 +48,9 @@
 #define DEFAULT_MAIL_PATH "/var/spool/mail" 
 #endif
 
+/* Défini à 1 si on veut pouvoir utiliser les jeux de caractères */
+#define WITH_CHARACTER_SETS 1
+
 /* Options de lancement de sendmail (le lieu où trouver sendmail est 
    défini via configure dans config.h */
 #define MAILER_CMD SENDMAIL " -U -t"

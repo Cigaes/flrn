@@ -32,6 +32,9 @@
 #include "flrn_pager.h"
 #include "flrn_filter.h"
 #include "flrn_color.h"
+#ifdef WITH_CHARACTER_SETS
+#include "rfc2045.h"
+#endif
 
 extern int with_direc;
 int debug;
@@ -117,6 +120,9 @@ int main(int argc, char *argv[])
      strcpy(mailbox,DEFAULT_MAIL_PATH);
      strcat(mailbox,flrn_user->pw_gecos);
   }
+#endif
+#ifdef WITH_CHARACTER_SETS
+  init_charsets ();
 #endif
   init_Flcmd_rev();
   init_Flcmd_pager_rev();

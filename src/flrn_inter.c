@@ -371,6 +371,7 @@ int loop(char *opt) {
 	if (res==0) {
 	   Article_deb=&Article_bidon;
 	   etat_loop.etat=2; etat_loop.num_message=-2;
+	   etat_loop.hors_struct=7;
 	}
       }
       Aff_newsgroup_courant();
@@ -877,7 +878,8 @@ int do_deplace(int res) {
      return (peut_changer);
    }
    if ((Article_courant==&Article_bidon) && (!peut_changer)) {
-      etat_loop.etat=1; etat_loop.num_message=3; return 0;
+      etat_loop.etat=1; etat_loop.num_message=3; 
+      etat_loop.hors_struct=7; return 0;
    }
    parcours=Article_courant;
    /* dans le cas ou on est hors limite et num1=Article_courant->numero */
@@ -1911,6 +1913,10 @@ int do_summary(int res) {
   Article_List *ret;
   char *buf=Arg_str;
 
+  if (Article_courant==&Article_bidon) {
+      etat_loop.etat=1; etat_loop.num_message=3; 
+      etat_loop.hors_struct=7; return 0;
+  }
   min_kill_l=max_kill_l=-1;
   filt=new_filter();
   filt->action.flag=FLAG_SUMMARY;

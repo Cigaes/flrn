@@ -140,6 +140,9 @@ struct Option_struct {
   char *auth_pass;
   char *sig_file;
   int quote_all;
+#ifdef WITH_CHARACTER_SETS
+  char *character_set;
+#endif
 };
 
 extern struct Option_struct Options;
@@ -199,6 +202,9 @@ static struct {
   MAKE_STRING_OPT(auto_ignore,"Expression régulières de newsgroups à ignorer."),
   MAKE_OPT(auto_kill,"Met le groupe dans le kill-file au moment de l'abonnement."),
   MAKE_STRING_OPT(auto_subscribe,"Expression régulière de newsgroups à accepter."),
+#ifdef WITH_CHARACTER_SETS
+  MAKE_STRING_OPT(character_set,"Jeu de caractère de l'écran."),
+#endif
   MAKE_OPT(cbreak,"En mode nocbreak, toute commande finit par enter."),
 #ifdef CHECK_MAIL
   MAKE_OPT(check_mail,"Vous informe si vous avez du nouveau mail."),

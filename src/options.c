@@ -28,6 +28,10 @@
 #include "options.h"
 #include "site_config.h"
 
+#ifdef WITH_CHARACTER_SETS
+#include "rfc2045.h"
+#endif
+
 static char *delim = "=: \t\n";
 
 Known_Headers unknown_Headers[MAX_HEADER_LIST];
@@ -378,6 +382,19 @@ int opt_do_set(char *str, int flag)
 	  *All_options[i].value.string=NULL;
 	}
 	All_options[i].flags.modified=1;
+#ifdef WITH_CHARACTER_SETS
+	if (All_options[i].value.string==&(Options.character_set)) {
+	   int ret_charset;
+	   ret_charset=Parse_charset_line(Options.character_set);
+	   if (ret_charset==-1) {
+	      if (flag) Aff_error_fin ("Jeu de caractère non reconnu.",1,-1);
+	      else {
+	         fprintf(stderr,"Jeu non reconnu : %s\n",Options.character_set);
+		 sleep(1);
+	      }
+	   }
+	}
+#endif
 	return 0;
       }
     }
@@ -906,6 +923,16 @@ int change_value(Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int l
 	     All_options[num].flags.allocated=0;
 	     *All_options[num].value.string=NULL;
 	   }
+#ifdef WITH_CHARACTER_SETS
+           if (All_options[num].value.string==&(Options.character_set)) {
+             int ret_charset;
+             ret_charset=Parse_charset_line(Options.character_set);
+             if (ret_charset==-1) {
+                strncpy(name, "   Jeu de caracteres non reconnu.", len);
+                *affiche=1;
+             }
+           }
+#endif
 	}
 	break;
 	}

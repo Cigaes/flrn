@@ -38,6 +38,10 @@
 #include "flrn_slang.h"
 #include "flrn_xover.h"
 #include "flrn_messages.h"
+#ifdef WITH_CHARACTER_SETS
+#include "rfc2045.h"
+#endif
+
 
 /* place des objets de la barre */
 int screen_inited;
@@ -1311,7 +1315,8 @@ int Aff_headers (int flag) {
 /* Renvoie 0 en fin de message, négatif si un scroll doit etre fait     */
 /* on renvoie alors - la ligne ou nous sommes arrivés...		*/
 /* Si from_file=1, on ne formate pas...					*/
-int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
+int Ajoute_aff_formated_line (int act_row, int read_line, int from_file,
+  				int must_decode) {
    int res, tmp_col=0, percent, len_to_write;
    char *buf,*buf2, *une_ligne;
    char buf3[15];
@@ -1319,24 +1324,45 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
    int bol;
    unsigned short *une_belle_ligne;
    int length;
+#ifdef WITH_CHARACTER_SETS
+   char *mustfree=NULL;
+   int deja_decode=1;
+#endif
 
    if ((!from_file) && (tcp_line_read[0]=='.')) {
       if (tcp_line_read[1]=='.') buf=tcp_line_read+1; else 
 	return (en_deca ? 0 : -act_row+saved_space);
    } else buf=tcp_line_read; 
+   buf2=strchr(buf,(from_file ? '\n' : '\r'));
+   if ((!buf2) && (!from_file)) buf2=strchr(buf,'\n');
+   if (buf2) *buf2='\0';
+#ifdef WITH_CHARACTER_SETS
+   if (must_decode) {
+      char *buf2;
+      int ret;
+      ret=Decode_ligne_message(buf,&buf2);
+      if (ret==0) {
+         buf=buf2;
+	 mustfree=buf2;
+      }
+   }
+#endif
    if (saved_field!=FIELD_SIG) {
      if (buf[0]=='>') saved_field=FIELD_QUOTED; else saved_field=FIELD_NORMAL;
    }
-   if (strncmp(buf,"-- \r",4)==0) saved_field=FIELD_SIG;
+   if (strcmp(buf,"-- ")==0) saved_field=FIELD_SIG;
    une_ligne=safe_malloc(Screen_Cols+1); /* si on atteint le max, ce sera
 					    un blanc... */
    une_belle_ligne=safe_malloc(sizeof(short)*(Screen_Cols+1));
    length=0;
    une_ligne[0]='\0';
-   if (*buf=='\r') { 
+   if (*buf=='\0') { 
      saved_field=FIELD_NORMAL; /* On enleve le style "signature" */
      saved_space++;
      free(une_ligne); free(une_belle_ligne);
+#ifdef WITH_CHARACTER_SETS
+     if (mustfree) free(mustfree);
+#endif
      return (act_row+1); /* On sort tout de suite, mais en augmentant le  */
      	                 /* nombre de ligne (pour éviter le fameux (100%) */
    }
@@ -1347,12 +1373,19 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
    last_color=saved_field;
    bol=1;
 
-   buf2=strchr(buf,(from_file ? '\n' : '\r'));    
-	/* Bon d'accord, on formate rien, mais bon */
-   if ((!buf2) && (!from_file)) buf2=strchr(buf,'\n');
-	/* Pour corriger une erreur dans inn-2.1 :-( */
-   if (buf2) *buf2='\0';
    while (1) {
+#ifdef WITH_CHARACTER_SETS
+      if ((must_decode) && (!deja_decode)) {
+        char *buf2;
+        int ret;
+        ret=Decode_ligne_message(buf,&buf2);
+        if (ret==0) {
+           buf=buf2;
+	   mustfree=buf2;
+        }
+      }
+      deja_decode=0;
+#endif
       if ((act_row>Screen_Rows-2) && (en_deca)) {  /* Fin de l'ecran */
 
 	 if ((!from_file) && (Article_courant->headers->nb_lines!=0)) {
@@ -1379,6 +1412,9 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
 	bol=0;
 	Ajoute_color_Line(une_belle_ligne,length,0);
 	free(une_ligne); free(une_belle_ligne);
+#ifdef WITH_CHARACTER_SETS
+        if (mustfree) free(mustfree);
+#endif
 	return (act_row+1); /* Fin de ligne */
       }
       len_to_write=to_make_len(buf,Screen_Cols,tmp_col);
@@ -1402,6 +1438,10 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
          if (strlen(buf)<=len_to_write) {
              tmp_col=str_estime_len(buf,tmp_col,-1);
              res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+#ifdef WITH_CHARACTER_SETS
+             if (mustfree) free(mustfree);
+	     mustfree=NULL;
+#endif
              if (res<1) {free(une_ligne); free(une_belle_ligne);
 	       return act_row; }
              buf=tcp_line_read;
@@ -1417,6 +1457,10 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
 	       strcpy(tcp_line_read,buf); /* A priori, cols < 1024 */
 	       buf=tcp_line_read;
                res=read_server(buf+strlen(buf), 1, MAX_READ_SIZE-strlen(buf)-1);
+#ifdef WITH_CHARACTER_SETS
+               if (mustfree) free(mustfree);
+               mustfree=NULL;
+#endif
 	       continue;
 	    } /* sinon, on se contente de changer de ligne */
 	 }
@@ -1431,6 +1475,9 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
 	  bol=0;
 	  Ajoute_color_Line(une_belle_ligne,length,0);
 	  free(une_ligne); free(une_belle_ligne);
+#ifdef WITH_CHARACTER_SETS
+          if (mustfree) free(mustfree);
+#endif
           return (act_row+1);
       }
       else buf+=len_to_write;
@@ -1445,6 +1492,9 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
       tmp_col=0;
       act_row++;
    }
+#ifdef WITH_CHARACTER_SETS
+   if (mustfree) free(mustfree);
+#endif
    return 0;
 }      
 
@@ -1624,6 +1674,10 @@ int Aff_article_courant(int to_build) {
    int res, actual_row, read_line=1;
    int first_line, scroll_headers=0;
    char *num;
+   int must_decode=0;
+#ifdef WITH_CHARACTER_SETS
+   Header_List *tmp;
+#endif
    
    if (debug) fprintf(stderr, "Appel a Aff_article_courant\n");
    if (base_Aff_article(to_build)==-1) return 0;
@@ -1661,6 +1715,18 @@ int Aff_article_courant(int to_build) {
               (Article_courant->headers->reponse_a_checked==0)) 
 	   ajoute_reponse_a(Article_courant);
    actual_row=Aff_headers(0);
+#ifdef WITH_CHARACTER_SETS
+   {
+      tmp=Last_head_cmd.headers;
+      while (tmp) {
+         if (strncasecmp(tmp->header,"content-type:",13)==0) {
+	     must_decode=(Parse_ContentType_header(tmp->header+13)==1);
+	     break;
+	 }
+	 tmp=tmp->next;
+      }
+   }
+#endif
    if ((actual_row>Screen_Rows-2) || (Options.headers_scroll)) {
       Ajoute_color_Line(NULL,0,0); /* on saute une ligne dans le vide */
       scroll_headers=1;
@@ -1719,7 +1785,7 @@ int Aff_article_courant(int to_build) {
       if (res<1) { 
 	if (debug) fprintf(stderr, "Erreur en lecture...\n"); 
 	free_text_scroll(); return -1; }
-      actual_row=Ajoute_aff_formated_line(actual_row, read_line,0);
+      actual_row=Ajoute_aff_formated_line(actual_row, read_line,0,must_decode);
       read_line++;
    } while (actual_row>0);
    if (actual_row<0)  /* On entame un scrolling */
@@ -1748,7 +1814,7 @@ int Aff_file (FILE *file, char *exit_chars, char *end_mesg) {
    num_help_line=4;
    Aff_help_line(Screen_Rows-1);
    while (fgets(tcp_line_read, MAX_READ_SIZE-1, file)) {
-     row=Ajoute_aff_formated_line(row, read_line, 1);
+     row=Ajoute_aff_formated_line(row, read_line, 1, 0);
      read_line++;
    }
    if (row>Screen_Rows-1) {  /* On entame un scrolling */

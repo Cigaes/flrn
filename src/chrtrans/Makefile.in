@@ -1,0 +1,69 @@
+# flrn : lecteur de news en mode texte
+# Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+#
+# makefile.in : le Makefile de flrn dans chrtrans
+#	makeuctb et les tables
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation. See the file COPYING for details.
+
+# C compiler
+
+CC = @CC@
+DEBUGFLAGS = 
+CPPFLAGS = $(DEBUGFLAGS) @CPPFLAGS@
+CFLAGS = @CFLAGS@
+LDFLAGS = @LDFLAGS@
+MISCLIBS = @LIBS@
+MAKEDEPEND = @MAKEDEPEND@
+INSTALL = @INSTALL@
+SRCDIR = @srcdir@/chrtrans
+ROOTDIR = @top_srcdir@
+VPATH = @srcdir@
+
+TABLES= \
+ def7_uni.h \
+ iso01_uni.h \
+ iso02_uni.h \
+ iso03_uni.h \
+ iso04_uni.h \
+ iso05_uni.h \
+ iso06_uni.h \
+ iso07_uni.h \
+ iso08_uni.h \
+ iso09_uni.h \
+ iso10_uni.h \
+ iso15_uni.h 
+
+tables: $(TABLES)
+
+makeuctb: makeuctb.o
+	$(CC) $(CFLAGS) -o $@ makeuctb.o $(MISCLIBS)
+
+makeuctb.o: $(srcdir)/UCkd.h $(srcdir)/makeuctb.c
+
+.SUFFIXES : .tbl .i
+
+.tbl.h:
+	./makeuctb $(srcdir)/$*.tbl > $@
+
+# dependancies
+def7_uni.h:             $(srcdir)/def7_uni.tbl          makeuctb
+iso01_uni.h:            $(srcdir)/iso01_uni.tbl         makeuctb
+iso02_uni.h:            $(srcdir)/iso02_uni.tbl         makeuctb
+iso03_uni.h:            $(srcdir)/iso03_uni.tbl         makeuctb
+iso04_uni.h:            $(srcdir)/iso04_uni.tbl         makeuctb
+iso05_uni.h:            $(srcdir)/iso05_uni.tbl         makeuctb
+iso06_uni.h:            $(srcdir)/iso06_uni.tbl         makeuctb
+iso07_uni.h:            $(srcdir)/iso07_uni.tbl         makeuctb
+iso08_uni.h:            $(srcdir)/iso08_uni.tbl         makeuctb
+iso09_uni.h:            $(srcdir)/iso09_uni.tbl         makeuctb
+iso10_uni.h:            $(srcdir)/iso10_uni.tbl         makeuctb
+iso15_uni.h:            $(srcdir)/iso15_uni.tbl         makeuctb
+
+clean:
+	rm -f makeuctb *.o *uni.h *uni2.h
+
+depend:
+	$(MAKEDEPEND) $(CPPFLAGS) makeuctb.c -I.
