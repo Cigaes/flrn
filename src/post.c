@@ -791,6 +791,7 @@ static int Format_article(char *to_cancel) {
 	   } else place_lu=buf1-lecture_courant->lu;
 	}
      }	
+     if (lecture_courant==NULL) break;
    }
    if (get_char(ecriture_courant,1)!='\n') 
       str_cat(&ecriture_courant, "\r\n");
