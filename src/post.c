@@ -89,7 +89,7 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
 	if ((i==TO_HEADER) && (!par_mail)) continue;
 	if ((i==CC_HEADER) && (!par_mail)) continue;
 	if ((i==BCC_HEADER) && (!par_mail)) continue;
-	fputs(Headers[i].header, tmp_file);
+	fprintf(tmp_file, "%s ", Headers[i].header);
 	if (Header_post->k_header[i])
 	   fputs(Header_post->k_header[i],tmp_file);
 	putc('\n',tmp_file);
