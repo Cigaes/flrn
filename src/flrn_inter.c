@@ -2272,6 +2272,13 @@ static int art_swap_grp(char *xref, char *arg, Newsgroup_List *exclu) {
 	 numero=objet->numero;
 	 free(lemenu->lobjet);
 	 if (mygroup==Newsgroup_courant) {
+	    if (exclu==NULL) {
+	        Article_List *nouveau=Article_courant;
+		Recherche_article(numero,&nouveau,0);
+		if (nouveau) Article_courant=nouveau; /* sur ! */
+		etat_loop.etat=0;
+		return 0;
+            }
 	    etat_loop.etat=1; etat_loop.num_message=12;
 	    return 0;
 	 } else {
@@ -2287,12 +2294,19 @@ static int art_swap_grp(char *xref, char *arg, Newsgroup_List *exclu) {
 	         (objet->numero!=Article_courant->numero)) {
 		Article_List *nouveau=Article_courant;
 		Recherche_article(objet->numero,&nouveau,0);
-		if (nouveau) Article_courant=nouveau;
-	     }
+		if (nouveau) {
+		   Article_courant=nouveau; 
+		   etat_loop.etat=0;
+		} else {
+		   etat_loop.etat=2;
+		   etat_loop.num_message=-12;
+		   etat_loop.hors_struct|=1;
+		}
+	     } else etat_loop.etat=(objet ? 0 : 3);
 	     for (courant=lemenu;courant;courant=courant->suiv) 
 	        free(courant->lobjet);
              Libere_menu(lemenu);
-	     etat_loop.etat=(objet ? 0 : 3); return 0;
+	     return 0;
 	 } else {
 	     etat_loop.Newsgroup_nouveau=objet->gpe;
 	     etat_loop.num_futur_article=objet->numero;
