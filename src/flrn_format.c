@@ -429,7 +429,28 @@ void copy_bout (FILE *tmp_file, char *chaine) {
   }
 }
 
-     
+/* Translation des sequences d'echappement dans Copy_format. On peut
+   reecrire sur la même chaîne */
+static int translate_escape_seq(char *dst, char *src) {
+   if ((src==NULL) || (dst==NULL)) return -1;
+   while (*src) {
+     if ((*dst=*(src++))!='\\') {
+        dst++;
+     } else 
+     switch (*(src++)) {
+         case 'a' : *(dst++)='\a'; break;
+         case 'b' : *(dst++)='\b'; break;
+         case 'f' : *(dst++)='\f'; break;
+         case 'n' : *(dst++)='\n'; break;
+         case 'r' : *(dst++)='\r'; break;
+         case 't' : *(dst++)='\t'; break;
+         case 'v' : *(dst++)='\v'; break;
+	 default : dst++; *(dst++)='?'; break;
+     }
+   }
+   *dst='\0';
+   return 0;
+}
 
 /* Copie d'une chaine formatée de headers dans un fichier... */
 /* Et ca va marcher, parce qu'on y croit...  */
@@ -446,18 +467,32 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
    ptr_att=att;
    while (ptr_att && (*ptr_att)) {
      buf=strchr(ptr_att,'%');
+     if (buf) *buf='\0';
+     /* on copie pour faire marcher les sequences d'echappement */
+     if (translate_escape_seq(ptr_att, ptr_att)<0) {
+         /* ah, y'a eu un bug, pas logique, normalement il n'y a pas
+	      de '%' */
+        if (debug) fprintf (stderr,"Bug dans Copy_format : ne peut faire la traduction de %s\n", chaine);
+     }
      if (buf==NULL) {
-       if (tmp_file) copy_bout(tmp_file,ptr_att); else
-        { strncat(result,ptr_att,len2); len2-=strlen(ptr_att); 
+       if (tmp_file) {
+          copy_bout(tmp_file,ptr_att);
+       }
+       else { 
+          strncat(result,ptr_att,len2); len2-=strlen(ptr_att); 
 	  if (len2<=0) { result[len]=0; free(att) ;return; } 
-	  else result[len-len2]=0; }
+	  else result[len-len2]=0;
+       }
        break;
      } else {
-       *buf='\0';
-       if (tmp_file) copy_bout(tmp_file,ptr_att); else
-        { strncat(result,ptr_att,len2); len2-=strlen(ptr_att); 
-	  if (len2<=0) { result[len]=0; free(att); return; } 
-	  else result[len-len2]=0; }
+       if (tmp_file) {
+          copy_bout(tmp_file,ptr_att);
+       }
+       else { 
+          strncat(result,ptr_att,len2); len2-=strlen(ptr_att); 
+	  if (len2<=0) { result[len]=0; free(att) ;return; } 
+	  else result[len-len2]=0;
+       }
        ptr_att=(++buf);
        switch (*buf) {
          case '%' : copy_bout(tmp_file,"%");
@@ -598,8 +633,8 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 		      buf++;
 		      ptr_att=strchr(buf,']');
 		      if (ptr_att) {
-		         char *str=NULL, *str1;
 #ifdef USE_SLANG_LANGUAGE
+		         char *str=NULL, *str1;
 			 *ptr_att='\0';
 			 source_SLang_string(buf, &str);
 			 *ptr_att=']';
