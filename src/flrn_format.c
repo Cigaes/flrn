@@ -268,10 +268,7 @@ time_t parse_date (char *s)
   }
   free(ns);
   if (count < 4) /* don't check for missing timezone */
-  {
-    if (debug) fprintf(stderr, "Erreur de date...\n");
     return (0);
-  }
   return (mutt_mktime (&tm,0) + tz_offset);
 }
 

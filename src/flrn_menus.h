@@ -9,6 +9,7 @@ typedef struct liste_menu_desc {
    char *nom;  /* En read-only, peut être un pointeur vers n'importe ou */
    void *lobjet; /* Ceci n'est pas libéré non plus !!! */
    struct liste_menu_desc *prec, *suiv;
+   int changed; /* interne, quand on vient de changer la ligne */
 } Liste_Menu;
 
 #define NB_FLCMD_MENU 7
@@ -59,9 +60,11 @@ struct cmd_predef_menu {
 
 /* les fonctions */
 
+#include "flrn_command.h"
+
 extern void *Menu_simple (Liste_Menu * /*debut_menu*/, Liste_Menu * /*actuel*/,
     void action(void *,char *,int),
-    int action_select(void *, char **, int, char *, int,int), char * /*titre*/);
+    int action_select(Liste_Menu *, Liste_Menu **, char *, int, Cmd_return *, int *), char * /*titre*/);
 extern void Libere_menu (Liste_Menu * /*debut*/);
 extern void Libere_menu_noms (Liste_Menu * /*debut*/);
 extern Liste_Menu *ajoute_menu(Liste_Menu * /*base*/, char * /*nom*/,

@@ -10,6 +10,8 @@
 #define CONTEXT_PAGER 1
 #define CONTEXT_MENU 2
 
+extern char *Noms_contextes[NUMBER_OF_CONTEXTS];
+
 /* tableau des commandes */
 extern int Flcmd_rev[NUMBER_OF_CONTEXTS][MAX_FL_KEY];
 extern Flcmd_macro_t *Flcmd_macro;
@@ -28,8 +30,10 @@ typedef struct command_return {
    int cmd[NUMBER_OF_CONTEXTS];
    char *before;
    char *after;
+   int maybe_after;
 } Cmd_return;
+extern Cmd_return une_commande;
 
-extern int get_command(int, int, int, Cmd_return *, char *);
+extern int get_command(int, int, int, Cmd_return *);
 
 #endif

@@ -221,40 +221,6 @@ File_Line_Type *Rajoute_color_Line(unsigned short *buf, int n,
     return line;
 } 
 
-
-File_Line_Type *Change_line(int n,char *buf) {
-    File_Line_Type *line=Text_scroll;
-    int i;
-    for(i=0;i<n;i++) {
-      if(line==NULL) return NULL;
-      line=line->next;
-    }
-    if (line==NULL) {
-       return NULL;
-    }
-    free(line->data);
-    line->data = safe_malloc(sizeof(short) * (strlen(buf)+1));
-    for(i=0;buf[i];i++) {
-      line->data[i]=(unsigned char)buf[i];
-    }
-    return (line);
-} 
-
-File_Line_Type *Ajoute_form_Ligne(char *buf, int field) {
-  File_Line_Type *line=Ajoute_line(buf);
-  int i;
-  for(i=0;i<line->data_len;i++)
-    line->data[i] += field<<8;
-  return line;
-}
-
-char * Read_Line(char * out, File_Line_Type *line) {
-  int i;
-  for(i=0;i<line->data_len;i++)
-    out[i]=line->data[i];
-  return out;
-}
-
 /* Applique la regexp_scroll sur une ligne */
 static void Apply_regexp_scroll (File_Line_Type *line) {
     unsigned short *retour=NULL;
@@ -277,6 +243,45 @@ static void Apply_regexp_scroll (File_Line_Type *line) {
        line->data_save=line->data;
        line->data=retour;
     }
+}
+
+File_Line_Type *Change_line(int n,char *buf) {
+    File_Line_Type *line=Text_scroll;
+    int i;
+    for(i=0;i<n;i++) {
+      if(line==NULL) return NULL;
+      line=line->next;
+    }
+    if (line==NULL) {
+       return NULL;
+    }
+    free(line->data);
+    if (line->data_save) {
+       free(line->data_save);
+       line->data_save=NULL;
+    }
+    line->data = safe_malloc(sizeof(short) * (strlen(buf)+1));
+    for(i=0;buf[i];i++) {
+      line->data[i]=(unsigned char)buf[i];
+    }
+    line->data_len=i-1;
+    if (regexp_scroll) Apply_regexp_scroll(line);
+    return (line);
+} 
+
+File_Line_Type *Ajoute_form_Ligne(char *buf, int field) {
+  File_Line_Type *line=Ajoute_line(buf);
+  int i;
+  for(i=0;i<line->data_len;i++)
+    line->data[i] += field<<8;
+  return line;
+}
+
+char * Read_Line(char * out, File_Line_Type *line) {
+  int i;
+  for(i=0;i<line->data_len;i++)
+    out[i]=line->data[i];
+  return out;
 }
 
 /* Recherche de quelque chose... mais quoi ? */

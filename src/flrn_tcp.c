@@ -275,7 +275,6 @@ int read_server_with_reconnect (char *ligne, int deb, int max) {
       return -1;
    }
    
-   if (debug) fprintf(stderr, "Lecture : %s", ligne);
    code=atoi(ligne);
 
    /* On va essayer de gerer le cas du timeout */
@@ -342,7 +341,6 @@ int read_server_for_list (char *ligne, int deb, int max) {
 int discard_server() {
    int ret;
 
-   if (debug) fprintf(stderr,"Discard server\n");
    /* cas d'un renvoie_courte_liste */
    if (renvoie_courte_liste) {
      renvoie_courte_liste=0;
@@ -395,8 +393,6 @@ int connect_server (char *host, int port) {
     write_command(CMD_MODE_READER, 0, NULL);
     
     ret=return_code();
-
-    if (debug) fprintf (stderr,"Serveur retourne (mode reader) : %d\n", code);
 
 /* On place juste XMODE READER au cas ou...*/
 /* Non nécéssaire (trn4 ne le fait pas) */
@@ -681,7 +677,6 @@ void quit_server () {
   {
     res=read_server(tcp_line_read, 3, MAX_READ_SIZE-1);
     if (res<0) return;
-    if (debug) fprintf(stderr, "lecture : %s", tcp_line_read);
   }
   close(tcp_fd);   /* Bon, cette procedure est non fiable. */
 }

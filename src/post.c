@@ -719,7 +719,8 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
 	  }
 	  else
 	    groupe=Menu_simple(lemenu,NULL,Ligne_carac_du_groupe,NULL,"Quel groupe ?");
-	  Libere_menu(lemenu);
+	  Libere_menu(lemenu); /* On ne libere PAS les noms */
+	  	/* voir à prendre change_group ici, c'est la même fonction */
 	} else groupe=NULL;
 	if (groupe) {
 	   strcpy(nom2,groupe->name);

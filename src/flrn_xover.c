@@ -372,7 +372,7 @@ int cree_liste(int art_num, int *part) {
    }
    /* On ne suppose pas que la ligne est trop longue : c'est quasi-exclu */
    if (tcp_line_read[res-1]!='\n') {
-     if (debug) fprintf(stderr, "Serveur grotesque \n");
+     if (debug) fprintf(stderr, "Serveur grotesque : ligne trop longue\n");
      return -1;
    }
    code=strtol(tcp_line_read, &buf, 10);
@@ -407,9 +407,8 @@ int cree_liste(int art_num, int *part) {
    Newsgroup_courant->not_read=0;
    Newsgroup_courant->virtual_in_not_read=0;
    Newsgroup_courant->important=0;
-   if ((max<min)||(max==0)) {
-     if (debug) fprintf(stderr, "Pas d'article disponibles !\n"); return 0;
-   }
+   if ((max<min)||(max==0)) 
+     return 0;
    if (Newsgroup_courant->max<=max) /* Ca peut etre > si list active et */
                                    /* group sont contradictoires....    */
        Newsgroup_courant->max=max;

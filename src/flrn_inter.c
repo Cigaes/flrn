@@ -32,6 +32,7 @@
 #include "flrn_help.h"
 #include "flrn_regexp.h"
 #include "flrn_color.h"
+#include "flrn_messages.h"
 
 /* On va définir ici des structures et des variables qui seront utilisées */
 /* pour loop, et les fonctions qui y sont associés. Il faudrait en fait   */
@@ -77,6 +78,7 @@ int thread_action(Article_List *article,int all, Action action, void *param);
 int gthread_action(Article_List *article,int all, Action action, void *param);
 
 
+Cmd_return une_commande;
 #define MAX_CHAR_STRING 100
 char Arg_str[MAX_CHAR_STRING];
 
@@ -99,7 +101,7 @@ struct file_and_int {
 int parse_arg_string(char *str,int command, int annu16);
 /* On prédéfinit ici les fonctions appelés par loop... A l'exception de */
 /* get_command, elles DOIVENT être de la forme int do_* (int res)       */ 
-int get_command_command(int key);
+int get_command_command(int get_com);
 int do_deplace(int res); 
 int do_goto(int res); /* renvoie change */
 int do_unsubscribe(int res);
@@ -198,9 +200,10 @@ int aff_opt_c(char *newsgroup) {
    }
    if (newsgroup==NULL) {
       if (nb_non_lus==0) 
-        fprintf(stdout, "Rien de nouveau.\n"); 
+        fputs(Messages[MES_NOTHING_NEW],stdout); 
       else
-       fprintf(stdout, "  Il y a au total %d article%s non lu%s.\n",nb_non_lus,(nb_non_lus==1 ? "" : "s"), (nb_non_lus==1 ? "" : "s"));
+       fprintf(stdout, "  Il y a au total %d article%s non lu%s.",nb_non_lus,(nb_non_lus==1 ? "" : "s"), (nb_non_lus==1 ? "" : "s"));
+      putc('\n',stdout);
    }
    return (nb_non_lus>0);
 }
@@ -211,61 +214,61 @@ static void Aff_message(int type, int num)
 {
   switch (num) {
  /* Message d'information */
-    case 1 : Aff_error("Rien de nouveau."); break;
-    case 2 : Aff_error("Fin du newsgroup."); break;
-    case 3 : Aff_error("Message(s) inexistant(s)."); break;
+    case 1 : Aff_error(Messages[MES_NOTHING_NEW]); break;
+    case 2 : Aff_error(Messages[MES_EOG]); break;
+    case 3 : Aff_error(Messages[MES_NO_MES]); break;
     case 4 : 
-    case 5 : Aff_error_fin("Les messages sont marqués non lus.",0,-1); break;
-    case 6 : Aff_error("Post envoyé."); break;
-    case 7 : Aff_error("Post annulé."); break;
-    case 8 : Aff_error_fin("Article(s) sauvé(s).",0,-1); break;
-    case 9 : Aff_error_fin("Vous êtes abonné à ce newsgroup.",0,-1); break;
-    case 10 : Aff_error("Pas d'autre thread non lu."); break;
-    case 11 : Aff_error_fin("Tous les articles sont marqués lus.",0,-1);
+    case 5 : Aff_error_fin(Messages[MES_OMIT],0,-1); break;
+    case 6 : Aff_error(Messages[MES_POST_SEND]); break;
+    case 7 : Aff_error(Messages[MES_POST_CANCELED]); break;
+    case 8 : Aff_error_fin(Messages[MES_ART_SAVED],0,-1); break;
+    case 9 : Aff_error_fin(Messages[MES_ABON],0,-1); break;
+    case 10 : Aff_error(Messages[MES_NOSEL_THREAD]); break;
+    case 11 : Aff_error_fin(Messages[MES_ZAP],0,-1);
 	      break;
-    case 12 : Aff_error("Pas d'autres newsgroups."); break;
-    case 13 : Aff_error_fin("Xref non trouvé.",1,-1); break;
-    case 14 : Aff_error_fin("(continue)",0,-1); break;
-    case 15 : Aff_error_fin("Tag mis",0,-1); break;
-    case 16 : Aff_error_fin("Cancel annulé",0,-1); break;
-    case 17 : Aff_error("Article(s) cancelé(s)"); break;
-    case 18 : Aff_error_fin("Groupe ajouté.",0,-1); break;
-    case 19 : Aff_error_fin("Groupe retiré.",0,-1); break;
-    case 20 : Aff_error("Mail envoyé."); break;
-    case 21 : Aff_error("Mail envoyé, article posté."); break;
-    case 22 : Aff_error_fin("Article(s) marqué(s) lu(s) temporairement.",0,-1); break;
+    case 12 : Aff_error(Messages[MES_NOTHER_GROUP]); break;
+    case 13 : Aff_error_fin(Messages[MES_NO_XREF],1,-1); break;
+    case 14 : Aff_error_fin(Messages[MES_CONTINUE],0,0); break;
+    case 15 : Aff_error_fin(Messages[MES_TAG_SET],0,-1); break;
+    case 16 : Aff_error_fin(Messages[MES_CANCEL_CANCELED],0,-1); break;
+    case 17 : Aff_error(Messages[MES_CANCEL_DONE]); break;
+    case 18 : 
+    case 19 : Aff_error_fin(Messages[MES_OP_DONE],0,-1); break;
+    case 20 : Aff_error(Messages[MES_MAIL_SENT]); break;
+    case 21 : Aff_error(Messages[MES_MAIL_POST]); break;
+    case 22 : Aff_error_fin(Messages[MES_TEMP_READ],0,-1); break;
  /* Message d'erreur */
-    case -1 : Aff_error("Vous n'êtes abonné à aucun groupe."); 
+    case -1 : Aff_error(Messages[MES_NO_GROUP]);  /* non utilisé */
 	       break;
-    case -2 : Aff_error("Ce newsgroup est vide.");
+    case -2 : Aff_error(Messages[MES_GROUP_EMPTY]);
 	       break;
-    case -3 : Aff_error("Vous n'êtes dans aucun newsgroup.");
+    case -3 : Aff_error(Messages[MES_NOT_IN_GROUP]);
 	       break;
 /*	        case -4 : Aff_error("Post refusé.");
 	       break;   */
-    case -5 : Aff_error_fin("Pas d'article négatif.",1,-1);
+    case -5 : Aff_error_fin(Messages[MES_NEGATIVE_NUMBER],1,-1); /* non utilisé */
 	       break;
-    case -6 : Aff_error("Echec de la sauvegarde.");
+    case -6 : Aff_error(Messages[MES_SAVE_FAILED]);
 	       break;
-    case -7 : Aff_error("Newsgroup inconnu et supprimé.");
+    case -7 : Aff_error(Messages[MES_UNK_GROUP]);
 	       break;
-    case -8 : Aff_error("Newsgroup non trouvé.");
+    case -8 : Aff_error(Messages[MES_NO_FOUND_GROUP]);
 	       break;
-    case -9 : Aff_error_fin("Commande inconnue. (? pour obtenir l'aide)",1,-1);
+    case -9 : Aff_error_fin(Messages[MES_UNKNOWN_CMD],1,-1);
 	       break;
-    case -10 : Aff_error("Regexp invalide..."); break;
-    case -11 : Aff_error("Echec du pipe..."); break;
-    case -12 : Aff_error("L'article n'est plus dans le newsgroup cherché...");
+    case -10 : Aff_error_fin(Messages[MES_REGEXP_BUG],1,-1); break;
+    case -11 : Aff_error(Messages[MES_PIPE_BUG]); break;
+    case -12 : Aff_error(Messages[MES_MES_NOTIN_GROUP]);
 	       break;
-    case -13 : Aff_error_fin("Tag invalide.",1,-1); break;
-    case -14 : Aff_error_fin("Cancel refusé.",1,-1); break;
-    case -15 : Aff_error_fin("Historique vide.",1,-1); break;
+    case -13 : Aff_error_fin(Messages[MES_BAD_TAG],1,-1); break;
+    case -14 : Aff_error_fin(Messages[MES_CANCEL_REFUSED],1,-1); break;
+    case -15 : Aff_error_fin(Messages[MES_EMPTY_HISTORY],1,-1); break;
 /*    case -16 : Aff_error("Vous ne pouvez pas poster ici."); break; */
 /* ce message est idiot : rien n'empêche de faire un followup, sauf à */
 /* la rigueur si le serveur refuse tout...			      */
-    case -17 : Aff_error("Pas de header."); break;
-    case -18 : Aff_error("Header refusé."); break;
-    default : Aff_error("Erreur non reconnue !!!");
+    case -17 : Aff_error(Messages[MES_NO_HEADER]); break;
+    case -18 : Aff_error(Messages[MES_REFUSED_HEADER]); break;
+    default : Aff_error(Messages[MES_FATAL]);
 	       break;
   }
 
@@ -273,7 +276,7 @@ static void Aff_message(int type, int num)
 
 /* return 1 if 'q' was pressed */
 int loop(char *opt) {
-   int res=0, quit=0, key;
+   int res=0, quit=0, ret;
    int to_build=0; /* il faut appeler cree_liste */
    int change;
    
@@ -395,8 +398,8 @@ int loop(char *opt) {
 	      etat_loop.etat=2; etat_loop.num_message=-3;
 	   }
 	   if (debug) fprintf(stderr, "etat %d num_message %d\n", etat_loop.etat, etat_loop.num_message);
-	   key=0;
-	   if (etat_loop.etat==0) { key=Aff_article_courant(to_build); 
+	   ret=0;
+	   if (etat_loop.etat==0) { ret=Aff_article_courant(to_build); 
 			  push_tag();
 	     		  etat_loop.hors_struct&=8;
 			  if (etat_loop.hors_struct) etat_loop.hors_struct|=3;
@@ -414,14 +417,13 @@ int loop(char *opt) {
 	     cree_liste_end();
 	     to_build=0;
 	   }
-	   if (key<0) key=0; /* Aff_article_courant a renvoyé une erreur */
+	   if (ret<0) ret=0; /* Aff_article_courant a renvoyé une erreur */
 	   if (etat_loop.next_cmd>=0) {
 	     res=etat_loop.next_cmd;
 	     etat_loop.next_cmd=-1; /* remis à jour ensuite */
 	     Arg_str[0]='\0';
 	   } else
-	     res=get_command_command(key);
-	   if (debug) fprintf(stderr, "retour de get_command : %d\n", res);
+	     res=get_command_command(ret-1);
 	   if ((res >0) && (res & FLCMD_MACRO)) {
 	     int num_macro= res ^FLCMD_MACRO;
 	     res = Flcmd_macro[num_macro].cmd;
@@ -713,15 +715,22 @@ int parse_arg_string(char *str,int command, int annu16)
 /* Prend la chaine argument pour les appels qui en ont besoin en mode cbreak */
 /* On ajoute key dans le cas ou isdigit(key) ou key=='<' */
 /* Renvoie -1 si annulation */
-static int get_str_arg(int res) {
+static int get_str_arg(int res, char *beg) {
    int col, ret;
    char cmd_line[MAX_CHAR_STRING];
    char *str=cmd_line;
 
-   col=Aff_fin("A vous : ");
-   Screen_write_string(Flcmds[res].nom);
-   Screen_write_char(' ');
-   col+=1+strlen(Flcmds[res].nom) /* +1 */;
+   *(str++)='(';
+   if (beg) {
+      strncpy(str,beg,MAX_CHAR_STRING-7-strlen(Flcmds[res].nom));
+      str[MAX_CHAR_STRING-7-strlen(Flcmds[res].nom)]='\0';
+      str+=strlen(str);
+      *(str++)='\\';
+   }
+   strcpy(str,Flcmds[res].nom);
+   strcat(str,") : ");
+   col=Aff_fin(cmd_line);
+   str=cmd_line;
    str[0]=0;
    ret=getline(str, MAX_CHAR_STRING, Screen_Rows-1, col);
    if (ret<0) return -1;
@@ -736,38 +745,41 @@ static int get_str_arg(int res) {
 /* Renvoie -1 si commande non défini				         */
 /*         -2 si rien							 */
 /*         -3 si l'état est déjà défini...				 */
-int get_command_command(int key_depart) {
-   int res, res2;
-   Cmd_return une_commande;
+int get_command_command(int get_com) {
+   int res, res2, key;
 
    Arg_do_funcs.flags=0;
    Arg_str[0]='\0';
 
-   res=get_command(key_depart,CONTEXT_COMMAND,-1,&une_commande,"A vous : ");
+   if (get_com==-1) {
+     Aff_fin("A vous : ");
+     key=Attend_touche();
+     if (KeyBoard_Quit) return -1;
+     res=get_command(key,CONTEXT_COMMAND,-1,&une_commande);
+   } else res=get_com;
    if (res<0) {
       if (une_commande.before) free(une_commande.before);
       if (une_commande.after) free(une_commande.after);
       return res;
    }
-   /* res = 0 ou res = 2*/
+   /* res = 0 */
    res2=une_commande.cmd[CONTEXT_COMMAND];
-   if (une_commande.before) {
+   if (une_commande.before) 
       Parse_nums_article(une_commande.before,NULL,0);
-      free(une_commande.before);
-   }
    if (une_commande.after) {
       res2=parse_arg_string(une_commande.after,res2,1);
       free(une_commande.after);
    }
-   if (res2==FLCMD_UNDEF) return FLCMD_UNDEF; /* impossible à priori */
-   if (res2 & FLCMD_MACRO) return res2;
-   /* Testons si on a besoin d'un (ou plusieurs) parametres */
-   if ((res & 2) && 
-       ( ((!Options.forum_mode) && (Flcmds[res2].flags & 8))
-       || ((Options.forum_mode) && (Flcmds[res2].flags & 4)) )) {
-     res=get_str_arg(res2);
-     if (res==-1) return -2;
+   if ((res2!=FLCMD_UNDEF) && ((res2 & FLCMD_MACRO)==0)) {
+     /* Testons si on a besoin d'un (ou plusieurs) parametres */
+     if ((une_commande.maybe_after) && 
+         ( ((!Options.forum_mode) && (Flcmds[res2].flags & 8))
+         || ((Options.forum_mode) && (Flcmds[res2].flags & 4)) )) {
+       res=get_str_arg(res2,une_commande.before);
+       if (res==-1) res2=-2;
+     }
    }
+   if (une_commande.before) free(une_commande.before);
    return res2;
 }
 
@@ -1291,7 +1303,10 @@ int do_kill(int res) {
      etat_loop.num_message=22;
      return 0;
   }
-  if (Article_courant->flag & FLAG_READ) do_deplace(FLCMD_SPACE);
+  if (Article_courant->flag & FLAG_READ) {
+     etat_loop.hors_struct&=~2; /* Ceci sert à empêcher un changement */
+     do_deplace(FLCMD_SPACE);
+  }
   else etat_loop.etat=3;
   return 0;
 }
@@ -1436,10 +1451,17 @@ Article_List * Menu_summary (int deb, int fin, int thread) {
   return raw_Do_summary(deb,fin,thread,Do_menu_summary_line);
 }
 
-static int thread_menu (void *value, char **nom, int i, char *name, int len, int key) {
-   Thread_List *thr=(Thread_List *)value;
+static int thread_menu (Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int len, Cmd_return *la_commande, int *affiche) {
+   Thread_List *thr=(Thread_List *)((*courant)->lobjet);
+   int cmd;
 
-   switch (key<MAX_FL_KEY ? Flcmd_rev_command[key] : FLCMD_UNDEF) {
+   *affiche=0;
+   if (la_commande->cmd[CONTEXT_MENU]!=-1) return -2; else
+   cmd=la_commande->cmd[CONTEXT_COMMAND];
+
+   if (la_commande->before) free(la_commande->before);
+   if (la_commande->after) free(la_commande->after);
+   switch (cmd) {
       case FLCMD_KILL :
       case FLCMD_GKIL :
       case FLCMD_PKIL : if (thr->flags & FLAG_THREAD_UNREAD) 
@@ -1452,12 +1474,13 @@ static int thread_menu (void *value, char **nom, int i, char *name, int len, int
 			   else thr->flags|=FLAG_THREAD_UNREAD;
 			break;
    }
-   **nom=(thr->flags & FLAG_THREAD_READ ? '-' :
+   *((*courant)->nom)=(thr->flags & FLAG_THREAD_READ ? '-' :
    	  (thr->flags & FLAG_THREAD_UNREAD ? '+' : ' '));
-   return 0;
+   (*courant)->changed=1;
+   return 1;
 }
 
-static void Menu_selector () {
+static int Menu_selector () {
    Thread_List *parcours=Thread_deb;
    Hash_List *hash_parc;
    Article_List *art;
@@ -1499,7 +1522,7 @@ static void Menu_selector () {
    if (menu) {
       Menu_simple(menu,start,NULL,thread_menu,"<total> <non lus>. q pour quitter.");
       Libere_menu_noms(menu);
-   }
+   } else return -1;
    parcours=Thread_deb;
    for (;parcours;parcours=parcours->next_thread) {
        if (parcours->flags & (FLAG_THREAD_UNREAD | FLAG_THREAD_READ)) {
@@ -1511,10 +1534,11 @@ static void Menu_selector () {
 	       else if ((hash_parc->article->numero>0) &&
 	                (!(hash_parc->article->flag && FLAG_READ)))
 	           kill_article(hash_parc->article,NULL);
-	/* On n'évite de faire des requetes superflues et lourdes */
+	/* On évite de faire des requetes superflues et lourdes */
 	    }
        }
    }
+   return 0;
 }
 
 
@@ -1617,7 +1641,13 @@ int do_select(int res) {
   }
   result = distribue_action(courant, act, NULL, (void *)filt);
   free_filter(filt);
-  Menu_selector();
+  result=Menu_selector();
+  if (result==-1) {
+     etat_loop.hors_struct|=1;
+     etat_loop.etat=1;
+     etat_loop.num_message=10;
+     return 0;
+  }
   while (parcours) {
     parcours->flags &= ~FLAG_THREAD_SELECTED;
     parcours=parcours->next_thread;
@@ -1626,7 +1656,10 @@ int do_select(int res) {
   /* Est-ce un hack trop crade ? */
   courant->flags=0;
   Aff_not_read_newsgroup_courant();
-  if (Article_courant->flag & FLAG_READ) do_deplace(FLCMD_SPACE);
+  if (Article_courant->flag & FLAG_READ) {
+     etat_loop.hors_struct&=~2;
+     do_deplace(FLCMD_SPACE);
+  }
   else etat_loop.etat=3;
   return 0;
 }
@@ -1749,7 +1782,8 @@ int display_filter_file(char *cmd, int flag) {
   fclose(file);
   Aff_fin(prettycmd);
   Attend_touche();
-  etat_loop.etat=1; etat_loop.num_message=14;
+  etat_loop.etat=3;
+  etat_loop.hors_struct|=1;
   return 0;
 }
 
@@ -1891,8 +1925,8 @@ int do_opt(int res) {
 
 int do_opt_menu(int res) {
   menu_config_variables();
-  etat_loop.etat=1;
-  etat_loop.num_message=14;
+  etat_loop.etat=3;
+  etat_loop.hors_struct|=1;
   return 0;
 }
 
@@ -2132,7 +2166,6 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
    char *tmp_name=NULL;
 
    while (*gpe==' ') gpe++;
-   if (debug) fprintf(stderr,"\nG : %s\n",gpe);
    if (*gpe=='\0') return 1;
 
    if (Options.use_regexp) {
@@ -2195,7 +2228,6 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 	    ((!Options.use_regexp || regexec(&reg,tmp_name,0,NULL,0))
 	    && (Options.use_regexp || !strstr(tmp_name,gpe))))) {
        if (flags & 1) { 
-         if (debug) fprintf(stderr, "On va appeler cherche_newsgroup\n");
          /* on recupere la chaine minimale de la regexp */
 
          if (Options.use_regexp) {
@@ -2203,7 +2235,6 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 	   mustmatch=reg_string(gpe,1);
 	   if (mustmatch!=NULL) {
 	     if ((mygroup=cherche_newsgroup_re(mustmatch,reg,(flags & 2)?1:0))==NULL) {
-	       if (debug) fprintf (stderr,"Le motif %s ne correspond a aucun groupe\n",gpe);
 	       free(mustmatch);
 	       regfree(&reg);
 	       return -2;
@@ -2216,7 +2247,6 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 	   free(mustmatch);
          } else {
 	   if ((mygroup=cherche_newsgroup(gpe,0,(flags & 2)?1:0))==NULL) {
-	     if (debug) fprintf (stderr,"Le motif %s ne correspond a aucun groupe\n",gpe);
 	     return -2;
 	   } else {
 	     *newgroup=mygroup;
@@ -2224,7 +2254,6 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 	   }
          }
        } else {
-          if (debug) fprintf (stderr,"Le motif %s ne correspond a aucun groupe\n",gpe);
 	  if (Options.use_regexp) regfree(&reg);
 	  return -2;
        }
@@ -2235,9 +2264,9 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
      else
        mygroup=Menu_simple(lemenu,NULL,Ligne_carac_du_groupe,NULL,"Quel groupe ?");
      if (mygroup==NULL) mygroup=Newsgroup_courant;
-     Libere_menu(lemenu);
+     Libere_menu(lemenu); /* on est bien d'accord qu'on ne libere PAS les noms*/
+     			  /* CAR action_select vaut NULL */
    } else if (avec_un_menu) {
-     if (debug) fprintf (stderr,"Le motif %s ne correspond a aucun groupe\n",gpe);
      if (Options.use_regexp) regfree(&reg);
      return -2;
    }

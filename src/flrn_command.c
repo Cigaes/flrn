@@ -211,13 +211,14 @@ int Comp_cmd_explicite(char *str, int len, Liste_Chaine *debut)
 /*			princip, second : les contextes possibles	 */
 /* 			la_commande : pointeur sur le retour...		 */
 /*			chaine : la chaîne à afficher			 */
-/* Renvoie  0,2 contexte principal					 */
-/*          1,3 contexte secondaire					 */
-/*    (2 et 3 : on peut attendre autre chose... et ->after est vide)	 */
+/* Renvoie  0 contexte principal					 */
+/*          1 contexte secondaire					 */
 /*	   -1 si commande non défini                                     */
 /*         -2 si rien                                                    */
 /*         -3 si l'état est déjà défini...                               */
 
+char *Noms_contextes[NUMBER_OF_CONTEXTS] = {
+   "Command", "Pager", "Menu" };
 #define MAX_CHAR_STRING 100
 #define DENIED_CHARS "0123456789<>.,_*-"
 /* on ne met pas le '-', hélas, pour des raisons classiques */
@@ -228,29 +229,48 @@ int get_command_newmode(int, int, int, int, Cmd_return *);
 int Lit_cmd_key(int, int, int, Cmd_return *);
 int Lit_cmd_explicite(char *, int, int, Cmd_return *);
 
+static int aff_context(int princip, int second) {
+   char chaine[18];
+
+   sprintf(chaine,"(%s",Noms_contextes[princip]);
+   if (second>=0) {
+      strcat(chaine,"/");
+      strcat(chaine,Noms_contextes[second]);
+   }
+   strcat(chaine,") : ");
+   return Aff_fin(chaine);
+}
+   
 int get_command(int key_depart, int princip, int second, 
-		Cmd_return *la_commande, char *chaine) {
+		Cmd_return *la_commande) {
    int key, col,i, res;
 
    la_commande->before=la_commande->after=NULL;
+   la_commande->maybe_after=0;
    for (i=0; i<NUMBER_OF_CONTEXTS; i++) la_commande->cmd[i]=FLCMD_UNDEF;
-   col=Aff_fin(chaine);
-   if (!Options.cbreak) 
+   if (!Options.cbreak) {
+      col=aff_context(princip, second);
       return get_command_nocbreak(key_depart,col,princip,second,
                                         la_commande);
+   }
    if (key_depart) key=key_depart; else key=Attend_touche();
-   if (key==fl_key_nocbreak) 
+   if (key==fl_key_nocbreak) {
+      col=aff_context(princip, second);
       return get_command_nocbreak(fl_key_nocbreak,col,princip,second,
 					la_commande);
-   if (key==fl_key_explicite) 
+   }
+   if (key==fl_key_explicite) {
+      col=aff_context(princip, second);
       return get_command_explicite(NULL,col,princip,second,la_commande);
-   else {
+   } else {
       /* Beurk pour '-' */
       if ((key=='-') || (strchr(DENIED_CHARS,key)==NULL)) {
                    res=Lit_cmd_key(key,princip,second,la_commande);
-		   if ((res>=0) && (key!='\r')) res+=2;
+		   if ((res>=0) && (key!='\r')) la_commande->maybe_after=1;
+      } else {
+         col=aff_context(princip, second);
+         res=get_command_newmode(key,col,princip,second,la_commande);
       }
-         else res=get_command_newmode(key,col,princip,second,la_commande);
    }
    return res;
 }
@@ -405,6 +425,7 @@ int get_command_newmode(int key,int col, int princip, int second, Cmd_return *la
        return get_command_explicite(cmd_line,col,princip,second,la_commande); 
    else 
        res=Lit_cmd_key(key,princip,second,la_commande);
-   return ((res>=0) && (key!='\r') ? res+2 : res);
+   if ((res>=0) && (key!='\r')) la_commande->maybe_after=1;
+   return res;
 }
 

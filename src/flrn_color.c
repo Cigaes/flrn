@@ -75,6 +75,11 @@ struct Highlight {
 #define NUM_FLAGS 3
 static char *flags_names[]={"exclude","line","case"};
 
+/* les "couleurs" */
+static const char *bold_str="bold";
+static const char *blink_str="blink";
+static const char *underline_str="underline";
+static const char *reverse_str="reverse";
 
 /* vire tout, libère la mémoire */
 void free_highlights() {
@@ -184,22 +189,22 @@ int parse_option_color(int func, char *line)
       new_pat->colors.attributs_mono|=Colors[i].attributs_mono;
     }
     else
-    if (strcasecmp(buf,"bold")==0) {
+    if (strcasecmp(buf,bold_str)==0) {
       new_pat->colors.attributs|=FL_BOLD_MASK;
       new_pat->colors.attributs_mono|=FL_BOLD_MASK;
     }
     else
-    if (strcasecmp(buf,"blink")==0) {
+    if (strcasecmp(buf,blink_str)==0) {
       new_pat->colors.attributs|=FL_BLINK_MASK;
       new_pat->colors.attributs_mono|=FL_BLINK_MASK;
     }
     else
-    if (strcasecmp(buf,"underline")==0) {
+    if (strcasecmp(buf,underline_str)==0) {
       new_pat->colors.attributs|=FL_ULINE_MASK;
       new_pat->colors.attributs_mono|=FL_ULINE_MASK;
     }
     else
-    if (strcasecmp(buf,"reverse")==0) {
+    if (strcasecmp(buf,reverse_str)==0) {
       new_pat->colors.attributs|=FL_REV_MASK;
       new_pat->colors.attributs_mono|=FL_REV_MASK;
     }
@@ -454,19 +459,19 @@ void ecrit_attributs(FILE *file, FL_Char_Type att) {
     return;
   }
   if (att & FL_BOLD_MASK) {
-    fprintf(file,"%cbold",(comma ? ',' : ' '));
+    fprintf(file,"%c%s",(comma ? ',' : ' '),bold_str);
     comma=1;
   }
   if (att & FL_BLINK_MASK) {
-    fprintf(file,"%cblink",(comma ? ',' : ' '));
+    fprintf(file,"%c%s",(comma ? ',' : ' '),blink_str);
     comma=1;
   }
   if (att & FL_ULINE_MASK) {
-    fprintf(file,"%cunderline",(comma ? ',' : ' '));
+    fprintf(file,"%c%s",(comma ? ',' : ' '),underline_str);
     comma=1;
   }
   if (att & FL_REV_MASK) {
-    fprintf(file,"%creverse",(comma ? ',' : ' '));
+    fprintf(file,"%c%s",(comma ? ',' : ' '),reverse_str);
     comma=1;
   }
 }

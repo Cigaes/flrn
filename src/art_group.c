@@ -271,7 +271,7 @@ int cree_liens() {
        if (buf3) *buf3='<';
        buf3=strchr(buf2,'>');
        if (buf3==NULL) {
-          if (debug) fprintf(stderr, "Header référence qui buggue !\n");
+          if (debug) fprintf(stderr, "Header référence qui buggue : %s !\n",buf2);
 	  *buf2='\0';
 	  buf3=buf2;
 	  continue;
@@ -465,8 +465,8 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others, in
 	 if (strncasecmp(tcp_line_read, Headers[i].header, 
 	                      Headers[i].header_len)==0) {
 	   if (creation->k_headers[i]) {
-               if (debug) fprintf(stderr, "Double header %s ???", 
-		                            Headers[i].header);
+/*               if (debug) fprintf(stderr, "Double header %s ???", 
+		                            Headers[i].header);    */
 	       header_courant=NULL_HEADER;
 	   } else {
 	      header_courant=i;
@@ -909,7 +909,6 @@ Article_List * next_in_thread(Article_List *start, long flag, int *level,
   /* La c'est un truc lourd, bien lourd... */
   if ((big_thread) && (start->thread)) {
      Hash_List *parcours=start->thread->premier_hash;
-     if (debug) fprintf(stderr,"Recherche dans le thread générique...\n");
      while (1) {
        while (parcours && ((parcours->article==NULL) || 
      			   ((parcours->article->flag & flag)!=set) ||
@@ -927,8 +926,8 @@ Article_List * next_in_thread(Article_List *start, long flag, int *level,
        parcours=parcours->next_in_thread;
     }
   }
-  if (debug) fprintf(stderr,"Echec :-(...\n");
   /* Cette fois c'est bien fini */
+  if (debug) fprintf(stderr,"Echec de next_in_thread...\n");
   return NULL;
 }
 

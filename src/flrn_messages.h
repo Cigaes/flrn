@@ -1,0 +1,47 @@
+#ifndef FLRN_FLRN_MESSAGES_H
+#define FLRN_FLRN_MESSAGES_H
+
+
+#define MES_UNKNOWN_CMD 0
+#define MES_NOTHING_NEW 1
+#define MES_EOG 2
+#define MES_NO_MES 3
+#define MES_OMIT 4
+#define MES_POST_SEND 5
+#define MES_POST_CANCELED 6
+#define MES_ART_SAVED 7
+#define MES_ABON 8
+#define MES_DESABON 9
+#define MES_NOSEL_THREAD 10
+#define MES_ZAP	11
+#define MES_NOTHER_GROUP 12
+#define MES_NO_XREF 13
+#define MES_CONTINUE 14
+#define MES_TAG_SET 15
+#define MES_CANCEL_CANCELED 16
+#define MES_CANCEL_DONE 17
+#define MES_OP_DONE 18
+#define MES_MAIL_SENT 19
+#define MES_MAIL_POST 20
+#define MES_TEMP_READ 21
+#define MES_NO_GROUP 22
+#define MES_GROUP_EMPTY 23
+#define MES_NOT_IN_GROUP 24
+#define MES_NEGATIVE_NUMBER 25
+#define MES_SAVE_FAILED 26
+#define MES_UNK_GROUP 27
+#define MES_NO_FOUND_GROUP 28
+#define MES_REGEXP_BUG 29
+#define MES_PIPE_BUG 30
+#define MES_MES_NOTIN_GROUP 31
+#define MES_BAD_TAG 32
+#define MES_CANCEL_REFUSED 33
+#define MES_EMPTY_HISTORY 34
+#define MES_NO_HEADER 35
+#define MES_REFUSED_HEADER 36
+#define MES_FATAL 37
+
+#define NB_MESSAGES 38
+extern const char *Messages[NB_MESSAGES];
+
+#endif

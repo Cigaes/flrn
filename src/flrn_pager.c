@@ -18,6 +18,7 @@
 #include "tty_display.h"
 #include "tty_keyboard.h"
 #include "flrn_slang.h"
+#include "flrn_messages.h"
 
 /* le tableau touche -> commande */
 int *Flcmd_pager_rev = &Flcmd_rev[CONTEXT_PAGER][0];
@@ -37,39 +38,71 @@ int get_new_pattern() {
    return ret;
 }
 
+/* retour : -4 : CONTEXT_COMMAND */
+int get_command_pager(int une_touche, int endroit, int cmd) {
+   int res, res2;
+
+   if (cmd==0) endroit=1;
+   res=get_command(une_touche,(endroit ? CONTEXT_PAGER : CONTEXT_COMMAND),
+	   	(cmd ? (endroit ? CONTEXT_COMMAND : CONTEXT_PAGER) : -1), 
+		   &une_commande);
+   if (res==-1) 
+      Aff_error_fin(Messages[MES_UNKNOWN_CMD],1,1);
+   if (res<0) return res;
+   if (res==endroit) return -4;
+   /* Le search */
+   if (une_commande.before) free(une_commande.before);
+   res2=une_commande.cmd[CONTEXT_PAGER];
+   if (res2!=FLCMD_PAGER_SEARCH) {
+      if (une_commande.after) free(une_commande.after);
+      return res2;
+   }
+   if (une_commande.after) {
+      strncpy(pattern_search,une_commande.after,SIZE_PATTERN_SEARCH-1);
+      pattern_search[SIZE_PATTERN_SEARCH-1]='\0';
+      free(une_commande.after);
+   } else {
+      res=get_new_pattern();
+      if (res<0) return -2;
+   }
+   return res2;
+}
+
+
 /* 		Page_message						*/
 /* La fonction principale du pager */
 /* Init_Scroll_window a déjà été appelé. Si key!=0, c'est la première touche */
 /* frappée... Si short_exit=1, en fin de scrolling on donne priorité à une   */
-/* commande extérieure, et on sort si un touche */
-/* n'est pas reconnue... num_elem est le nombre de lignes à scroll...       */
+/* commande extérieure, et une commande extérieure peut provoquer une sortie */
+/* num_elem est le nombre de lignes à scroll...       */
 /* act_row est la première ligne du scroll à afficher, row_deb la première  */
 /* ligne dans le cas du premier affichage...				    */
 /* si key==0, on affiche le premier écran...				    */
 /* Si exit_chars est différent de NULL, tout appui sur une des touches de la */
 /* chaine provoque la sortie...	Si il est NULL, on sort toujours en fin de   */
 /* message...								     */
-/* On renvoie le code de la touche de sortie (-1 si ^C ou FLCMD_PAGER_QUIT). */
-/* éventuellement, on renvoie ce code avec MAX_FL_KEY 			     */
-/* pour dire qu'on était en fin.					     */
-/* On renvoie 0 si on est sorti par fin de l'ecran...			     */
-/* (ie short_exit=0 et exit_chars==NULL)				     */
+/* retour : exit_chars=NULL 	short_exit=0   -->   -1 si ^C -2: QUIT, ou 0 */
+/*	    exit_chars!=NULL	short_exit=0   -->   code de touche, -1,-2   */
+/*	    exit_chars=NULL	short_exit=1   --> 0|MAX_FL_KEY->ext, -1,-2  */
+/*	    exit_chars!=NULL	short_exit=1   --> 0|MAX_FL_KEY, code| -1,-2 */
 
 int Page_message (int num_elem, int short_exit, int key, int act_row,
     			int row_deb, char *exit_chars, char *end_mesg,
 			int (in_wait)(int)) {
-  int percent, nll, deb=1, le_scroll, at_end, to_wait;
-  char buf3[15];
+  int percent, nll, deb=1, le_scroll, at_end, to_wait, res;
+  char buf3[15], *buf=NULL;
 
   to_wait=(in_wait==NULL ? 0 : 1);
   at_end=(num_elem<Screen_Rows-row_deb);
   while (1) {
-    if ((short_exit) && 
-        (at_end==1) && (key<MAX_FL_KEY) && (Flcmd_rev[CONTEXT_COMMAND][key]!=FLCMD_UNDEF))
-           return (key | MAX_FL_KEY); 
-	   	/* note : on ne teste pas '0-9,-<>.', qui ne doivent */
-	   	/* PAS être bindés				    */
-    switch (((key<MAX_FL_KEY) && (key>0)) ? Flcmd_pager_rev[key] : FLCMD_PAGER_UNDEF) {
+    le_scroll=Do_Scroll_Window(0,deb);
+    if ((exit_chars) && (strchr(exit_chars,key)))
+ 	return (key | (at_end ? MAX_FL_KEY : 0));
+    res=get_command_pager(key,(short_exit) && (at_end==0),short_exit);
+    if (res==-4) {
+       if (short_exit) return (at_end ? MAX_FL_KEY : 0);
+    }
+    switch (res) {
        case FLCMD_PAGER_PGUP : 
 	     le_scroll=Do_Scroll_Window(-Screen_Rows+act_row+1,deb); break;
        case FLCMD_PAGER_PGDOWN : 
@@ -84,36 +117,17 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
                  break;
       case FLCMD_PAGER_UP : le_scroll=Do_Scroll_Window(-1,deb);
                  break;
-      case FLCMD_PAGER_SEARCH : {
-      				  int ret;
-				  Do_Scroll_Window(0,deb);
-                                  ret=get_new_pattern();
-				  if (ret==0) {
-      				    ret=New_regexp_scroll (pattern_search);
-				    if (ret) 
-				         Aff_error_fin("Regexp invalide !",1,1);
-				  }
-				  deb=1;
-      			          le_scroll=Do_Scroll_Window(0,deb);
-				     /* pour forcer l'affichage de la ligne */
+      case FLCMD_PAGER_SEARCH : { int ret;
+      				 ret=New_regexp_scroll (pattern_search);
+				 if (ret) 
+				      Aff_error_fin(Messages[MES_REGEXP_BUG],1,1);
+				 deb=1;
 				}
 				break;
-      case FLCMD_PAGER_QUIT : le_scroll=Do_Scroll_Window(0,deb);
-					/* pour l'update */
-			      /* on fait un cas particulier grotesque :-( */
-			      /* mais obligatoire pour l'aide...	  */
-			      if (at_end && 
-				  (exit_chars && strchr(exit_chars,key)))
-				return key;
-			      return (short_exit ? -1 : 0);
-      default : le_scroll=Do_Scroll_Window(0,deb);
-		if (short_exit || (exit_chars && strchr(exit_chars,key))) 
-		  		return (key | ((short_exit && at_end) ? 
-							MAX_FL_KEY : 0)); 
+      case FLCMD_PAGER_QUIT : return -2;
     }
     if (deb || le_scroll) {
       nll=Number_current_line_scroll()+Screen_Rows-act_row-2;
-      if (debug) fprintf(stderr, "%d / %d\n", nll, num_elem);
       if (nll>=num_elem) {
 	if ((!short_exit) && (exit_chars==NULL)) return 0; 
 	else {
@@ -122,7 +136,7 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
 	     Screen_refresh();
 	     to_wait=in_wait(1);
 	  }
-	  if (end_mesg) Aff_fin(end_mesg); else Aff_fin("(100%%)-more-");
+	  if (end_mesg) buf=end_mesg; else buf="(100%%)-more-";
 	}
 	at_end=1;
       } 
@@ -136,8 +150,9 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
 	percent=(nll*100)/(num_elem+1);
         sprintf(buf3,"(%d%%)",percent);
         strcat(buf3,"-More-");
-        Aff_fin(buf3);
+	buf=buf3;
       }
+      if (buf) Aff_fin(buf);
     }
     deb=0;
     key=Attend_touche();

@@ -224,7 +224,7 @@ void new_groups(int opt_c) {
    code=return_code();
    
    if (code>400) {
-      if (debug) fprintf(stderr,"Code d'erreur\n");
+      if (debug) fprintf(stderr,"Code d'erreur %d\n",code);
       return;
    }
   

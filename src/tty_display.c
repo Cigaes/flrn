@@ -31,6 +31,7 @@
 #include "flrn_color.h"
 #include "flrn_slang.h"
 #include "flrn_xover.h"
+#include "flrn_messages.h"
 
 /* place des objets de la barre */
 int name_news_col, num_art_col, num_rest_col, num_col_num, name_fin_col;
@@ -252,75 +253,96 @@ static char calcul_flag (Newsgroup_List *groupe) {
 /* Fonctions utilisées pour Liste_groupe... On devrait tout déplacer */
 /* dans group.c à mon avis. Tout ça n'a plus rien à faire là.        */
 /* Quoique... meme ici il y a de l'affichage...			     */
-int chg_grp_in(void *value, char **nom, int i, char *name, int len, int key) {
-   Newsgroup_List *choisi=(Newsgroup_List *)value;
-   char flag;
-   int zapped=(choisi==Newsgroup_courant);
-      /* On ne peut pas zapper le groupe courant */
+int chg_grp_in(Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int len, Cmd_return *la_commande, int *affiche) {
+   Newsgroup_List *choisi=(Newsgroup_List *)((*courant)->lobjet);
+   char flag, flag_int;
+   char **nom=&((*courant)->nom);
+   int cmd;
 
+   flag_int=**nom;
    *name='\0'; /* ça on en est sur */
-   if (key==13) {
-     Cursor_gotorc(Screen_Rows-2,0);
-     Screen_erase_eol();
-     if (choisi->flags & GROUP_UNSUBSCRIBED) 
-        Screen_write_string(" désabonné     ");
-     else Screen_write_string(" abonné   ");
-     if (choisi->flags & GROUP_IN_MAIN_LIST_FLAG)
-        Screen_write_string(" mode censuré  ");
-     else Screen_write_string(" mode tout  ");
-     if (!zapped) Screen_write_string("  (zap possible) ");
-     key=Attend_touche();
-   }
-   if (KeyBoard_Quit) key=0;
-   switch (key<MAX_FL_KEY ? Flcmd_rev[CONTEXT_COMMAND][key] : FLCMD_UNDEF) {
+   *affiche=0;
+   if (la_commande->cmd[CONTEXT_MENU]!=FLCMD_UNDEF) return -1;
+   cmd=la_commande->cmd[CONTEXT_COMMAND];
+   if (la_commande->before) free(la_commande->before);
+   if (la_commande->after) free(la_commande->after);
+
+   switch (cmd) {
      case FLCMD_ABON : choisi->flags&=~GROUP_UNSUBSCRIBED;
+     		       *affiche=1;
+		       strncpy(name,Messages[MES_ABON],len);
                 break;
      case FLCMD_UNSU : choisi->flags|=GROUP_UNSUBSCRIBED;
+     		       *affiche=1;
+		       strncpy(name,Messages[MES_DESABON],len);
                 break;
      case FLCMD_GOTO : 
-     case FLCMD_GGTO : return 1;
+     case FLCMD_GGTO : return -1;
      case FLCMD_REMOVE_KILL : choisi->flags&=~GROUP_IN_MAIN_LIST_FLAG;
-         	remove_from_main_list(choisi->name);
+         	       remove_from_main_list(choisi->name);
+     		       *affiche=1;
+		       strncpy(name,Messages[MES_OP_DONE],len);
                 break;
      case FLCMD_ADD_KILL : choisi->flags|=GROUP_IN_MAIN_LIST_FLAG;
-     		add_to_main_list(choisi->name);
+	      		   add_to_main_list(choisi->name);
+     		           *affiche=1;
+		           strncpy(name,Messages[MES_OP_DONE],len);
                 break;
-     case FLCMD_ZAP : zap_group_non_courant(choisi);
-     		if (**nom=='+') **nom=' ';
-		zapped=1;
+     case FLCMD_ZAP : if (choisi==Newsgroup_courant) {
+     			 do_zap_group(FLCMD_ZAP);
+     		      } else {
+                         zap_group_non_courant(choisi);
+     		         if (**nom=='+') **nom=' ';
+		      }
+     		      *affiche=1;
+		      strncpy(name,Messages[MES_ZAP],len);
        		break;
    }
    flag=calcul_flag(choisi);
    if (choisi!=Newsgroup_courant) **nom=(flag!=0 ? flag : ' ');
-   return 0;
+   if (**nom!=flag_int) (*courant)->changed=1;
+   name[len-1]='\0';
+   return (*courant)->changed;
 }
 
-/* Cette fonction DOIT renvoyer 0 si on veut éviter une horreur de typage */
-int chg_grp_not_in(void *value, char **nom, int i, char *name, int len, int key) {
-   char *nom_groupe=(char *)value;
+/* Cette fonction NE DOIT PAS renvoyer -1 si on veut éviter une horreur de 
+   typage */
+int chg_grp_not_in(Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int len, Cmd_return *la_commande, int *affiche) {
+   char *nom_groupe=(char *)((*courant)->lobjet);
    Newsgroup_List *creation;
+   char **nom=&((*courant)->nom);
+   int cmd, key=0;
 
-   if (**nom=='A') return 0; 
+   if (la_commande->cmd[CONTEXT_MENU]==FLCMD_UNDEF) {
+     if (la_commande->before) free(la_commande->before);
+     if (la_commande->after) free(la_commande->after);
+     cmd=la_commande->cmd[CONTEXT_COMMAND];
+   } else cmd=-1;
+
+   if (**nom=='A') return -2; 
    	/* Tant pis... on ne peut se désabonner aussi sec */
    creation=cherche_newsgroup(nom_groupe, 1, 0);
-   if (!creation) return 0;
-   Cursor_gotorc(Screen_Rows-2,0);
-   Screen_erase_eol();
-   Screen_write_string(" S'(a)bonner à ce groupe  ? ");
-   if (key==13) key=Attend_touche();
-   key=tolower(key);
-   if (KeyBoard_Quit) key=0;
-   if ((key=='o') || (key=='a')) {
+   if (!creation) return -2;
+   if (cmd==-1) {
+     Cursor_gotorc(Screen_Rows-2,0);
+     Screen_erase_eol();
+     Screen_write_string(" S'(a)bonner à ce groupe  ? ");
+     key=Attend_touche();
+     key=tolower(key);
+     if (KeyBoard_Quit) key=0;
+   }
+   if ((key=='o') || (key=='a') || (cmd==FLCMD_ABON)) {
       creation->flags&=~GROUP_UNSUBSCRIBED;
       if ((Options.auto_kill) && (!in_main_list(creation->name))) {
         creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
  	add_to_main_list(creation->name);
       }
       **nom='A';
-      strncpy(name," Vous êtes abonnés à ce groupe.",len);
+      (*courant)->changed=1;
+      strncpy(name,Messages[MES_ABON],len);
       name[len-1]='\0';
    } else *name=0;
-   return 0;
+   return (*courant)->changed;
 }
       
 /* Fonctions pour Liste_groupe */
@@ -1295,9 +1317,10 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
 
 
 /* Gestion du scrolling... */
-int Gere_Scroll_Message (int *key_int, int row_act, int row_deb, 
+/* -1 : ^C    -2 : cmd et pas fin    0 : fin    1 : cmd et fin */
+int Gere_Scroll_Message (int row_act, int row_deb, 
 				int scroll_headers, int to_build) {
-  int act_row, key;
+  int act_row, ret, key;
   int num_elem=-row_act-row_deb, percent;
   char buf3[15];
 
@@ -1318,10 +1341,12 @@ int Gere_Scroll_Message (int *key_int, int row_act, int row_deb,
   if (scroll_headers==0) act_row=Aff_headers(1)+1; else
       act_row=1+Options.skip_line;
   Init_Scroll_window(num_elem,act_row,Screen_Rows-act_row-1);
-  key=Page_message(num_elem, 1, key, act_row, row_deb, NULL, "A vous : ",
+  ret=Page_message(num_elem, 1, key, act_row, row_deb, NULL, "A vous : ",
   		    (to_build ? cree_liste_suite : NULL));
-  if (key!=-1) *key_int=key & (~MAX_FL_KEY); else return -1;
-  return (((key==0) || (key & MAX_FL_KEY)) ? 0 : -1);
+  if (ret==-1) return -1;
+  if (ret==-2) return 0;
+  if (ret==MAX_FL_KEY) return 1;
+  return -2;
 }
 
 /* Affichage du nom du newsgroup */
@@ -1407,18 +1432,16 @@ void Aff_not_read_newsgroup_courant() {
 
 
 /* Affichage de l'article courant */
-/* Cette fonction renvoie le code de la touche qui suit, ssi il y a eu */
-/* interruption... et 0 sinon...			 */
+/* renvoie 1 en cas de commande, 0 sinon */
 /* Note : les appels se font avec le numero de l'article */
 /* comme il semble que ça marche mieux...		 */
 int Aff_article_courant(int to_build) {
    int res, actual_row, read_line=1;
-   int key_interrupt, first_line, scroll_headers=0;
+   int first_line, scroll_headers=0;
    char *num, buf[10];
    
    if (debug) fprintf(stderr, "Appel a Aff_article_courant\n");
 
-   key_interrupt=0;
   /* barre */
    Screen_set_color(FIELD_STATUS);
    Cursor_gotorc(0,num_art_col);
@@ -1432,8 +1455,10 @@ int Aff_article_courant(int to_build) {
    Aff_not_read_newsgroup_courant();
 
    Screen_set_color(FIELD_NORMAL);
-   if (Article_courant->numero==-10) 
-	return Aff_error("Pas d'article disponible.");
+   if (Article_courant->numero==-10) {
+	Aff_error("Pas d'article disponible.");
+	return 0;
+   }
     
    Cursor_gotorc(1,0);
    Screen_erase_eos(); /* on veut effacer aussi les lignes du haut */
@@ -1505,14 +1530,15 @@ int Aff_article_courant(int to_build) {
       read_line++;
    } while (actual_row>0);
    if (actual_row<0)  /* On entame un scrolling */
-      actual_row=Gere_Scroll_Message(&key_interrupt,actual_row,
+      res=Gere_Scroll_Message(actual_row,
    	(scroll_headers ? 1+Options.skip_line : first_line), scroll_headers, to_build);
+   else res=0;
    free_text_scroll();
-   if (actual_row==0)  
+   if (res>=0)  
      article_read(Article_courant); /*Article_courant->flag |= FLAG_READ;*/
    Aff_not_read_newsgroup_courant();
    if (debug) fprintf(stderr,"Fin d'affichage \n");
-   return key_interrupt;
+   return ((res==1) || (res==-2));
 }
 
        
@@ -1535,7 +1561,7 @@ int Aff_file (FILE *file, char *exit_chars, char *end_mesg) {
       if (KeyBoard_Quit) return 0;
       Init_Scroll_window(row-1, 1, Screen_Rows-2);
       key=Page_message(row-1, 0, key, 1, 1, exit_chars, end_mesg, NULL); 
-      if (key==-1) key=0;
+      if (key<0) key=0;
    }
    free_text_scroll();
    return key;

@@ -771,14 +771,22 @@ void dump_flrnrc(FILE *file) {
   return;
 }
 
-int change_value(void *value, char **nom, int i, char *name, int len, int key) {
-  int num=(int)(long) value;
+int change_value(Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int len, Cmd_return *la_commande, int *affiche) {
+  int num=(int)(long)((*courant)->lobjet);
   char buf[80];
   int changed =0;
-  if (key!=13) return 0;
+  char **nom=&((*courant)->nom);
+
+  *affiche=0;
+  if (la_commande->cmd[CONTEXT_MENU]==-1) {
+     if (la_commande->before) free(la_commande->before);
+     if (la_commande->after) free(la_commande->after);
+     return -2;
+  }
   if (All_options[num].flags.lock) {
     snprintf(name,len,"   L'option %s ne peut pas être changée",
 	All_options[num].name);
+    *affiche=1;
     return 0;
   }
   switch (All_options[num].type) {
@@ -823,16 +831,19 @@ int change_value(void *value, char **nom, int i, char *name, int len, int key) {
 	}
 	break;
 	}
-    default : 
+    default : {
     	strncpy
 	   (name,"   Impossible de changer cette option. Non implémenté.",len);
+	*affiche=1;
+    }
   }
   if (changed) {
     free(*nom);
     print_option(num,buf,80);
     *nom = safe_strdup(buf);
+    (*courant)->changed=1;
   }
-  return 0;
+  return changed;
 }
 
 void aff_desc_option (void *value, char *ligne, int len) {
