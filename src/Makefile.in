@@ -11,6 +11,7 @@
 
 CC = @CC@
 DEBUGFLAGS = 
+DESTDIR =
 CPPFLAGS = $(DEBUGFLAGS) @CPPFLAGS@
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
@@ -64,28 +65,28 @@ flrn:  do_chartrans_stuff $(OBJS)
 
 clean:
 	rm -f *.o getdate.c core
-	cd chrtrans && $(MAKE) clean
+	+ cd chrtrans && $(MAKE) clean
 
 install: installbin installhelp installman
 
 installbin: flrn
-	$(INSTALL) -d -m 755 $(bindir)
-	$(INSTALL) -s -m 755 flrn $(bindir)/flrn
+	$(INSTALL) -d -m 755 ${DESTDIR}$(bindir)
+	$(INSTALL) -s -m 755 flrn ${DESTDIR}$(bindir)/flrn
 
 installhelp:
-	$(INSTALL) -d -m 755 $(helpdir)
-	for i in $(ROOTDIR)/help/Help* ; do $(INSTALL) -m 644 $$i $(helpdir); done
+	$(INSTALL) -d -m 755 ${DESTDIR}$(helpdir)
+	for i in $(ROOTDIR)/help/Help* ; do $(INSTALL) -m 644 $$i ${DESTDIR}$(helpdir); done
 
 installman: $(ROOTDIR)/man/flrn.1$(MANISO)
-	$(INSTALL) -d -m 755 $(mandir)/man1
-	$(INSTALL) -m 644 $(ROOTDIR)/man/flrn.1$(MANISO) $(mandir)/man1/flrn.1
+	$(INSTALL) -d -m 755 ${DESTDIR}$(mandir)/man1
+	$(INSTALL) -m 644 $(ROOTDIR)/man/flrn.1$(MANISO) ${DESTDIR}$(mandir)/man1/flrn.1
     
 depend: pathdef.h
 	$(MAKEDEPEND) $(CPPFLAGS) $(VC_FILES) -I.
-	cd chrtrans && $(MAKE) depend
+	+ cd chrtrans && $(MAKE) depend
 
 $(ROOTDIR)/man/flrn.1: $(ROOTDIR)/man/flrn.1.iso
-	cd $(ROOTDIR)/man; make
+	+ cd $(ROOTDIR)/man; ${MAKE}
 
 pathdef.h: Makefile
 	rm -f pathdef.h

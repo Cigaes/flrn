@@ -1,14 +1,14 @@
 all:
-	+ cd src && make all
+	+ cd src && ${MAKE} all
 
 clean:
-	+ cd src && make clean
+	+ cd src && ${MAKE} clean
 
 flrn:
-	+ cd src && make flrn
+	+ cd src && ${MAKE} flrn
 
 depend:
-	+ cd src && make depend
+	+ cd src && ${MAKE} depend
 
 install:
-	+ cd src && make install
+	+ cd src && ${MAKE} install
