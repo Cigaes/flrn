@@ -976,7 +976,7 @@ if test "${with_domain+set}" = set; then
   
   echo "$ac_t""domain : $withval" 1>&6
   cat >> confdefs.h <<EOF
-#define DOMAIN "$flrn_domain"
+#define DOMAIN "$withval"
 EOF
 
 

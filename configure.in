@@ -26,7 +26,7 @@ AC_ARG_WITH(default-host, [  --with-default-host[=MACHINE] default host for adre
 
 AC_ARG_WITH(domain, [  --with-domain[=DOMAIN]   default domain for adresses],[
   AC_MSG_RESULT(domain : $withval)
-  AC_DEFINE_UNQUOTED(DOMAIN, "$flrn_domain", [Default domain for adresses])
+  AC_DEFINE_UNQUOTED(DOMAIN, "$withval", [Default domain for adresses])
 ],
   AC_MSG_WARN(no domain defined, use --with-domain to change this)
 )
