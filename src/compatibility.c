@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdarg.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 #include "config.h"
 #include "compatibility.h"

@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. remplacement de malloc.h par stdlib.h.
 . utilisation de $HOME/.flrn de préférence à $HOME
 . bugfix du pager
 . affichage du nombre de messages non lus
