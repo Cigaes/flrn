@@ -729,8 +729,20 @@ int get_command_nocbreak(int asked,int col) {
    return parse_arg_string(str,res);
 }
 
-int Comp_generic(char *str, int len, void * truc, int num,
-  char *get_str(void *, int ), int *offset, char *delim) {
+/* prefix : la chaine de départ sur laquelle on doit construire */
+/* str : la chaine a étendre */
+/* len : la taille totale, doit prendre en compte le prefixe */
+/* truc, num, get_str : les possibilités d'extensions */
+/* delim : les délimiteurs de l'extension */
+/* result : si resultat=-1, tableau des resultats... */
+/* resultat : >=0 grassouille, -1 plusieurs solutions, -2 aucune solution */
+/* -3 : la chaine est vide...	*/
+/* on renvoie dans prefix ce qu'on a construit. */
+int Comp_generic(Liste_Chaine *prefix, char *str, int len, void * truc, 
+  int num, char *get_str(void *, int ), char *delim, int *result) 
+{
+  Liste_Chaine *courant=prefix;
+  Liste_Chaine *nouveau;
   char *guess=NULL;
   char *cur=NULL;
   int prefix_len=0;
@@ -739,14 +751,14 @@ int Comp_generic(char *str, int len, void * truc, int num,
   int good=0;
   char *suite;
 
-  *offset=0;
   suite=strtok(str,delim);
-  if (suite)
-    suite=strtok(NULL,"\0");
+  if (suite==NULL) return -3;
+  suite=strtok(NULL,"\0");
   if (suite) suite=safe_strdup(suite);
 
   for (i=0;i<num;i++) 
     if (strncmp(str, cur=get_str(truc,i), strlen(str))==0) {
+      if (strlen(cur)+strlen(prefix->une_chaine)+(suite ? strlen(suite) : 0)>=len) continue;
       if (match) {
 	if (!prefix_len) prefix_len=strlen(guess);
 	for (j=0;j<prefix_len;j++)
@@ -757,33 +769,42 @@ int Comp_generic(char *str, int len, void * truc, int num,
       guess=cur;
       good=i;
       match++;
+      result[i]=1;
+      nouveau=safe_calloc(1,sizeof(Liste_Chaine));
+      nouveau->une_chaine=safe_malloc((len+1)*sizeof(char));
+      strcpy(nouveau->une_chaine,prefix->une_chaine);
+      strcat(nouveau->une_chaine,cur);
+      strcat(nouveau->une_chaine," ");
+      nouveau->complet=1;
+      nouveau->suivant=courant->suivant;
+      courant->suivant=nouveau;
+      courant=nouveau;
     }
   if (match==1) {
-    if (strlen(guess) < 1+len) { strcpy(str, guess);
-      strcat(str," ");
-      if (suite) {
-	*offset=strlen(str);
-	strncat(str,suite,len-strlen(str));
+    free(prefix->une_chaine);
+    prefix->une_chaine=courant->une_chaine;
+    prefix->suivant=courant->suivant;
+    if (suite) strcpy(str,suite); else str[0]='\0';
+    if (suite) free(suite);
+    free(courant);
+    return good;
+  } else if (match>1) {
+      prefix->complet=0;
+      good=strlen(prefix->une_chaine);
+      strncat(prefix->une_chaine,guess,prefix_len);
+      prefix->une_chaine[good+prefix_len]='\0';
+      strcat(prefix->une_chaine," ");
+      if (suite) { 
+        strcpy(str,suite); 
+	strcat(prefix->une_chaine, suite);
+	strcat(prefix->une_chaine, " ");
 	free(suite);
-      }
-      return good;
-    }
-  } else if (match >1) {
-      if (prefix_len < len-1) {strncpy(str, guess, prefix_len);
-	str[prefix_len]='\0';
-	if (suite) {
-	  strcat(str," ");
-	  *offset=strlen(str);
-	  strncat(str,suite,len-strlen(str));
-	  free(suite);
-	}
-	return -1;
-      }
-    }
-  if (suite) {
-    strncat(str,suite,len-strlen(str));
-    free(suite);
+      } else str[0]='\0';
+      return -1;
   }
+  prefix->complet=-1;
+  if (suite) 
+    free(suite);
   return -2;
 }
 
@@ -792,28 +813,75 @@ static char * get_command_name(void * cmdlist, int num) {
 }
 
 /* Completion automagique sur les commandes explicites */
-int Comp_cmd_explicite(char *str, int len)
+int Comp_cmd_explicite(char *str, int len, Liste_Chaine *debut)
 {
-  int res;
-  int offset;
+  int res,res2,i,bon;
+  char *suite;
+  Liste_Chaine *courant, *pere, *suivant;
+  int result[NB_FLCMD];
+  for (i=0;i<NB_FLCMD;i++) result[i]=0;
   if (*str=='\\') {
-    str++; len--;
+    str++; strcat(debut->une_chaine,"\\");
   }
-  res = Comp_generic(str,len,(void *)Flcmds,NB_FLCMD,
-      get_command_name,&offset," ");
-  if ((res >= 0)&&(offset>0)) {
+  res = Comp_generic(debut,str,len,(void *)Flcmds,NB_FLCMD,
+      get_command_name," ",result);
+  if (res==-3) return 0;
+  if (res>=0) {
     if (Flcmds[res].comp) {
-      return (*Flcmds[res].comp)(str+offset,len-offset);
+       return (*Flcmds[res].comp)(str,len,debut);
+    } else {
+      strcat(debut->une_chaine,str);
+      return 0;
     }
   }
-  if (res < -1) return -1;
-  return 0;
+  if (res==-1) {
+    bon=0;
+    pere=debut;
+    courant=debut->suivant;
+    suivant=courant->suivant;
+    for (i=0;i<NB_FLCMD;i++) {
+       if (result[i]==0) continue;
+       res2=0;
+       if (Flcmds[i].comp) {
+         suite=safe_strdup(str);
+         res2=(*Flcmds[i].comp)(suite,len,courant);
+	 free(suite);
+	 if (res2<-1) {
+	    free(courant->une_chaine);
+	    pere->suivant=courant->suivant;
+	    free(courant);
+	    courant=pere->suivant;
+	    continue;
+	 } 
+       } else 
+         strcat(courant->une_chaine,str);
+       if (res2==-1) bon+=2; else bon++;
+       pere=courant;
+       while (pere->suivant!=suivant) pere=pere->suivant;
+       courant=suivant;
+       if (courant) suivant=courant->suivant;
+    }
+    if (bon>1) return -1; else if (bon) {
+       free(debut->une_chaine);
+       courant=debut->suivant;
+       debut->suivant=courant->suivant;
+       debut->une_chaine=courant->une_chaine;
+       free(courant);
+       return 0;
+    }
+  }
+  return -2;
+}
+
+static void Aff_ligne_comp_cmd (char *str, int len, int col) {
+   Cursor_gotorc(Screen_Rows-1,col); Screen_erase_eol();
+   Screen_write_nstring(str,len);
 }
 
 /* Prend une commande explicite */
 /* returne -2 si rien */
 int get_command_explicite(char *start, int col) {
-   int res=0;
+   int res=0, ret=0;
    char cmd_line[MAX_CHAR_STRING], *str=cmd_line;
    int prefix_len=0;
    cmd_line[0]='\0'; 
@@ -824,12 +892,13 @@ int get_command_explicite(char *start, int col) {
    strcat(cmd_line,"\\");
    prefix_len++;
    do {
-     Cursor_gotorc(Screen_Rows-1,col); Screen_erase_eol();
-     Screen_write_string(str);
+     Aff_ligne_comp_cmd(str,strlen(str),col);
      if ((res=magic_getline(str+prefix_len,MAX_CHAR_STRING-prefix_len,
-	 Screen_Rows-1,col+prefix_len,"\011",0))<0)
+	 Screen_Rows-1,col+prefix_len,"\011",0,ret))<0)
        return -2;
-     if (res>0) (void) Comp_cmd_explicite(str+prefix_len,MAX_CHAR_STRING-prefix_len); 
+     ret=0;
+     if (res>0) ret=Comp_general_command(str+prefix_len,MAX_CHAR_STRING-prefix_len,col+prefix_len,Comp_cmd_explicite, Aff_ligne_comp_cmd); 
+     if (ret<0) ret=0;
    } while (res!=0);
    res=Lit_cmd_explicite(str+prefix_len); 
    str=strchr(str,' ');
@@ -849,7 +918,7 @@ int get_command_newmode(int key,int col) {
    cmd_line[0]=key; cmd_line[1]='\0';
    Screen_write_char(key);
    /* On appelle magic_getline avec flag=1 */
-   if ((res=magic_getline(str,MAX_CHAR_STRING,Screen_Rows-1,col,"1234567890,<>._-",1))<0)
+   if ((res=magic_getline(str,MAX_CHAR_STRING,Screen_Rows-1,col,"1234567890,<>._-",1,0))<0)
      return -2;
    Parse_nums_article(str, &str, 0);
    if (res==fl_key_explicite) res=get_command_explicite(cmd_line,col); else {
@@ -918,6 +987,8 @@ int get_command(int key_depart) {
 
 static int tag_article(Article_List *art, void * flag)
 {art->flag |= *(int *)flag; return 0;}
+static int untag_article(Article_List *art, void * flag)
+{art->flag &= *(int *)flag; return 0;}
 
 /* do_deplace : deplacement */
 int do_deplace(int res) {
@@ -1441,12 +1512,15 @@ int do_zap_group(int res) {
   blah.next=NULL; blah.flags=2; blah.num1=1;
   blah.num2=Newsgroup_courant->max;
   distribue_action(&blah,tag_article,NULL,&flag);
+  flag=~FLAG_IMPORTANT;
+  distribue_action(&blah,untag_article,NULL,&flag);
   Recherche_article(Newsgroup_courant->max,&Article_courant,-1);
   if (!Options.zap_change_group) {
     etat_loop.hors_struct|=3; /* Fin du conti */
     etat_loop.etat=1; etat_loop.num_message=11;
   }
   Newsgroup_courant->not_read=0;
+  Newsgroup_courant->important=0;
   while (parcours) { parcours->non_lu=0; parcours=parcours->next_thread; }
   Aff_not_read_newsgroup_courant();
   return (Options.zap_change_group)?1:0;
@@ -2208,7 +2282,7 @@ int next_thread(int flags) {
 
 void Get_option_line(char *argument)
 {
-  int res=0, use_arg=1;
+  int res=0, use_arg=1, ret=0;
   char *buf=argument;
   int color=0, col;
   while (isblank(*buf)) buf++;
@@ -2218,16 +2292,15 @@ void Get_option_line(char *argument)
     *buf='\0';
     col=Aff_fin("Option: ");
     do {
-      if (res>0) {Cursor_gotorc(Screen_Rows-1,col); Screen_erase_eol();
-        Screen_write_string(buf);
-      }
+      if (res>0) Aff_ligne_comp_cmd(buf,strlen(buf),col);
       if ((res=magic_getline(buf,MAX_BUF_SIZE,Screen_Rows-1,col,
-	  "\011",0))<0) {
+	  "\011",0,ret))<0) {
         free(buf);
         return;
       }
       if (res>0)
-        (void ) options_comp(buf,MAX_BUF_SIZE);
+        ret=Comp_general_command(buf,MAX_BUF_SIZE,col,options_comp,Aff_ligne_comp_cmd);
+      if (ret<0) ret=0;
     } while (res!=0);
   }
   /* hack pour reconstruir les couleurs au besoin */
@@ -2388,45 +2461,41 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 /* Et eventuellement l'appel a ajoute_message_par_num si posts récents  */
 /* Renvoie donc en plus : */
 /* -2 : reconstruire le groupe... */
-static int raw_prochain_non_lu(int force_reste, Article_List **debut, int just_entered,int pas_courant) {
+static int raw_prochain_non_lu(int force_reste, Article_List **debut, int just_entered,int important) {
    Article_List *myarticle=*debut;
+   int flag_mask, flag_res;
    int res;
 
-   /* hack crade : si pas_courant=1, on note *debut comme lu */
-   if ((pas_courant==1) && !((*debut)->flag & FLAG_READ)) 
-      (*debut)->flag |= FLAG_READ;
-   else pas_courant=0; /* pour se souvenir du changement */
-
+   flag_mask=(important ? (FLAG_IMPORTANT | FLAG_READ) : FLAG_READ);
+   flag_res=(important ? FLAG_IMPORTANT : 0);
    /* on regarde si l'article courant est lu */
-   if (myarticle && !(myarticle->flag & FLAG_READ))
+   if (myarticle && ((myarticle->flag & flag_mask)==flag_res))
      return 0; 
 
    /* On essaie d'abord de chercher dans la thread */
    if( Options.threaded_space) {
-     myarticle=next_in_thread(myarticle,FLAG_READ,NULL,0,0,0,1);
-     if (myarticle) { if (pas_courant) (*debut)->flag &= ~FLAG_READ;
-     	*debut=myarticle; return 0; }
+     myarticle=next_in_thread(myarticle,flag_mask,NULL,0,0,flag_res,1);
+     if (myarticle) { *debut=myarticle; return 0; }
      myarticle=*debut;
    }
    /* On teste d'abord ce qu'on trouve après Article_courant */
-   while (myarticle && (myarticle->flag & FLAG_READ))
+   while (myarticle && ((myarticle->flag & flag_mask)!=flag_res))
       myarticle=myarticle->next;
    if (myarticle==NULL) { 
      /* Puis on repart de Article_deb */
      myarticle=Article_deb;
-     while (myarticle && (myarticle!=*debut) && (myarticle->flag & FLAG_READ))
+     while (myarticle && (myarticle!=*debut) && ((myarticle->flag & flag_mask)!=flag_res))
         myarticle=myarticle->next;
      if (myarticle==NULL) myarticle=Article_deb;
    }
-   if (myarticle && (myarticle->flag & FLAG_READ)==0) {
+   if (myarticle && ((myarticle->flag & flag_mask)==flag_res)) {
      if (Options.threaded_space) {
        myarticle=root_of_thread(myarticle,0);
-       if (myarticle->flag & FLAG_READ)
-         myarticle=next_in_thread(myarticle,FLAG_READ,NULL,0,0,0,0);
+       if ((myarticle->flag & flag_mask)!=flag_res)
+         myarticle=next_in_thread(myarticle,flag_mask,NULL,0,0,flag_res,0);
         /* En théorie, on est SUR de trouver quelque chose */
      }
-     if (myarticle) { if (pas_courant) (*debut)->flag &= ~FLAG_READ;
-     	*debut=myarticle; return 0; } 
+     if (myarticle) { *debut=myarticle; return 0; } 
      if (debug) fprintf(stderr,"Euh.... un thread lu non lu ???\n");
      myarticle=Article_deb;
        /* test inutile... en théorie */
@@ -2434,13 +2503,11 @@ static int raw_prochain_non_lu(int force_reste, Article_List **debut, int just_e
    /* Si on a rien trouvé, un appel a cherche_newnews ne fait pas de mal */
    /* a moins qu'on vienne juste de rentrer dans le groupe... */
    if (!just_entered) {
-     if (pas_courant) (*debut)->flag &= ~FLAG_READ;
      res=cherche_newnews();
      if (res==-2) return -2;
-     if (res>=1) return raw_prochain_non_lu(force_reste, debut, 0,pas_courant);
+     if (res>=1) return raw_prochain_non_lu(force_reste, debut, 0, important);
    }
 
-   if (pas_courant) (*debut)->flag &= ~FLAG_READ;
    /* On fixe Article_courant au dernier article dans tous les cas */
    while (myarticle->next) myarticle=myarticle->next;
    *debut=myarticle;
@@ -2452,8 +2519,30 @@ static int raw_prochain_non_lu(int force_reste, Article_List **debut, int just_e
 
 /* en fait juste un wrapper pour appliquer le kill-file */
 int prochain_non_lu(int force_reste, Article_List **debut, int just_entered, int pas_courant) {
-  int res;
-  res=raw_prochain_non_lu(force_reste,debut,just_entered,pas_courant);
+  int res=-1;
+  int old_flag=0;
+  Article_List *save=NULL;
+  if (debut) save=*debut;
+  if (pas_courant) {
+     old_flag=save->flag;
+     save->flag |= FLAG_READ;
+     if (save->flag & FLAG_IMPORTANT) {
+        save->flag &= ~FLAG_IMPORTANT;
+	Newsgroup_courant->important--;
+     }
+  }
+  if (Newsgroup_courant->important>0) 
+    res=raw_prochain_non_lu(0,debut,1,1);
+  if (res<0) {
+     /* je ne veux pas partir tout de suite */
+    if (debut) (*debut)=save;
+    res=raw_prochain_non_lu(force_reste,debut,just_entered,0);
+  }
+  if (pas_courant) {
+     save->flag=old_flag;
+     if (save->flag & FLAG_IMPORTANT)
+	Newsgroup_courant->important++;
+  }
   if (((*debut)->flag & FLAG_READ) == 0) {
     check_kill_article(*debut,1); /* le kill_file_avec création des headers */
     if (((*debut)->flag & FLAG_READ) != 0)

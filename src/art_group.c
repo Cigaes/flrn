@@ -1029,6 +1029,10 @@ void article_read(Article_List *article)
   		Newsgroup_courant->not_read--;
 		article->thread->non_lu--;
   }
+  if (article->flag & FLAG_IMPORTANT) {
+     Newsgroup_courant->important--;
+     article->flag &= ~FLAG_IMPORTANT;
+  }
   article->flag |= FLAG_READ;
   if ((article->headers==NULL) ||
       (article->headers->k_headers[XREF_HEADER]==0)) return;

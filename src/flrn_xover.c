@@ -400,6 +400,7 @@ int cree_liste(int art_num, int *part) {
    }
    /* si on a deja ce qu'on veut, on n'en fait pas trop */
    Newsgroup_courant->not_read=0;
+   Newsgroup_courant->important=0;
    if ((max<min)||(max==0)) {
      if (debug) fprintf(stderr, "Pas d'article disponibles !\n"); return 0;
    }

@@ -14,6 +14,7 @@
 #define IN_OPTION_C
 #include "art_group.h"
 #include "flrn_files.h"
+#include "flrn_comp.h"
 #include "tty_display.h"
 #include "tty_keyboard.h"
 #include "flrn_inter.h"
@@ -34,16 +35,21 @@ static int parse_option_file (char *name, int flags, int flag_option);
 
 static char *option_ligne = NULL;
 
-int var_comp(char *var, int len)
+int var_comp(char *var, int len, Liste_Chaine *debut)
 {
+  Liste_Chaine *courant=debut, *nouveau;
   char *buf=var;
   int used;
   char *guess=NULL;
   int prefix_len=0;
   int match=0;
   int i,j;
-  if (strncmp(buf,"no",2)==0) buf +=2;
+  if (strncmp(buf,"no",2)==0) {
+     buf +=2;
+     strcat(debut->une_chaine,"no");
+  }
   used=strlen(buf);
+  if (used==0) return 0;
   for (i=0; i< NUM_OPTIONS; i++)
     if(strncmp(buf, All_options[i].name,used)==0)
       if (!All_options[i].flags.lock) {
@@ -56,17 +62,34 @@ int var_comp(char *var, int len)
 	}
 	guess=All_options[i].name;
 	match++;
+	nouveau=safe_calloc(1,sizeof(Liste_Chaine));
+	nouveau->une_chaine=safe_malloc((len+1)*sizeof(char));
+	strcpy(nouveau->une_chaine,debut->une_chaine);
+	strcat(nouveau->une_chaine,guess);
+        strcat(nouveau->une_chaine," ");
+	nouveau->complet=1;
+	nouveau->suivant=courant->suivant;
+	courant->suivant=nouveau;
+	courant=nouveau;
       }
   if (match==1) {
-    if (strlen(guess) < 1+len) { strcpy(buf, guess);
-      strcat(buf," ");
-    }
+    free(debut->une_chaine);
+    debut->une_chaine=courant->une_chaine;
+    debut->suivant=courant->suivant;
+    var[0]='\0';
+    free(courant);
+    return 0;
   } else if (match >1) {
-    if (prefix_len < len) {strncpy(buf, guess, prefix_len);
-      buf[prefix_len]='\0';
-    }
+    debut->complet=0;
+    used=strlen(debut->une_chaine);
+    strncat(debut->une_chaine,guess,prefix_len);
+    debut->une_chaine[used+prefix_len]='\0';
+    strcat(debut->une_chaine," ");
+    var[0]='\0';
+    return -1;
   }
-  return 0;
+  debut->complet=-1;
+  return -2;
 }
 
 static char *get_optcmd_name(void * ptr,int num)
@@ -77,19 +100,61 @@ static char *get_optcmd_name(void * ptr,int num)
  * on pourait ajouter pour la completude la completion apres color
  * mais ca veut dire reecrire le code qui gere ca... */
 
-int options_comp(char *str, int len)
+int options_comp(char *str, int len, Liste_Chaine *debut)
 {
-  int res;
-  int offset;
-  res = Comp_generic(str,len,(void *)Optcmd_liste,NUMBER_OF_OPT_CMD,
-      get_optcmd_name,&offset,delim);
-  if ((res >= 0)&&(offset>0)) {
+  int res,res2,bon,i;
+  Liste_Chaine *courant, *pere, *suivant;
+  int result[NUMBER_OF_OPT_CMD];
+  char *suite;
+  for (i=0;i<NUMBER_OF_OPT_CMD;i++) result[i]=0;
+  res = Comp_generic(debut, str,len,(void *)Optcmd_liste,NUMBER_OF_OPT_CMD,
+      get_optcmd_name,delim,result);
+  if (res==-3) return 0;
+  if (res >= 0) {
     if (Optcmd_liste[res].comp) {
-      return (*Optcmd_liste[res].comp)(str+offset,len-offset);
+      return (*Optcmd_liste[res].comp)(str,len,debut);
+    } else {
+      strcat(debut->une_chaine,str);
+      return 0;
     }
   }
-  if (res < -1) return -1;
-  return 0;
+  if (res==-1) {
+    bon=0;
+    pere=debut;
+    courant=debut->suivant;
+    suivant=courant->suivant;
+    for (i=0;i<NUMBER_OF_OPT_CMD;i++) {
+       if (result[i]==0) continue;
+       res2=0;
+       if (Flcmds[i].comp) {
+         suite=safe_strdup(str);
+         res2=(*Optcmd_liste[i].comp)(suite,len,courant);
+         free(suite);
+         if (res2<-1) {
+            free(courant->une_chaine);
+            pere->suivant=courant->suivant;
+            free(courant);
+            courant=pere->suivant;
+            continue;
+         }
+       } else
+         strcat(courant->une_chaine,str);
+       if (res==-1) bon+=2; else bon++;
+       pere=courant;
+       while (pere->suivant!=suivant) pere=pere->suivant;
+       courant=suivant;
+       if (courant) suivant=courant->suivant;
+    }
+    if (bon>1) return -1; else if (bon) {
+       free(debut->une_chaine);
+       courant=debut->suivant;
+       debut->suivant=courant->suivant;
+       debut->une_chaine=courant->une_chaine;
+       free(courant); 
+       return 0;
+    }
+  }
+  return -2;
 }
 
 static char *bindarg_names[] = {
@@ -103,30 +168,75 @@ static char *get_name_liste(void *p,int i) {
   return ((char **)p)[i];
 }
 
-int bind_comp(char *str, int len)
+int bind_comp(char *str, int len, Liste_Chaine *debut)
 {
-  int res;
-  int offset;
-  if (len <2) return -1;
+  int res,res2,i,bon,offset;
+  char *suite;
+  Liste_Chaine *courant, *pere, *suivant;
+  int result[sizeof(bindarg_names)/sizeof(bindarg_names[0])];
+  for (i=0;i<sizeof(bindarg_names)/sizeof(bindarg_names[0]);i++)
+    result[i]=0;
+  if (len-strlen(debut->une_chaine)<2) return -2;
   if ((str[1]==' ')||(str[1]=='\0')) {
-    return Comp_cmd_explicite(str+2,len-2);
+    str[1]='\0';
+    strcat(debut->une_chaine,str);
+    strcat(debut->une_chaine," ");
+    return Comp_cmd_explicite(str+2,len,debut);
   }
   if (str[0]=='\\') {
     offset=strcspn(str,delim);
     if (offset< len) {
       offset += strspn(str+offset,delim);
-      return Comp_cmd_explicite(str+offset,len-offset);
+      str[offset-1]='\0';
+      strcat(debut->une_chaine,str);
+      strcat(debut->une_chaine," ");
+      return Comp_cmd_explicite(str+offset,len,debut);
     }
-    return -1;
+    strcat(debut->une_chaine,str);
+    strcat(debut->une_chaine," ");
+    str[0]='\0';
+    return 0;
   }
-  res = Comp_generic(str,len,(void *)bindarg_names,
+  res = Comp_generic(debut,str,len,(void *)bindarg_names,
       sizeof(bindarg_names)/sizeof(bindarg_names[0]),
-      get_name_liste,&offset,delim);
-  if ((res >= 0)&&(offset>0)) {
-    return bind_comp(str+offset,len-offset);
+      get_name_liste,delim,result);
+  if (res==-3) return 0;
+  if (res>=0) {
+    return bind_comp(str,len,debut);
   }
-  if (res < -1) return -1;
-  return 0;
+  if (res==-1) {
+    bon=0;
+    pere=debut;
+    courant=debut->suivant;
+    suivant=courant->suivant;
+    for (i=0;i<sizeof(bindarg_names)/sizeof(bindarg_names[0]);i++) {
+       if (result[i]==0) continue;
+       suite=safe_strdup(str);
+       res2=bind_comp(suite,len,courant);
+       free(suite);
+       if (res2<-1) {
+          free(courant->une_chaine);
+          pere->suivant=courant->suivant;
+          free(courant);
+          courant=pere->suivant;
+          continue;
+       }
+       if (res==-1) bon+=2; else bon++;
+       pere=courant;
+       while (pere->suivant!=suivant) pere=pere->suivant;
+       courant=suivant;
+       if (courant) suivant=courant->suivant;
+    }
+    if (bon>1) return -1; else if (bon) {
+       free(debut->une_chaine);
+       courant=debut->suivant;
+       debut->suivant=courant->suivant;
+       debut->une_chaine=courant->une_chaine;
+       free(courant); 
+       return 0;
+    }
+  }
+  return -2;
 }
 
 /* ajout d'un header, éventuellement a unknown_header */

@@ -1,6 +1,8 @@
 #ifndef FLRN_INTER_H
 #define FLRN_INTER_H
 
+#include "flrn_comp.h"
+
 typedef struct command_desc {
    char *nom;
    int  key;
@@ -13,7 +15,7 @@ typedef struct command_desc {
 		  32: demande à avoir un groupe valide */
 #define CMD_NEED_GROUP 32
    int (*appel)(int);
-   int (*comp)(char *, int);
+   int (*comp)(char *, int, Liste_Chaine *);
 } Flcmd;
 
 
@@ -24,9 +26,9 @@ extern int call_func(int, char *);
 extern int loop(char * /*opt*/);
 extern int aff_opt_c(char *);
 extern void init_Flcmd_rev(void);
-extern int Comp_generic(char *, int, void *, int, char *(void *,int),
-    int *, char *);
-extern int Comp_cmd_explicite(char * /*str*/, int /*len*/);
+extern int Comp_generic(Liste_Chaine *, char *, int, void *, int, 
+          char *(void *,int), char *, int *);
+extern int Comp_cmd_explicite(char * /*str*/, int /*len*/, Liste_Chaine *);
 extern int Bind_command_explicite(char * /*nom*/, int /*key*/, char *, int);
 extern void save_etat_loop(void);
 extern void restore_etat_loop(void);

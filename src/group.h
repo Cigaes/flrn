@@ -43,7 +43,7 @@ typedef struct Group_List
    char *description;   /* Description du newsgroup (quand c'est defini :( ) */
    int min;             /* Le numero de l'article minimum disponible */
    int max;		/* Le max du newsgroup */
-   int not_read;	/* nombre d'articles à lire... */
+   int not_read, important;	/* nombre d'articles à lire... */
    			/* -1 : indéfini */
    Range_List *read;	/* Les articles lus */
    long article_deb_key;

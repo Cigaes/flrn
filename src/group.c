@@ -781,8 +781,13 @@ void add_read_article(Newsgroup_List *mygroup, int article)
    if (mygroup->Article_deb) {
       Article_List *parcours=mygroup->Article_deb;
       while (parcours && (parcours->numero<article)) parcours=parcours->next;
-      if (parcours && (parcours->numero==article))
+      if (parcours && (parcours->numero==article)) {
          parcours->flag|=FLAG_READ;
+	 if (parcours->flag & FLAG_IMPORTANT) {
+	   mygroup->important--;
+	   parcours->flag &= ~FLAG_IMPORTANT;
+	 }
+      }
    }
    
    while(range1) {
@@ -948,6 +953,7 @@ void zap_group_non_courant (Newsgroup_List *group) {
    art=group->Article_deb;
    while (art) {
      art->flag|=FLAG_READ;
+     art->flag&= ~FLAG_IMPORTANT;
      art=art->next;
    }
    thr=group->Thread_deb;
@@ -959,6 +965,7 @@ void zap_group_non_courant (Newsgroup_List *group) {
    /* Tant pis... Ça devrait pas changer beaucoup de choses... qui irait  */
    /* zapper un groupe après coup...					  */
    group->not_read=0;
+   group->important=0;
 }
    
 

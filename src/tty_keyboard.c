@@ -114,7 +114,7 @@ int Attend_touche() {
 /* buf DOIT etre initialise en le debut de la ligne...			*/
 /* renvoie qqchose >0 si on a appuye sur une des touches magiques et flag=0 */
 /* le code de la touche si ce n'est pas une touche magique et flag=1 */
-int magic_getline(char *buf, int buffsize, int row, int col, char *magic, int flag)
+int magic_getline(char *buf, int buffsize, int row, int col, char *magic, int flag, int key_pressed)
 {
    int place;
    int key=0;
@@ -124,7 +124,10 @@ int magic_getline(char *buf, int buffsize, int row, int col, char *magic, int fl
    col+=place;
    do
    {
-     key=Attend_touche();
+     if (key_pressed) {
+       key=key_pressed;
+       key_pressed=0;
+     } else key=Attend_touche();
      if (key=='\r') key='\n';
      if (KeyBoard_Quit) return -1; /* on n'a rien fait... */
      if (key==FL_KEY_BACKSPACE) {
@@ -152,6 +155,6 @@ int magic_getline(char *buf, int buffsize, int row, int col, char *magic, int fl
 
 int getline(char *buf, int buffsize, int row, int col)
 {
-  return magic_getline(buf,buffsize,row,col,"",0);
+  return magic_getline(buf,buffsize,row,col,"",0,0);
 }
 

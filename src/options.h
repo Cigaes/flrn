@@ -12,6 +12,7 @@
 #include "flrn_slang.h"
 #include "art_group.h"
 #include "flrn_color.h"
+#include "flrn_comp.h"
 
 #ifdef IN_OPTION_C
 #  define OPT_COMMENT_CHAR '#'
@@ -29,13 +30,13 @@ int opt_do_bind(char *, int);
 int opt_do_my_flags(char *, int);
 
 /* pour la comptetion automatique */
-int var_comp(char *, int);
-int bind_comp(char *, int);
+int var_comp(char *, int, Liste_Chaine *);
+int bind_comp(char *, int, Liste_Chaine *);
 
 struct _Optcmd {
   char *name;
   int (*parse)(char *, int);
-  int (*comp)(char *, int);
+  int (*comp)(char *, int, Liste_Chaine *);
 } Optcmd_liste[] = {
   {"header", &opt_do_header, NULL},
   {"my_hdr", &opt_do_my_hdr, NULL},
@@ -224,7 +225,7 @@ extern void init_options(void);
 extern void parse_options_line(char * /*ligne*/, int /*flag*/);
 extern void dump_variables(FILE * /*file*/);
 extern void dump_flrnrc(FILE * /*file*/);
-extern int  options_comp(char * /*option*/, int /*len*/);
+extern int  options_comp(char * /*option*/, int /*len*/, Liste_Chaine *);
 extern void free_options(void);
 extern void menu_config_variables(void);
 

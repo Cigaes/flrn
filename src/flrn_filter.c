@@ -76,16 +76,27 @@ int check_article(Article_List *article, flrn_filter *filtre, int flag) {
 /* Fait l'action correspondant au filtre */
 void filter_do_action(flrn_filter *filt) {
   flrn_action *act;
-  int read=(Article_courant->flag & FLAG_READ);
+  int old_flag=Article_courant->flag;
   if (filt->flag ==0) { /* il s'agit de mettre un flag */
     Article_courant->flag |= filt->action.flag;
     /* FIXME ? FLAG_KILLED => FLAG_READ */
     if (Article_courant->flag & FLAG_KILLED) 
       Article_courant->flag |= FLAG_READ;
-    if ((!read) && (Article_courant->flag & FLAG_READ) && 
-        (Article_courant->numero>0) && (Newsgroup_courant->not_read>0)) {
-	   Newsgroup_courant->not_read--;
-	   if (Article_courant->thread) Article_courant->thread->non_lu--;
+    /* FIXME ? FLAG_READ => !FLAG_IMPORTANT */
+    if (Article_courant->flag & FLAG_READ)
+      Article_courant->flag &= ~FLAG_IMPORTANT;
+    if ((Article_courant->numero>0) && (Newsgroup_courant->not_read>=0)) {
+      if (old_flag & (~Article_courant->flag) & FLAG_READ) {
+        Newsgroup_courant->not_read++;
+        if (Article_courant->thread) Article_courant->thread->non_lu++;
+      } else if ((~old_flag) & Article_courant->flag & FLAG_READ) {
+        if (Newsgroup_courant->not_read>0) Newsgroup_courant->not_read--;
+        if (Article_courant->thread) Article_courant->thread->non_lu--;
+      }
+      if (old_flag & (~Article_courant->flag) & FLAG_IMPORTANT) 
+        Newsgroup_courant->important--;
+      else if ((~old_flag) & Article_courant->flag & FLAG_IMPORTANT)
+        Newsgroup_courant->important++;
     }
     return;
   }
@@ -118,6 +129,14 @@ int parse_filter_flags(char * str, flrn_filter *filt) {
   if (strcmp(str,"killed") ==0 ) {
     filt->cond_res |=  FLAG_KILLED;
     filt->cond_mask |= FLAG_KILLED;
+  } else
+  if (strcmp(str,"interesting") ==0 ) {
+    filt->cond_res |=  FLAG_IMPORTANT;
+    filt->cond_mask |= FLAG_IMPORTANT;
+  } else
+  if (strcmp(str,"uninteresting") ==0 ) {
+    filt->cond_res &=  ~FLAG_IMPORTANT;
+    filt->cond_mask |= FLAG_IMPORTANT;
   } else
   if (strcmp(str,"all") ==0 )
     filt->cond_res = filt->cond_mask = 0;
@@ -158,6 +177,8 @@ int parse_filter_toggle_flag(char * str, flrn_filter *filt) {
     filt->action.flag = FLAG_READ;
   else if (strcmp(str,"killed") ==0 )
     filt->action.flag = FLAG_KILLED;
+  else if (strcmp(str,"interesting") ==0 )
+    filt->action.flag = FLAG_IMPORTANT;
   else return -1;
   /* on ajoute le flag au filtre */
   filt->cond_mask |= filt->action.flag;

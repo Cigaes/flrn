@@ -92,7 +92,9 @@ extern int do_pipe_header(int);
 extern int do_select(int);
 
 /* completions */
-extern int options_comp(char * /*option*/, int /*len*/);
+#include "flrn_comp.h"
+
+extern int options_comp(char * /*option*/, int /*len*/, Liste_Chaine *);
 
 
 /* ATTENTION : MAX_FL_KEY DOIT ÊTRE UN BIT SEULEMENT */

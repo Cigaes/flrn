@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. complétion automatique : on y vient, à un truc grassouille
 . modification de l'option -c pour le forum de l'an prochain
 . bugfixes
 . reprise de toute la completion automatique. Possibilite de relancer
