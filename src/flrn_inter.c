@@ -2590,7 +2590,15 @@ int do_art_msgid(int res) {
    article_temp.msgid=gpe;
    article_temp.headers=NULL;
    cree_header(&article_temp,0,0,1);
-   if (article_temp.headers==NULL) { 
+   if ((article_temp.headers==NULL) && (strncasecmp(gpe,"<news:",6)==0)) { 
+      if (strncasecmp(gpe,"<news:",6)==0) {
+         gpe+=5;
+	 *gpe='<';
+      }
+      article_temp.msgid=gpe;
+      cree_header(&article_temp,0,0,1);
+   }
+   if (article_temp.headers==NULL) {
       etat_loop.etat=2; etat_loop.num_message=-21;
       return 0;
    }
