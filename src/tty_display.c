@@ -1216,6 +1216,7 @@ static void add_strings_bit (flrn_char *str, size_t len, int field,
 	      }
 	      lwd=fl_strspn(str,sepspn); 
 	      if (lwd>rlen) lwd=rlen;
+	      if (lwd==0) break;
 	      if (flag) {
 		  if (cf->blreste==NULL) {
 		    cf->blreste=cree_chaine_mono(" ",field,1,&cf->blrstlen);
@@ -1497,7 +1498,7 @@ static void add_strings_bit (flrn_char *str, size_t len, int field,
 /* add_to_scroll : on ajoute au scrolling ce qu'on écrit....  */
 /* (en gros c'est a peu près comme flag sauf cas flag=2 :-(   */
 /* note : str ne doit pas être une chaîne constante et est modifiée */
-static int Aff_header (int flag, int with_arbre, int row, int col, 
+int Aff_header (int flag, int with_arbre, int row, int col, 
 	flrn_char *str, int add_to_scroll) {
    struct construct_fill cf; 
 

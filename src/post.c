@@ -251,8 +251,15 @@ int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
 		    *header_courant=trad;
 		    if ((par_mail==0) && 
 		        ((header_connu==TO_HEADER) || (header_connu==CC_HEADER)
-			 || (header_connu==BCC_HEADER)))
+			 || (header_connu==BCC_HEADER))) {
 			par_mail=2;
+			/* on libère l'ancien header To: , parce
+			 * que le changement se fait au mieux */
+			if (Header_post->k_header[TO_HEADER]) {
+			    free(Header_post->k_header[TO_HEADER]);
+			    Header_post->k_header[TO_HEADER]=NULL;
+			}
+		    }
 		    if (rc==0) free(hcur);
 		    hcur=NULL;
 	         } else {
@@ -552,6 +559,61 @@ static int analyse_ligne (Lecture_List **d_l, int *place, FILE **a_inclure) {
 }
 #endif
 
+/* Afficher des informations sur le message à venir */
+static void aff_info_messages() {
+    int row;
+    int i;
+    flrn_char *str;
+    Cursor_gotorc(1,0);
+    Screen_erase_eos();
+    str=safe_malloc((12+(Header_post->k_header[SUBJECT_HEADER] ? 
+		fl_strlen(Header_post->k_header[SUBJECT_HEADER]) : 0))
+	    *sizeof(flrn_char));
+    fl_strcpy(str,fl_static_tran(Headers[SUBJECT_HEADER].header)); 
+    fl_strcat(str,fl_static(" "));
+    if (Header_post->k_header[SUBJECT_HEADER]) 
+	fl_strcat(str,Header_post->k_header[SUBJECT_HEADER]);
+    Aff_header(1,0,3,0,str,0);
+    free(str);
+    str=safe_malloc((14+(Header_post->k_header[NEWSGROUPS_HEADER] ? 
+		fl_strlen(Header_post->k_header[NEWSGROUPS_HEADER]) : 0))
+	    *sizeof(flrn_char));
+    fl_strcpy(str,fl_static_tran(Headers[NEWSGROUPS_HEADER].header));
+    fl_strcat(str,fl_static(" "));
+    if (Header_post->k_header[NEWSGROUPS_HEADER]) 
+	fl_strcat(str,Header_post->k_header[NEWSGROUPS_HEADER]);
+    Aff_header(1,0,5,0,str,0);
+    free(str);
+    if ((Header_post->k_header[TO_HEADER]) ||
+	    (Header_post->k_header[CC_HEADER]) ||
+	    (Header_post->k_header[BCC_HEADER])) {
+      if (par_mail) {
+         for (i=TO_HEADER, row=7; i<X_CENSORSHIP; i++, row++) {
+             str=safe_malloc((4+Headers[i].header_len+(Header_post->k_header[i]
+			    ?  fl_strlen(Header_post->k_header[i]) : 0))
+	      *sizeof(flrn_char));
+             fl_strcpy(str,fl_static_tran(Headers[i].header));
+             fl_strcat(str,fl_static(" "));
+             if (Header_post->k_header[i]) 
+	         fl_strcat(str,Header_post->k_header[i]);
+             Aff_header(1,0,row,0,str,0);
+             free(str);
+	 }
+      }
+      Cursor_gotorc(11,0);
+      /* FIXME : français */
+      Screen_write_string(
+	    (par_mail == 0 ? "Choix actuel :  Poster uniquement." :
+	     (par_mail == 1 ? "Choix actuel : Mail uniquement." :
+	      "Choix actuel : Poster et envoyer par mail.")));
+      Cursor_gotorc(13,0);
+      Screen_write_string("      (0) post   (1) mail   (2) post/mail");
+    } else 
+	par_mail=0;
+}
+
+
+
 /* Obtention du corps du post.					*/
 /* La gestions des points doubles ne se fait pas.		*/
 static int Screen_Start;
@@ -591,6 +653,7 @@ static int get_Body_post() {
 	lecture_courant->lu[place]=fl_static('\0');
         if (res==0) 
 	  while (res==0) {
+	    aff_info_messages();
   	    Cursor_gotorc(Screen_Rows2-1,0);
 	    /* FIXME : francais */
 	    Screen_write_string("(P)oster, (E)diter, (A)nnuler ? ");
@@ -601,12 +664,15 @@ static int get_Body_post() {
 	        key=toupper(key);
 	        if (key=='A') 
                    return 0;
-	        if (key=='E') res=1;
+	        if (key=='E') { res=1; continue; }
 	        if (key=='P' || key=='Y' || key=='\r' ) {
                     if (lecture_courant->suivant) 
 			free_chaine(lecture_courant->suivant);
                     return 1;
 	        }
+		if (key=='0') par_mail=0; else
+		    if (key=='1') par_mail=1; else
+			if (key=='2') par_mail=2;
 	    }
 	}
         else {
@@ -1753,11 +1819,18 @@ static int Get_base_headers(int flag, Article_List *article) {
 	{
 	   Header_post->k_header[i]=safe_malloc(513*sizeof(flrn_char));
 	   Copy_format (NULL, buf+2, article, Header_post->k_header[i], 512);
+	   if (*(Header_post->k_header[i])==fl_static('\0')) {
+	       free(Header_post->k_header[i]);
+	       Header_post->k_header[i]=NULL;
+	   } else {
 	   /* on reformate */
-	   buf2=Header_post->k_header[i];
-	   while ((buf2=fl_strchr(buf2,fl_static('\n')))) 
-	       *buf2=fl_static(' ');
-	   if (i==FROM_HEADER) from_perso=1;
+	       buf2=Header_post->k_header[i];
+	       while ((buf2=fl_strchr(buf2,fl_static('\n')))) 
+	           *buf2=fl_static(' ');
+	       if (i==FROM_HEADER) from_perso=1;
+	       if (((i==TO_HEADER) || (i==CC_HEADER) || (i==BCC_HEADER)) &&
+		   (par_mail==0)) par_mail=2;
+	   }
 	}
 	else if (i==NB_DECODED_HEADERS) {
 	   Header_List *parcours2=Header_post->autres;

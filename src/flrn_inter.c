@@ -2564,7 +2564,6 @@ int do_post(int res) {
   /* Provisoirement, je ne m'occupe pas de la chaine de caractère */
   ret=post_message(origine, str, (res==FLCMD_MAIL ? 1 : 
       					(res==FLCMD_SUPERSEDES ? -1 : 0))); 
-  ret=-1;
   if (ret==3) { etat_loop.etat=1; etat_loop.num_message=21; } else
   if (ret==2) { etat_loop.etat=1; etat_loop.num_message=20; } else
   if (ret==1) { etat_loop.etat=1; etat_loop.num_message=6; } else
@@ -2583,7 +2582,6 @@ static int cancel_article(Article_List *article, void *toto) {
      return 0;
    }
    ret=cancel_message(article,confirm); 
-   ret=-1;
    if (ret==2) confirm=1;
    return ret;
 }

@@ -43,6 +43,7 @@ extern int Liste_groupe(int , flrn_char * , Newsgroup_List **);
 /* extern int Aff_arbre(int,int,Article_List *, int, int, int, unsigned short **, int); */
 extern void Aff_help_line(int);
 extern int screen_changed_size(void);
+extern int Aff_header(int, int, int, int, flrn_char *, int);
 
 extern void Manage_progress_bar(flrn_char *, int);
 
