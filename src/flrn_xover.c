@@ -356,7 +356,7 @@ int cree_liste(int art_num, int *part) {
    if (va_dans_groupe()<0) return -1;
 
    /* on n'utilise pas return_code car on veut le max du newsgroup */
-   res=read_server(tcp_line_read, 3, MAX_READ_SIZE-1);
+   res=read_server_with_reconnect(tcp_line_read, 3, MAX_READ_SIZE-1);
    if (res<3) {
       if (debug) fprintf(stderr, "Cree_liste: Echec en lecture du serveur\n");
       return -1;

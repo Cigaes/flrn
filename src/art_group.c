@@ -555,7 +555,7 @@ Article_List *ajoute_message (char *msgid, int *should_retry) {
    if (buf) *(++buf)='\0'; else return NULL;
    res=write_command(CMD_STAT, 1, &msgid);
    if (res<1) return NULL;
-   res=read_server(tcp_line_read,3, MAX_READ_SIZE-1);
+   res=read_server_with_reconnect(tcp_line_read,3, MAX_READ_SIZE-1);
    code=strtol(tcp_line_read, &buf, 10);
    if (code>400) return NULL;
    creation=safe_calloc(1,sizeof(Article_List));
@@ -617,7 +617,7 @@ Article_List *ajoute_message_par_num (int min, int max) {
      sprintf(buf2,"%d",i);
      res=write_command(CMD_STAT, 1, &buf2);
      if (res<1) return NULL;
-     res=read_server(tcp_line_read,3, MAX_READ_SIZE-1);
+     res=read_server_with_reconnect(tcp_line_read,3, MAX_READ_SIZE-1);
      code=strtol(tcp_line_read, &buf, 10);
      if ((code>200) && (code<300)) break;
    }
@@ -1011,7 +1011,8 @@ void article_read(Article_List *article)
 		article->thread->non_lu--;
   }
   article->flag |= FLAG_READ;
-  if (article->headers->k_headers[XREF_HEADER]==NULL) return;
+  if ((article->headers==NULL) ||
+      (article->headers->k_headers[XREF_HEADER]==0)) return;
     /* Eviter un segfault quand le serveur est Bipesque */
   if (rindex(article->headers->k_headers[XREF_HEADER],':') ==
       index(article->headers->k_headers[XREF_HEADER],':')) return;

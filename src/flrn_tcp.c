@@ -237,6 +237,40 @@ int read_server (char *ligne, int deb, int max)
    }
    /* Unreachable */
 }
+
+/* parse du timeout : on teste "imeout" ou "timed" */
+/* on revoie 1 si le test est juste */
+   /* I know of only two timeout responses:  (slrn)
+    *     * 503 Timeout
+    *     * 503 connection timed out
+   */
+static int _nntp_try_parse_timeout(char *str) {
+   if (strstr(str,"imeout") || strstr(str,"timed")) return 1;
+   return 0;
+}
+
+/* Cette fonction fait un read_server de retour et se reconnecte au cas ou */
+int read_server_with_reconnect (char *ligne, int deb, int max) {
+   int lus, code;
+
+   lus=read_server(ligne, deb, max);
+   if (lus<3) {
+      if (debug) fprintf(stderr, "Echec en lecture du serveur\n");
+      return -1;
+   }
+   
+   if (debug) fprintf(stderr, "Lecture : %s", ligne);
+   code=atoi(ligne);
+
+   /* On va essayer de gerer le cas du timeout */
+   if ((code==503) && (_nntp_try_parse_timeout(ligne))) {
+     if (debug) fprintf(stderr,"Un timeout... %s",ligne);
+       if (reconnect_after_timeout(1)<0) return -1;
+       /* envoie aussi toutes les bonnes commandes au serveur */
+       return read_server_with_reconnect(ligne,deb,max);
+   }
+   return lus;
+}
   
 
 /* Vire tout ce que peut envoyer le serveur jusqu'au prochain "\r\n.\r\n" */
@@ -311,7 +345,7 @@ int adjust_time()
   char *buf;
 
   write_command(CMD_DATE, 0, NULL);
-  res=read_server(tcp_line_read, 3, MAX_READ_SIZE-1);
+  res=read_server_with_reconnect(tcp_line_read, 3, MAX_READ_SIZE-1);
   if (debug) fprintf(stderr,"Yo :%s\n",tcp_line_read);
   if (res<0) return -1;
   buf=strchr(tcp_line_read,' ');
@@ -333,39 +367,16 @@ int adjust_time()
   return 0;
 }
 
-/* parse du timeout : on teste "imeout" ou "timed" */
-/* on revoie 1 si le test est juste */
-   /* I know of only two timeout responses:  (slrn)
-    *     * 503 Timeout
-    *     * 503 connection timed out
-   */
-static int _nntp_try_parse_timeout(char *str) {
-   if (strstr(str,"imeout") || strstr(str,"timed")) return 1;
-   return 0;
-}
-
 /* Lecture juste de la ligne du retour d'une commande.			*/
+/* On utilise read_server_with_reconnect				*/
 int return_code () {
    int lus, code;
 
-   lus=read_server(tcp_line_read, 3, MAX_READ_SIZE-1);
-   if (lus<3) {
-      if (debug) fprintf(stderr, "Echec en lecture du serveur\n");
-      return -1;
-   }
+   lus=read_server_with_reconnect(tcp_line_read, 3, MAX_READ_SIZE-1);
+   if (lus<3) return -1;
    
-   if (debug) fprintf(stderr, "Lecture : %s", tcp_line_read);
-
    code=atoi(tcp_line_read);
 
-   /* On va essayer de gerer le cas du timeout */
-   if ((code==503) && (_nntp_try_parse_timeout(tcp_line_read))) {
-     if (debug) fprintf(stderr,"Un timeout... %s",tcp_line_read);
-       if (reconnect_after_timeout(1)<0) return -1;
-       /* envoie aussi toutes les bonnes commandes au serveur */
-       return return_code();
-   }
-   
    /* Ici, on gere le cas d'une ligne trop longue */
    while (tcp_line_read[lus-1]!='\n') {
       if (debug) fprintf(stderr, "ligne tres longue ???\n");

@@ -870,7 +870,7 @@ static int Post_article() {
 
     /* On n'utilise pas return_code pour le parsing */
     /* de toute facon, un timeout est exclu */
-    res=read_server(tcp_line_read, 3, MAX_READ_SIZE-1);
+    res=read_server_with_reconnect(tcp_line_read, 3, MAX_READ_SIZE-1);
     if (res<3) return -1;
     if (debug) fprintf(stderr, "Lecture : %s", tcp_line_read);
     res=strtol(tcp_line_read, &buf, 10);

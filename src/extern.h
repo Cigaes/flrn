@@ -16,6 +16,8 @@
 extern int connect_server (char * /*host*/, int /*port*/);
 extern void quit_server (void);
 extern int read_server (char * /*ligne*/, int /*deb*/, int /*max*/);
+extern int read_server_with_reconnect
+			(char * /*ligne*/, int /*deb*/, int /*max*/);
   /* appel pour post */
 extern int raw_write_server (char * /*buf*/, unsigned int /*len*/);
 extern int write_command (int /*num_com*/, int /*num_para*/, char ** /*param*/);
