@@ -466,6 +466,7 @@ int cherche_newnews() {
    }
    if(nombre >0) {
       int articles_ajoutes, mettre_time;
+      int retry=0;
 
       articles_ajoutes=0;
       mettre_time=1;
@@ -473,9 +474,10 @@ int cherche_newnews() {
      /* a remplacer par une insertion du message dans la liste */
      for (i=0;i<nombre;i++) {
        if (debug) fprintf(stderr,"New news - %s\n",Message_id[i]);
-       if (ajoute_message(Message_id[i],0)!=NULL) articles_ajoutes++; /* else
-           mettre_time=0; */ /* Pourquoi ce truc ? En fait je comprend pas...
-				Ca a des implications bizarre. Je l'enleve */
+       if (ajoute_message(Message_id[i],0,&retry)!=NULL) 
+       		articles_ajoutes++; else
+	if (retry) 
+           mettre_time=0; 
        free(Message_id[i]);
      }
      if (mettre_time) Date_groupe=actuel+Date_offset;

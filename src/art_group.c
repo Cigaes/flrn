@@ -265,12 +265,20 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others) {
    /* Quoiqu'en fait il est peut-etre préférable de faire l'inverse :  *
     * utiliser en priorité le numéro... C'est probablement plus rapide *
     * et parfois plus efficace...				       */
+   /* ... mais si ca plante, le message-ID peut etre utile...	       */
    if (article->numero>0) sprintf(num,"%d",article->numero); else
        strcpy(num,article->msgid);
    res=write_command(CMD_HEAD, 1, &num);
    free(num);
    if (res<0) return NULL; 
    code=return_code();
+   if (code==423) {  /* Bad article number ? */
+       num=safe_malloc(260*sizeof(char));
+       strcpy(num,article->msgid);
+       res=write_command(CMD_HEAD, 1, &num);
+       if (res<0) return NULL;
+       code=return_code();
+   }
    if ((code<0) || (code>300)) return NULL; /* Erreur, ou l'article n'est */
     					    /* pas encore disponible.	  */
 
@@ -408,13 +416,15 @@ void ajoute_reponse_a(Article_List *article) {
 /* On ne se casse surtout pas la tête.				             */
 /* On renvoie NULL en cas d'echec, l'article cree en cas de succes.	     */
 /* maintenant plus : si exte=1, on ajoute le message dans la liste exterieur */
-Article_List *ajoute_message (char *msgid, int exte) {
+/* should_retry est mis a un si il semble y avoir un pb d'update du serveur  */
+Article_List *ajoute_message (char *msgid, int exte, int *should_retry) {
    Article_List *creation, *parcours, *last=NULL;
    char *buf, *buf2;
    char save;
    int res,code;
 
   /* j'espere que stat va marcher */
+   *should_retry=0;
    buf=strchr(msgid,'>');
    if (buf) *(++buf)='\0'; else return NULL;
    res=write_command(CMD_STAT, 1, &msgid);
@@ -429,6 +439,7 @@ Article_List *ajoute_message (char *msgid, int exte) {
    if (creation->headers==NULL) {
       free(creation->msgid);
       free(creation);
+      *should_retry=1;
       return NULL;
    }
 

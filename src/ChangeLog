@@ -1,5 +1,9 @@
 ChangeLog Flrn
 
+. usage du Message-ID quand le numéro ne marche pas. Les problème de synchro
+  du serveur devraient finir par se regler...
+. modif de ajoute_message pour rajouter un "should_retry"
+. modif de prochain_non_lu pour ne pas appeler cherche_newnews inutilement
 . Enrichissement des filtres pour avoir des matchs exacts et non des regexp
 . Ajout du message-id a k_headers.
 . Mise a jour de max dans cree_liste_xover pour les pb de synchronisation

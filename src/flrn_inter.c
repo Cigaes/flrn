@@ -116,7 +116,7 @@ int do_add_kill(int res);
 
 /* Ces fonctions sont appelés par les do_* */
 int change_group(Newsgroup_List **newgroup,int flags, char *gpe_tab);
-int prochain_non_lu(int force_reste, Article_List **debut);
+int prochain_non_lu(int force_reste, Article_List **debut, int just_entered);
 int prochain_newsgroup();
 void Get_option_line(char *argument);
 /* les trois fonctions suivantes sont inutilisées...
@@ -295,7 +295,7 @@ int loop(char *opt) {
 	if (etat_loop.hors_struct==1) etat_loop.hors_struct=0;
 	if (!(etat_loop.hors_struct & 8)) 
 	  if (etat_loop.num_futur_article==0)
-            change=-prochain_non_lu(etat_loop.num_message==1,&Article_courant);
+            change=-prochain_non_lu(etat_loop.num_message==1,&Article_courant,1);
 	  else {
 	    if (etat_loop.num_futur_article !=-1) {
 	      Arg_do_funcs.num1=etat_loop.num_futur_article;
@@ -389,7 +389,7 @@ int loop(char *opt) {
 	       Newsgroup_courant=NULL;
 	       Article_deb=&Article_bidon;
 	     } else
-	     if (prochain_non_lu(0,&Article_courant)==0) {
+	     if (prochain_non_lu(0,&Article_courant,0)==0) {
 	         etat_loop.etat=0;
 	     } else etat_loop.hors_struct=3;
 	   } 
@@ -881,7 +881,7 @@ int do_deplace(int res) {
      		       if ((parcours2==NULL) && (Options.with_cousins))
 		         parcours2=cousin_next(parcours);
 		       break;
-     case FLCMD_SPACE : ret=-prochain_non_lu(0, &parcours);
+     case FLCMD_SPACE : ret=-prochain_non_lu(0, &parcours,0);
 			if (ret==2) { 
 			  etat_loop.Newsgroup_nouveau=Newsgroup_courant;
 			  return 1;
@@ -1943,7 +1943,7 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 /* Et eventuellement l'appel a ajoute_message_par_num si posts récents  */
 /* Renvoie donc en plus : */
 /* -2 : reconstruire le groupe... */
-static int raw_prochain_non_lu(int force_reste, Article_List **debut) {
+static int raw_prochain_non_lu(int force_reste, Article_List **debut, int just_entered) {
    Article_List *myarticle=*debut;
    int res;
 
@@ -1978,9 +1978,12 @@ static int raw_prochain_non_lu(int force_reste, Article_List **debut) {
        /* test inutile... en théorie */
    }
    /* Si on a rien trouvé, un appel a cherche_newnews ne fait pas de mal */
-   res=cherche_newnews();
-   if (res==-2) return -2;
-   if (res>=1) return raw_prochain_non_lu(force_reste, debut);
+   /* a moins qu'on vienne juste de rentrer dans le groupe... */
+   if (!just_entered) {
+     res=cherche_newnews();
+     if (res==-2) return -2;
+     if (res>=1) return raw_prochain_non_lu(force_reste, debut, 0);
+   }
 
    /* On fixe Article_courant au dernier article dans tous les cas */
    while (myarticle->next) myarticle=myarticle->next;
@@ -1992,13 +1995,13 @@ static int raw_prochain_non_lu(int force_reste, Article_List **debut) {
 }
 
 /* en fait juste un wrapper pour appliquer le kill-file */
-int prochain_non_lu(int force_reste, Article_List **debut) {
+int prochain_non_lu(int force_reste, Article_List **debut, int just_entered) {
   int res;
-  res=raw_prochain_non_lu(force_reste,debut);
+  res=raw_prochain_non_lu(force_reste,debut,just_entered);
   if (((*debut)->flag & FLAG_READ) == 0) {
     check_kill_article(*debut,1); /* le kill_file_avec création des headers */
     if (((*debut)->flag & FLAG_READ) != 0)
-      return prochain_non_lu(force_reste,debut);
+      return prochain_non_lu(force_reste,debut,just_entered);
   }
   return res;
 }

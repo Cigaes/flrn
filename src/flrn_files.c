@@ -190,6 +190,14 @@ void Copy_article (FILE *dest, Article_List *article, int copie_head, char *avan
    free(num);
    if (res<0) return;
    code=return_code();
+   if (code==423) { /* bad article number ? */
+      num=safe_malloc(260*sizeof(char));
+      strcpy(num,article->msgid);
+      res=write_command(copie_head ? CMD_ARTICLE : CMD_BODY, 1, &num);
+      free(num);
+      if (res<0) return;
+      code=return_code();
+   }
    if ((code<0) || (code>300)) return;
    do {
       res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);

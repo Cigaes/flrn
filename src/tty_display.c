@@ -1183,6 +1183,16 @@ int Aff_article_courant() {
      free_text_scroll();
      return -1; }
    res=return_code();
+   if (res==423) { /* Bad article number ? */
+      num=safe_malloc(280*sizeof(char));
+      strcpy(num, Article_courant->msgid);
+      res=write_command(CMD_BODY, 1, &num);
+      free(num);
+      if (res<0) { if (debug) fprintf(stderr, "erreur en ecriture\n");
+        free_text_scroll();
+      return -1; }
+      res=return_code();
+   }
    if (res<0 || res>400) { 
      if (debug)
        fprintf(stderr, "Pas d'article : %d\n", Article_courant->numero); 
