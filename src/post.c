@@ -1211,6 +1211,8 @@ static int Get_base_headers_supersedes (Article_List *article) {
           Header_post->k_header[i]=safe_strdup(article->headers->k_headers[i]);
    }
    tmp=Last_head_cmd.headers;
+   liste=Header_post->autres;
+   if (liste) while (liste->next) liste=liste->next;
    while (tmp) {
       tmp2=tmp; tmp=tmp->next;
       if (strncasecmp(tmp2->header,"Path:",5)==0) continue;
@@ -1218,12 +1220,11 @@ static int Get_base_headers_supersedes (Article_List *article) {
       if (strncasecmp(tmp2->header,"X-Trace:",8)==0) continue;
       if (strncasecmp(tmp2->header,"NNTP-Posting-Date:",18)==0) continue;
       if (strncasecmp(tmp2->header,"X-Complaints-To:",16)==0) continue;
-      liste=Header_post->autres;
       if (liste==NULL) 
          liste=Header_post->autres=safe_malloc(sizeof(Header_List));
       else {
-         while (liste->next) liste=liste->next;
          liste->next=safe_malloc(sizeof(Header_List));
+	 liste=liste->next;
       }
       liste->next=NULL;
       liste->header=safe_strdup(tmp2->header);
