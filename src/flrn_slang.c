@@ -1,7 +1,7 @@
 /* flrn : lecteur de news en mode texte
- * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ * Copyright (C) 1998-2000  Damien Massé et Joël-Yann Fourré
  *
- *      flrn_slang.c : liens avec les fonction slang
+ *      flrn_slang.c : liens avec les fonction d'E/S de slang
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

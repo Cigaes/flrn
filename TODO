@@ -1,12 +1,33 @@
-_ correction du bug de la touche espace dans un groupe vide qui ne fait rien
-_ amélioration de \save-options. Peut-etre rajouter une demande en sortie
-  pour sauvegarder les options
-_ reprendre les regexp pour garder la chaîne initiale. Utile pour les options.
-_ rajout du 'T' quand une commande demande confirmation plusieurs fois
-  de suite.
-_ Pour le Supersedes, tu reprends le message et tu vire les 5 entetes que 
-  rajoute le serveur de news, au lieu de réécrire les entêtes, parce que
-  ca fout completement la merde...
-  X-Ref, Path: NNTP-Posting-Host: X-Trace: NNTP-Posting-Date: X-Complaints-To:
-_ Content_type avec ISO-8859-x
+Haute priorité
+--------------
 
+_ envisager la mise en place d'un langage de script
+_ vérifier le code de References :, pour la lecture et pour le post.
+
+Moyenne priorité
+----------------
+
+_ reprendre les regexp pour garder la chaîne initiale. Améliorer save-options
+  en conséquence
+- reprendre la doc
+
+Basse priorité
+--------------
+
+_ faire une option de compilation pour le nom des commandes
+_ faire une option de compilation pour le patch du parse_from
+_ faire une option de compilation pour l'éditeur automatique
+_ reprendre le configure, faire un zoli programme de configuration
+_ dégager nettement chaque fonction utilisée, dans l'objectif
+  de faire un portage vers d'autres architectures
+_ améliorer le formatage des my_headers
+_ revoir la recherche sur entetes lorsqu'on quitte et qu'on revient sur un
+  groupe
+_ permettre l'affichage d'un message qui vient d'être édité
+
+Hors priorité
+-------------
+
+_ revoir l'ensemble du code
+_ mieux respecter le GNKSA, en particulier proposer une option de configure
+  pour laquelle la configuration par défaut EST gnksa-compliant

@@ -1183,9 +1183,9 @@ static char *extract_post_references (char *str, int len_id) {
 
 /* Creation des headers du futur article */
 /* Flag : 0 : normal 1 : mail -1 : cancel ou supersedes */
-#if 0
 static int Get_base_headers_supersedes (Article_List *article) {
    int i;
+   Header_List *tmp, *tmp2, *liste;
 
    if (Last_head_cmd.Article_vu!=article) {
       cree_header(article,0,1,0);
@@ -1202,9 +1202,24 @@ static int Get_base_headers_supersedes (Article_List *article) {
       if (article->headers->k_headers[i])
           Header_post->k_header[i]=safe_strdup(article->headers->k_headers[i]);
    }
-#endif
-
-      
+   tmp=Last_head_cmd.headers;
+   while (tmp) {
+      tmp2=tmp; tmp=tmp->next;
+      if (strncasecmp(tmp2->header,"Path:",5)==0) continue;
+      if (strncasecmp(tmp2->header,"NNTP-Posting-Host:",18)==0) continue;
+      if (strncasecmp(tmp2->header,"X-Trace:",8)==0) continue;
+      if (strncasecmp(tmp2->header,"NNTP-Posting-Date:",18)==0) continue;
+      if (strncasecmp(tmp2->header,"X-Complaints-To:",16)==0) continue;
+      liste=Header_post->autres;
+      if (liste==NULL) 
+         Header_post->autres=safe_strdup(tmp2->header);
+      else {
+         while (liste->next) liste=liste->next;
+         liste->next=safe_strdup(tmp2->header);
+      }
+   }
+   return 0;
+}
    
 static int Get_base_headers(int flag, Article_List *article) {
    int res, len1, len2=0, len3, key, i, from_perso=0;
@@ -1214,12 +1229,10 @@ static int Get_base_headers(int flag, Article_List *article) {
    Header_post=safe_calloc(1,sizeof(Post_Headers));
    memset(Header_post,0,sizeof(Post_Headers));
    par_mail=(flag==1);
-#if 0
    /* le supersedes est traité à part */
    if (supersedes) {
       return Get_base_headers_supersedes(article);
    }
-#endif
    /* On va d'abord gérer les headers persos... */
    /* Comme ca ils vont se faire écraser par les autres... */
    /* ces headers sont bien formatés... mais ils peuvent etre "reformates" */
