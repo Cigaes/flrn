@@ -169,7 +169,7 @@ int magic_flrn_getline(char *buf, int buffsize, int row, int col, char *magic, i
 	  if (placeact==0) break;
 	  if (key==FL_KEY_BACKSPACE) break;
 	  if (!isblank(buf[placeact])) mot_trouve=1;
-	  if ((key==21) && (mot_trouve) && (isblank(buf[placeact-1]))) break;
+	  if ((key==23) && (mot_trouve) && (isblank(buf[placeact-1]))) break;
 	} while (1);
 	for (i=placeact;i<place;i++) {
             buf[i]=buf[i+retour];
