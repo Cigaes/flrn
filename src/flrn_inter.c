@@ -87,6 +87,7 @@ typedef struct Num_lists
 */
 
 Numeros_List Arg_do_funcs={NULL, 0, {0}, 0};
+static int thread_view=0;
 
 typedef int (*Action)(Article_List *article, void * flag);
 int distribue_action(Numeros_List *num, Action action, Action special,
@@ -258,6 +259,8 @@ static void Aff_message(int type, int num)
     case 21 : Aff_error(Messages[MES_MAIL_POST]); break;
     case 22 : Aff_error_fin(Messages[MES_TEMP_READ],0,-1); break;
     case 23 : Aff_error_fin(Messages[MES_FLAG_APPLIED],0,-1); break;
+    case 24 : Aff_error_fin(Messages[MES_MODE_THREAD],0,-1); break;
+    case 25 : Aff_error_fin(Messages[MES_MODE_NORMAL],0,-1); break;
  /* Message d'erreur */
     case -1 : Aff_error(Messages[MES_NO_GROUP]);  /* non utilisé */
 	       break;
@@ -426,12 +429,15 @@ int loop(char *opt) {
 	   }
 	   if (debug) fprintf(stderr, "etat %d num_message %d\n", etat_loop.etat, etat_loop.num_message);
 	   ret=0;
-	   if (etat_loop.etat==0) { ret=Aff_article_courant(to_build); 
-			  push_tag();
-	     		  etat_loop.hors_struct&=8;
-			  if (etat_loop.hors_struct) etat_loop.hors_struct|=3;
+	   if (etat_loop.etat==0) { 
+	      if (!thread_view) 
+	         ret=Aff_article_courant(to_build); 
+	      else ret=Aff_grand_thread(to_build);
+	      push_tag();
+	      etat_loop.hors_struct&=8;
+	      if (etat_loop.hors_struct) etat_loop.hors_struct|=3;
 			  /* ceci revient a ne garder qu'hors_newsgroup */
-			}
+	   }
 	   if ((etat_loop.etat==1) || (etat_loop.etat==2))
 	     Aff_message(etat_loop.etat-1, etat_loop.num_message);
 	   if (etat_loop.etat==4) ret=1; /* Commande deja tapee */
@@ -2111,6 +2117,16 @@ int do_opt_menu(int res) {
 }
 
 int do_neth(int res) {  /* Très pratique, cette fonction, pour les tests idiots */
+/* on va même lui donner une fonction utile... faudra la changer de nom */
+  thread_view=1-thread_view;
+  if (etat_loop.hors_struct & 8) {
+     etat_loop.etat=1;
+     etat_loop.num_message=(thread_view ? 24 : 25);
+  } else etat_loop.etat=0;
+  return 0;
+}
+
+#if 0
   unsigned char **grande_table;
   int i;
 
@@ -2127,6 +2143,7 @@ int do_neth(int res) {  /* Très pratique, cette fonction, pour les tests idiots 
   etat_loop.etat=3;
   return 0; 
 }
+#endif
 
 
 /* Affiche la liste des newsgroup */

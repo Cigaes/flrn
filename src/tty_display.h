@@ -12,6 +12,7 @@ extern void Reset_screen(void);
 extern int Init_screen(int);
 extern void sig_winch(int );
 extern int Aff_article_courant(int);
+extern int Aff_grand_thread(int);
 extern void Aff_newsgroup_name(int /* erase_scr */);
 extern void Aff_newsgroup_courant(void);
 extern void aff_try_reconnect(void);

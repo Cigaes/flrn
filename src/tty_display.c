@@ -1439,17 +1439,8 @@ void Aff_not_read_newsgroup_courant() {
    Screen_set_color(FIELD_NORMAL);
 }
 
-
-/* Affichage de l'article courant */
-/* renvoie 1 en cas de commande, 0 sinon */
-/* Note : les appels se font avec le numero de l'article */
-/* comme il semble que ça marche mieux...		 */
-int Aff_article_courant(int to_build) {
-   int res, actual_row, read_line=1;
-   int first_line, scroll_headers=0;
-   char *num, buf[10];
-   
-   if (debug) fprintf(stderr, "Appel a Aff_article_courant\n");
+static int base_Aff_article(int to_build) {
+   char buf[10];
 
   /* barre */
    Screen_set_color(FIELD_STATUS);
@@ -1465,12 +1456,45 @@ int Aff_article_courant(int to_build) {
 
    Screen_set_color(FIELD_NORMAL);
    if (Article_courant->numero==-10) {
-	Aff_error("Pas d'article disponible.");
-	return 0;
+        Aff_error("Pas d'article disponible.");
+        return -1;
    }
-    
+
    Cursor_gotorc(1,0);
    Screen_erase_eos(); /* on veut effacer aussi les lignes du haut */
+   return 0;
+}
+  
+
+
+/* On affiche un grand thread, plus un résumé de l'article courant */
+int Aff_grand_thread(int to_build) {
+   unsigned char **grande_table;
+   int i;
+
+   if (base_Aff_article(to_build)==-1) return 0;
+   Screen_write_string("Mode thread (\\show-tree pour revenir au mode normal)");
+   grande_table=safe_malloc((Screen_Rows-4)*sizeof(char *));
+   for (i=0;i<Screen_Rows-4;i++)
+     grande_table[i]=safe_malloc(Screen_Cols);
+   Aff_arbre(2,0,Article_courant,Screen_Cols/4-1,Screen_Cols/4-1,
+        Screen_Rows-5,grande_table,0);
+   raw_Aff_summary_line(Article_courant, Screen_Rows-2, NULL, 0);
+   return 0;
+}
+
+/* Affichage de l'article courant */
+/* renvoie 1 en cas de commande, 0 sinon */
+/* Note : les appels se font avec le numero de l'article */
+/* comme il semble que ça marche mieux...		 */
+int Aff_article_courant(int to_build) {
+   int res, actual_row, read_line=1;
+   int first_line, scroll_headers=0;
+   char *num;
+   
+   if (debug) fprintf(stderr, "Appel a Aff_article_courant\n");
+   if (base_Aff_article(to_build)==-1) return 0;
+
    Cursor_gotorc(1+Options.skip_line,0);
 
   /* Headers  -- on veut all_headers <=> un appel a cree_headers */

@@ -46,6 +46,8 @@ const char *Messages[NB_MESSAGES] = {
     "Flag invalide.",				/* 40 */
     "Flag appliqué.",				/* 41 */ /* pager, menus */
     "Macro interdite.",				/* 42 */
-    "Message-ID inconnu."			/* 43 */
+    "Message-ID inconnu.",			/* 43 */
+    "Passage en mode thread.",			/* 44 */
+    "Passage en mode normal."			/* 45 */
 };
 
