@@ -1084,6 +1084,10 @@ static int validate_tag_ptr(Flrn_Tag *tag) {
   if (Newsgroup_courant && (Newsgroup_courant->article_deb_key == tag->article_deb_key))
     return 1;
   tmp = cherche_newsgroup(tag->newsgroup_name,1,0);
+  if ((tmp==Newsgroup_courant) && (tag->article_deb_key==-1)) {
+     if (Recherche_article(tag->numero, &(tag->article), 0)==0) return 1;
+     return 0;
+  }
   if (tmp && (tmp->article_deb_key == tag->article_deb_key))
     return 1;
   return 0;
