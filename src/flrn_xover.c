@@ -225,6 +225,11 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
        res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
        if (res<0) return -1;
     }
+    /* On veut leur faire la peau, à ces problèmes de synchronisation */
+    if (article) {
+      if (n2>=Newsgroup_courant->max)
+	Newsgroup_courant->max=article->numero;
+    }
     return crees;
 }
 
@@ -432,6 +437,7 @@ int cree_liste_end() {
   int res;
   /* fixme */
   if (!overview_usable) return 0;
+  /* ca ne veut pas dire gd chose comme test, mais bon... */
   if (Article_deb->numero <2) return 0;
   res=cree_liste_xover(1,Article_deb->numero-1,&Article_deb);
   if (res) {
