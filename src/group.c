@@ -1043,6 +1043,7 @@ void Ligne_carac_du_groupe (void *letruc, char *lachaine,
 
 int calcul_order(char *nom_gr, char *str) {
     char *buf, *buf2;
+    if (str==NULL) return 0;
     if ((buf=strstr(nom_gr,str))==NULL) return -1;
     while ((buf2=strstr(buf+1,str))!=NULL) buf=buf2;
     return (strlen(nom_gr)-strlen(str))*10-9*(buf-nom_gr);
@@ -1059,11 +1060,10 @@ int calcul_order_re(char *nom_gr, regex_t *sreg) {
       buf+=pmatch[0].rm_eo;
       if (pmatch[0].rm_eo==0) buf++; else {
          bon=1;
-	 orderact=(strlen(nom_gr)-pmatch[0].rm_eo-(buf-nom_gr))*10+
-	                pmatch[0].rm_so+(buf-nom_gr);
+	 orderact=strlen(buf)*10+pmatch[0].rm_so+(buf-nom_gr)-pmatch[0].rm_eo;
 	 if ((order==-1) || (orderact<order)) order=orderact;
       }
       ret=regexec(sreg, buf, 1, pmatch, REG_NOTBOL);
-    } while (ret==0);
+    } while ((ret==0) && (*buf!='\0'));
     if (bon) return order; else return -1;
 }
