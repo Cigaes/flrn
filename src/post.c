@@ -1212,11 +1212,14 @@ static int Get_base_headers_supersedes (Article_List *article) {
       if (strncasecmp(tmp2->header,"X-Complaints-To:",16)==0) continue;
       liste=Header_post->autres;
       if (liste==NULL) 
-         Header_post->autres=safe_strdup(tmp2->header);
+         liste=Header_post->autres=safe_malloc(sizeof(Header_List));
       else {
          while (liste->next) liste=liste->next;
-         liste->next=safe_strdup(tmp2->header);
+         liste->next=safe_malloc(sizeof(Header_List));
       }
+      liste->next=NULL;
+      liste->header=safe_strdup(tmp2->header);
+      liste->num_af=0;
    }
    return 0;
 }

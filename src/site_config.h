@@ -68,7 +68,7 @@ struct Option_struct Options = {
   NULL,			/* help_line_file */
   NULL,			/* auth_user */
   NULL,			/* auth_pass */
-  NULL,			/* sig_file */
+  NULL,			/* sign_file */
   0,			/* quote_all */
 #ifdef WITH_CHARACTER_SETS
   NULL,                 /* character_set */
