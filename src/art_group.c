@@ -917,7 +917,7 @@ Article_List * next_in_thread(Article_List *start, long flag, int *level,
 			   (parcours->article->numero>fin)))
 	  parcours=parcours->next_in_thread;
        if (parcours) {
-          famille=root_of_thread(parcours->article,0);
+          famille=root_of_thread(parcours->article,1);
 	  if (level) *level=1;
           if (((famille->flag & flag)==set) &&
               (famille->numero<=fin) && (famille->numero>=deb)) return famille;
@@ -999,22 +999,21 @@ Article_List *cousin_next(Article_List *debut) {
 Article_List * root_of_thread(Article_List *article, int flag) {
   Article_List *racine=article;
   Article_List *racine2=article;
+  Article_List *num_positif=NULL;
 
+  if (racine->numero>0) num_positif=racine;
   if(racine->pere) 
     racine2=racine->pere;
   while(racine2->pere && (racine2!=racine)) {
     racine=racine->pere;
     racine2=racine2->pere;
+    if (racine2->numero>0) num_positif=racine2;
     if(racine2->pere) racine2=racine2->pere;
+    if (racine2->numero>0) num_positif=racine2;
   }
-  if ((!flag) && (racine2->numero==-1)) {
-     /* Il y a toujours au moins un fils d'un article dans la liste */
-     /* principale. En particulier le tout dernier fils */
-     /* (cf la façon dont relie_article est faite */
-     racine2=racine2->prem_fils;
-     while ((racine2->numero==-1) && (racine2->frere_suiv)) racine2=racine2->frere_suiv;
-  }
-  return racine2;
+  if ((!flag) && (racine2->numero==-1))
+     racine2=num_positif;
+  return racine2; /* On peut rendre NULL si pas de pere possible !!! */
 }
 
 /* Parse le champ Xref, et marque les copies comme lues */

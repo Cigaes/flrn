@@ -53,18 +53,27 @@ struct etat_var {
 } etat_loop, etat_save;
 
 /* Ces variables correspondent simplement aux arguments des fonctions  */
+/* Ici pour un numéro ou un article */
+union element {
+  int num;
+  Article_List *article; 
+};
 typedef struct Num_lists
 {
    struct Num_lists *next;
-   int flags; /* 0 : rien   1 : num1       2 : num1-num2 
-                 4 : _num1  8 : num1>     16 : big_thread(*) */
-   int num1, num2;
+   int flags; /* 0 : rien   1 : article       2 : num1
+                 4 : _article  8 : article>   16 : big_thread(*) 
+		 32 : num1-num2 */
+   union element elem1;
+   int num2;
 } Numeros_List;
-Numeros_List Arg_do_funcs={NULL, 0, 0, 0};
+
+Numeros_List Arg_do_funcs={NULL, 0, {0}, 0};
 
 typedef int (*Action)(Article_List *article, void * flag);
 int distribue_action(Numeros_List *num, Action action, Action special,
     void * flag);
+int thread_action(Article_List *article,int all, Action action, void *param);
 int gthread_action(Article_List *article,int all, Action action, void *param);
 
 
@@ -363,9 +372,9 @@ int loop(char *opt) {
            change=-prochain_non_lu(etat_loop.num_message==1,&Article_courant,1,0);
 	  else {
 	    if (etat_loop.num_futur_article !=-1) {
-	      Arg_do_funcs.num1=etat_loop.num_futur_article;
+	      Arg_do_funcs.elem1.num=etat_loop.num_futur_article;
 	      Arg_do_funcs.num2=0;
-	      Arg_do_funcs.flags=1;
+	      Arg_do_funcs.flags=2;
 	      if (Arg_do_funcs.next) Arg_do_funcs.next->flags=0;
 	      do_deplace(FLCMD_VIEW);
 	    }
@@ -561,34 +570,54 @@ static int Lit_cmd_explicite(char *str) {
 
 
 /* Decodage d'un numero pour le parsing */
-/* Returne -1 en cas d'echec */
-static int Decode_numero(char *str, int defaut) {
+/* Returne -1 (ou NULL) en cas d'echec */
+/* flag = 0 : numéro, flag = 1 : article, flag = 2 : article, mais peut changer */
+static union element Decode_numero(char *str, union element defaut, int *flag) {
    char *ptr=str;
-   int res, trouve_inf=0;
-   Article_List *parcours;
+   int trouve_inf=0, nombre=0;
+   union element res;
+   Article_List *parcours=NULL;
 
    if (*ptr==',') ptr++;
    if (*ptr=='\0') return defaut;
    if (*ptr=='<') { ptr++; trouve_inf=1; if (*ptr==',') ptr++; }
-   if (*ptr=='\0') res=defaut; else if (*ptr=='.') { res=0; ptr++; } else
-     res=strtol(ptr, &ptr, 10);
+   if (*ptr=='\0') { 
+       res=defaut; 
+       /* Dans le cas de trouve_inf, on prend parcours=Article_courant */
+       if (*flag) parcours=res.article; else 
+           parcours=Article_courant;
+   } else 
+       if (*ptr=='.') { if (*flag) res.article=Article_courant; else
+                                  { res.num=0;  parcours=Article_courant; }
+		        ptr++; } 
+   else {
+     nombre=strtol(ptr, &ptr, 10);
+     if (nombre) Recherche_article (nombre, &parcours, 0); else
+         parcours=Article_courant;
+     if (*flag==0) res.num=nombre; else 
+         res.article=parcours;
+   }
    if (*ptr==',') ptr++;
    if ((!trouve_inf) && (*ptr=='<')) { ptr++; trouve_inf=1; 
      				       if (*ptr==',') ptr++; }
-   if (*ptr!='\0') return -1; /* On doit etre au bout */
+   if (*ptr!='\0') {
+      if (*flag==0) res.num=-1; else res.article=NULL;
+      return res; /* On doit etre au bout */
+   }
    if (trouve_inf) {
-      if ((res==0) && (Article_courant) && (Article_courant->numero>-2)) {
-	res=Article_courant->numero;
-	if (res==-1) res=Article_courant->prem_fils->numero;
+      if (parcours==NULL) {
+         if (*flag==0) res.num=-1; else res.article=NULL;
+	 return res;
       }
-      if ((res>0) && (Article_deb)) {
-	 parcours=Article_deb;
-	 while (parcours && (parcours->numero<res)) parcours=parcours->next;
-	 if (parcours && (parcours->numero==res)) {
-	    parcours=root_of_thread(parcours,0);
-	    res=parcours->numero;
+      if (*flag) 
+         res.article=root_of_thread(parcours,1); else {
+	   parcours=root_of_thread(parcours,0);
+	   if (parcours) res.num=parcours->numero; else res.num=-1;
 	 }
-      }
+  } else if ((*flag==2) && (nombre)) {
+     /* On a juste trouve un nombre, on le garde */
+     *flag=0;
+     res.num=nombre;
   }
   return res;
 }
@@ -601,8 +630,9 @@ static int Decode_numero(char *str, int defaut) {
  * 1 le premier article du groupe */
 static void Parse_nums_article(char *str, char **sortie, int flags) {
    char *ptr=str, *ptr2, *ptrsign;
-   int reussi=1;
+   int reussi=1, flag;
    char save_char='\0';
+   union element defaut;
    Numeros_List *courant=&Arg_do_funcs;
    /* on conserve le debut de la liste. Pour les commandes explicites */
    while (courant->flags != 0) courant = courant->next;
@@ -621,14 +651,19 @@ static void Parse_nums_article(char *str, char **sortie, int flags) {
        ptrsign=strchr(ptr,'-');
        if (ptrsign!=NULL) 
        { 
+         flag=0;
          *ptrsign='\0';
-         courant->flags=2;
-         courant->num1=Decode_numero(ptr,1);
-         if (courant->num1==-1) reussi=0;
+         courant->flags=32;
+	 defaut.num=1;
+         courant->elem1=Decode_numero(ptr,defaut,&flag);
+         if (courant->elem1.num==-1) reussi=0;
          *ptrsign='-';
-         courant->num2=Decode_numero(ptrsign+1,(Newsgroup_courant ? Newsgroup_courant->max : 1));
+	 defaut.num=(Newsgroup_courant ? Newsgroup_courant->max : 1);
+         defaut=Decode_numero(ptrsign+1,defaut,&flag);
+	 courant->num2=defaut.num;
          if (courant->num2==-1) reussi=0;
        } else { /* ce n'est pas '-' */
+         flag=1;
          ptrsign=strchr(ptr,'_');
          if (ptrsign!=NULL) { save_char='_'; courant->flags=4; *ptrsign=','; }
            else {
@@ -639,18 +674,23 @@ static void Parse_nums_article(char *str, char **sortie, int flags) {
 	       ptrsign=strchr(ptr,'*');
 	       if (ptrsign!=NULL)  
 	         { save_char='*'; courant->flags=16; *ptrsign=','; }
-	       else courant->flags=1;
+	       else { courant->flags=1; flag=2; }
 	     }
 	   }
-         courant->num1=Decode_numero(ptr, 0);
-         if (courant->num1==-1) reussi=0;
+	 defaut.article=Article_courant;
+         courant->elem1=Decode_numero(ptr, defaut,&flag);
+         if (flag) { if (courant->elem1.article==NULL) reussi=0; }  else 
+	 {
+	    courant->flags=2;
+	    if (courant->elem1.num==-1) reussi=0; 
+	 }
          if (ptrsign!=NULL) *ptrsign=save_char;
        }
      }
-     if (Article_courant && (courant->num1==0)) 
-        courant->num1=Article_courant->numero;
-     if (Article_deb && (courant->num1==1)) 
-        courant->num1=Article_deb->numero;
+     if ((flag==0) && (Article_courant && (courant->elem1.num==0))) 
+        courant->elem1.num=Article_courant->numero;
+     if ((flag==0) && (Article_deb && (courant->elem1.num==1))) 
+        courant->elem1.num=Article_deb->numero;
      if (Article_courant && (courant->num2==0)) 
         courant->num2=Article_courant->numero;
      if (Article_deb && (courant->num2==1)) 
@@ -1024,11 +1064,16 @@ int do_deplace(int res) {
       }
    } else {
    /* on cheche Arg_do_funcs.num1 */
-     ret=Recherche_article(Arg_do_funcs.num1, &parcours, 
-	 (res==FLCMD_PREC ? -1 : (res==FLCMD_SUIV ? 1 : 0)));
-     if (ret==-2) {
-        etat_loop.hors_struct=1;
-        etat_loop.etat=1; etat_loop.num_message=3; return 0;
+     if (Arg_do_funcs.flags & 34) {
+        ret=Recherche_article(Arg_do_funcs.elem1.num, &parcours, 
+	   (res==FLCMD_PREC ? -1 : (res==FLCMD_SUIV ? 1 : 0)));
+        if (ret==-2) {
+          etat_loop.hors_struct=1;
+          etat_loop.etat=1; etat_loop.num_message=3; return 0;
+        }
+     } else {
+        parcours=Arg_do_funcs.elem1.article;
+	ret=0;
      }
    }
    
@@ -1323,8 +1368,8 @@ int do_goto (int res) {
        ret=change_group(&(etat_loop.Newsgroup_nouveau), (res==FLCMD_GGTO),
                            Arg_str);
    }
-   if ((ret==0) && (Arg_do_funcs.flags!=0))
-   	etat_loop.num_futur_article= Arg_do_funcs.num1;
+   if ((ret==0) && (Arg_do_funcs.flags & 34))
+   	etat_loop.num_futur_article= Arg_do_funcs.elem1.num;
    if (ret>=0) return 1; else 
      if (ret==-1)  etat_loop.etat=3; else
    { etat_loop.etat=2; etat_loop.num_message=-8; 
@@ -1437,44 +1482,16 @@ int do_prem_grp (int res) {
 
 /* des hack crades :-( */
 int grand_distribue(Article_List *article, void * beurk) {
-  Numeros_List blah;
-  Article_List *parcours;
   Action_with_args *le_machin = (Action_with_args *) beurk;
-  blah.next=NULL; blah.flags=8;
-  if (article->numero!=-1) {
-    blah.num1=article->numero; 
-    return distribue_action(&blah,le_machin->action,NULL,le_machin->flag);
-  } else if (article->pere) {
-    blah.num1=article->pere->numero; 
-    return distribue_action(&blah,le_machin->action,NULL,le_machin->flag);
-  } else {
-    parcours=article->prem_fils;
-    while (parcours->frere_prev) parcours=parcours->frere_prev;
-    while (parcours) {
-      blah.num1=parcours->numero;
-      distribue_action(&blah,le_machin->action,NULL,le_machin->flag);
-      parcours=parcours->frere_suiv;
-    }
-  }
-  return 0;
+  return thread_action(article,0,le_machin->action,le_machin->flag);
 }
 int thread_distribue(Article_List *article, void * beurk) {
-  return grand_distribue(root_of_thread(article,1),beurk);
+  Action_with_args *le_machin = (Action_with_args *) beurk;
+  return thread_action(article,1,le_machin->action,le_machin->flag);
 }
 int gthread_distribue(Article_List *article, void * beurk) {
-  Numeros_List blah;
   Action_with_args *le_machin = (Action_with_args *) beurk;
-  blah.next=NULL; blah.flags=16;
-  if (article->numero!=-1) {
-    blah.num1=article->numero; 
-    return distribue_action(&blah,le_machin->action,NULL,le_machin->flag);
-  } else if (article->pere) {
-    blah.num1=article->pere->numero; 
-    return distribue_action(&blah,le_machin->action,NULL,le_machin->flag);
-  } else {
-    blah.num1=article->prem_fils->numero; 
-    return distribue_action(&blah,le_machin->action,NULL,le_machin->flag);
-  }
+  return gthread_action(article,0,le_machin->action,le_machin->flag);
 }
 
 static int omet_article(Article_List *article, void * toto)
@@ -1543,7 +1560,7 @@ int do_zap_group(int res) {
   int flag=FLAG_READ;
   Thread_List *parcours=Thread_deb;
 
-  blah.next=NULL; blah.flags=2; blah.num1=1;
+  blah.next=NULL; blah.flags=32; blah.elem1.num=1;
   blah.num2=Newsgroup_courant->max;
   distribue_action(&blah,tag_article,NULL,&flag);
   flag=~FLAG_IMPORTANT;
@@ -1622,7 +1639,7 @@ static Article_List * raw_Do_summary (int deb, int fin, int thread,
   while (parcours && !(parcours->flag & FLAG_SUMMARY))
     parcours=parcours->next;
   if (parcours && (thread || !Options.ordered_summary)) {
-    parcours=root_of_thread(parcours,0);
+    parcours=root_of_thread(parcours,1);
     if (!(parcours->flag & FLAG_SUMMARY))
        parcours=next_in_thread(parcours,FLAG_SUMMARY,&level,deb,fin,
 	   FLAG_SUMMARY,1);
@@ -1648,7 +1665,7 @@ static Article_List * raw_Do_summary (int deb, int fin, int thread,
 	parcours2=parcours2->next;
       parcours=parcours2; level=1;
       if (parcours && (thread || !Options.ordered_summary)) {
-        parcours=root_of_thread(parcours,0);
+        parcours=root_of_thread(parcours,1);
         if (!(parcours->flag & FLAG_SUMMARY))
           parcours=next_in_thread(parcours,FLAG_SUMMARY,&level,deb,fin,
 	     FLAG_SUMMARY,1);
@@ -1762,12 +1779,12 @@ static int default_thread(Article_List *article, void *flag)
   Numeros_List blah;
   blah.next=NULL;
   blah.flags=8;
-  blah.num1=article->numero;
+  blah.elem1.article=article;
   distribue_action(&blah,(Action) check_and_tag_article,NULL,flag);
   return 0;
 }
 static int default_gthread(Article_List *article, void *flag)
-{ return default_thread(root_of_thread(article,0), flag);
+{ return default_thread(root_of_thread(article,1), flag);
 }
 static int default_summary(Article_List *article, void *flag)
 {
@@ -2081,8 +2098,12 @@ int do_post(int res) {
 
   if ((res==FLCMD_ANSW) || (res==FLCMD_MAIL) || (res==FLCMD_SUPERSEDES)) {
      origine=Article_courant;
-     if (Arg_do_funcs.flags!=0)
-       ret=Recherche_article(Arg_do_funcs.num1,&origine,0);
+     if (Arg_do_funcs.flags & 34)
+       ret=Recherche_article(Arg_do_funcs.elem1.num,&origine,0);
+     else if (Arg_do_funcs.flags) {
+       origine=Arg_do_funcs.elem1.article;
+       ret=(origine ? 0 : -2);
+     }
      else ret=(origine ? 0 : -2);
      if (ret<0) {
        etat_loop.etat=1; etat_loop.num_message=3; return 0;
@@ -2207,8 +2228,9 @@ int do_swap_grp(int res) {
   Newsgroup_List *mygroup;
 
   article_considere=Article_courant;
-  if (Arg_do_funcs.flags!=0) 
-    Recherche_article(Arg_do_funcs.num1, &article_considere, 0);
+  if (Arg_do_funcs.flags & 34) 
+    Recherche_article(Arg_do_funcs.elem1.num, &article_considere, 0); else
+  if (Arg_do_funcs.flags) article_considere=Arg_do_funcs.elem1.article;
   if (article_considere==NULL) {
      etat_loop.etat=1; etat_loop.num_message=3; return 0;
   }
@@ -2524,7 +2546,7 @@ static int raw_prochain_non_lu(int force_reste, Article_List **debut, int just_e
    }
    if (myarticle && ((myarticle->flag & flag_mask)==flag_res)) {
      if (Options.threaded_space) {
-       myarticle=root_of_thread(myarticle,0);
+       myarticle=root_of_thread(myarticle,1);
        if ((myarticle->flag & flag_mask)!=flag_res)
          myarticle=next_in_thread(myarticle,flag_mask,NULL,0,0,flag_res,0);
         /* En théorie, on est SUR de trouver quelque chose */
@@ -2722,12 +2744,23 @@ int distribue_action(Numeros_List *num, Action action, Action special,
   }
   while (num) {
     if (num->flags==0) {return 0;}
-    res=Recherche_article(num->num1,&parcours,1);
+    if (num->flags & 34) 
+       res=Recherche_article(num->elem1.num,&parcours,1);
+    else {
+       parcours=num->elem1.article;
+       res=(parcours ? 0 : -2);
+    }
     res2=0;
     switch (num->flags) {
-      case 1: if (res==0) res2=action(parcours,param);
+      case 1: case 2 : if (res==0) res2=action(parcours,param);
 	      break;
-      case 2: if ((res==0) || (res==-1)) {
+      case 4: if (res==0) res2=parents_action(parcours,0,action,param);
+		break;
+      case 8: if (res==0) res2=thread_action(parcours,0,action,param);
+		break;
+      case 16: if (res==0) res2=gthread_action(parcours,0,action,param);
+		break;
+      case 32: if ((res==0) || (res==-1)) {
 		while(parcours) {
 		  if (parcours->numero > num->num2) break;
 		  res2=action(parcours,param);
@@ -2736,12 +2769,6 @@ int distribue_action(Numeros_List *num, Action action, Action special,
 		}
 	      } 
 	      break;
-      case 4: if (res==0) res2=parents_action(parcours,0,action,param);
-		break;
-      case 8: if (res==0) res2=thread_action(parcours,0,action,param);
-		break;
-      case 16: if (res==0) res2=gthread_action(parcours,0,action,param);
-		break;
       default: return -1;
     }
     if (res2<result) result=res2;
