@@ -56,6 +56,7 @@ ROOTDIR=`pwd`
 CPPFLAGS="-I. $CPPFLAGS"
 
 
+flrn_cv_slang=no
 AC_ARG_WITH(slang, [  --with-slang[=DIR]         use S-Lang in dir DIR],
         AC_MSG_CHECKING(for S-Lang)
         if test $withval = yes; then
@@ -89,6 +90,16 @@ AC_ARG_WITH(slang, [  --with-slang[=DIR]         use S-Lang in dir DIR],
         AC_MSG_RESULT($flrn_cv_slang)
 )
 LIBS="$LIBS -lslang -lm"
+
+dnl --- un petit test en plus pour linux
+if test X$flrn_cv_slang = Xno; then
+	if test -d /usr/include/slang; then
+		CPPFLAGS="$CPPFLAGS -I/usr/include/slang"
+	elif test -d /usr/local/include/slang; then
+		CPPFLAGS="$CPPFLAGS -I/usr/local/include/slang"
+	fi
+fi
+
 dnl --- try to link a sample program to check if we're ok
 	        
 AC_MSG_CHECKING(if I can compile a test SLang program)
