@@ -14,6 +14,8 @@ extern void sig_winch(int );
 extern int Aff_article_courant(int);
 extern void Aff_newsgroup_name(int /* erase_scr */);
 extern void Aff_newsgroup_courant(void);
+extern void aff_try_reconnect(void);
+extern void aff_end_reconnect(void);
 extern void Aff_not_read_newsgroup_courant(void);
 extern char * Prepare_summary_line(Article_List * /*article*/,
     char * /*prev_subject*/, int /*level*/, char * /*buf*/, int /*buflen*/, int);

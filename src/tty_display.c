@@ -207,6 +207,15 @@ int Aff_error_fin(const char *str, int s_beep, int short_e) {
    return 0;
 }
 
+void aff_try_reconnect() {
+   Aff_error_fin("Timeout ? J'essaie de me reconnecter...",1,0);
+   error_fin_displayed=0;
+}
+
+void aff_end_reconnect() {
+   Aff_error_fin("Reconnexion au serveur effectuée...",0,1);
+}
+
 /* Affichage de la ligne résumé d'un article */
 /* NE FAIT PAS LE REFRESH, heureusement ! */
 static void raw_Aff_summary_line(Article_List *article, int row,

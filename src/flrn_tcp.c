@@ -23,6 +23,7 @@
 #include "group.h"   
 #include "flrn_xover.h"
 #include "flrn_tcp.h"
+#include "tty_display.h"
 
 int Date_offset;
 
@@ -656,6 +657,7 @@ int reconnect_after_timeout(int refait_commande) {
    int code, ret;
    char *chaine_to_sauve, *ptr;
 
+   aff_try_reconnect();
    close(tcp_fd);
    ptr=strchr(line_write,'\n');
    if (ptr) *(++ptr)='\0';
@@ -676,6 +678,7 @@ int reconnect_after_timeout(int refait_commande) {
    }
    if (debug) fprintf(stderr, "Reconnexion réussie ...\n");
    free(chaine_to_sauve);
+   aff_end_reconnect();
    return 0;
 }
 
