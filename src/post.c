@@ -1722,6 +1722,23 @@ int cancel_message (Article_List *origine, int confirm) {
    return 1+confirm;
 }
 
+static Header_List *Create_mime_headers(Header_List **prev)
+{
+    Header_List *mv, *cte, *ct;
+
+    mv = safe_calloc(1, sizeof(Header_List));
+    cte = safe_calloc(1, sizeof(Header_List));
+    ct = safe_calloc(1, sizeof(Header_List));
+    mv->next = cte;
+    cte->next = ct;
+    mv->header_head=safe_flstrdup(fl_static("MIME-Version:"));
+    mv->header_body=safe_flstrdup(fl_static("1.0"));
+    cte->header_head=safe_flstrdup(fl_static("Content-Transfer-Encoding:"));
+    cte->header_body=safe_flstrdup(fl_static("8bit"));
+    if(prev != NULL)
+	*prev = mv;
+    return(ct);
+}
 
 void Create_header_encoding () {
     struct post_body *lecture_courant;
@@ -1730,14 +1747,13 @@ void Create_header_encoding () {
     /* 1ere chose, existe-t-il une entête ContentType */
     liste=Header_post->autres;
     if (liste==NULL) {
-	liste=Header_post->autres=safe_calloc(1,sizeof(Header_List));
+	liste = Create_mime_headers(&Header_post->autres);
     } else
     while (liste) {
 	if (fl_strncasecmp(liste->header_head,
 		    fl_static("content-type:"),13)==0) break;
 	if (liste->next==NULL) {
-	    liste->next=safe_calloc(1,sizeof(Header_List));
-	    liste=liste->next;
+	    liste = Create_mime_headers(&liste->next);
 	    break;
 	}
 	liste=liste->next;
