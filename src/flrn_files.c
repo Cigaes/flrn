@@ -193,7 +193,7 @@ void Copy_article (FILE *dest, Article_List *article, int copie_head, char *avan
       flag|=2*(tcp_line_read[res-2]=='\r');
       if ((flag & 1) && avant) {
 	if ((*avant=='>') && Options.smart_quote && (*buf=='>'))
-	  fprintf(dest,"%c",'>'); else
+	  putc('>',dest); else
 	  fprintf(dest, "%s", avant);
       }
       if (flag & 2) tcp_line_read[res-2]='\0';

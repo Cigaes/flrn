@@ -6,6 +6,9 @@
 #ifndef FLRN_ART_GROUP_H
 #define FLRN_ART_GROUP_H
 
+#ifdef TIME_WITH_SYS_TIME
+#include <time.h>
+#endif
 #include <sys/times.h>
 
 typedef struct Flrn_known_headers {

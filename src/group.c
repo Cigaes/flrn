@@ -291,7 +291,7 @@ void free_groups(int save_flnewsrc) {
 	      fprintf(flnews_file,"%s! ",Newsgroup_courant->name);
 	      name_written=1;
 	    }
-	    if (!first) fprintf(flnews_file,"%c",',');
+	    if (!first) putc(',',flnews_file);
 	    first=0;
 	    fprintf(flnews_file,"%d",msg_lus->min[lu_index]);
 	    if (msg_lus->min[lu_index]<msg_lus->max[lu_index])
