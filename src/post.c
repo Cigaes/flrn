@@ -1188,13 +1188,12 @@ void Get_user_address(char *str) {
    strcpy(str, flrn_user->pw_name);
    strcat(str, "@");
 #ifdef DEFAULT_HOST
-   strncpy(hostname, DEFAULT_HOST, 255-
 #ifdef DOMAIN
-      strlen(DOMAIN)
+   strncpy(hostname, DEFAULT_HOST, 255- strlen(DOMAIN));
 #else
-      (Options.default_domain==NULL ? 12 : strlen(Options.default_domain))
+   strncpy(hostname, DEFAULT_HOST, 255-
+      (Options.default_domain==NULL ? 12 : strlen(Options.default_domain)));
 #endif
-   );
 #else
 #ifdef HAVE_GETHOSTNAME
    gethostname(hostname,255-
