@@ -584,12 +584,12 @@ int cherche_newnews() {
 /* Renvoie le nombre estimé d'articles non lus dans group */
 /* returne -1 en cas d'erreur de lecture.              */
 /*         -2 si le newsgroup n'existe pas (glup !)    */
-int NoArt_non_lus(Newsgroup_List *group) {
+int NoArt_non_lus(Newsgroup_List *group, int force_check) {
    int i, res, code, non_lus, max, min;
    Range_List *actuel;
    char *buf;
 
-   if (group->not_read!=-1) return group->not_read;
+   if ((group->not_read!=-1) && (!force_check)) return group->not_read;
    /* On envoie un list active au serveur */
    buf=safe_malloc((MAX_NEWSGROUP_LEN+10)*sizeof(char));
    strcpy(buf, "active ");

@@ -151,7 +151,7 @@ int aff_opt_c(char *newsgroup) {
          Newsgroup_courant=Newsgroup_courant->next;
 	 continue;
       }
-      res=NoArt_non_lus(Newsgroup_courant);
+      res=NoArt_non_lus(Newsgroup_courant,0);
       if (res==-2) 
 	 fprintf(stdout, "Mauvais newsgroup : %s\n", Newsgroup_courant->name);
       if (res>0) {
@@ -2476,7 +2476,7 @@ int prochain_newsgroup(Newsgroup_List **newgroup ) {
    while (mygroup) {
       res=0;
       if (!(mygroup->flags & GROUP_UNSUBSCRIBED )) {
-          res=NoArt_non_lus(mygroup);
+          res=NoArt_non_lus(mygroup,1);
 	  if (res>0) break;
       }
       last_mygroup=mygroup; 
@@ -2494,7 +2494,7 @@ int prochain_newsgroup(Newsgroup_List **newgroup ) {
    while (mygroup!=Newsgroup_courant) {
       res=0;
       if (!(mygroup->flags & GROUP_UNSUBSCRIBED)) {
-          res=NoArt_non_lus(mygroup);
+          res=NoArt_non_lus(mygroup,1);
           if (res>0) break;
       }
       last_mygroup=mygroup; 

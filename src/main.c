@@ -16,7 +16,6 @@
 #include "flrn.h"
 #include "flrn_tags.h"
 #include "options.h"
-#include "art_group.h"
 #include "group.h"
 #include "version.h"
 #include "flrn_command.h"

@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "flrn.h"
+#include "art_group.h"
 #include "group.h"
 #include "flrn_tcp.h"
 #include "flrn_format.h"

@@ -153,7 +153,6 @@ extern Article_List *root_of_thread(Article_List * /*article*/, int /*flag*/);
 extern void article_read(Article_List * /*article*/);
 extern int Recherche_article (int /*num*/, Article_List ** /*retour*/,
     int /*flags*/);
-extern int ajoute_exte_article(Article_List * /*fils*/);
 extern Article_Header *new_header(void);
 extern int Est_proprietaire(Article_List * /*article*/);
 extern void apply_kill_file(void );

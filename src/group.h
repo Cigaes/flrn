@@ -69,7 +69,7 @@ extern Newsgroup_List *cherche_newsgroup_re (char * /*name*/,
 extern Liste_Menu *menu_newsgroup_re (char * /*name*/, regex_t /*reg*/,
     int /*avec_reg*/);
 extern void zap_newsgroup(Newsgroup_List * /*group*/);
-extern int NoArt_non_lus(Newsgroup_List * /*group*/);
+extern int NoArt_non_lus(Newsgroup_List * /*group*/, int);
 extern int cherche_newnews(void);
 extern void add_read_article(Newsgroup_List * /*group*/, int /*numero*/);
 extern char *truncate_group (char *, int);

@@ -491,7 +491,7 @@ int Liste_groupe (int flags, char *mat, Newsgroup_List **retour) {
         if ((flag=calcul_flag(parcours)))
           *une_ligne=flag;
 	else
-	  if (NoArt_non_lus(parcours)>0) *une_ligne='+';
+	  if (NoArt_non_lus(parcours,0)>0) *une_ligne='+';
       }
       Cursor_gotorc(row,2);
       if (passage<2) {
