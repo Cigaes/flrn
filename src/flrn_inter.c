@@ -229,7 +229,7 @@ int aff_opt_c(char *newsgroup) {
    }
    if (newsgroup==NULL) {
       if (nb_non_lus==0) 
-        fputs(Messages[MES_NOTHING_NEW],stdout); 
+        fputs(_(Messages[MES_NOTHING_NEW]),stdout); 
       else
        fprintf(stdout, "  Il y a au total %d article%s non lu%s.",nb_non_lus,(nb_non_lus==1 ? "" : "s"), (nb_non_lus==1 ? "" : "s"));
       putc('\n',stdout);
@@ -243,67 +243,67 @@ static void Aff_message(int type, int num)
 {
   switch (num) {
  /* Message d'information */
-    case 1 : Aff_error(Messages[MES_NOTHING_NEW]); break;
-    case 2 : Aff_error(Messages[MES_EOG]); break;
-    case 3 : Aff_error(Messages[MES_NO_MES]); break;
+    case 1 : Aff_error(_(Messages[MES_NOTHING_NEW])); break;
+    case 2 : Aff_error(_(Messages[MES_EOG])); break;
+    case 3 : Aff_error(_(Messages[MES_NO_MES])); break;
     case 4 : 
-    case 5 : Aff_error_fin(Messages[MES_OMIT],0,-1); break;
-    case 6 : Aff_error(Messages[MES_POST_SEND]); break;
-    case 7 : Aff_error(Messages[MES_POST_CANCELED]); break;
-    case 8 : Aff_error_fin(Messages[MES_ART_SAVED],0,-1); break;
-    case 9 : Aff_error_fin(Messages[MES_ABON],0,-1); break;
-    case 10 : Aff_error(Messages[MES_NOSEL_THREAD]); break;
-    case 11 : Aff_error_fin(Messages[MES_ZAP],0,-1);
+    case 5 : Aff_error_fin(_(Messages[MES_OMIT]),0,-1); break;
+    case 6 : Aff_error(_(Messages[MES_POST_SEND])); break;
+    case 7 : Aff_error(_(Messages[MES_POST_CANCELED])); break;
+    case 8 : Aff_error_fin(_(Messages[MES_ART_SAVED]),0,-1); break;
+    case 9 : Aff_error_fin(_(Messages[MES_ABON]),0,-1); break;
+    case 10 : Aff_error(_(Messages[MES_NOSEL_THREAD])); break;
+    case 11 : Aff_error_fin(_(Messages[MES_ZAP]),0,-1);
 	      break;
-    case 12 : Aff_error(Messages[MES_NOTHER_GROUP]); break;
-    case 13 : Aff_error_fin(Messages[MES_NO_XREF],1,-1); break;
-    case 14 : Aff_error_fin(Messages[MES_CONTINUE],0,0); break;
-    case 15 : Aff_error_fin(Messages[MES_TAG_SET],0,-1); break;
-    case 16 : Aff_error_fin(Messages[MES_CANCEL_CANCELED],0,-1); break;
-    case 17 : Aff_error(Messages[MES_CANCEL_DONE]); break;
+    case 12 : Aff_error(_(Messages[MES_NOTHER_GROUP])); break;
+    case 13 : Aff_error_fin(_(Messages[MES_NO_XREF]),1,-1); break;
+    case 14 : Aff_error_fin(_(Messages[MES_CONTINUE]),0,0); break;
+    case 15 : Aff_error_fin(_(Messages[MES_TAG_SET]),0,-1); break;
+    case 16 : Aff_error_fin(_(Messages[MES_CANCEL_CANCELED]),0,-1); break;
+    case 17 : Aff_error(_(Messages[MES_CANCEL_DONE])); break;
     case 18 : 
-    case 19 : Aff_error_fin(Messages[MES_OP_DONE],0,-1); break;
-    case 20 : Aff_error(Messages[MES_MAIL_SENT]); break;
-    case 21 : Aff_error(Messages[MES_MAIL_POST]); break;
-    case 22 : Aff_error_fin(Messages[MES_TEMP_READ],0,-1); break;
-    case 23 : Aff_error_fin(Messages[MES_FLAG_APPLIED],0,-1); break;
-    case 24 : Aff_error_fin(Messages[MES_MODE_THREAD],0,-1); break;
-    case 25 : Aff_error_fin(Messages[MES_MODE_NORMAL],0,-1); break;
+    case 19 : Aff_error_fin(_(Messages[MES_OP_DONE]),0,-1); break;
+    case 20 : Aff_error(_(Messages[MES_MAIL_SENT])); break;
+    case 21 : Aff_error(_(Messages[MES_MAIL_POST])); break;
+    case 22 : Aff_error_fin(_(Messages[MES_TEMP_READ]),0,-1); break;
+    case 23 : Aff_error_fin(_(Messages[MES_FLAG_APPLIED]),0,-1); break;
+    case 24 : Aff_error_fin(_(Messages[MES_MODE_THREAD]),0,-1); break;
+    case 25 : Aff_error_fin(_(Messages[MES_MODE_NORMAL]),0,-1); break;
  /* Message d'erreur */
-    case -1 : Aff_error(Messages[MES_NO_GROUP]);  /* non utilisé */
+    case -1 : Aff_error(_(Messages[MES_NO_GROUP]));  /* non utilisé */
 	       break;
-    case -2 : Aff_error(Messages[MES_GROUP_EMPTY]);
+    case -2 : Aff_error(_(Messages[MES_GROUP_EMPTY]));
 	       break;
-    case -3 : Aff_error(Messages[MES_NOT_IN_GROUP]);
+    case -3 : Aff_error(_(Messages[MES_NOT_IN_GROUP]));
 	       break;
 /*	        case -4 : Aff_error("Post refusé.");
 	       break;   */
-    case -5 : Aff_error_fin(Messages[MES_NEGATIVE_NUMBER],1,-1); /* non utilisé */
+    case -5 : Aff_error_fin(_(Messages[MES_NEGATIVE_NUMBER]),1,-1); /* non utilisé */
 	       break;
-    case -6 : Aff_error(Messages[MES_SAVE_FAILED]);
+    case -6 : Aff_error(_(Messages[MES_SAVE_FAILED]));
 	       break;
-    case -7 : Aff_error(Messages[MES_UNK_GROUP]);
+    case -7 : Aff_error(_(Messages[MES_UNK_GROUP]));
 	       break;
-    case -8 : Aff_error(Messages[MES_NO_FOUND_GROUP]);
+    case -8 : Aff_error(_(Messages[MES_NO_FOUND_GROUP]));
 	       break;
-    case -9 : Aff_error_fin(Messages[MES_UNKNOWN_CMD],1,-1);
+    case -9 : Aff_error_fin(_(Messages[MES_UNKNOWN_CMD]),1,-1);
 	       break;
-    case -10 : Aff_error_fin(Messages[MES_REGEXP_BUG],1,-1); break;
-    case -11 : Aff_error(Messages[MES_PIPE_BUG]); break;
-    case -12 : Aff_error(Messages[MES_MES_NOTIN_GROUP]);
+    case -10 : Aff_error_fin(_(Messages[MES_REGEXP_BUG]),1,-1); break;
+    case -11 : Aff_error(_(Messages[MES_PIPE_BUG])); break;
+    case -12 : Aff_error(_(Messages[MES_MES_NOTIN_GROUP]));
 	       break;
-    case -13 : Aff_error_fin(Messages[MES_BAD_TAG],1,-1); break;
-    case -14 : Aff_error_fin(Messages[MES_CANCEL_REFUSED],1,-1); break;
-    case -15 : Aff_error_fin(Messages[MES_EMPTY_HISTORY],1,-1); break;
+    case -13 : Aff_error_fin(_(Messages[MES_BAD_TAG]),1,-1); break;
+    case -14 : Aff_error_fin(_(Messages[MES_CANCEL_REFUSED]),1,-1); break;
+    case -15 : Aff_error_fin(_(Messages[MES_EMPTY_HISTORY]),1,-1); break;
 /*    case -16 : Aff_error("Vous ne pouvez pas poster ici."); break; */
 /* ce message est idiot : rien n'empêche de faire un followup, sauf à */
 /* la rigueur si le serveur refuse tout...			      */
-    case -17 : Aff_error_fin(Messages[MES_NO_HEADER],1,-1); break;
-    case -18 : Aff_error_fin(Messages[MES_REFUSED_HEADER],1,-1); break;
-    case -19 : Aff_error_fin(Messages[MES_INVAL_FLAG],1,-1); break;
-    case -20 : Aff_error_fin(Messages[MES_MACRO_FORBID],1,-1); break;
-    case -21 : Aff_error_fin(Messages[MES_NO_MSGID],1,-1); break;
-    default : Aff_error(Messages[MES_FATAL]);
+    case -17 : Aff_error_fin(_(Messages[MES_NO_HEADER]),1,-1); break;
+    case -18 : Aff_error_fin(_(Messages[MES_REFUSED_HEADER]),1,-1); break;
+    case -19 : Aff_error_fin(_(Messages[MES_INVAL_FLAG]),1,-1); break;
+    case -20 : Aff_error_fin(_(Messages[MES_MACRO_FORBID]),1,-1); break;
+    case -21 : Aff_error_fin(_(Messages[MES_NO_MSGID]),1,-1); break;
+    default : Aff_error(_(Messages[MES_FATAL]));
 	       break;
   }
 
@@ -1641,7 +1641,7 @@ static int summary_menu (Liste_Menu *debut_menu, Liste_Menu **courant,
       case FLCMD_GOMT : cst_char="unread";
       			break;
       case FLCMD_PUT_FLAG : break;
-      default : strncpy(name,Messages[MES_UNKNOWN_CMD],len);
+      default : strncpy(name,_(Messages[MES_UNKNOWN_CMD]),len);
       		name[len-1]='\0';
 		*affiche=1;
 		return 0;
@@ -1788,7 +1788,7 @@ static int thread_menu (Liste_Menu *debut_menu, Liste_Menu **courant, char *name
       case FLCMD_GOMT : cst_char="unread";
 			break;
       case FLCMD_PUT_FLAG : break;
-      default : strncpy(name,Messages[MES_UNKNOWN_CMD],len);
+      default : strncpy(name,_(Messages[MES_UNKNOWN_CMD]),len);
       		name[len-1]='\0';
 		*affiche=1;
 		return 0;

@@ -75,13 +75,13 @@ int get_command_menu(int with_command, int *number)  {
      res2=une_commande.cmd[CONTEXT_MENU]=nxt_menu_cmd;
    }
    if ((res==1) && (une_commande.cmd[CONTEXT_COMMAND] & FLCMD_MACRO)) {
-      Aff_error_fin(Messages[MES_MACRO_FORBID],1,1);
+      Aff_error_fin(_(Messages[MES_MACRO_FORBID]),1,1);
       if (une_commande.before) free(une_commande.before);
       if (une_commande.after) free(une_commande.after);
       return -1;
    }
    if (res==-1)
-      Aff_error_fin(Messages[MES_UNKNOWN_CMD],1,1);
+      Aff_error_fin(_(Messages[MES_UNKNOWN_CMD]),1,1);
    if (res<0) {
       if (une_commande.before) free(une_commande.before);
       if (une_commande.after) free(une_commande.after);
@@ -132,7 +132,7 @@ int get_command_menu(int with_command, int *number)  {
       if (res<0) {
          if (une_commande.before) free(une_commande.before);
          if (une_commande.after) free(une_commande.after);
-         Aff_error_fin(Messages[MES_UNKNOWN_CMD],1,1);
+         Aff_error_fin(_(Messages[MES_UNKNOWN_CMD]),1,1);
          return -1;
       }
       /* res=0 */
@@ -369,7 +369,7 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
                                   int ret;
                                   ret=New_regexp_scroll (pattern_search);
                                   if (ret) 
-                                         Aff_error_fin(Messages[MES_REGEXP_BUG],1,1);
+                                         Aff_error_fin(_(Messages[MES_REGEXP_BUG]),1,1);
                                   Do_Scroll_Window(0,1);
                                      /* pour forcer l'affichage des lignes */
 				  if (ret) break;
@@ -380,12 +380,12 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
                                       ret=Do_Search(deb,&le_scroll,
 				   		act_row-1-Options.skip_line);
                                       if (ret==-1) {
-                                         Aff_error_fin(Messages[MES_NO_SEARCH]
+                                         Aff_error_fin(_(Messages[MES_NO_SEARCH])
 						 ,1,1);
 					 break;
 				      }
                                       else if (ret==-2) {
-                                          Aff_error_fin(Messages[MES_NO_FOUND]
+                                          Aff_error_fin(_(Messages[MES_NO_FOUND])
 					       ,1,1);
 					  break;
 				      } else if (le_scroll<0) {

@@ -20,51 +20,51 @@
 static UNUSED char rcsid[]="$Id$";
 
 const char *Messages[NB_MESSAGES] = {
-    "Commande inconnue ou hors contexte !",     /* 0 */
-    "Rien de nouveau.",                         /* 1 */
-    "Fin du newsgroup.",                        /* 2 */
-    "Message(s) inexistant(s).",                /* 3 */
-    "Les messages sont marqués non lus.",       /* 4 */
-    "Post envoyé.",                             /* 5 */
-    "Post annulé.",                             /* 6 */
-    "Article(s) sauvé(s).",                     /* 7 */
-    "Abonnement effectué.",                     /* 8 */
-    "Désabonnement effectué.",			/* 9 */
-    "Pas de thread sélectionné.",               /* 10 */
-    "Groupe zappé.",                            /* 11 */
-    "Pas d'autres newsgroups.",                 /* 12 */
-    "Xref non trouvé !",                        /* 13 */
-    "(continue)",                               /* 14 */
-    "Tag mis",                                  /* 15 */
-    "Cancel annulé",                            /* 16 */
-    "Article(s) cancelé(s)",                    /* 17 */
-    "Opération effectuée",                      /* 18 */
-    "Mail envoyé",                              /* 19 */
-    "Mail envoyé, article posté",               /* 20 */
-    "Article(s) lu(s) temporairement.",         /* 21 */
-    "Vous n'êtes abonné à aucun groupe",        /* 22 */
-    "Newsgroup vide",                           /* 23 */
-    "Vous n'êtes dans aucun groupe",            /* 24 */
-    "Pas d'article négatif",                    /* 25 */
-    "Echec de la sauvegarde.",                  /* 26 */
-    "Newsgroup inconnu, supprimé !",            /* 27 */
-    "Pas de newsgroup trouvé",                  /* 28 */
-    "Regexp invalide !",                        /* 29 */
-    "Echec du pipe...",                         /* 30 */
-    "L'article n'est plus dans le groupe",      /* 31 */
-    "Tag invalide",                             /* 32 */
-    "Cancel refusé",                            /* 33 */
-    "Historique vide.",                         /* 34 */
-    "Pas de header !",                          /* 35 */
-    "Header refusé !",                          /* 36 */
-    "Erreur fatale !!!",                        /* 37 */
-    "Pas de recherche.",			/* 38 */ /* pager, menus */
-    "Rien trouvé.",				/* 39 */ /* pager, menus */
-    "Flag invalide.",				/* 40 */
-    "Flag appliqué.",				/* 41 */ /* pager, menus */
-    "Macro interdite.",				/* 42 */
-    "Message-ID inconnu.",			/* 43 */
-    "Passage en mode thread.",			/* 44 */
-    "Passage en mode normal."			/* 45 */
+    N_("Commande inconnue ou hors contexte !"),     /* 0 */
+    N_("Rien de nouveau."),                         /* 1 */
+    N_("Fin du newsgroup."),                        /* 2 */
+    N_("Message(s) inexistant(s)."),                /* 3 */
+    N_("Les messages sont marqués non lus."),       /* 4 */
+    N_("Post envoyé."),                             /* 5 */
+    N_("Post annulé."),                             /* 6 */
+    N_("Article(s) sauvé(s)."),                     /* 7 */
+    N_("Abonnement effectué."),                     /* 8 */
+    N_("Désabonnement effectué."),			/* 9 */
+    N_("Pas de thread sélectionné."),               /* 10 */
+    N_("Groupe zappé."),                            /* 11 */
+    N_("Pas d'autres newsgroups."),                 /* 12 */
+    N_("Xref non trouvé !"),                        /* 13 */
+    N_("(continue)"),                               /* 14 */
+    N_("Tag mis"),                                  /* 15 */
+    N_("Cancel annulé"),                            /* 16 */
+    N_("Article(s) cancelé(s)"),                    /* 17 */
+    N_("Opération effectuée"),                      /* 18 */
+    N_("Mail envoyé"),                              /* 19 */
+    N_("Mail envoyé, article posté"),               /* 20 */
+    N_("Article(s) lu(s) temporairement."),         /* 21 */
+    N_("Vous n'êtes abonné à aucun groupe"),        /* 22 */
+    N_("Newsgroup vide"),                           /* 23 */
+    N_("Vous n'êtes dans aucun groupe"),            /* 24 */
+    N_("Pas d'article négatif"),                    /* 25 */
+    N_("Echec de la sauvegarde."),                  /* 26 */
+    N_("Newsgroup inconnu, supprimé !"),            /* 27 */
+    N_("Pas de newsgroup trouvé"),                  /* 28 */
+    N_("Regexp invalide !"),                        /* 29 */
+    N_("Echec du pipe..."),                         /* 30 */
+    N_("L'article n'est plus dans le groupe"),      /* 31 */
+    N_("Tag invalide"),                             /* 32 */
+    N_("Cancel refusé"),                            /* 33 */
+    N_("Historique vide."),                         /* 34 */
+    N_("Pas de header !"),                          /* 35 */
+    N_("Header refusé !"),                          /* 36 */
+    N_("Erreur fatale !!!"),                        /* 37 */
+    N_("Pas de recherche."),			/* 38 */ /* pager, menus */
+    N_("Rien trouvé."),				/* 39 */ /* pager, menus */
+    N_("Flag invalide."),			/* 40 */
+    N_("Flag appliqué."),			/* 41 */ /* pager, menus */
+    N_("Macro interdite."),			/* 42 */
+    N_("Message-ID inconnu."),			/* 43 */
+    N_("Passage en mode thread."),		/* 44 */
+    N_("Passage en mode normal.")		/* 45 */
 };
 

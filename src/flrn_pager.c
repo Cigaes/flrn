@@ -78,7 +78,7 @@ int get_command_pager(int une_touche, int endroit, int cmd, int *number) {
    /* on autorise les macros pour le CONTEXT_COMMAND, ca ne pose aucun 
       probleme, contrairement a ce qui se passe dans le menu */
    if (res==-1) 
-      Aff_error_fin(Messages[MES_UNKNOWN_CMD],1,1);
+      Aff_error_fin(_(Messages[MES_UNKNOWN_CMD]),1,1);
    if (res<0) {
      if (une_commande.before) free(une_commande.before);
      if (une_commande.after) free(une_commande.after);
@@ -188,7 +188,7 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
       				 ret=New_regexp_scroll (pattern_search);
 				 deb=1;
 				 if (ret) {
-				      Aff_error_fin(Messages[MES_REGEXP_BUG],1,1);
+				      Aff_error_fin(_(Messages[MES_REGEXP_BUG]),1,1);
 				      break;
 				  }
 				}  /* On continue */
@@ -199,9 +199,9 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
 				      number--;
 				   }
 				   if (ret==-1) 
-				       Aff_error_fin(Messages[MES_NO_SEARCH],1,1);
+				       Aff_error_fin(_(Messages[MES_NO_SEARCH]),1,1);
 				   else if (ret==-2)
-				       Aff_error_fin(Messages[MES_NO_FOUND],1,1);
+				       Aff_error_fin(_(Messages[MES_NO_FOUND]),1,1);
 				   else if (deb || le_scroll) 
 				       le_scroll=Do_Scroll_Window(le_scroll,deb);
 				   break;

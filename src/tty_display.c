@@ -401,26 +401,26 @@ int chg_grp_in(Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int len
    switch (cmd) {
       case FLCMD_ABON : action=abon_group_in; 
       			*affiche=1;
-			strncpy(name,Messages[MES_ABON],len);
+			strncpy(name,_(Messages[MES_ABON]),len);
       			break;
       case FLCMD_UNSU : action=unsu_group_in; 
       			*affiche=1;
-			strncpy(name,Messages[MES_DESABON],len);
+			strncpy(name,_(Messages[MES_DESABON]),len);
       			break;
       case FLCMD_GOTO : case FLCMD_GGTO : action=goto_group_in; break;
       case FLCMD_REMOVE_KILL : action=remov_group_in;
       			       *affiche=1;
-			       strncpy(name,Messages[MES_OP_DONE],len);
+			       strncpy(name,_(Messages[MES_OP_DONE]),len);
 			       break;
       case FLCMD_ADD_KILL : action=add_group_in;
       			    *affiche=1;
-			    strncpy(name,Messages[MES_OP_DONE],len);
+			    strncpy(name,_(Messages[MES_OP_DONE]),len);
 			    break;
       case FLCMD_ZAP : action=zap_group_in;
       		       *affiche=1;
-		       strncpy(name,Messages[MES_ZAP],len);
+		       strncpy(name,_(Messages[MES_ZAP]),len);
 		       break;
-      default : strncpy(name,Messages[MES_UNKNOWN_CMD],len);
+      default : strncpy(name,_(Messages[MES_UNKNOWN_CMD]),len);
       		name[len-1]='\0';
 		*affiche=1;
 		return 0;
@@ -475,16 +475,16 @@ int chg_grp_not_in(Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int
    if (la_commande->cmd[CONTEXT_MENU]!=FLCMD_UNDEF) return -1;
    cmd=la_commande->cmd[CONTEXT_COMMAND];
    if (cmd==FLCMD_ABON) {
-      strncpy(name,Messages[MES_ABON],len);
+      strncpy(name,_(Messages[MES_ABON]),len);
       *affiche=1;
    } else if (cmd==FLCMD_UNSU) {
       action=unsu_group_not_in;
-      strncpy(name,Messages[MES_DESABON],len);
+      strncpy(name,_(Messages[MES_DESABON]),len);
       *affiche=1;
    } else if ((cmd==FLCMD_GOTO) || (cmd==FLCMD_GGTO)) 
       action=goto_group_in;
    else {
-      strncpy(name,Messages[MES_UNKNOWN_CMD],len);
+      strncpy(name,_(Messages[MES_UNKNOWN_CMD]),len);
       name[len-1]='\0';
       *affiche=1;
       return 0;
