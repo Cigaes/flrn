@@ -53,6 +53,11 @@ if test "`(uname) 2>/dev/null`" = SunOS &&
     solaris=yes;
 fi
 
+if test "`(uname) 2>/dev/null`" = FreeBSD &&
+    uname -r | grep '^5' >/dev/null; then
+    freebsd=yes;
+fi
+
 AC_MSG_CHECKING(for 8 bit nroff)
 if test X`echo 'é'| nroff | head -1` = 'Xé'; then
   MANISO=.iso
@@ -100,6 +105,9 @@ AC_ARG_WITH(slang, [  --with-slang[=DIR]       use S-Lang in dir DIR],
         AC_MSG_RESULT($flrn_cv_slang)
 )
 LIBS="$LIBS -lslang -lm"
+if test X$freebsd = Xyes; then
+   LIBS="$LIBS -lncurses"
+fi
 
 dnl --- un petit test en plus pour linux
 if test X$flrn_cv_slang = Xno; then
