@@ -1,5 +1,8 @@
 ChangeLog Flrn
 
+. avertissement lors de posts dans un forum modéré
+. gestion du SIGHUP
+
 ---------------------------
 Version 0.5.0pre0
 ---------------------------

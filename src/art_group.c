@@ -745,12 +745,12 @@ void detruit_liste(int flag) {
    if (!msg_lus) {
      msg_lus = safe_calloc(1,sizeof(Range_List));
      Newsgroup_courant->read = msg_lus;
-   }
+   } 
    /* attention au premier article... */
    if(Article_deb && (Article_deb->numero==1) &&
        (!(Article_deb->flag & FLAG_READ) || 
          (Article_deb->flag & FLAG_WILL_BE_OMITTED)))
-     min=0;
+     min=0; 
     
    tmparticle=Article_courant=Article_deb;
    for (;Article_courant; Article_courant=tmparticle) {

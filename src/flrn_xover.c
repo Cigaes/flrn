@@ -16,6 +16,7 @@
 #include "flrn.h"
 #include "art_group.h"
 #include "group.h"
+#include "options.h"
 #include "flrn_tcp.h"
 #include "flrn_format.h"
 #include "flrn_xover.h"
@@ -431,7 +432,12 @@ int cree_liste(int art_num, int *part) {
    strtol(buf, &buf, 10);
    min=strtol(buf, &buf, 10);
    max=strtol(buf, &buf, 10);
-   Newsgroup_courant->min=min;
+   if (Options.max_group_size>=0) {
+      Newsgroup_courant->min=
+             (art_num>max ? max : art_num)-Options.max_group_size;
+      if (Newsgroup_courant->min<min) Newsgroup_courant->min=min; else
+                                      min=Newsgroup_courant->min;
+   } else Newsgroup_courant->min=min;
 
    if (Newsgroup_courant->Article_deb) {
      Article_deb=Newsgroup_courant->Article_deb;
@@ -506,7 +512,7 @@ int cree_liste_end() {
   if (!overview_usable) return 0;
   /* ca ne veut pas dire gd chose comme test, mais bon... */
   if (Article_deb->numero <2) return 0;
-  res=cree_liste_xover(1,Article_deb->numero-1,&Article_deb,&newmin,&newmax);
+  res=cree_liste_xover(Newsgroup_courant->min,Article_deb->numero-1,&Article_deb,&newmin,&newmax);
   if (res>0) {
     cree_liens();
     apply_kill_file(newmin,newmax);

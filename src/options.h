@@ -162,6 +162,7 @@ struct Option_struct {
 #ifndef DOMAIN
   char *default_domain;
 #endif
+  int max_group_size;
 };
 
 extern struct Option_struct Options;
@@ -250,6 +251,7 @@ static struct {
   MAKE_OPT(include_in_edit,"Lorsque auto_edit est défini, inclut automatiquement le message d'origine."),
   MAKE_STRING_OPT(index_string,"Caractères précédents un quote."),
   MAKE_STRING_OPT(kill_file_name,"Nom du fichier de kill utilisé."),
+  MAKE_INTEGER_OPT(max_group_size,"Taille maximum de gestion d'un groupe."),
   MAKE_OPT(ordered_summary,"Ordonne les résumés suivant leur numéro."),
   MAKE_OPT(parse_from,"Affiche le \"Auteur:\" et le \"Réponse à:\" plus forum-like."),
   MAKE_INTEGER_OPT_L(port,"Port d'accès au serveur (119 en général)."),
