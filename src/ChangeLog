@@ -1,5 +1,7 @@
 ChangeLog Flrn
 
+. préfixe name pour les options, option flnews_ext
+. modif du cancel pour qu'il ne teste que le login et le domaine
 . usage du Message-ID quand le numéro ne marche pas. Les problème de synchro
   du serveur devraient finir par se regler...
 . modif de ajoute_message pour rajouter un "should_retry"

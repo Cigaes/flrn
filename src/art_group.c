@@ -987,11 +987,11 @@ int Est_proprietaire(Article_List *article) {
   buf=strstr(la_chaine,flrn_user->pw_name);
   if (buf==NULL) return 0;
   if ((buf!=la_chaine) && (isalnum(*(buf-1)))) return 0;
-  if (isalnum(*(buf+strlen(ladresse)))) return 0;
+  if (isalnum(*(buf+strlen(flrn_user->pw_name)))) return 0;
   buf=strstr(la_chaine,DOMAIN);
   if (buf==NULL) return 0;
   if ((*(buf-1))!='.') return 0;
-  if (isalnum(*(buf+strlen(ladresse)))) return 0;
+  if (isalnum(*(buf+strlen(DOMAIN)))) return 0;
 #endif
   return 1; /* C'est bon */
 }
