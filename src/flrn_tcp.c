@@ -519,11 +519,12 @@ static int raw_write_command (int num_com, int num_param, char **param) {
 /* list minimal...						   */
 int write_command (int num_com, int num_param, char **param) {
    int ret,code;
+   char **param2=param;
    
    filter_cmd_list[0]='\0';
    renvoie_direct=0;
    if ((server_command_status[num_com] & CMD_FLAG_MAXIMAL)==CMD_FLAG_MAXIMAL) 
-     return raw_write_command(num_com, num_param, param);
+     return raw_write_command(num_com, num_param, param2);
 
    switch (num_com) {
       /* NEWGROUPS : on se fiche totalement que ça marche ou non */
@@ -531,54 +532,53 @@ int write_command (int num_com, int num_param, char **param) {
       /* GROUP     : on ne peut pas le rejeter, on le suppose donc maximal */
       case CMD_NEWGROUPS : case CMD_NEWNEWS : case CMD_GROUP :
           server_command_status[num_com]=CMD_FLAG_MAXIMAL;
-	  return raw_write_command(num_com, num_param, param);
+	  return raw_write_command(num_com, num_param, param2);
       /* STAT : pfiouuuu... pour l'instant, je laisse tomber */
       /* HEAD : idem */
       /* BODY : idem */
       /* ARTICLE : idem */
       case CMD_STAT : case CMD_HEAD : case CMD_BODY : case CMD_ARTICLE :
           server_command_status[num_com]=CMD_FLAG_MAXIMAL;
-	  return raw_write_command(num_com, num_param, param);
+	  return raw_write_command(num_com, num_param, param2);
       /* XHDR : bon, ça louze, mais si on est là, XOVER n'existe pas */
       /* XOVER : on n'installe pas le test tout de suite... */
       case CMD_XHDR : case CMD_XOVER :
           server_command_status[num_com]=CMD_FLAG_MAXIMAL;
-	  return raw_write_command(num_com, num_param, param);
+	  return raw_write_command(num_com, num_param, param2);
       /* POST : théoriquement déjà testé */
       case CMD_POST :
-          return raw_write_command(num_com, num_param, param);
+          return raw_write_command(num_com, num_param, param2);
       /* LIST : ah ! enfin le truc important !!! */
       /* On suppose le nombre de paramètre à 0 ou 1 (2 => active) */
       case CMD_LIST :
           if ((num_param==0) && 
 	     ((server_command_status[num_com] & CMD_FLAG_KNOWN)
 	        ==CMD_FLAG_KNOWN)) 
-          return raw_write_command(num_com, num_param, param);
+          return raw_write_command(num_com, num_param, param2);
 	  /* On se fout de overview.fmt */
-	  if ((num_param>0) && (strcmp(*param,"overview.fmt")==0))
-	      return raw_write_command(num_com, num_param, param);
+	  if ((num_param>0) && (strcmp(*param2,"overview.fmt")==0))
+	      return raw_write_command(num_com, num_param, param2);
 	  if ((server_command_status[num_com] & CMD_FLAG_KNOWN)
 	            ==CMD_FLAG_KNOWN) {
 	     if (num_param==2) {
-	        if (strncmp(*param,"active",6)==0) param++;
+	        if (strncmp(*param2,"active",6)==0) param2++;
 		else return -2; /* erreur */
              }
-	     if (strncmp(*param,"active ",7)==0) *param=*param+7;
-	     strncpy(filter_cmd_list,*param,MAX_NEWSGROUP_LEN-1);
+	     if (strncmp(*param2,"active ",7)==0) *param2=*param2+7;
+	     strncpy(filter_cmd_list,*param2,MAX_NEWSGROUP_LEN-1);
              return raw_write_command(num_com,0,NULL);
 	  }
 	  if ((server_command_status[num_com] & CMD_FLAG_TESTED)
 	            ==CMD_FLAG_TESTED) return -1; 
 		    	/* impossible pour l'instant */
-          ret=raw_write_command(num_com, num_param, param);
+          ret=raw_write_command(num_com, num_param, param2);
 	  if (ret<0) return -1;
 	  code=return_code();
 	  if (code>400) {
 	     server_command_status[CMD_LIST]=CMD_FLAG_KNOWN;
 	     return write_command(CMD_LIST, num_param, param);
 	  }
-	  if (num_param==0) server_command_status[CMD_LIST]=CMD_FLAG_KNOWN;
-	     else server_command_status[CMD_LIST]=CMD_FLAG_MAXIMAL;
+	  if (num_param>0) server_command_status[CMD_LIST]=CMD_FLAG_MAXIMAL;
 	  renvoie_direct=1;
 	  return ret;
        /* CMD_DATE : un détail dans un sens */
