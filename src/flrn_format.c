@@ -362,11 +362,13 @@ int str_estime_len (char *la_chaine, int tmp_col, int tai_chaine) {
     if (*buf=='\t') {
       tmp_col=(tmp_col/Screen_Tab_Width+1)*Screen_Tab_Width; 
       buf++;
+      i++;
     } else {
 #ifdef WITH_CHARACTER_SETS
       l=Length_one_character(buf);
 #endif
       buf+=l;
+      i+=l;
       tmp_col++;
     }
   }
