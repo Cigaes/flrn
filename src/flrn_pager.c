@@ -23,6 +23,22 @@
 int *Flcmd_pager_rev = &Flcmd_rev[CONTEXT_PAGER][0];
 /* pour les macros */
 
+#define SIZE_PATTERN_SEARCH 80
+static char pattern_search[SIZE_PATTERN_SEARCH]="";
+
+
+/* get_new_pattern */
+/* retour 0 : bon -1 ou -2 : annulé */
+int get_new_pattern() {
+   int col, ret;
+   char line[SIZE_PATTERN_SEARCH];
+   col=Aff_fin("Search : ");
+   line[0]='\0';
+   ret=getline(line,SIZE_PATTERN_SEARCH-1,Screen_Rows-1,col);
+   if ((ret==0) && (*line)) strcpy(pattern_search,line);
+   return ret;
+}
+
 /* 		Page_message						*/
 /* La fonction principale du pager */
 /* Init_Scroll_window a déjà été appelé. Si key!=0, c'est la première touche */
@@ -70,6 +86,20 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
                  break;
       case FLCMD_PAGER_UP : le_scroll=Do_Scroll_Window(-1,deb);
                  break;
+      case FLCMD_PAGER_SEARCH : {
+      				  int ret;
+				  Do_Scroll_Window(0,deb);
+                                  ret=get_new_pattern();
+				  if (ret==0) {
+      				    ret=New_regexp_scroll (pattern_search);
+				    if (ret) 
+				         Aff_error_fin("Regexp invalide !",1);
+				  }
+				  deb=1;
+      			          le_scroll=Do_Scroll_Window(0,deb);
+				     /* pour forcer l'affichage de la ligne */
+				}
+				break;
       case FLCMD_PAGER_QUIT : le_scroll=Do_Scroll_Window(0,deb);
 					/* pour l'update */
 			      /* on fait un cas particulier grotesque :-( */

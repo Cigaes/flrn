@@ -15,7 +15,7 @@
 #include "flrn_color.h"
 
 /* I want to use this code and the old one together */
-#define START_COLOR_NUM 10
+#define START_COLOR_NUM 11
 #if START_COLOR_NUM <= NROF_FIELDS
 #error START_COLOR_NUM too small
 #endif
@@ -358,7 +358,8 @@ int raw_Aff_color_line(int to_print, unsigned short *format_line,
 	/* on garde un autre match si il est entièrement avant */
 	if ((pmatch[current->pat_num].rm_so != -1) &&
 	    (((color==-1) && (pmatch[current->pat_num].rm_so <= prefix_len))
-	    || (pmatch[current->pat_num].rm_eo <= prefix_len))) {
+	    || (pmatch[current->pat_num].rm_eo <= prefix_len)
+	    || (match_len==0))) {
 	  if(color != -1) {
 	    high[high_num*3]=color;
 	    high[high_num*3+1]=prefix_len;
@@ -369,6 +370,11 @@ int raw_Aff_color_line(int to_print, unsigned short *format_line,
 	  prefix_len= pmatch[current->pat_num].rm_so;
 	  match_len = ((pmatch[current->pat_num].rm_eo <len)?
 	      pmatch[current->pat_num].rm_eo:len) - prefix_len;
+	  /* Dans le cas où prefix_len et match_len sont nuls, on "triche" */
+	  /* en mettant prefix_len à 1 */
+	  /* On fait ensuite une modif sur certains tests pour arranger les */
+	  /* choses */
+	  if ((match_len==0) && (prefix_len==0)) prefix_len=1;
 	}
       }
     }
@@ -520,3 +526,38 @@ void dump_colors_in_flrnrc (FILE *file) {
 }
 
 
+unsigned short *Search_in_line (unsigned short *line, char *out, long len, 
+				regex_t *sreg) {
+   char *ptr=out;
+   int ret=0, bol=1, i;
+   regmatch_t pmatch[1];
+   unsigned short *result=NULL, *ptr2=line, *ptr3=NULL;
+   
+   while ((ret==0) && (len!=0)) {
+     ret=regexec(sreg, ptr, 1, pmatch, bol ? 0 : REG_NOTBOL);
+     if (ret==0) {
+        if (bol) {
+	   result=safe_malloc(sizeof(unsigned int)*len);
+	   ptr3=result;
+	}
+	for (i=0;i<pmatch[0].rm_so;i++) {
+	   *(ptr3++)=*(ptr2++);
+	   ptr++;
+	}
+	for (;i<pmatch[0].rm_eo;i++) {
+	   *(ptr3++)=((unsigned char)(*ptr++))+(FIELD_SEARCH<<8);
+	   ptr2++;
+	}
+	if (pmatch[0].rm_eo==0) { /* un match vide :-( */
+	   *(ptr3++)=*(ptr2++); ptr++; len--;
+	}
+	len-=pmatch[0].rm_eo;
+     }
+     bol=0;
+   }
+   if (result) { /* On recopie la fin de la chaine*/
+      for (;*ptr;ptr++) 
+         *(ptr3++)=*(ptr2++);
+   }
+   return result;
+}

@@ -1,3 +1,6 @@
+#ifndef FLRN_COMPATIBILITY_H
+#define FLRN_COMPATIBILITY_H
+
 /* On definit ce qui pourait nous manquer */
 
 #include <stdio.h>
@@ -89,4 +92,6 @@ extern void *__safe_strappend(char *,const char *, char *, char *, int);
 #ifdef DEBUG_MALLOC
 #define free(a) (fprintf(stderr,"%8lx free, %s :%s, %d\n",(long) a,\
     __PRETTY_FUNCTION__,__FILE__,__LINE__), free(a))
+#endif
+
 #endif

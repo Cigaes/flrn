@@ -60,6 +60,8 @@ extern File_Line_Type *Ajoute_form_Ligne(char * /*buf*/, int /*field*/);
 extern File_Line_Type *Ajoute_color_Line(unsigned short *, int, int);
 extern File_Line_Type *Rajoute_color_Line(unsigned short *, int, int, int);
 extern char *Read_Line(char * /*out*/, File_Line_Type * /*line*/);
+extern int New_regexp_scroll (char *);
+extern File_Line_Type *Search_in_Lines (File_Line_Type *);
 extern void Retire_line(File_Line_Type * /*line*/);
 extern int Do_Scroll_Window(int /*n*/, int /*ob_update*/);
 extern int Number_current_line_scroll(void);

@@ -5,7 +5,7 @@
 
 #ifdef IN_FLRN_PAGER_C
 
-#define NB_FLCMD_PAGER 5
+#define NB_FLCMD_PAGER 6
 #define FLCMD_PAGER_UNDEF -1
 
 char *Flcmds_pager[NB_FLCMD_PAGER] = 
@@ -19,6 +19,8 @@ char *Flcmds_pager[NB_FLCMD_PAGER] =
 #define FLCMD_PAGER_PGDOWN 3
      "quit",
 #define FLCMD_PAGER_QUIT 4
+     "search",
+#define FLCMD_PAGER_SEARCH 5
 };
 
 #define CMD_DEF_PAGER (sizeof(Cmd_Def_Pager)/sizeof(Cmd_Def_Pager[0]))
@@ -33,6 +35,7 @@ struct cmd_predef_pager {
   { 6 , FLCMD_PAGER_PGDOWN },
   { ' ', FLCMD_PAGER_PGDOWN },
   { 'q', FLCMD_PAGER_QUIT },
+  { '/', FLCMD_PAGER_SEARCH },
 };
 
 #endif /* IN_FLRN_PAGER_C */

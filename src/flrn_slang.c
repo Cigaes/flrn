@@ -11,6 +11,7 @@
 #include <ctype.h>
 #include "flrn.h"
 #include "flrn_slang.h"
+#include "flrn_color.h"
 
 int KeyBoard_Quit;
 int Screen_Rows, Screen_Cols;
@@ -93,6 +94,9 @@ typedef struct
 }
 Scroll_Window_Type;
 
+/* Pattern du scroll */
+static regex_t *regexp_scroll=NULL;
+
 static Scroll_Window_Type Line_Window; /* On va essayer de limiter */
                                 /* l'usage de cette variable a ce fichier */
 
@@ -103,10 +107,16 @@ void free_text_scroll() {
      while (line != NULL) {
         next=line->next;
         if (line->data != NULL) free (line->data);
+        if (line->data_save != NULL) free (line->data_save);
         free(line);
         line=next;
      }
      Text_scroll=NULL;
+     if (regexp_scroll) {
+        regfree(regexp_scroll);
+        free(regexp_scroll);
+     }
+     regexp_scroll=NULL;
 }
 
 /* fonction de compatibilité... */
@@ -243,6 +253,67 @@ char * Read_Line(char * out, File_Line_Type *line) {
   for(i=0;i<line->data_len;i++)
     out[i]=line->data[i];
   return out;
+}
+
+/* Applique la regexp_scroll sur une ligne */
+static void Apply_regexp_scroll (File_Line_Type *line) {
+    unsigned short *retour=NULL;
+    char *out;
+   
+    if (line->data_save) {
+       if (line->data) free(line->data);
+       line->data=line->data_save;
+       line->data_save=NULL;
+    }
+    if (line->data==NULL) return;
+    if (regexp_scroll) {
+       out=safe_malloc(line->data_len+1);
+       out[line->data_len]='\0';
+       Read_Line(out,line);
+       retour=Search_in_line (line->data,out,line->data_len,regexp_scroll);
+       free(out);
+    }
+    if (retour) {
+       line->data_save=line->data;
+       line->data=retour;
+    }
+}
+
+/* Recherche de quelque chose... mais quoi ? */
+/* retour : -1 si le pattern est faux , 0 s'il est bon */
+int New_regexp_scroll (char *pattern) {
+     File_Line_Type *line=Text_scroll;
+    
+     if (regexp_scroll) {
+        regfree(regexp_scroll);
+     } else regexp_scroll=safe_calloc(1,sizeof(regex_t));
+     if (regcomp(regexp_scroll,pattern,REG_EXTENDED)) {
+        free(regexp_scroll);
+	regexp_scroll=NULL;
+     }
+     while (line) {
+        Apply_regexp_scroll(line);
+	line=line->next;
+     }
+     return (regexp_scroll ? 0 : -1);
+}
+
+
+/* Recherche d'un truc matchant... */
+/* retourne NULL si rien */
+File_Line_Type *Search_in_Lines (File_Line_Type *start) {
+    File_Line_Type *line=start->next;
+    
+    while ((line) && (line->data_save==NULL)) {
+       line=line->next;
+    }
+    if (line) return line;
+    line=Text_scroll;
+    while ((line) && (line!=start) && (line->data_save==NULL)) {
+       line=line->next;
+    }
+    if ((line==NULL) || (line->data_save)) return line;
+    return NULL;
 }
 
 /* Libere la derniere ligne de line */

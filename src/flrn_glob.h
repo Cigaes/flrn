@@ -44,6 +44,7 @@ typedef struct _File_Line_Type
    struct _File_Line_Type *next;
    struct _File_Line_Type *prev;
    unsigned short *data;                       
+   unsigned short *data_save;
    unsigned long data_len;
 }
 File_Line_Type;

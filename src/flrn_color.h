@@ -41,5 +41,7 @@ extern int Aff_color_line(int /*to_print*/, unsigned short * /*format_line*/,
     int /*bol*/, int /*def_color*/);
 extern unsigned short *cree_chaine_mono (const char *, int, int);
 extern void dump_colors_in_flrnrc (FILE *file);
+extern unsigned short *Search_in_line (unsigned short * /* line */, char *out, 
+                             long /* len */, regex_t * /*sreg*/);
 
 #endif

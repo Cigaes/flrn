@@ -7,10 +7,10 @@
 #define FLRN_GROUP_H
 
 #include <sys/types.h>
-#include <regex.h>
 #include "flrn_config.h"
 #include "flrn_menus.h"
 #include "art_group.h"
+#include "compatibility.h" /* pour les regexps */
 
 #ifdef TM_IN_SYS_TIME
 #include <sys/time.h>
