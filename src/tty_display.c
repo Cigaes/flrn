@@ -322,208 +322,220 @@ int chg_grp_not_in(void *value, char **nom, int i, char *name, int len, int key)
    return 0;
 }
       
+/* Fonctions pour Liste_groupe */
+/* en fonction du passage, et de Options.use_menus */
+/* un ajoute_elem, et un fin_passage -> 4 fonctions */
+static char *chaine0="Newsgroups auquels vous êtes abonnés.";
+static char *chaine1="Newsgroups présents dans le .flnewsrc.";
+static char *chaine2="Autres newsgroups.";
+int ajoute_elem_not_menu (void *element, int passage) {
+   Newsgroup_List *groupe=NULL;
+   char *ligne=NULL;
+   static int row;
+   int key;
+   char flag;
+
+   if (element==NULL) {
+      row=1+Options.skip_line;
+      Cursor_gotorc(1,0);
+      Screen_erase_eos();
+      Cursor_gotorc(row++,0);
+      Screen_write_string(passage == 0 ? chaine0 : 
+                         (passage==1 ? chaine1 : chaine2));
+      return 0;
+   }
+   if (passage<2) groupe=(Newsgroup_List *)element; else
+   		  ligne=(char *)element;
+   if (row>Screen_Rows-2-Options.skip_line) {
+      Aff_fin("-suite-");
+      key=Attend_touche();
+      if (KeyBoard_Quit) return -1;
+      Cursor_gotorc(1,0);
+      Screen_erase_eos();
+      row=1+Options.skip_line;
+   }
+   Cursor_gotorc(row,(passage<2 ? 2 : 4));
+   if (passage<2) {
+     Cursor_gotorc(row,2);
+     flag = ((groupe==Newsgroup_courant) ? '>' : calcul_flag(groupe));
+     if (flag=='\0')  flag=((NoArt_non_lus(groupe,0)>0) ? '+' : ' ');
+     Screen_write_char(flag);
+     Screen_write_char(' ');
+     Screen_write_string(truncate_group(groupe->name,0));
+     if (groupe->description==NULL) get_group_description(groupe);
+     if (groupe->description)
+        Screen_write_string(groupe->description);
+   } else Screen_write_string(ligne);
+   row++;
+   return 0;
+}
+
+int fin_passage_not_menu (void **retour, int passage, int flags) {
+  int key;
+  Aff_fin("-suite-");
+  key=Attend_touche();
+  if (KeyBoard_Quit) return -1;
+  return 0;
+}
+
+static Liste_Menu *menu_liste=NULL, *courant_liste=NULL, *start_liste=NULL;
+int ajoute_elem_menu (void *element, int passage) {
+   Newsgroup_List *groupe=NULL;
+   static char une_ligne[80];
+   char *ligne=NULL;
+   char flag;
+
+   if (element==NULL) {
+      if (passage==0) menu_liste=start_liste=courant_liste=NULL;
+      /* Les autres réinitialisation sont traitées à un autre moment */
+      return 0;
+   }
+   if (passage<2) groupe=(Newsgroup_List *)element; else
+   		  ligne=(char *)element;
+   if (passage<2) {
+     flag = ((groupe==Newsgroup_courant) ? '>' : calcul_flag(groupe));
+     if (flag=='\0')  flag=((NoArt_non_lus(groupe,0)>0) ? '+' : ' ');
+   } else flag=' ';
+   *une_ligne=flag;
+   *(une_ligne+1)=' ';
+   strncpy(une_ligne+2,(passage<2 ? groupe->name : ligne),77);
+   une_ligne[79]='\0';
+   ligne=safe_strdup(une_ligne);
+   courant_liste=ajoute_menu_ordre(&menu_liste,ligne,(passage < 2 ? element : ligne+2),2);
+   if ((passage<2) && (groupe==Newsgroup_courant)) start_liste=courant_liste;
+   if (start_liste==NULL) start_liste=menu_liste;
+   return 0;
+}
+
+int fin_passage_menu (void **retour, int passage, int flags) {
+   
+   if ((passage==0) && (flags>0)) return 0;
+   *retour=Menu_simple(menu_liste, start_liste,
+   		(passage<2 ? Ligne_carac_du_groupe : NULL),
+		    (passage<2 ? chg_grp_in : chg_grp_not_in),
+	        (passage<2 ? chaine1 : chaine2));
+   if (passage==2) *retour=NULL;
+   Libere_menu_noms(menu_liste);
+   menu_liste=start_liste=courant_liste=NULL;
+   if (*retour) return 1;
+   return 0;
+}
 
 
 /* Affichage d'une liste de groupes */
 /* flags=1 -> on affiche tout le .flnewsrc */
 /* flags=2 -> on affiche tout */
 /* On essaie une manip a coup de regexp... */
-/* renvoie -1 en cas de pb avec les regexp */
+/* renvoie -1 en cas de pb avec les regexp, -2 pour une commande invalide  */
 /* renvoie 1 : on a choisi un groupe */
 /* TODO : remplacer l'affichage brut (sans menu) par un scrolling, et */
 /* tout mettre dans group.c */
 /* D'autre part, on supprime la recherche de la description quand on fait */
 /* un menu : ça fout trop la merde (sans menu, c'est plus facile... */
 int Liste_groupe (int flags, char *mat, Newsgroup_List **retour) {
-   int row=0;
-   int res, code, key;
-   char *buf[2], *ptr, *nom=NULL, une_ligne[80], flag;
-   int passage=-1;
+   regex_t reg; /* En cas d'usage des regexp */
    Newsgroup_List *parcours;
-   regex_t reg;
-   Liste_Menu *menu=NULL, *courant=NULL, *start=NULL;
-   
+   int passage=-1, ret, res;
+   int (*ajoute_elem)(void *, int);
+   int (*fin_passage)(void **, int, int);
+
+   *retour=NULL;
+   ajoute_elem=(Options.use_menus ? ajoute_elem_menu : ajoute_elem_not_menu);
+   fin_passage=(Options.use_menus ? fin_passage_menu : fin_passage_not_menu);
    if (Options.use_regexp) {
      if (regcomp(&reg,mat,REG_EXTENDED|REG_NOSUB))
-       return -1;
+        return -1;
    }
-
-   buf[0]=safe_malloc(8*sizeof(char));
    parcours=NULL;
    while (parcours || (passage<flags)) {
       if (parcours==NULL) {
-	 if (passage>=0) {
-	    if (!Options.use_menus) {
-              Aff_fin("-suite-");
-              key=Attend_touche();
-              if (KeyBoard_Quit) {
-	        free(buf[0]);
-	        if (Options.use_regexp) regfree(&reg);
-	        return 0;
-	      }
-	    } else if ((menu) && (passage!=0)) {
-	      *retour=(passage<2 ? Menu_simple(menu,start,
-				(passage<2 ? Ligne_carac_du_groupe : NULL),
-	     		            (passage<2 ? chg_grp_in :
-	     					 chg_grp_not_in),
-			  nom) : NULL);
-	      Libere_menu_noms(menu);
-	      if (*retour) {
-	         free(buf[0]);
-		 if (Options.use_regexp) regfree(&reg);
-		 return 0;
-	      }
-	      menu=start=courant=NULL;
+         if (passage>=0) { /* On achève un parcours */
+	    ret=fin_passage((void **)retour, passage, flags);
+	    if (ret) {
+	       if (Options.use_regexp) regfree(&reg);
+	       return (ret>0 ? ret : 0);
 	    }
 	 }
-	 if (!Options.use_menus) {
-           row=1+Options.skip_line;
-           Cursor_gotorc(1,0);
-           Screen_erase_eos();
-           Cursor_gotorc(row,0);
+	 ajoute_elem(NULL,++passage); /* On réinitialise */
+	 if (passage==2) {
+            char *buf[2],*buf2; /* Ordre envoyé */
+	    int tofree=0, code;
+            buf[0]="active";
+	    if (Options.use_regexp) {
+	      buf2=reg_string(mat,1);
+	      tofree=1;
+	    } else buf2=mat;
+	    if (!buf2) {buf2="*"; tofree=0;}
+	    buf[1]=safe_malloc(strlen(buf2)+4);
+	    if ((Options.use_regexp) || (mat==NULL))
+	       sprintf(buf[1],"%s",buf2);
+	    else sprintf(buf[1],"*%s*",buf2);
+	    if (debug) fprintf(stderr,"Liste active %s\n",buf[1]);
+	    res=write_command (CMD_LIST, 2, buf);
+	    if (res<1) code=-1;
+	        else code=return_code();
+	    free(buf[1]);
+	    if(tofree) free(buf2);
+	    if ((code<0) || (code>400)) {
+	       if (Options.use_regexp) regfree(&reg);
+	       return -2;
+	    }
 	 }
-	 passage++;
-	 switch (passage) {
-	   case 0 : nom="Newsgroups auquels vous êtes abonnés.";
-	   	    if (!Options.use_menus) Screen_write_string(nom);
-		    break;
-	   case 1 : nom="Newsgroups présents dans le .flnewsrc.";
-	   	    if (!Options.use_menus) Screen_write_string(nom);
-		    break;
-	   case 2 : nom="Autres newsgroups.";
-	   	    if (!Options.use_menus) Screen_write_string(nom);
-		    strcpy (*buf, "active");
-		    {
-		       char *buf2;
-		       int tofree=0;
-		       if (Options.use_regexp)
-		       {buf2=reg_string(mat,1); tofree=1; }
-		       else
-			 buf2=mat;
-		       if (!buf2) {buf2="*"; tofree=0;}
-		       buf[1]=safe_malloc(strlen(buf2)+4);
-		       if (Options.use_regexp)
-			 sprintf(buf[1],"%s",buf2);
-		       else
-		         sprintf(buf[1],"*%s*",buf2);
-		       if(tofree) free(buf2);
-		    }
-		    if (debug) fprintf(stderr,"Liste des groupes %s\n",
-			buf[1]);
-
-		    res=write_command (CMD_LIST, 2, buf);
-		    if (res<1) code=-1; 
-		    else code=return_code();
-                    if ((code<0) || (code>400)) {
-		      free(buf[0]); free(buf[1]);
-		      if (Options.use_regexp) regfree(&reg);
-		      return 0;
-		    }
-		    break;
-         }
-         parcours=Newsgroup_deb;
-         row++;
+	 parcours=Newsgroup_deb;
 	 continue;
       }
-
       if ((passage==0) && (parcours->flags & GROUP_UNSUBSCRIBED)) {
-	 parcours=parcours->next;
+         parcours=parcours->next;
 	 continue;
       }
       if ((passage==1) && !(parcours->flags & GROUP_UNSUBSCRIBED)) {
-	 parcours=parcours->next;
+         parcours=parcours->next;
 	 continue;
       }
       if ( (passage<2) &&(
-	  (Options.use_regexp && regexec(&reg,parcours->name,0,NULL,0)!=0) ||
-	  (!Options.use_regexp && !strstr(parcours->name, mat)))) {
-	 parcours=parcours->next;
-	 continue;
-      }
-      /* Peut-etre a mettre ailleurs */
-      if ((passage<2) && (parcours->description==NULL) 
-      		      && (!Options.use_menus)) {
-	get_group_description(parcours);
+         (Options.use_regexp && regexec(&reg,parcours->name,0,NULL,0)!=0) ||
+	 (!Options.use_regexp && !strstr(parcours->name, mat)))) {
+	parcours=parcours->next;
+	continue;
       }
       if (passage==2) {
-        res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1);
-        if (res<2) {
-	  free(buf[0]); free(buf[1]);
-	  if (Options.use_regexp) regfree(&reg);
-	  return 0;
-	}
-        if (tcp_line_read[0]=='.') { parcours=NULL; continue; }
-	ptr=strchr(tcp_line_read,' ');
-	if (ptr) *ptr='\0'; else tcp_line_read[res-2]='\0';
-	/* Test si ce newsgroup existe deja */
-	while (parcours) {
-	   if (strcmp(tcp_line_read, parcours->name)==0) {
-	      parcours=Newsgroup_deb;
-	      break;
-	   }
-	   parcours=parcours->next;
-	}
-	if (parcours!=NULL) continue;
-	parcours=Newsgroup_deb;
-	if (Options.use_regexp && regexec(&reg,tcp_line_read,0,NULL,0))
-	  continue;
-	if (!Options.use_regexp && !strstr(tcp_line_read,mat))
-	  continue;
-      }  /* On se sert directement de tcp_line_read */
-	 
-      if ((row>Screen_Rows-2-Options.skip_line) && (!Options.use_menus)) {
-         Aff_fin("-suite-");
-         key=Attend_touche();
-         if (KeyBoard_Quit) { 
-	   if (passage==2) discard_server();
-	   return 0;
+         char *ptr;
+         res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1);
+	 if (res<2) {
+	    if (Options.use_regexp) regfree(&reg);
+	    return -2;
 	 }
-         Cursor_gotorc(1,0);
-         Screen_erase_eos();
-         row=1+Options.skip_line;
-      } 
-       
-      strcpy(une_ligne,"  ");
-      if (passage<2) {
-        Cursor_gotorc(row,0);
-	if (parcours==Newsgroup_courant)
-	  *une_ligne='>';
-	else
-        if ((flag=calcul_flag(parcours)))
-          *une_ligne=flag;
-	else
-	  if (NoArt_non_lus(parcours,0)>0) *une_ligne='+';
+	 if (tcp_line_read[0]=='.') { parcours=NULL; continue; }
+	 ptr=strchr(tcp_line_read,' ');
+	 if (ptr) *ptr='\0'; else tcp_line_read[res-2]='\0';
+	 /* On teste si ce newsgroup existe déjà */
+	 parcours=Newsgroup_deb;
+	 while (parcours) {
+	    if (strcmp(tcp_line_read, parcours->name)==0) break;
+	    parcours=parcours->next;
+	 }
+	 if (parcours!=NULL) continue;
+	 parcours=Newsgroup_deb;
+	 if (Options.use_regexp && regexec(&reg,tcp_line_read,0,NULL,0))
+	   continue;
+	 if (!Options.use_regexp && !strstr(tcp_line_read,mat))
+	   continue;
       }
-      Cursor_gotorc(row,2);
-      if (passage<2) {
-        strncat(une_ligne,truncate_group(parcours->name,0),77);
-	une_ligne[79]='\0';
-        if (parcours->description) strncat(une_ligne,parcours->description,79-strlen(une_ligne));
-	une_ligne[79]='\0';
-      } else strncat(une_ligne,tcp_line_read,77);
-      if (Options.use_menus) {
-          ptr=safe_strdup(une_ligne);
-          courant=ajoute_menu(courant,ptr,(passage < 2 ? (void *)parcours : ptr+2));
-	  if ((passage<2) && (parcours==Newsgroup_courant)) start=courant;
-	  if (!menu) menu=courant;
-      } else Screen_write_string(une_ligne);
+      if (passage<2) 
+        ret=ajoute_elem((void *)parcours,passage);
+      else ret=ajoute_elem((void *)tcp_line_read,passage);
+      if (ret==-1) {
+        if (passage==2) discard_server();
+	if (Options.use_regexp) regfree(&reg);
+	return 0;
+      }
       if (passage<2) parcours=parcours->next;
-      row++;
    }
-   if ((menu) && (Options.use_menus)) {
-      *retour=(passage<2 ? Menu_simple(menu,start,(passage<2 ? 
-      						Ligne_carac_du_groupe : NULL),
-   		            (passage<2 ? chg_grp_in :
-    					 chg_grp_not_in),
-		  nom) : NULL);
-      Libere_menu_noms(menu);
-   }
-   free(buf[0]);
+   ret=fin_passage((void **)retour, passage, flags);
    if (Options.use_regexp) regfree(&reg);
-   if (passage==2) free(buf[1]);
-   return 0;
-}
-
+   return (ret>=0 ? ret : 0);
+} 
+  
 /* Affichage de l'arbre autour d'un message */
 #define SYMB_ART_READ 'o'
 #define SYMB_ART_UNK  '?'

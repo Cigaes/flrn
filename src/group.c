@@ -327,65 +327,84 @@ void new_groups(int opt_c) {
    }
 }
 
-/* Creation du .flnewsrc a partir de la liste des newsgroups */
-/* libere la memoire occupee par les groupes */
-/* Renvoie -1 si il y a eu un problème en écriture */
-void free_groups(int save_flnewsrc) {
+/* Sauvegarde du .flnewsrc */
+/* Il s'agit d'une séparation de free_groups. Sinon on ne s'en sort */
+/* plus...						            */
+/* retour : 0 : succès -1 : échec 				    */
+int save_groups() {
    FILE *flnews_file=NULL;
-   Newsgroup_List *tmpgroup=NULL;
-   Range_List *msg_lus,*tmprange;
+   Newsgroup_List *tmpgroup=NULL, *courant;
+   Range_List *msg_lus;
    int lu_index;
    int first=1;
-   int write_flnewsrc=save_flnewsrc;
    char name[MAX_PATH_LEN];
+   int name_written, failed=0;
    
    if (debug) fprintf(stderr, "Sauvegarde du .flnewsrc\n");
-   if (write_flnewsrc)
-   {
-     strcpy(name,DEFAULT_FLNEWS_FILE);
-     if (Options.flnews_ext) strcat(name,Options.flnews_ext);
-     strcat(name,".new");
-     flnews_file = open_flrnfile(name,"w+",1,NULL);
-     if (flnews_file==NULL) {
-        fprintf(stderr,"Erreur : On ne sauve pas le .flnewsrc\n");
-        write_flnewsrc=0;
+   strcpy(name,DEFAULT_FLNEWS_FILE);
+   if (Options.flnews_ext) strcat(name,Options.flnews_ext);
+   strcat(name,".new");
+   flnews_file = open_flrnfile(name,"w+",1,NULL);
+   if (flnews_file==NULL) return -1;
+   for (courant=Newsgroup_deb;courant;courant=tmpgroup) {
+     tmpgroup=courant->next;
+     /* on construit la ligne du .flnewsrc */
+     /* Je propose de ne pas marquer le groupe quand on n'est non abonné */
+     /* et qu'on a rien lu...						 */
+     msg_lus=courant->read;
+     first=1;
+     if (!(courant->flags & GROUP_UNSUBSCRIBED)) {
+       failed|=(fprintf(flnews_file,"%s: ",courant->name)<0);
+       name_written=1;
+     } else name_written=0;
+     while (msg_lus)
+     {
+         for (lu_index=0;lu_index<RANGE_TABLE_SIZE; lu_index++)
+	 {
+	   if (msg_lus->min[lu_index]==0) continue;
+	   if (!name_written) {
+	     failed|=(fprintf(flnews_file,"%s! ",courant->name)<0);
+	     name_written=1;
+	   }
+	   if (!first) failed|=(putc(',',flnews_file)==EOF);
+	   first=0;
+	   failed|=(fprintf(flnews_file,"%d",msg_lus->min[lu_index])<0);
+	   if (msg_lus->min[lu_index]<msg_lus->max[lu_index])
+	      failed|=(fprintf(flnews_file,"-%d",msg_lus->max[lu_index])<0);
+	 }
+	 msg_lus=msg_lus->next;
      }
+     if (name_written) failed|=(putc('\n',flnews_file)==EOF);
+   }
+   if (!failed) {
+     if (fclose(flnews_file)!=EOF) {
+       if (debug) fprintf(stderr,"Ecriture du .flnewsrc.new finie.\n");
+       rename_flnewsfile(name,NULL);
+       if (debug) fprintf(stderr,"Renommage du .flnewsrc fini.\n");
+     } else failed=1;
+   } else fclose(flnews_file);
+   if (debug) fprintf(stderr,"%s","C'est fini\n");
+   return -failed;
+}
+   
+
+/* Libération de la liste des groupes */
+void free_groups(int save_flnewsrc) {
+   Newsgroup_List *tmpgroup=NULL;
+   Range_List *msg_lus,*tmprange;
+   int write_flnewsrc;
+   
+   if (save_flnewsrc) {
+      write_flnewsrc=save_groups();
+      if (write_flnewsrc) {
+        fprintf(stderr,"Erreur dans la sauvegarde du .flnewsrc\n");
+	fprintf(stderr,"On garde l'ancien .flnewsrc.\n");
+      }
    }
    for (Newsgroup_courant=Newsgroup_deb;Newsgroup_courant;
        Newsgroup_courant=tmpgroup) {
      tmpgroup=Newsgroup_courant->next;
      if (Newsgroup_courant->description) free(Newsgroup_courant->description);
-     /* on construit la ligne du .flnewsrc */
-     /* Je propose de ne pas marquer le groupe quand on n'est non abonné */
-     /* et qu'on a rien lu...						 */
-     msg_lus=Newsgroup_courant->read;
-     first=1;
-     if (write_flnewsrc) {
-       int name_written;
-       if (!(Newsgroup_courant->flags & GROUP_UNSUBSCRIBED)) {
-	 if (fprintf(flnews_file,"%s: ",Newsgroup_courant->name)<0) write_flnewsrc=0;
-	 name_written=1;
-       } else name_written=0;
-       while (msg_lus)
-       {
-	  for (lu_index=0;lu_index<RANGE_TABLE_SIZE; lu_index++)
-	  {
-	    if (msg_lus->min[lu_index]==0) continue;
-	    if (!name_written) {
-	      if (fprintf(flnews_file,"%s! ",Newsgroup_courant->name)<0) write_flnewsrc=0;
-	      name_written=1;
-	    }
-	    if (!first) if (putc(',',flnews_file)==EOF) write_flnewsrc=0;
-	    first=0;
-	    if (fprintf(flnews_file,"%d",msg_lus->min[lu_index])<0) write_flnewsrc=0;
-	    if (msg_lus->min[lu_index]<msg_lus->max[lu_index])
-	      if (fprintf(flnews_file,"-%d",msg_lus->max[lu_index])<0) write_flnewsrc=0;
-	  }
-	  msg_lus=msg_lus->next;
-       }
-       if (name_written) if (putc('\n',flnews_file)==EOF) write_flnewsrc=0;
-     }
-     /* on libere la liste des messages lus */
      tmprange=msg_lus=Newsgroup_courant->read;
      while(tmprange) {
        msg_lus=tmprange;
@@ -407,15 +426,7 @@ void free_groups(int save_flnewsrc) {
      }
      free(Newsgroup_courant);
    }
-   if (write_flnewsrc) {
-     if (fclose(flnews_file)!=EOF) {
-       if (debug) fprintf(stderr,"Ecriture du .flnewsrc.new finie.\n");
-       rename_flnewsfile(name,NULL);
-       if (debug) fprintf(stderr,"Renommage du .flnewsrc fini.\n");
-     } else write_flnewsrc=0;
-   } else if (flnews_file) fclose(flnews_file);
-   if (debug) fprintf(stderr,"%s","C'est fini\n");
-   if (write_flnewsrc!=save_flnewsrc) fprintf(stderr,"Problème dans l'écriture du .flnewsrc.");
+   /* C'est tout */
 }
 
 /* Demande au serveur l'existence d'un newsgroup         */
@@ -509,8 +520,7 @@ Liste_Menu *menu_newsgroup_re (char *name, regex_t reg, int avec_reg)
       if ((!(avec_reg & 1)) || (!regexec(&reg,tcp_line_read+(avec_reg & 2 ? strlen(Options.prefixe_groupe):0),0,NULL,0))) {
 	*buf=' ';
 	creation=un_nouveau_newsgroup(tcp_line_read);
-	courant=ajoute_menu_ordre(lemenu,creation->name,creation,0);
-	if ((lemenu==NULL) || (lemenu->prec)) lemenu=courant;
+	courant=ajoute_menu_ordre(&lemenu,creation->name,creation,0);
       }
     }
     return lemenu;

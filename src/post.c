@@ -88,7 +88,7 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
 	if ((i==BCC_HEADER) && (!par_mail)) continue;
 	fprintf(tmp_file, "%s ", Headers[i].header);
 	if (Header_post->k_header[i])
-	   fprintf(tmp_file, "%s", Header_post->k_header[i]);
+	   fputs(Header_post->k_header[i],tmp_file);
 	putc('\n',tmp_file);
       }
       liste=Header_post->autres;
@@ -97,9 +97,14 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
 	 liste=liste->next;
       }
    } else {
-      fprintf(tmp_file, "Groupes: %s\n", 
-	      Header_post->k_header[NEWSGROUPS_HEADER]);
-      fprintf(tmp_file, "Sujet: %s\n", Header_post->k_header[SUBJECT_HEADER]);
+      fputs("Groupes: ",tmp_file);
+      if (Header_post->k_header[NEWSGROUPS_HEADER]) 
+         fputs(Header_post->k_header[NEWSGROUPS_HEADER],tmp_file);
+      putc('\n',tmp_file);
+      fputs("Sujet: ",tmp_file);
+      if (Header_post->k_header[SUBJECT_HEADER]);
+         fputs(Header_post->k_header[SUBJECT_HEADER],tmp_file);
+      putc('\n',tmp_file);
       liste=Header_post->autres;
       while (liste) {
 	 if (liste->num_af) fprintf(tmp_file, "%s\n", liste->header);

@@ -211,9 +211,9 @@ Liste_Menu *ajoute_menu(Liste_Menu *base, char *nom, void *lobjet) {
 /* permettre de comparer sur des champs différents (oui je sais      */
 /* c'est crade...						)    */
 /* On renvoie l'élément créé...					     */
-Liste_Menu *ajoute_menu_ordre(Liste_Menu *menu, char *nom, void *lobjet, int
+Liste_Menu *ajoute_menu_ordre(Liste_Menu **menu, char *nom, void *lobjet, int
 				decalage) {
-  Liste_Menu *creation, *parcours=menu;
+  Liste_Menu *creation, *parcours=*menu;
   int previous=0;
 
   while (parcours && parcours->suiv) {
@@ -240,6 +240,7 @@ Liste_Menu *ajoute_menu_ordre(Liste_Menu *menu, char *nom, void *lobjet, int
   }
   creation->nom=nom;
   creation->lobjet=lobjet;
+  if ((*menu==NULL) || (creation->suiv==(*menu))) *menu=creation;
   return creation;
 }
   

@@ -43,6 +43,7 @@ struct Obj_color_struct Colors[NROF_FIELDS] =
 	      {"blue",   "default",0,0}, /* signature */
 	      {"default","default",0,0},  /* File */
 	      {"default","default",0,0},  /* summary */
+	      {"default","default",FL_REV_MASK,FL_REV_MASK},  /* search */
 	    };
 
 

@@ -2423,8 +2423,7 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 	   || (!Options.use_regexp && strstr(tmp_name,gpe))) &&
 	   ((flags & 1) || !(mygroup->flags & GROUP_UNSUBSCRIBED));
        if (correct && avec_un_menu) {
-         courant=ajoute_menu_ordre(lemenu,tmp_name,mygroup,0);
-         if ((lemenu==NULL) || (lemenu->prec)) lemenu=courant;
+         courant=ajoute_menu_ordre(&lemenu,tmp_name,mygroup,0);
          correct=0;
        }
      } while (!correct); 
@@ -2438,8 +2437,7 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 	 || (!Options.use_regexp && strstr(tmp_name,gpe))) &&
 	 ((flags & 1) || !(mygroup->flags & GROUP_UNSUBSCRIBED));
        if (correct && avec_un_menu) {
-         courant=ajoute_menu_ordre(lemenu,tmp_name,mygroup,0);
-         if ((lemenu==NULL) || (lemenu->prec)) lemenu=courant;
+         courant=ajoute_menu_ordre(&lemenu,tmp_name,mygroup,0);
          correct=0;
        }
        if (correct) break;

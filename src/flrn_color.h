@@ -14,6 +14,7 @@ static char *Field_names[] ={
   "sig",
   "file",
   "summary",
+  "search",
 };
 #endif
 
@@ -26,8 +27,9 @@ static char *Field_names[] ={
 #define FIELD_SIG     6
 #define FIELD_FILE    7
 #define FIELD_SUMMARY 8
+#define FIELD_SEARCH  9
 
-#define NROF_FIELDS   9
+#define NROF_FIELDS  10
 
 /* Les fonctions */
 
