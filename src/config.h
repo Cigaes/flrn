@@ -82,7 +82,7 @@
 #define HAVE_UNISTD_H 1
 
 /* Define if you have the nsl library (-lnsl).  */
-#define HAVE_LIBNSL 1
+/* #undef HAVE_LIBNSL */
 
 /* Define if you have the socket library (-lsocket).  */
 /* #undef HAVE_LIBSOCKET */

@@ -88,7 +88,6 @@ int get_command(int key);
 int do_deplace(int res); 
 int do_goto(int res); /* renvoie change */
 int do_unsubscribe(int res);
-int do_abonne(int res);
 int do_omet(int res);
 int do_kill(int res); /* tue avec les crossposts */
 int do_zap_group(int res); /* la touche z... a revoir */
@@ -110,6 +109,9 @@ int do_goto_tag(int res);
 int do_tag(int res);
 int do_back(int res);
 int do_cancel(int res);
+int do_abonne(int res);
+int do_remove_kill(int res);
+int do_add_kill(int res);
 
 
 /* Ces fonctions sont appelés par les do_* */
@@ -173,6 +175,8 @@ static void Aff_message(int type, int num)
     case 15 : Aff_error("Tag mis"); break;
     case 16 : Aff_error("Cancel annulé"); break;
     case 17 : Aff_error("Article(s) cancelé(s)"); break;
+    case 18 : Aff_error("Groupe ajouté."); break;
+    case 19 : Aff_error("Groupe retiré."); break;
  /* Message d'erreur */
     case -1 : Aff_error("Vous n'êtes abonné à aucun groupe."); 
 	       break;
@@ -1085,9 +1089,28 @@ int do_unsubscribe(int res) {
 /* bien pouvoir m'abonner a un ensemble de groupes...		 */
 int do_abonne(int res) {
    Newsgroup_courant->flags &= ~GROUP_UNSUBSCRIBED;
+   if (Options.auto_kill) {
+     add_to_main_list(Newsgroup_courant->name);
+   }
    Aff_newsgroup_name();
    etat_loop.etat=1; etat_loop.num_message=9;
    return 0;
+}
+
+int do_add_kill(int res) {
+  char *str=Arg_str;
+  add_to_main_list(str?str:Newsgroup_courant->name);
+  Aff_newsgroup_name();
+  etat_loop.etat=1; etat_loop.num_message=18;
+  return 0;
+}
+
+int do_remove_kill(int res) {
+  char *str=Arg_str;
+  remove_from_main_list(str?str:Newsgroup_courant->name);
+  Aff_newsgroup_name();
+  etat_loop.etat=1; etat_loop.num_message=19;
+  return 0;
 }
 
 /* do_prem_grp : pour l'instant, place le groupe courant en première position */

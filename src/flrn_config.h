@@ -48,7 +48,7 @@ extern const char *tcp_command[];
 
 
 /* Touches de Commande */
-#define NB_FLCMD 56
+#define NB_FLCMD 58
 #define FLCMD_UNDEF -1
 #define FLCMD_RETURN FLCMD_SUIV
 #define FLCMD_MACRO 1024
@@ -57,33 +57,35 @@ extern const char *tcp_command[];
 #define fl_key_nm_opt ':'
 #define fl_key_nm_help '?'
 
-extern int do_deplace(int res); 
-extern int do_goto(int res); /* renvoie change */
-extern int do_unsubscribe(int res);
-extern int do_abonne(int res);
-extern int do_omet(int res);
-extern int do_kill(int res); /* tue avec les crossposts */
-extern int do_zap_group(int res); /* la touche z... a revoir */
-extern int do_help(int res);
-extern int do_quit(int res); /* cette fonction est inutile */
-extern int do_summary(int res); /* Doit faire à la fois r, t, T */
-extern int do_save(int res);
-extern int do_launch_pager(int res);
-extern int do_list(int res);
-extern int do_post(int res);
-extern int do_opt(int res);
-extern int do_opt_menu(int res);
-extern int do_neth(int res);
-/*extern int do_get_father(int res); */
-extern int do_swap_grp(int res);
-extern int do_prem_grp(int res);
-extern int do_pipe(int res);
-extern int do_tag(int res);
-extern int do_back(int res);
-extern int do_next(int res);
-extern int do_goto_tag(int res);
-extern int do_cancel(int res);
-extern int do_hist_menu(int res);
+extern int do_deplace(int); 
+extern int do_goto(int); /* renvoie change */
+extern int do_unsubscribe(int);
+extern int do_abonne(int);
+extern int do_omet(int);
+extern int do_kill(int); /* tue avec les crossposts */
+extern int do_zap_group(int); /* la touche z... a revoir */
+extern int do_help(int);
+extern int do_quit(int); /* cette fonction est inutile */
+extern int do_summary(int); /* Doit faire à la fois r, t, T */
+extern int do_save(int);
+extern int do_launch_pager(int);
+extern int do_list(int);
+extern int do_post(int);
+extern int do_opt(int);
+extern int do_opt_menu(int);
+extern int do_neth(int);
+/*extern int do_get_father(int); */
+extern int do_swap_grp(int);
+extern int do_prem_grp(int);
+extern int do_pipe(int);
+extern int do_tag(int);
+extern int do_back(int);
+extern int do_next(int);
+extern int do_goto_tag(int);
+extern int do_cancel(int);
+extern int do_hist_menu(int);
+extern int do_add_kill(int);
+extern int do_remove_kill(int);
 
 
 #define MAX_FL_KEY 0x1000
@@ -209,6 +211,10 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_MENUSUMMS 54
    { "sav-opt", 0, 0, 1, &do_save },
 #define FLCMD_SAVE_OPT 55
+   { "add-kill", 0, 0, 5|CMD_NEED_GROUP, &do_add_kill },
+#define FLCMD_ADD_KILL 56
+   { "remove-kill", 0, 0, 5|CMD_NEED_GROUP, &do_remove_kill },
+#define FLCMD_REMOVE_KILL 57
 };
 
 #define CMD_DEF_PLUS (sizeof(Cmd_Def_Plus)/sizeof(Cmd_Def_Plus[0]))

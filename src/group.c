@@ -244,6 +244,8 @@ void new_groups(int opt_c) {
       else
 	creation->flags |= (bad&&!good)?GROUP_UNSUBSCRIBED:0;
 
+      if (Options.auto_kill && ((creation->flags & GROUP_UNSUBSCRIBED)==0)) 
+	add_to_main_list(creation->name);
       if (opt_c) fprintf(stdout, "Nouveau groupe : %s\n", creation->name);
       res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
    } while (1);

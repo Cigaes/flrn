@@ -1,5 +1,9 @@
 ChangeLog Flrn
 
+. ajout de l'option auto-kill
+. ajout des comandes add-kill et remove-kill
+. ajout de la gestion des listes de groupes dans les kill-files
+. debut du code pour une gestion plus simple de la censure.
 . possibilité de rentrer une chaine ou un nombre dans \config
 . teste du nouveau mail, option check_mail
 . ajoute d'une description de chaque option

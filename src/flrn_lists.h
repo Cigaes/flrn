@@ -16,4 +16,10 @@ typedef struct _Flrn_liste {
   Flrn_liste_els *first;
 } Flrn_liste;
 
+extern Flrn_liste *alloue_liste(void);
+extern int free_liste(Flrn_liste *);
+extern int find_in_liste(Flrn_liste *, char *);
+extern int add_to_liste(Flrn_liste *, char *);
+extern int remove_from_liste(Flrn_liste *, char *);
+
 #endif

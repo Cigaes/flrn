@@ -88,6 +88,7 @@ struct Option_struct {
   char *attribution;
   int alpha_tree;
   char *kill_file_name;
+  int auto_kill;
 };
 
 extern struct Option_struct Options;
@@ -141,6 +142,7 @@ static struct {
   MAKE_STRING_OPT(attribution,"Chaine précédent les citations."),
   MAKE_OPT(auto_edit,"Lancement automatique de l'éditeur dans les posts."),
   MAKE_STRING_OPT(auto_ignore,"Expression régulières de newsgroups à ignorer."),
+  MAKE_OPT(auto_kill,"Met le groupe dans le kill-file au moment de l'abonnement."),
   MAKE_STRING_OPT(auto_subscribe,"Expression régulière de newsgroups à accepter."),
   MAKE_OPT(cbreak,"En mode nocbreak, toute commande finit par enter."),
 #ifdef CHECK_MAIL

@@ -201,7 +201,7 @@ void free_kill(flrn_kill *kill) {
   }
 }
 
-flrn_filter * parse_kill_block(FILE *fi) {
+flrn_filter * parse_kill_block(FILE *fi,Flrn_liste *liste) {
   char buf1[MAX_BUF_SIZE];
   char *buf2;
   flrn_filter *filt = NULL;
@@ -222,6 +222,10 @@ flrn_filter * parse_kill_block(FILE *fi) {
     else if (buf1[0]=='F') out=parse_filter_flags(buf1+1,filt);
     else if (buf1[0]=='C') out=parse_filter_action(buf1+1,filt);
     else if (buf1[0]=='T') out=parse_filter_toggle_flag(buf1+1,filt);
+    else if (buf1[0]==':') {
+      if (liste) add_to_liste(liste,buf1+1);
+      else out=1;
+    }
     else if (buf1[0]=='#') out=0;
     else out=-1;
     if(out) { free_filter(filt); return NULL; }
@@ -254,14 +258,29 @@ int parse_kill_file(FILE *fi) {
 	k2=kill;
 	*(buf2++)='\0';
 	/* buf2 pointe sur les flags */
-	/* FIXME : parser les listes */
 	kill->newsgroup_regexp=1;
-	kill->newsgroup_cond.regexp = safe_malloc(sizeof(regex_t));
-	if (regcomp(kill->newsgroup_cond.regexp,buf1,REG_EXTENDED|REG_NOSUB))
-	  out=1;
-	else {
-	  kill->filter=parse_kill_block(fi);
-	  if (!kill->filter) out=1;
+	if (strchr(buf2,'l')) {
+	  kill->newsgroup_regexp=0;
+	  kill->newsgroup_cond.liste=alloue_liste();
+	  add_to_liste(kill->newsgroup_cond.liste,buf1);
+	}
+	if (strchr(buf2,'m')) {
+	  if (kill->newsgroup_regexp == 0)
+	    main_kill_list=kill->newsgroup_cond.liste;
+	  else out=1;
+	}
+	/* FIXME : parser les listes */
+	if (kill->newsgroup_regexp==1) {
+	  kill->newsgroup_cond.regexp = safe_malloc(sizeof(regex_t));
+	  if (regcomp(kill->newsgroup_cond.regexp,buf1,REG_EXTENDED|REG_NOSUB))
+	    out=1;
+	  else {
+	    kill->filter=parse_kill_block(fi,NULL);
+	    if (!kill->filter) out=1;
+	  }
+	} else {
+	    kill->filter=parse_kill_block(fi,kill->newsgroup_cond.liste);
+	    if (!kill->filter) out=1;
 	}
       }
     }
@@ -328,4 +347,20 @@ void check_kill_article(Article_List *article, int flag) {
   apply_kill(flag);
   Article_courant=save;
   restore_etat_loop();
+}
+
+int add_to_main_list(char *name) {
+  if(main_kill_list) {
+    add_to_liste(main_kill_list,name);
+    return 0;
+  }
+  return -1;
+}
+
+int remove_from_main_list(char *name) {
+  if(main_kill_list) {
+    remove_from_liste(main_kill_list,name);
+    return 0;
+  }
+  return -1;
 }

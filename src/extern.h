@@ -195,6 +195,8 @@ extern void free_filter(flrn_filter *);
 extern int parse_kill_file(FILE *);
 extern void apply_kill(int);
 extern void check_kill_article(Article_List *, int );
+extern int add_to_main_list(char *);
+extern int remove_from_main_list(char *);
 
 
 

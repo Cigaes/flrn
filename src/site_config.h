@@ -47,7 +47,8 @@ struct Option_struct Options = {
   0,			/* scroll_after_end */
   "%n, dans son post %i, a écrit :",	/* attribution */
   0,			/* alpha_tree, temporaire */
-  ".flrnkill",         /* kill_file_name */
+  ".flrnkill",		/* kill_file_name */
+  1,			/* auto_kill */
   };
 
 #endif
