@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <strings.h>
 
+#define _(String) (String)
 #define DEF_FILD_NAMES
 
 #include "flrn.h"
@@ -493,14 +494,14 @@ void dump_colors_in_flrnrc (FILE *file) {
   int i,comma,mask;
   struct Highlight *current=highlight_first;
 
-  fprintf(file,"# Couleurs des champs généraux :");
+  fprintf(file,_("# Couleurs des champs généraux :"));
   for (i=0;i<NROF_FIELDS;i++) {
     fprintf(file,"\ncolor %s %s %s",Field_names[i],Colors[i].fg,Colors[i].bg);
     ecrit_attributs(file,Colors[i].attributs);
     fprintf(file,"\nmono %s",Field_names[i]);
     ecrit_attributs(file,Colors[i].attributs);
   }
-  fprintf(file,"\n# Les regcolors, dans la mesure du possible, ça marche pas toujours...");
+  fprintf(file,_("\n# Les regcolors, dans la mesure du possible, ça marche pas toujours..."));
   /* on ne copie pas les std-bla, donc on peu avoir de GROS problèmes */
   while (current) {
     comma=0;
@@ -538,7 +539,7 @@ void dump_colors_in_flrnrc (FILE *file) {
     fprintf(file," une_regexp_iconnue...");
     current=current->next;
   }
-  fprintf(file,"\n\nVoila, c'est fini...\n");
+  fprintf(file,_("\n\nVoila, c'est fini...\n"));
 }
 
 

@@ -19,6 +19,8 @@
 
 #include <sys/times.h>
 
+#define _(String) (String)
+
 #include "flrn.h"
 #include "art_group.h"
 #include "group.h"
@@ -281,7 +283,7 @@ int cree_liens() {
        if (buf3) *buf3='<';
        buf3=strchr(buf2,'>');
        if (buf3==NULL) {
-          if (debug) fprintf(stderr, "Header référence qui buggue : %s !\n",buf2);
+          if (debug) fprintf(stderr, _("Header référence qui buggue : %s !\n"),buf2);
 	  *buf2='\0';
 	  buf3=buf2;
 	  continue;
@@ -920,7 +922,7 @@ Article_List * next_in_thread(Article_List *start, long flag, int *level,
   int mylevel=1<<30;
   int mylevel2;
   
-  if (debug) fprintf(stderr,"appel a next_in_thread... %d\n",(level ? *level : -1));
+  if (debug) fprintf(stderr,_("appel a next_in_thread... %d\n"),(level ? *level : -1));
   if (level) mylevel=*level;
   mylevel2=mylevel;
   if(fin ==0) fin=1<<30;
@@ -1013,7 +1015,7 @@ Article_List * next_in_thread(Article_List *start, long flag, int *level,
     }
   }
   /* Cette fois c'est bien fini */
-  if (debug) fprintf(stderr,"Echec de next_in_thread...\n");
+  if (debug) fprintf(stderr,_("Echec de next_in_thread...\n"));
   return NULL;
 }
 
