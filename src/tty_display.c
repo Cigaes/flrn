@@ -1183,6 +1183,8 @@ static void add_strings_bit (flrn_char *str, size_t len, int field,
 		  free(cf->blreste); free(cf->blflreste);
 		  cf->blreste=NULL; cf->blflreste=NULL;
 		  cf->blrstlen=0;
+		  cf->colcur=1; /* juste un cours instant ,pour dire
+				   de ne pas sauter de ligne */
 	      }
 	      if (cf->reste) {
 		  if (cf->afficher)
