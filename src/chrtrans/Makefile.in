@@ -18,9 +18,9 @@ LDFLAGS = @LDFLAGS@
 MISCLIBS = @LIBS@
 MAKEDEPEND = @MAKEDEPEND@
 INSTALL = @INSTALL@
-SRCDIR = @srcdir@/chrtrans
-ROOTDIR = @top_srcdir@
-VPATH = @srcdir@
+SRCDIR = @SRCDIR@
+ROOTDIR = @top_SRCDIR@
+VPATH = @SRCDIR@
 
 TABLES= \
  def7_uni.h \
@@ -41,26 +41,26 @@ tables: $(TABLES)
 makeuctb: makeuctb.o
 	$(CC) $(CFLAGS) -o $@ makeuctb.o $(MISCLIBS)
 
-makeuctb.o: $(srcdir)/UCkd.h $(srcdir)/makeuctb.c
+makeuctb.o: $(SRCDIR)/UCkd.h $(SRCDIR)/makeuctb.c
 
 .SUFFIXES : .tbl .i
 
 .tbl.h:
-	./makeuctb $(srcdir)/$*.tbl > $@
+	./makeuctb $(SRCDIR)/$*.tbl > $@
 
 # dependancies
-def7_uni.h:             $(srcdir)/def7_uni.tbl          makeuctb
-iso01_uni.h:            $(srcdir)/iso01_uni.tbl         makeuctb
-iso02_uni.h:            $(srcdir)/iso02_uni.tbl         makeuctb
-iso03_uni.h:            $(srcdir)/iso03_uni.tbl         makeuctb
-iso04_uni.h:            $(srcdir)/iso04_uni.tbl         makeuctb
-iso05_uni.h:            $(srcdir)/iso05_uni.tbl         makeuctb
-iso06_uni.h:            $(srcdir)/iso06_uni.tbl         makeuctb
-iso07_uni.h:            $(srcdir)/iso07_uni.tbl         makeuctb
-iso08_uni.h:            $(srcdir)/iso08_uni.tbl         makeuctb
-iso09_uni.h:            $(srcdir)/iso09_uni.tbl         makeuctb
-iso10_uni.h:            $(srcdir)/iso10_uni.tbl         makeuctb
-iso15_uni.h:            $(srcdir)/iso15_uni.tbl         makeuctb
+def7_uni.h:             $(SRCDIR)/def7_uni.tbl          makeuctb
+iso01_uni.h:            $(SRCDIR)/iso01_uni.tbl         makeuctb
+iso02_uni.h:            $(SRCDIR)/iso02_uni.tbl         makeuctb
+iso03_uni.h:            $(SRCDIR)/iso03_uni.tbl         makeuctb
+iso04_uni.h:            $(SRCDIR)/iso04_uni.tbl         makeuctb
+iso05_uni.h:            $(SRCDIR)/iso05_uni.tbl         makeuctb
+iso06_uni.h:            $(SRCDIR)/iso06_uni.tbl         makeuctb
+iso07_uni.h:            $(SRCDIR)/iso07_uni.tbl         makeuctb
+iso08_uni.h:            $(SRCDIR)/iso08_uni.tbl         makeuctb
+iso09_uni.h:            $(SRCDIR)/iso09_uni.tbl         makeuctb
+iso10_uni.h:            $(SRCDIR)/iso10_uni.tbl         makeuctb
+iso15_uni.h:            $(SRCDIR)/iso15_uni.tbl         makeuctb
 
 clean:
 	rm -f makeuctb *.o *uni.h *uni2.h
