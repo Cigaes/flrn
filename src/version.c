@@ -109,9 +109,9 @@ void print_version_defines(FILE *out)
    fprintf(out,"TMP_POST_FILE=\"%s\"  ", TMP_POST_FILE);
    fprintf(out,"TMP_PIPE_FILE=\"%s\"\n", TMP_PIPE_FILE);
 #ifdef USE_MKSTEMP
-   fputs(out,"+USE_MKSTEMP\n");
+   fputs("+USE_MKSTEMP\n",out);
 #else
-   fputs(out,"-USE_MKSTEMP\n");
+   fputs("-USE_MKSTEMP\n",out);
 #endif
    fprintf(out,"REJECT_POST_FILE=\"%s\"\n",REJECT_POST_FILE); 
 #ifdef NO_INTERN_EDITOR

@@ -3388,6 +3388,11 @@ int Execute_function_slang_command(int type_fun, SLang_Name_Type *slang_fun)
   char *name=Arg_str;
   Numeros_List *courant=&Arg_do_funcs;
 
+  if (slang_fun==NULL) {
+      etat_loop.etat=2;
+      etat_loop.num_message=-9;
+      return 0;
+  }
   side_effect_of_slang_command(-50,NULL,0,0,0);
   if ((type_fun & 4)==0) {
     SLang_start_arg_list ();
