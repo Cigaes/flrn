@@ -1009,7 +1009,7 @@ msgid "Réponse à: "
 msgstr ""
 
 #: tty_display.c:1811
-msgid "Réponse àun message non disponible."
+msgid "Réponse à un message non disponible."
 msgstr ""
 
 #: tty_display.c:1824
