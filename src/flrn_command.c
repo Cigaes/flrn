@@ -83,7 +83,8 @@ int Bind_command_new(int key, int command, char *arg, int context, int add ) {
 void free_Macros(void) {
    int i;
    for (i=0;i<Flcmd_num_macros;i++) {
-     free(Flcmd_macro[i].arg);
+     if (Flcmd_macro[i].arg);
+       free(Flcmd_macro[i].arg);
    }
    Flcmd_num_macros=0;
    Flcmd_num_macros_max=0;
