@@ -16,6 +16,9 @@ LDFLAGS = @LDFLAGS@
 MISCLIBS = @LIBS@
 MAKEDEPEND = @MAKEDEPEND@
 INSTALL = @INSTALL@
+SRCDIR = @srcdir@
+ROOTDIR = @top_srcdir@
+VPATH = @srcdir@
 
 # define it to .iso if man accects 8 bit pages.
 MANISO = @MANISO@
@@ -34,6 +37,8 @@ helpdir = $(flrndir)/help
 
 C_FILES = flrn_tcp.c options.c flrn_files.c group.c art_group.c tty_display.c tty_keyboard.c flrn_inter.c post.c flrn_string.c main.c rfc2047.c flrn_help.c flrn_regexp.c flrn_slang.c flrn_xover.c flrn_menus.c flrn_color.c compatibility.c flrn_shell.c flrn_pager.c flrn_format.c flrn_filter.c flrn_lists.c
 
+VC_FILES = `echo $(C_FILES) | sed s'&\ \|^& '$(SRCDIR)'/&'g`
+
 #Headers
 
 HDRS = flrn.h options.h flrn_config.h flrn_glob.h extern.h group.h art_group.h post.h flrn_string.h rfc2047.h pathdef.h version.h site_config.h flrn_slang.h flrn_menus.h flrn_filter.h flrn_pager.h flrn_lists.h
@@ -44,7 +49,7 @@ OBJS = art_group.o compatibility.o flrn_color.o flrn_files.o flrn_format.o flrn_
 
 # Suite a modifier au cas où
 
-all:  flrn ../man/flrn.1$(MANISO)
+all:  flrn $(ROOTDIR)/man/flrn.1$(MANISO)
 
 flrn:  $(OBJS)
 	$(CC) $(LDFLAGS) -o flrn $(OBJS) $(MISCLIBS)
@@ -60,17 +65,17 @@ installbin: flrn
 
 installhelp:
 	$(INSTALL) -d -m 755 $(helpdir)
-	for i in ../help/* ; do $(INSTALL) -m 644 $$i $(helpdir); done
+	for i in $(ROOTDIR)/help/Help* ; do $(INSTALL) -m 644 $$i $(helpdir); done
 
-installman: ../man/flrn.1$(MANISO)
+installman: $(ROOTDIR)/man/flrn.1$(MANISO)
 	$(INSTALL) -d -m 755 $(mandir)/man1
-	$(INSTALL) -m 644 ../man/flrn.1$(MANISO) $(mandir)/man1/flrn.1
+	$(INSTALL) -m 644 $(ROOTDIR)/man/flrn.1$(MANISO) $(mandir)/man1/flrn.1
     
 depend: pathdef.h
-	$(MAKEDEPEND) $(CPPFLAGS) $(C_FILES)
+	$(MAKEDEPEND) $(CPPFLAGS) $(VC_FILES)
 
-../man/flrn.1: ../man/flrn.1.iso
-	cd ../man; make
+$(ROOTDIR)/man/flrn.1: $(ROOTDIR)/man/flrn.1.iso
+	cd $(ROOTDIR)/man; make
 
 pathdef.h: Makefile
 	rm -f pathdef.h

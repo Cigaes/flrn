@@ -48,6 +48,8 @@ else
   AC_MSG_RESULT(no)
 fi
 
+ROOTDIR=`pwd`
+
 
 
 AC_ARG_WITH(slang, [  --with-slang[=DIR]         use S-Lang in dir DIR],
@@ -140,10 +142,11 @@ AC_FUNC_STRFTIME
 AC_CHECK_FUNCS(gethostname select socket strdup strspn strstr strtol)
 AC_CHECK_FUNCS(inet_aton snprintf isdigit isblank)
 
+
+AC_SUBST(ROOTDIR)
 AC_SUBST(MANISO)
 
-AC_OUTPUT(src/Makefile)
+AC_OUTPUT(src/Makefile Makefile)
 
-cd src
 echo starting make depend
 make depend
