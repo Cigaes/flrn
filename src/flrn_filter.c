@@ -181,7 +181,7 @@ void free_filter(flrn_filter *filt) {
   free(filt);
 }
 
-void free_kill(flrn_kill *kill) {
+void raw_free_kill(flrn_kill *kill) {
   flrn_kill *k2=kill;
   if (main_list_file_name) {
     write_list_file(main_list_file_name,main_kill_list);
@@ -206,6 +206,12 @@ void free_kill(flrn_kill *kill) {
     free(kill);
     kill=k2;
   }
+}
+
+void free_kill(void) {
+  if (flrn_kill_deb)
+    raw_free_kill(flrn_kill_deb);
+  flrn_kill_deb=NULL;
 }
 
 flrn_filter * parse_kill_block(FILE *fi,Flrn_liste *liste) {
@@ -304,7 +310,7 @@ int parse_kill_file(FILE *fi) {
     }
     if (out) {
       if (flrn_kill_deb)
-	free_kill(flrn_kill_deb);
+	raw_free_kill(flrn_kill_deb);
       flrn_kill_deb=NULL;
       return 0;
     }
