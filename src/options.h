@@ -107,7 +107,7 @@ struct Option_struct {
   char *flags_group;
   char *hist_file_name;
   int  warn_if_new;
-  char *get_ext_flnewsfile;
+  char *default_flnewsfile;
 };
 
 extern struct Option_struct Options;
@@ -172,13 +172,13 @@ static struct {
   MAKE_OPT(color,"Pour forcer l'utilisation des couleurs."),
   MAKE_OPT_REVNAME(cool_arrows,inexistant_arrow,"Supprime les messages d'erreur liés aux mauvais usages des flèches."),
   MAKE_OPT(date_in_summary,"Ajoute la date dans les résumés."),
+  MAKE_STRING_OPT_L(default_flnewsfile,"Si le .flnewsrc n'existe pas, où en chercher un."),
   MAKE_OPT(default_subscribe,"Abonnement par défaut."),
   MAKE_OPT(duplicate_subject,"Les sujets sont réaffichés à chaque ligne dans les résumés."),
   MAKE_OPT(edit_all_headers,"Permet d'éditer tous les headers dans un post."),
   MAKE_STRING_OPT(flags_group,"Caractères précédents un groupe selon ses attributs."),
   MAKE_STRING_OPT_L(flnews_ext,"Extension sur le nom du .flnewsrc."),
   MAKE_OPT(forum_mode,"Mode de commande forum-like."),
-  MAKE_STRING_OPT_L(get_ext_flnewsfile,"Si le .flnewsrc n'existe pas, où en chercher un."),
   MAKE_OPT(headers_scroll,"Les headers scrollent avec le reste des messages."),
   MAKE_STRING_OPT(hist_file_name,"Nom de fichier pour sauvegarder l'historique."),
   MAKE_OPT(include_in_edit,"Lorsque auto_edit est défini, inclut automatiquement le message d'origine."),

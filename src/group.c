@@ -99,8 +99,8 @@ void init_groups() {
    flnews_file = open_flrnfile(name,"r",1,&Last_check);
 
    if (flnews_file==NULL) {
-     if (Options.get_ext_flnewsfile) {
-        flnews_file=open_flrnfile(Options.get_ext_flnewsfile,"r",1,NULL);
+     if (Options.default_flnewsfile) {
+        flnews_file=open_flrnfile(Options.default_flnewsfile,"r",1,NULL);
 	if (flnews_file) Last_check=time(NULL); else return;
      } else return;
    }
