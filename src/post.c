@@ -89,7 +89,7 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
 	if ((i==TO_HEADER) && (!par_mail)) continue;
 	if ((i==CC_HEADER) && (!par_mail)) continue;
 	if ((i==BCC_HEADER) && (!par_mail)) continue;
-	fprintf(tmp_file, "%s ", Headers[i].header);
+	fputs(Headers[i].header, tmp_file);
 	if (Header_post->k_header[i])
 	   fputs(Header_post->k_header[i],tmp_file);
 	putc('\n',tmp_file);
@@ -114,19 +114,27 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
 	 liste=liste->next;
       }
    }
-   fprintf(tmp_file, "\n");
+   putc('\n', tmp_file);
    if (Pere_post && ((incl==1) || ((incl==-1) && (Options.include_in_edit)))) { 
        if (!supersedes) Copy_format (tmp_file,Options.attribution,Pere_post,NULL,0);
-       Copy_article(tmp_file,Pere_post, Options.quote_all, (supersedes ? NULL : Options.index_string));
-       fprintf(tmp_file,"\n");
+       Copy_article(tmp_file,Pere_post, Options.quote_all, (supersedes ? NULL : Options.index_string), (supersedes) || (Options.quote_all));
+       putc('\n', tmp_file);
    }
-   if ((incl==-1) && (Options.sig_file)) {
+   if ((incl==-1) && (Options.sig_file) && (!supersedes)) {
        FILE *sig_file;
        sig_file=open_flrnfile(Options.sig_file,"r",0,NULL);
        if (sig_file) {
           char ligne[82];
-	  while (fgets(ligne,81,sig_file))
-	     fprintf(tmp_file,ligne);
+	  int deb;
+	  deb=1;
+	  fputs("-- \n",tmp_file);
+	  while (fgets(ligne,81,sig_file)) {
+	     if ((deb) && (strcmp(ligne,"-- \n")==0)) {
+	        deb=0;
+	        continue;
+	     } else deb=0;
+	     fputs(ligne, tmp_file);
+	  }
 	  fclose(sig_file);
        }
    }
@@ -135,7 +143,7 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
       if (lecture_courant==d_l)  
 	 lecture_courant->size=place;
       lecture_courant->lu[lecture_courant->size]='\0';  /* Par précaution */
-      fprintf(tmp_file, "%s", lecture_courant->lu);
+      fputs(lecture_courant->lu, tmp_file);
      /* J'utilise fprintf plutôt que fwrite par principe : fwrite est */
      /* a priori pour des fichiers binaires (et puis, j'ai commencé   */
      /* avec fprintf). Mais bon, on pourrait peut-être changer...     */

@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. meilleure gestion de la signature
 . modification du supersedes
 . bugfixes divers
 . sig_file

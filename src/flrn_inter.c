@@ -2444,7 +2444,7 @@ static int Sauve_article(Article_List *a_sauver, void *vfichier) {
   } else
   fprintf(fichier, "Newsgroup : %s     No : %d\n", Newsgroup_courant->name,
 	a_sauver->numero);
-  Copy_article(fichier,  a_sauver, 1, NULL);
+  Copy_article(fichier,  a_sauver, 1, NULL, 1);
   fprintf(fichier,"\n");
   return 0;
 }

@@ -24,7 +24,7 @@ extern FILE *open_postfile (char * /*file*/,char * /*mode*/);
 extern int stat_postfile (char * /*file*/,struct stat * /*mode*/);
 extern FILE *open_flhelpfile (char /*ext*/);
 extern void Copy_article (FILE * /*dest*/, Article_List * /*article*/,
-    int /*copie_head*/, char * /*avant*/);
+    int /*copie_head*/, char * /*avant*/, int /*with_sig*/);
 extern int init_kill_file(void);
 extern int newmail(char *);
 extern int read_list_file(char *, Flrn_liste *);

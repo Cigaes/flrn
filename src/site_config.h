@@ -12,7 +12,7 @@
 #ifdef IN_OPTION_C
 
 struct Option_struct Options = {
-  "news",  		 /* server */
+  "news.rezo.ens.fr",  		 /* server */
   DEFAULT_NNTP_PORT,    /* port (DEFAULT_NNTP_PORT = 119) */
   NULL,			/* flnews_ext */
   NULL, 		/* Post name - doit rester NULL */
@@ -71,7 +71,7 @@ struct Option_struct Options = {
   NULL,			/* sign_file */
   0,			/* quote_all */
 #ifdef WITH_CHARACTER_SETS
-  NULL,                 /* character_set */
+  NULL,			/* character_set */
 #endif
   };
 

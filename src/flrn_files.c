@@ -238,7 +238,7 @@ FILE *open_flhelpfile (char ext)
 
 
 /* Copie le contenu d'un article dans un fichier */
-void Copy_article (FILE *dest, Article_List *article, int copie_head, char *avant) {
+void Copy_article (FILE *dest, Article_List *article, int copie_head, char *avant, int with_sig) {
    int res, code;
    char *num, *buf;
    int flag=2; /* flag & 1 : debut de ligne     */
@@ -265,9 +265,13 @@ void Copy_article (FILE *dest, Article_List *article, int copie_head, char *avan
       res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
       buf=tcp_line_read;
       if (res<1) return;
-      if (res==1) { flag=2; fprintf(dest, "\n"); continue; }  /* On a lu '\n' */
+      if (res==1) { flag=2; putc('\n', dest); continue; }  /* On a lu '\n' */
       if (flag & 2) {
         if (strncmp(tcp_line_read, ".\r\n", 3)==0) return;
+	if ((!with_sig) && (strncmp(tcp_line_read, "-- \r\n", 5)==0)) {
+	   discard_server();
+	   return;
+	}
         if (*buf=='.') buf++;
 	flag=1;
       } else flag=0;
@@ -275,11 +279,11 @@ void Copy_article (FILE *dest, Article_List *article, int copie_head, char *avan
       if ((flag & 1) && avant) {
 	if ((*avant=='>') && Options.smart_quote && (*buf=='>'))
 	  putc('>',dest); else
-	  fprintf(dest, "%s", avant);
+	  fputs(avant, dest);
       }
       if (flag & 2) tcp_line_read[res-2]='\0';
-      fprintf(dest, "%s", buf);
-      if (flag & 2) fprintf(dest, "\n");
+      fputs(buf, dest);
+      if (flag & 2) putc('\n', dest);
     } while (1);
 }
 
