@@ -991,6 +991,7 @@ static int Format_article(char *to_cancel) {
 	str_cat(&ecriture_courant, "\r\n");
       }
    liste=Header_post->autres;
+#ifndef MODE_EXPERT
    while (liste) {
       if ((strncasecmp(liste->header,"Control:",8)==0) ||
 	  (strncasecmp(liste->header,"Also-Control:",13)==0) ||
@@ -999,6 +1000,7 @@ static int Format_article(char *to_cancel) {
 	  	continue; 
       }
       				/* pas abuser non plus */
+#endif
       str_cat(&ecriture_courant, liste->header);
       str_cat(&ecriture_courant, "\r\n");
       liste=liste->next;

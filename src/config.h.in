@@ -12,6 +12,9 @@
 /* Pour l'option --with-domain du configure */
 #undef DOMAIN
 
+/* Pour l'option --enable-expert du configure */
+#undef MODE_EXPERT
+
 /* Define to empty if the keyword does not work.  */
 #undef const
 

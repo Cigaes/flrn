@@ -1157,6 +1157,7 @@ int Recherche_article (int num, Article_List **retour, int flags) {
 /* Détermine si on est le propriétaire d'un article */
 /* retour : 1 si oui, 0 si non, -1 si bug */
 int Est_proprietaire(Article_List *article) {
+#ifndef MODE_EXPERT
   char *la_chaine, *ladresse, *buf;
    
   if (!article->headers) {
@@ -1195,6 +1196,7 @@ int Est_proprietaire(Article_List *article) {
   if (buf==NULL) return 0;
   if ((*(buf-1))!='.') return 0;
   if (isalnum((int) *(buf+strlen(DOMAIN)))) return 0;
+#endif
 #endif
   return 1; /* C'est bon */
 }
