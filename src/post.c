@@ -230,11 +230,11 @@ int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
 		  if (*header_courant) { 
 		     free(*header_courant);
 		     *header_courant=NULL;
-		     if (header_connu==0) {
-		        liste=(*unk_header_courant)->next;
-			free(*unk_header_courant);
-			*unk_header_courant=liste;
-	             }
+		  }
+		  if (header_connu==0) {
+		     liste=(*unk_header_courant)->next;
+		     free(*unk_header_courant);
+		     *unk_header_courant=liste;
 	          }
 		  continue;
 	      }
