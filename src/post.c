@@ -608,6 +608,11 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
 	}
 	if (Options.use_regexp) {
 	   char *mustmatch;
+	   if (regcomp(&reg,nom2,REG_EXTENDED|REG_NOSUB)) {
+	      strcpy(nom2,nom);
+	      to_test=0;
+	      continue;
+	   }
 	   mustmatch=reg_string(nom2,1);
 	   if (mustmatch!=NULL) lemenu=menu_newsgroup_re(mustmatch, reg,
 	     				1+((*copy_pre)*2));
