@@ -141,7 +141,7 @@ int intrin_menu_groups (int *flags,int *num) {
 	      if (ret<0) str = safe_strdup(grp->name);
             }
 	} else str = safe_strdup(grp->name); /* TODO : correct that */
-	courant = ajoute_menu(courant, str, (void *) grp);
+	courant = ajoute_menu_ordre(&lemenu, str, (void *) grp,0,0);
 	if (lemenu==NULL) lemenu=courant;
    }
    grp = Menu_simple (lemenu, lemenu, NULL, NULL, "Menu de groupes");

@@ -3353,6 +3353,10 @@ int side_effect_of_slang_command (int rt, Newsgroup_List *new,
     static int ret;
 
     if (rt==-100) return ret;
+    if (rt==-50) {
+	ret=0;
+	return 0;
+    }
     ret=rt;
     etat_loop.Newsgroup_nouveau=new;
     etat_loop.num_futur_article=0;
@@ -3366,7 +3370,7 @@ int Execute_function_slang_command(int type_fun, SLang_Name_Type *slang_fun)
   char *name=Arg_str;
   Numeros_List *courant=&Arg_do_funcs;
 
-  side_effect_of_slang_command(0,NULL,0,0,0);
+  side_effect_of_slang_command(-50,NULL,0,0,0);
   if ((type_fun & 4)==0) {
     SLang_start_arg_list ();
     if (type_fun & 2) 
