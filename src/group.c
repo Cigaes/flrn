@@ -213,9 +213,11 @@ static Newsgroup_List *un_nouveau_newsgroup (char *la_ligne)
         case '=' :
         case 'x' : creation->flags |=GROUP_READONLY_FLAG;
       		   break;
+        case 'm' : creation->flags |=GROUP_MODERATED_FLAG;
+	           break;
       }
     }
-    creation->flags |= GROUP_READONLY_TESTED;
+    creation->flags |= GROUP_MODE_TESTED;
     return creation;
 }
 
@@ -686,8 +688,10 @@ int NoArt_non_lus(Newsgroup_List *group, int force_check) {
      case '=' :
      case 'x' : group->flags |=GROUP_READONLY_FLAG;
                 break;
+     case 'm' : group->flags |=GROUP_MODERATED_FLAG;
+                break;
    }
-   group->flags |= GROUP_READONLY_TESTED;
+   group->flags |= GROUP_MODE_TESTED;
    discard_server(); /* Si il y a plusieurs newsgroups, BEURK */
    
    non_lus=max-min+1;
@@ -742,8 +746,10 @@ void test_readonly(Newsgroup_List *groupe) {
      case '=' :
      case 'x' : groupe->flags |=GROUP_READONLY_FLAG;
                 break;
+     case 'm' : groupe->flags |=GROUP_MODERATED_FLAG;
+                break;
    }
-   groupe->flags |= GROUP_READONLY_TESTED;
+   groupe->flags |= GROUP_MODE_TESTED;
    discard_server(); /* Si il y a plusieurs newsgroups, BEURK */
 }
 

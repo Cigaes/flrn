@@ -43,7 +43,8 @@ typedef struct Group_List
 #define GROUP_NEW_GROUP_FLAG            0x002
 #define GROUP_IN_MAIN_LIST_FLAG		0x004
 #define GROUP_READONLY_FLAG		0x008
-#define GROUP_READONLY_TESTED		0x010
+#define GROUP_MODERATED_FLAG            0x010
+#define GROUP_MODE_TESTED		0x020
 
    char name[MAX_NEWSGROUP_LEN + 1];
 

@@ -1581,7 +1581,7 @@ void Aff_newsgroup_name(int erase_scr) {
    Cursor_gotorc(0,name_news_col);
    if (name_fin_col-name_news_col>0) {
      if (Newsgroup_courant) {
-       if (!(Newsgroup_courant->flags & GROUP_READONLY_TESTED))
+       if (!(Newsgroup_courant->flags & GROUP_MODE_TESTED))
           test_readonly(Newsgroup_courant);
        flag_aff=calcul_flag(Newsgroup_courant);
        tmp_name=truncate_group(Newsgroup_courant->name,0);

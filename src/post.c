@@ -44,6 +44,7 @@ Lecture_List *Deb_article;
 Lecture_List *Deb_body;
 Article_List *Pere_post;
 int par_mail, supersedes;
+int in_moderated_group;
 
 Post_Headers *Header_post;
 
@@ -742,7 +743,7 @@ static int get_Body_post() {
 
 /* Regarde l'existence d'un groupe dans un header... essaie une correction */
 /* sinon...								   */
-static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
+static char *check_group_in_header(char *nom, int *copy_pre, char *header, int in_newsgroup) {
    char *nom2=nom;
    Newsgroup_List *groupe;
    int key,alloue=0,ret,col,to_test=1;
@@ -754,10 +755,16 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
    while (1) {
      if (to_test) {
        groupe=cherche_newsgroup(nom2,1,*copy_pre);
-       if (groupe!=NULL) return nom2;
+       if (groupe!=NULL) {
+         if (in_newsgroup && (groupe->flags & GROUP_MODERATED_FLAG)) 
+	     in_moderated_group=1;
+         return nom2;
+       }
        if (*copy_pre) {
          groupe=cherche_newsgroup(nom2,1,0);
          if (groupe!=NULL) {
+            if (in_newsgroup && (groupe->flags & GROUP_MODERATED_FLAG)) 
+	        in_moderated_group=1;
             *copy_pre=0;
 	    return nom2;
          }
@@ -834,6 +841,9 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
 	if (lemenu) {
 	  if (lemenu->suiv==NULL) {
 	     strcpy(nom2,((Newsgroup_List *) (lemenu->lobjet))->name);
+             if (in_newsgroup && (((Newsgroup_List *)(lemenu->lobjet))->flags &
+	                                        GROUP_MODERATED_FLAG))
+                 in_moderated_group=1;
 	     return nom2;
 	  }
 	  else {
@@ -844,6 +854,8 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
 	  	/* voir à prendre change_group ici, c'est la même fonction */
 	} else groupe=NULL;
 	if (groupe) {
+	   if (in_newsgroup && (groupe->flags & GROUP_MODERATED_FLAG))
+	      in_moderated_group=1;
 	   strcpy(nom2,groupe->name);
 	   *copy_pre=0;
 	   return nom2;
@@ -894,6 +906,7 @@ static int Format_headers() {
    free(real_name);
 
    /* Newsgroups , Followup-To*/
+   in_moderated_group=0;
    for (i=0; i<2; i++) {
      j=(i==0 ? NEWSGROUPS_HEADER : FOLLOWUP_TO_HEADER);
      if (Header_post->k_header[j]) {
@@ -903,7 +916,7 @@ static int Format_headers() {
        len1=0;
        while (buf) {
          copy_pre=((Options.prefixe_groupe) && (strncmp(buf,Options.prefixe_groupe,strlen(Options.prefixe_groupe))!=0));
-	 buf2=check_group_in_header(buf,&copy_pre,Headers[j].header);
+	 buf2=check_group_in_header(buf,&copy_pre,Headers[j].header,(i==0));
 	 if (buf2==NULL) {
 	   buf=strtok(NULL,delim2);
 	   continue;
@@ -964,6 +977,18 @@ static int Format_headers() {
        }
      }
   } 
+  if (in_moderated_group) {
+     int key;
+     Cursor_gotorc(Screen_Rows2-3,0);
+     Screen_write_string("Vous postez dans un groupe modéré : il peut se passer un certain temps avant");
+     Cursor_gotorc(Screen_Rows2-2,0);
+     Screen_write_string("que votre message n'apparaisse.");
+     Cursor_gotorc(Screen_Rows2-1,0);
+     Screen_erase_eol();
+     Screen_write_string("Appuyez sur une touche pour envoyer le message, ^C pou annuler.");
+     key=Attend_touche();
+     if (KeyBoard_Quit) return -1;
+  }
   return 0;
 }
 
