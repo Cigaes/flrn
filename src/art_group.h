@@ -54,6 +54,9 @@ typedef struct Flrn_art_header
    */
 } Article_Header;
 
+struct Flrn_thread_list;
+struct Flrn_hash_list;
+
 typedef struct Flrn_art_list
 {
    struct Flrn_art_list *next, *prev, *pere;
@@ -80,8 +83,22 @@ typedef struct Flrn_art_list
 
    char *msgid;
    Article_Header *headers;
-   struct Flrn_art_list *prev_hash;
+   struct Flrn_thread_list *thread;
 } Article_List;
+
+typedef struct Flrn_thread_list {
+   int non_lu, number;
+   struct Flrn_hash_list *premier_hash;
+   struct Flrn_thread_list *next_thread;
+} Thread_List;
+
+typedef struct Flrn_hash_list {
+   Thread_List *thread;
+   Article_List *article;
+   char *msgid;
+   struct Flrn_hash_list *next_in_thread; /* truc dans le désordre */
+   struct Flrn_hash_list *prev_hash;
+} Hash_List;
 
 extern Article_List *Article_courant;
 extern Article_List *Article_deb;
@@ -90,6 +107,10 @@ extern long Article_deb_key;
 extern Article_List *Article_exte_deb;
 extern Article_List Article_bidon;
 extern time_t Date_groupe;
+
+#define HASH_SIZE 1024
+extern Hash_List *(*Hash_table)[HASH_SIZE];
+extern Thread_List *Thread_deb;
 
 
 /* pour les autre headers */

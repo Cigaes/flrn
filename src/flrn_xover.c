@@ -98,7 +98,8 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
     code=return_code();
     if ((code<0) || (code>300)) return -1; 
 
-    if (article==NULL) Article_courant=Article_deb=NULL;
+    if (article==NULL) 
+      Article_courant=Article_deb=NULL;
     res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
     if (res<0) return -1;
     while ((suite_ligne) || (tcp_line_read[0]!='.')) {
@@ -269,7 +270,8 @@ int cree_liste_noxover(int min, int max, Article_List *start_article) {
    code=return_code();
    if ((code<0) || (code>300)) {free(buf);return -1;}
 
-   if (article==NULL) Article_courant=Article_deb=NULL;
+   if (article==NULL) 
+     Article_courant=Article_deb=NULL;
    res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
    if (res<2) {free(buf);return -1;}
    tcp_line_read[res-2]='\0'; /* La, on écrase le \r\n */
@@ -382,6 +384,8 @@ int cree_liste(int art_num, int *part) {
    if (Newsgroup_courant->Article_deb) {
      Article_deb=Newsgroup_courant->Article_deb;
      Article_exte_deb=Newsgroup_courant->Article_exte_deb;
+     Hash_table=Newsgroup_courant->Hash_table;
+     Thread_deb=Newsgroup_courant->Thread_deb;
      if (Newsgroup_courant->max<max) /* Ca peut etre > si list active et */
      {
      /* on essaie un cree_liste_xover moins couteux qu'un cherche newnews */
@@ -427,6 +431,8 @@ int cree_liste(int art_num, int *part) {
 
    if (res<=0) return res;
    Article_exte_deb=NULL;
+   Hash_table=NULL;
+   Thread_deb=NULL;
    cree_liens();
    /* on memorise tout */
    /* attention, Article_deb et Article_exte_deb pourraient changer !!! */
@@ -436,6 +442,8 @@ int cree_liste(int art_num, int *part) {
    apply_kill_file();
    Newsgroup_courant->Article_deb=Article_deb;
    Newsgroup_courant->Article_exte_deb=Article_exte_deb;
+   Newsgroup_courant->Hash_table=Hash_table;
+   Newsgroup_courant->Thread_deb=Thread_deb;
    return res;
 }
 

@@ -46,12 +46,13 @@ Article_List Article_bidon = {NULL, NULL, NULL, NULL, NULL, NULL, -10, -10,
   FLAG_READ, NULL, NULL,NULL};
 /* Est-il preferable de considerer l'article bidon comme lu ? */
 /* On va reserver le numero -1 pour les articles extérieurs au newsgroup */
+Thread_List *Thread_deb=NULL;
 Last_headers_cmd Last_head_cmd;
 
 long Article_deb_key=1;
 
-#define HASH_SIZE 1024
 time_t Date_groupe;
+Hash_List *(*Hash_table)[HASH_SIZE];
 
 /* libere la memoire d'un article */
 void free_article_headers(Article_Header *headers) {
@@ -65,6 +66,13 @@ void free_article_headers(Article_Header *headers) {
   free(headers);
 }
 
+static int calcul_hash(char *id) {
+  int toto=0;
+  toto=0; for(; *id; id++) toto += *id;
+  toto %= HASH_SIZE;
+  return toto;
+}
+
 static void free_one_article(Article_List *article,int flag) {
   if (!article) return;
   free_article_headers(article->headers);
@@ -74,6 +82,20 @@ static void free_one_article(Article_List *article,int flag) {
   } else {
     article->headers=NULL;
   }
+}
+
+/* cette fonction annule relie_article */
+static void derelie_article(Article_List *pere, Article_List *fils) {
+    if ((fils==NULL) || (pere==NULL)) return;
+    fils->pere=NULL;
+    fils->parent=0;
+    if (fils->frere_suiv) fils->frere_suiv->frere_prev=fils->frere_prev;
+    if (fils->frere_prev) fils->frere_prev->frere_suiv=fils->frere_prev;
+    if (pere->prem_fils==fils) 
+    		pere->prem_fils=(fils->frere_prev ? fils->frere_prev :
+    							     fils->frere_suiv);
+    fils->frere_prev=fils->frere_suiv=NULL;
+    return;
 }
 
 /* Cette fonction relie l'article pere et l'article fils */
@@ -92,32 +114,54 @@ static void relie_article(Article_List *pere, Article_List *fils) {
     /* le cousin.						       */
     } else {
        temp=pere->prem_fils;
-       while (temp->frere_suiv) 
+       while ((temp->frere_prev) && (temp->numero>fils->numero))
+             temp=temp->frere_prev;
+       while ((temp->frere_suiv) && (temp->numero<fils->numero))
 	  temp=temp->frere_suiv;
-       temp->frere_suiv=fils;
-       fils->frere_prev=temp;
+       if (temp->numero<fils->numero) {
+         temp->frere_suiv=fils;
+         fils->frere_prev=temp;
+       } else {
+         if (fils==temp) return; /* On ne sait jamais, mais en théorie non */
+         fils->frere_prev=temp->frere_prev;
+         temp->frere_prev=fils;
+	 fils->frere_suiv=temp;
+       }
     }
     return;
 }
 
-/* recherche dans une table de hash. Appelée par la fonction qui suit */
-static Article_List *recherche_in_hash_table (char *buf,
-		Article_List **big_table, Article_List **small_table) {
-  int hash;
-  Article_List *parcours;
-  char *bufptr;
 
-  hash=0; for(bufptr=buf; *bufptr; bufptr++) hash += *bufptr;
-  hash %= HASH_SIZE;
-  /* maintenant, on recherche le message avant par small_table */
-  for (parcours=small_table[hash]; parcours;
-        parcours=parcours->prev_hash)
-    if (strcmp(buf, parcours->msgid)==0) return parcours;
-  /* on n'a pas trouvé, on cherche après */
-  for (parcours=big_table[hash]; parcours!=small_table[hash];
-        parcours=parcours->prev_hash)
-    if (strcmp(buf, parcours->msgid)==0) return parcours;
-  return NULL;
+/* Fusion de deux threads, renvoie thread1 */
+/* thread2 est a priori plus petit....	   */
+static Thread_List *fusionne_thread(Thread_List *thread1, Thread_List *thread2) {
+   Hash_List *parcours;
+   Thread_List *parcours2;
+
+   if (thread1==thread2) return thread1;
+   if (thread1==NULL) return thread2;
+   if (thread2==NULL) return thread1;
+   thread1->non_lu+=thread2->non_lu;
+   thread1->number+=thread2->number;
+   for (parcours=thread2->premier_hash; ;
+        parcours=parcours->next_in_thread) 
+	{
+	  if (parcours->article) parcours->article->thread=thread1;
+	  parcours->thread=thread1;
+	  if (parcours->next_in_thread==NULL) break;
+	}
+   parcours->next_in_thread=thread1->premier_hash;
+   thread1->premier_hash=thread2->premier_hash;
+   if (Thread_deb==thread2) {
+      Thread_deb=thread2->next_thread;
+   } else {
+      parcours2=Thread_deb;
+      while (parcours2->next_thread!=thread2) parcours2=parcours2->next_thread;
+      /* j'espere que la liste est complete, sinon c'est le SEGFAULT assuré */
+      parcours2->next_thread=thread2->next_thread;
+   }
+   free(thread2);
+   return thread1;
 }
 
 
@@ -126,121 +170,170 @@ static Article_List *recherche_in_hash_table (char *buf,
 /* il faut noter que maintenant, cree_liens sera appelée plusieurs fois
  * au fil des xovers... */
 int cree_liens() {
-  int hash;
-  Article_List *Hash_table[HASH_SIZE];
-  Article_List *Hash_table_small[HASH_SIZE];
-  /* pour du debug */
-  int good=0, vbad=0;
+  int hash, premier, second, arret;
   Article_List *creation;
   Article_List *creation2;
-  char *bufptr, *buf2, *buf=NULL;
+  Hash_List *parcours_hash, *save_hash;
+  Thread_List *thread_creation=NULL;
+  char *buf2, *buf3=NULL, *buf=NULL;
 
-  memset(Hash_table,0, sizeof(Hash_table));
-  memset(Hash_table_small,0, sizeof(Hash_table));
-  /* première passe pour mettre en place les tables de hash */
+  if (Hash_table==NULL) {
+     Hash_table=safe_calloc(1,sizeof(*Hash_table));
+  }
+
+  /* on fait tout en une seule passe... on est des torcheurs... */
+  /* Evidemment, ça bouffe de la mémoire...			*/
+  /* Si on veut économiser, l'idée c'est de vérifier via les tables */
+  /* de hash quand on crée un article s'il est pas en trop... cela  */
+  /* doit se faire dans cree_liste_xover...			    */
+  /* [TODO] : faire ce qui est décrit au-dessus. A terme réunir article */
+  /* et hash...							        */
+
   for(creation=Article_deb; creation; creation=creation->next) {
-    hash=0; for(bufptr=creation->msgid; *bufptr; bufptr++) hash += *bufptr;
-    hash %= HASH_SIZE;
-    creation->prev_hash=Hash_table[hash];
-    Hash_table[hash]=creation;
-  }
-  /* faut les mettre après, puisqu'il pourrait y avoir collision */
-  for(creation=Article_exte_deb; creation; creation=creation2) {
-    hash=0; for(bufptr=creation->msgid; *bufptr; bufptr++) hash += *bufptr;
-    hash %= HASH_SIZE;
-    bufptr=creation->msgid;
-    creation->prev_hash=Hash_table[hash];
-    Hash_table[hash]=creation;
-    for (creation2=creation->prev_hash; creation2;
-	creation2=creation2->prev_hash) {
-	if (strcmp(bufptr, creation2->msgid)==0) {
-	  /* on a un article a virer - on enlève d'éventuelles ref dessus */
+    if (creation->thread) continue;
+    hash = calcul_hash(creation->msgid);
+    for (parcours_hash=(*Hash_table)[hash]; parcours_hash;
+         parcours_hash=parcours_hash->prev_hash) 
+       if (strcmp(parcours_hash->msgid,creation->msgid)==0) break;
+    if (parcours_hash) {
+       if (parcours_hash->article==NULL) {
+          free(parcours_hash->msgid);
+       } else { /* C'est un ancien article extérieur */
+          /* On replace ses fils */
           Article_List *parcours;
-          for (parcours=creation->prem_fils;parcours;
-               parcours=parcours->frere_suiv) {
-              parcours->parent=-2; /* Cas particulier temporaire */
-	      parcours->pere=creation2; /*on s'épargne juste un truc en plus*/
-          }
-          /* On n'a plus de ref... Chouette */
-	  Hash_table[hash]=creation->prev_hash;
-	  if (creation->prev) creation->prev->next=creation->next;
-	  else Article_exte_deb=creation->next;
-	  if (creation->next) creation->next->prev=creation->prev;
-    	  creation2=creation->next;
-	  free_one_article(creation,1);
-	  creation=NULL;
-	  break;
-	}
-    }
-    if (creation) creation2=creation->next;
-  }
-  /* deuxième passe pour faire les liens */
-  for(creation2=Article_deb; creation2; creation2=creation2->next) {
-    /* Hash_table_small sert a recher en priorité avant l'article */
-    hash=0; for(bufptr=creation2->msgid; *bufptr; bufptr++) hash += *bufptr;
-    hash %= HASH_SIZE;
-    Hash_table_small[hash]=creation2;
-    if (!creation2->headers ||
-	!(bufptr=creation2->headers->k_headers[REFERENCES_HEADER]))
-      continue;
-    if (creation2->parent ==-2) relie_article(creation2->pere, creation2);
-    if ((creation2->parent != 0)) continue; /* Ça peut être -1 et c'est bon */
-    buf2=strrchr(bufptr, '<');
-    if (buf2) {   
-      char *buf3;
+	  for (parcours=parcours_hash->article->prem_fils;
+	       parcours; parcours=parcours->frere_prev) {
+	       parcours->parent=creation->numero;
+	       parcours->pere=creation;
+	  }
+	  if (parcours_hash->article->prem_fils) {
+	     for (parcours=parcours_hash->article->prem_fils->frere_suiv;
+	       parcours; parcours=parcours->frere_suiv) {
+	       parcours->parent=creation->numero;
+	       parcours->pere=creation;
+	     }
+	  }
+	  /* Un article qui n'appartient à aucun thread n'a pas de fils */
+	  creation->prem_fils=parcours_hash->article->prem_fils;
+	  /* par contre, parcours_hash->article peut avoir un père */
+	  /* :-( 						   */
+	  parcours=parcours_hash->article;
+	  if (parcours->pere) 
+	     derelie_article(parcours->pere,parcours);
 
-      buf = safe_strdup(buf2);
-      buf3=strchr(buf, '>');
-      if (buf3) buf3[1]='\0';
-      else { if (debug) fprintf(stderr,"J'ai un header bugue...\n");
-	free(buf);
-	continue;
-      }
-      creation=recherche_in_hash_table(buf,Hash_table,Hash_table_small);
-      if (creation) {
-	  relie_article(creation,creation2);
-	  good++; /* pour des stats */
-      } else {
-	  /* on crée un père bidon */
-          vbad++;
-	  /* on crée un article bidon exterieur */
-	  creation = safe_calloc (1,sizeof(Article_List));
-	  creation->numero=-1; /* c'est un article bidon ou ext */
-	  if (Article_exte_deb) {
-	    creation->next=Article_exte_deb;
-	  }
-	  Article_exte_deb=creation;
-	  creation->msgid = safe_strdup(buf);
-	  /* on le met dans la table de hash, a la fin */
-          hash=0; for(bufptr=buf; *bufptr; bufptr++) hash += *bufptr;
-          hash %= HASH_SIZE;
-	  creation->prev_hash = Hash_table[hash];
-	  Hash_table[hash] = creation;
-	  relie_article(creation, creation2);
-	  /* on a gardé buf2, afin éventuellement de relier cet article */
-	  /* bidon */
+	  /* La ligne suivante peut servir un jour */
+	  /* if (Article_courant==parcours) Article_courant=creation; */
+
+	  /* On efface enfin l'article vidé */
+	  if (parcours->prev) parcours->prev->next=parcours->next;
+	     else Article_exte_deb=parcours->next;
+	  if (parcours->next) parcours->next->prev=parcours->prev;
+	  free_one_article(parcours,1);
+       }
+       parcours_hash->msgid=creation->msgid;
+       parcours_hash->article=creation;
+       thread_creation=parcours_hash->thread;
+       thread_creation->number++;
+       thread_creation->non_lu++;
+    } else {
+       parcours_hash=safe_calloc(1,sizeof(Hash_List));
+       parcours_hash->prev_hash=(*Hash_table)[hash];
+       (*Hash_table)[hash]=parcours_hash;
+       parcours_hash->article=creation;
+       parcours_hash->msgid=creation->msgid;
+       parcours_hash->thread=thread_creation=safe_calloc(1,sizeof(Thread_List));
+       thread_creation->next_thread=Thread_deb;
+       Thread_deb=thread_creation;
+       thread_creation->non_lu=1;
+       thread_creation->number=1;
+       thread_creation->premier_hash=parcours_hash;
+       parcours_hash->next_in_thread=NULL;
+    }
+    creation->thread=thread_creation;
+    save_hash=parcours_hash;
+    premier=1;
+    second=0;
+    arret=0;
+    if (!creation->headers ||
+	!(buf=creation->headers->k_headers[REFERENCES_HEADER]))
+      continue;
+    while ((buf2=strrchr(buf,'<'))) {
+       if (buf3) *buf3='<';
+       buf3=strchr(buf2,'>');
+       if (buf3==NULL) {
+          if (debug) fprintf(stderr, "Header référence qui buggue !\n");
 	  *buf2='\0';
-	  buf3=strrchr(bufptr,'<');
-	  if (buf3) {
-	      Article_List *creation3;
-	      free(buf);
-	      buf=safe_strdup(buf3);
-	      buf3=strchr(buf,'>');
-	      if (buf3) buf3[1]='\0';
-	      else { free(buf); *buf2='<'; continue; }
-	      creation3=recherche_in_hash_table(buf,Hash_table,
-		      		Hash_table_small);
-	      if (creation3) relie_article(creation3,creation);
+	  buf3=buf2;
+	  continue;
+       }
+       *(++buf3)='\0';
+       /* J'ai donc la référence dans *buf2 */
+       hash = calcul_hash(buf2);
+       for (parcours_hash=(*Hash_table)[hash]; parcours_hash;
+            parcours_hash=parcours_hash->prev_hash) 
+           if (strcmp(parcours_hash->msgid,buf2)==0) break;
+       if (parcours_hash) {
+	  arret=(parcours_hash->article!=NULL);
+          /* On a retrouvé un ancêtre, on s'arretera la s'il s'agit d'un */
+	  /* article...							 */
+	  if (premier) {
+	    if (!(parcours_hash->article)) { /* on crée un article extérieur */
+	       creation2 = safe_calloc (1,sizeof(Article_List));
+	       creation2->numero=-1; /* c'est un article bidon ou ext */
+	       creation2->next=Article_exte_deb;
+	       if (Article_exte_deb) Article_exte_deb->prev=creation2;
+	       Article_exte_deb=creation2;
+	       creation2->msgid = safe_strdup(buf2);
+	       creation2->thread=parcours_hash->thread;
+	       parcours_hash->article=creation2;
+	       free(parcours_hash->msgid);
+	       parcours_hash->msgid=creation2->msgid;
+	    }
+	    relie_article(parcours_hash->article,creation);
+	  } else if ((second) && (parcours_hash->article)) {
+	      relie_article(parcours_hash->article,creation->pere);
 	  }
-	  *buf2='<';
-      }
-      free(buf);
-    } /* if(buf2) */
+          parcours_hash->thread=fusionne_thread(parcours_hash->thread,
+	  					save_hash->thread);
+       } else {
+          parcours_hash=safe_calloc(1,sizeof(Hash_List));
+          parcours_hash->prev_hash=(*Hash_table)[hash];
+	  (*Hash_table)[hash]=parcours_hash;
+          if (!premier) parcours_hash->msgid=safe_strdup(buf2);
+          parcours_hash->thread=save_hash->thread;
+	  parcours_hash->next_in_thread=parcours_hash->thread->premier_hash;
+	  parcours_hash->thread->premier_hash=parcours_hash;
+	  if (premier) {
+	     creation2 = safe_calloc (1,sizeof(Article_List));
+	     creation2->numero=-1; /* c'est un article bidon ou ext */
+	     creation2->next=Article_exte_deb;
+	     if (Article_exte_deb) Article_exte_deb->prev=creation2;
+	     Article_exte_deb=creation2;
+	     creation2->msgid = safe_strdup(buf2);
+	     creation2->thread=parcours_hash->thread;
+	     parcours_hash->article=creation2;
+	     parcours_hash->msgid=creation2->msgid;
+	     relie_article(parcours_hash->article,creation);
+	  } 
+       }
+       save_hash=parcours_hash;
+       *buf3='>';   
+       buf3=buf2;
+       *buf3='\0';
+       if (arret) break;
+       second=premier;
+       premier=0;
+    }
+    if (buf3) *buf3='<';
   }
-  if(debug) {
-    fprintf(stderr,"\n %d %d\n",
-       good,vbad);
-  }
+/*  fprintf(stderr,"\n");
+  for (thread_creation=Thread_deb; thread_creation; thread_creation=thread_creation->next_thread)
+  {
+     parcours_hash=thread_creation->premier_hash;
+     while (parcours_hash->article==NULL ||
+      parcours_hash->article->numero<=0) parcours_hash=parcours_hash->next_in_thread;
+     fprintf(stderr,"%d %d %s\n",thread_creation->number, parcours_hash->article->numero,parcours_hash->article->headers->k_headers[SUBJECT_HEADER]);
+  }  */
   return 0;
 }
 
@@ -446,12 +539,10 @@ void ajoute_reponse_a(Article_List *article) {
 /* Ajouter un message localement à la liste des messages d'un newsgroup      */
 /* On ne se casse surtout pas la tête.				             */
 /* On renvoie NULL en cas d'echec, l'article cree en cas de succes.	     */
-/* maintenant plus : si exte=1, on ajoute le message dans la liste exterieur */
 /* should_retry est mis a un si il semble y avoir un pb d'update du serveur  */
-Article_List *ajoute_message (char *msgid, int exte, int *should_retry) {
+Article_List *ajoute_message (char *msgid, int *should_retry) {
    Article_List *creation, *parcours, *last=NULL;
-   char *buf, *buf2;
-   char save;
+   char *buf;
    int res,code;
 
   /* j'espere que stat va marcher */
@@ -464,7 +555,7 @@ Article_List *ajoute_message (char *msgid, int exte, int *should_retry) {
    code=strtol(tcp_line_read, &buf, 10);
    if (code>400) return NULL;
    creation=safe_calloc(1,sizeof(Article_List));
-   if (exte) creation->numero=-1; else creation->numero=strtol(buf,NULL,10);
+   creation->numero=strtol(buf,NULL,10);
    creation->msgid=safe_strdup(msgid);
    creation->headers=cree_header(creation, 0, 1);
    if (creation->headers==NULL) {
@@ -474,22 +565,16 @@ Article_List *ajoute_message (char *msgid, int exte, int *should_retry) {
       return NULL;
    }
 
-   if (exte) parcours=Article_exte_deb; else parcours=Article_deb; 
+   parcours=Article_deb; 
    if ((parcours!=NULL) && (parcours!=&Article_bidon)) {
-     while (parcours && (exte || (parcours->numero<creation->numero))) {
+     while (parcours && (parcours->numero<creation->numero)) {
          last=parcours;
-	 if (exte && (strcmp(parcours->msgid, creation->msgid)==0)) {
-	   if (debug) fprintf(stderr, "Un père déjà ajouté ?\n"); break; }
-	 /* Théoriquement, c'est possible, mais rare */
          parcours=parcours->next;
      }
-     if (parcours && (exte || (parcours->numero==creation->numero))) {
+     if (parcours && (parcours->numero==creation->numero)) {
 	free_one_article(creation,1);
-	return (exte ? parcours : 0); 
-		/* On va se servir de ce retour si exte=1 pour refaire */
-			/* la liaison pere-fils */
+	return 0; 
      }
-     /* Ici, si exte=1, parcours==NULL et Article_exte_deb!=NULL */
      if (parcours!=Article_deb) {
          last -> next=creation;
          creation->prev=last;
@@ -498,43 +583,15 @@ Article_List *ajoute_message (char *msgid, int exte, int *should_retry) {
         creation->next=parcours;
         parcours->prev=creation;
      }
-   } else if (exte) Article_exte_deb=creation; else Article_deb=creation;
-   if ((!exte) && (Newsgroup_courant->max<creation->numero)) {
+   } else Article_deb=creation;
+   if (Newsgroup_courant->max<creation->numero) {
       Newsgroup_courant->max=creation->numero;
       Aff_newsgroup_courant();
    }
-   if (exte) return creation; 
-   	/* On s'occupera a cote de l'ajout de l'exterieur */
+   cree_liens(); /* On va s'occuper de cet article sans thread associé */
    Newsgroup_courant->not_read++;
-   if (creation->headers->k_headers[REFERENCES_HEADER]) {
-      buf=strrchr(creation->headers->k_headers[REFERENCES_HEADER], '<');
-      buf2=strchr(buf, '>');
-      save=*(++buf2);
-      *buf2='\0';
-      parcours=creation->prev;
-      while (parcours) {
-	 if (strcmp(parcours->msgid,buf)==0) break;
-	 parcours=parcours->prev;
-      }
-      if (parcours==NULL) {
-	 parcours=creation->next;
-	 while (parcours) {
-	    if (strcmp(parcours->msgid, buf)==0) break;
-            parcours=parcours->next;
-         }
-      }
-      if (parcours==NULL) {
-	parcours=Article_exte_deb;
-	while (parcours) {
-	  if (strcmp(parcours->msgid, buf)==0) break;
-          parcours=parcours->next;
-        }
-      }
-      if (parcours!=NULL) relie_article(parcours, creation);
-   }
    creation->flag |= FLAG_NEW;
-   if (!exte) /* un coup de kill_file... */
-     check_kill_article(creation,0);
+   check_kill_article(creation,0);
    return creation;
 }
 
@@ -548,7 +605,6 @@ Article_List *ajoute_message (char *msgid, int exte, int *should_retry) {
 Article_List *ajoute_message_par_num (int min, int max) {
    Article_List *creation, *parcours, *last=NULL;
    char *buf, *buf2;
-   char save;
    int i,res,code;
 
    buf2=safe_malloc(16);
@@ -598,32 +654,7 @@ Article_List *ajoute_message_par_num (int min, int max) {
       Newsgroup_courant->max=creation->numero;
       Aff_newsgroup_courant();
    }
-   if (creation->headers->k_headers[REFERENCES_HEADER]) {
-      buf=strrchr(creation->headers->k_headers[REFERENCES_HEADER], '<');
-      buf2=strchr(buf, '>');
-      save=*(++buf2);
-      *buf2='\0';
-      parcours=creation->prev;
-      while (parcours) {
-	 if (strcmp(parcours->msgid,buf)==0) break;
-	 parcours=parcours->prev;
-      }
-      if (parcours==NULL) {
-	 parcours=creation->next;
-	 while (parcours) {
-	    if (strcmp(parcours->msgid, buf)==0) break;
-            parcours=parcours->next;
-         }
-      }
-      if (parcours==NULL) {
-	parcours=Article_exte_deb;
-	while (parcours) {
-	  if (strcmp(parcours->msgid, buf)==0) break;
-          parcours=parcours->next;
-        }
-      }
-      if (parcours!=NULL) relie_article(parcours, creation);
-   }
+   cree_liens();
    creation->flag |= FLAG_NEW;
    Newsgroup_courant->not_read++;
    check_kill_article(creation,0);
@@ -711,13 +742,20 @@ void detruit_liste(int flag) {
    else {
      Newsgroup_courant->Article_deb=Article_deb;
      Newsgroup_courant->Article_exte_deb=Article_exte_deb;
+     Newsgroup_courant->Hash_table=Hash_table;
+     Newsgroup_courant->Thread_deb=Thread_deb;
    }
+   Thread_deb=NULL;
+   Hash_table=NULL;
    Free_Last_head_cmd();
 }
 
 void libere_liste()
 {
    Article_List *tmparticle=NULL;
+   int i;
+   Hash_List *hash_courant, *tmp_hash=NULL;
+   Thread_List *thread_courant, *tmp_thread=NULL;
    Article_courant=tmparticle=Article_deb;
    for (; Article_courant; Article_courant=tmparticle) {
       tmparticle=Article_courant->next;
@@ -729,6 +767,21 @@ void libere_liste()
       free_one_article(Article_courant,1);
    }
    Article_deb=Article_courant=Article_exte_deb=NULL;
+   if (Hash_table)
+     for (i=0;i<HASH_SIZE;i++) {
+        hash_courant=tmp_hash=(*Hash_table)[i];
+        for (; hash_courant; hash_courant=tmp_hash) {
+          tmp_hash=hash_courant->prev_hash;
+	  if (!(hash_courant->article)) free(hash_courant->msgid);
+	  free(hash_courant);
+        }
+     }
+   Hash_table=NULL;
+   thread_courant=tmp_thread=Newsgroup_courant->Thread_deb;
+   for (; thread_courant; thread_courant=tmp_thread) {
+      tmp_thread=thread_courant->next_thread;
+      free(thread_courant);
+   }
 }
 
 /* donne le prochain article de la thread...

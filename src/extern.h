@@ -75,7 +75,7 @@ extern int cree_liens(void);
 extern Article_Header *cree_header(Article_List * /*article*/,
     int /*rech_pere*/, int /*others*/);
 extern void ajoute_reponse_a(Article_List * /*article*/);
-extern Article_List *ajoute_message(char * /*msgid*/, int /*exte*/, int * /*should_retry*/);
+extern Article_List *ajoute_message(char * /*msgid*/, int * /*should_retry*/);
 extern Article_List *ajoute_message_par_num(int , int);
 extern void detruit_liste(int);
 extern void libere_liste(void);

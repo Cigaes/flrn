@@ -364,9 +364,11 @@ void free_groups(int save_flnewsrc) {
      if (Newsgroup_courant->Article_deb) {
        Article_deb=Newsgroup_courant->Article_deb;
        Article_exte_deb=Newsgroup_courant->Article_exte_deb;
+       Hash_table=Newsgroup_courant->Hash_table;
        libere_liste();
        Newsgroup_courant->Article_deb=NULL;
        Newsgroup_courant->Article_exte_deb=NULL;
+       Newsgroup_courant->Hash_table=NULL;
        Newsgroup_courant->article_deb_key=0;
      }
      free(Newsgroup_courant);
@@ -387,7 +389,7 @@ void free_groups(int save_flnewsrc) {
 Newsgroup_List *cherche_newsgroup_re (char *name, regex_t reg, int flag)
 {
     int res, code;
-    char *buf;
+    char *buf,*buf2;
     buf=safe_malloc((MAX_NEWSGROUP_LEN+12)*sizeof(char));
     strcpy(buf, "active ");
     if (flag) strcat(buf, Options.prefixe_groupe);
@@ -400,11 +402,11 @@ Newsgroup_List *cherche_newsgroup_re (char *name, regex_t reg, int flag)
     while((res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1))>=0)
     {
       if (tcp_line_read[1]=='\r') return NULL; /* Existe pas... */
-      buf=strchr(tcp_line_read,' ');
-      *buf='\0';
-      buf=tcp_line_read+ (flag ? strlen(Options.prefixe_groupe) : 0);
+      buf2=strchr(tcp_line_read,' ');
+      *buf2='\0';
+      buf=tcp_line_read+(flag ? strlen(Options.prefixe_groupe) : 0);
       if (!regexec(&reg,buf,0,NULL,0)) {
-	*buf=' ';
+	*buf2=' ';
 	buf=safe_strdup(tcp_line_read);
         discard_server();
 	strcpy(tcp_line_read,buf); free(buf);
@@ -467,7 +469,7 @@ Liste_Menu *menu_newsgroup_re (char *name, regex_t reg, int avec_reg)
       if (tcp_line_read[1]=='\r') return lemenu; /* On peut repartir */
       buf=strchr(tcp_line_read,' ');
       *buf='\0';
-      if ((!(avec_reg & 1)) || (!regexec(&reg,tcp_line_read,0,NULL,0))) {
+      if ((!(avec_reg & 1)) || (!regexec(&reg,tcp_line_read+(avec_reg & 2 ? strlen(Options.prefixe_groupe):0),0,NULL,0))) {
 	*buf=' ';
 	creation=un_nouveau_newsgroup(tcp_line_read);
 	courant=ajoute_menu_ordre(lemenu,creation->name,creation,0);
@@ -530,7 +532,7 @@ int cherche_newnews() {
      /* a remplacer par une insertion du message dans la liste */
      for (i=0;i<nombre;i++) {
        if (debug) fprintf(stderr,"New news - %s\n",Message_id[i]);
-       if (ajoute_message(Message_id[i],0,&retry)!=NULL) 
+       if (ajoute_message(Message_id[i],&retry)!=NULL) 
        		articles_ajoutes++; else
 	if (retry) 
            mettre_time=0; 

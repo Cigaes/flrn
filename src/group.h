@@ -44,6 +44,8 @@ typedef struct Group_List
    Range_List *read;	/* Les articles lus */
    long article_deb_key;
    Article_List *Article_deb, *Article_exte_deb;
+   Hash_List *(*Hash_table)[HASH_SIZE];
+   Thread_List *Thread_deb;
 } Newsgroup_List;
 
 
