@@ -419,7 +419,7 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
    char *buf;
    int len2=len;
 
-   if (article->headers==NULL) return; /* Beurk ! */
+   if (article) if (article->headers==NULL) return; /* Beurk ! */
    if (tmp_file) copy_bout(NULL,NULL); else result[0]=0;
    ptr_att=att;
    while (ptr_att && (*ptr_att)) {
