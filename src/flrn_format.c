@@ -446,6 +446,8 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
                     ptr_att++;
                     break;
          case 'n' : { char *vrai_n;
+                      ptr_att++;
+		      if (article==NULL) break;
                       vrai_n=vrai_nom(article->headers->k_headers
                                                 [FROM_HEADER]);
                       if (tmp_file) copy_bout(tmp_file,vrai_n); else
@@ -454,10 +456,12 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 			               free(vrai_n); return; } else 
 			result[len-len2]=0; }
                       free(vrai_n);
-                      ptr_att++;
                       break;
                     }
-         case 'i' : { char *msgid=safe_strdup(article->msgid);
+         case 'i' : { char *msgid;
+                      ptr_att++;
+		      if (article==NULL) break;
+	              msgid=safe_strdup(article->msgid);
                       if (tmp_file) copy_bout(tmp_file,msgid); else
                       { strncat(result,msgid,len2); len2-=strlen(msgid); 
 		        if (len2<=0) { result[len]=0; free(att); free(msgid); 
@@ -468,7 +472,7 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
                       break;
 		    }
          case 'C' : { char *num=safe_malloc(sizeof(int)*3+2);
-		      snprintf(num,sizeof(int)*3+1,"%d",article->numero);
+		      snprintf(num,sizeof(int)*3+1,"%d",article ? article->numero : 0);
                       if (tmp_file) copy_bout(tmp_file,num); else
                       { strncat(result,num,len2); len2-=strlen(num); 
 		        if (len2<=0) { result[len]=0; free(att); free(num); 
@@ -510,6 +514,7 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 		         *ptr_att='\0';
 			 len=strlen(buf);
 			 ptr_att++;
+			 if (article==NULL) break;
 			 for (n=0;n<NB_KNOWN_HEADERS;n++) {
 			    if ((len!=Headers[n].header_len) &&
 			        (len!=Headers[n].header_len-1)) continue;
@@ -523,6 +528,7 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 	                         (len2<=0) { result[len]=0; free(str);
 				             free(att); return; } else 
 			         result[len-len2]=0; }
+			       free(str);
 			    }
 			    break;
 			 }
@@ -531,8 +537,8 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 		    }
          default : { char *str=safe_malloc(3);
 		     sprintf(str,"%%%c",*buf);
-		     if (debug) fprintf(stderr, "Mauvaise attribution : %s\n",
-                                        Options.attribution);
+		     if (debug) fprintf(stderr, "Mauvaise formatage : %%%s\n",
+                                        buf);
                       if (tmp_file) copy_bout(tmp_file,str); else
                       { strncat(result,str,len2); len2-=strlen(str); if
 	                (len2<=0) { result[len]=0; free(str); 
