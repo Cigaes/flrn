@@ -13,7 +13,7 @@ AC_PROG_YACC
 dnl En fait, on peut s'en passer...
 AC_CHECK_PROGS(MAKEDEPEND,gccmakedep makedepend, echo)
 
-AC_PATH_PROG(SENDMAIL, sendmail, no, `echo $PATH | sed "s/:/ /"` /usr/sbin /usr/lib)
+AC_PATH_PROG(SENDMAIL, sendmail, no, `echo $PATH`:/usr/sbin:/usr/lib)
 AC_DEFINE_UNQUOTED(SENDMAIL, "$ac_cv_path_SENDMAIL")
 
 AC_ARG_WITH(default-host, [  --with-default-host[=MACHINE]   default host for adresses],

@@ -924,7 +924,7 @@ else
   ;;
   *)
   IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
-  ac_dummy="`echo $PATH | sed "s/:/ /"` /usr/sbin /usr/lib"
+  ac_dummy="`echo $PATH`:/usr/sbin:/usr/lib"
   for ac_dir in $ac_dummy; do 
     test -z "$ac_dir" && ac_dir=.
     if test -f $ac_dir/$ac_word; then
