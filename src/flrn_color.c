@@ -26,7 +26,7 @@
 static char UNUSED rcsid[]="$Id$";
 
 /* I want to use this code and the old one together */
-#define START_COLOR_NUM 11
+#define START_COLOR_NUM 13
 #if START_COLOR_NUM <= NROF_FIELDS
 #error START_COLOR_NUM too small
 #endif
@@ -55,6 +55,8 @@ struct Obj_color_struct Colors[NROF_FIELDS] =
 	      {"default","default",0,0},  /* File */
 	      {"default","default",0,0},  /* summary */
 	      {"default","default",FL_REV_MASK,FL_REV_MASK},  /* search */
+	      {"red","default",0,0},  /* at_mine */
+	      {"default","default",0,0},  /* at_other */
 	    };
 
 

@@ -27,21 +27,25 @@ static char *Field_names[] ={
   "file",
   "summary",
   "search",
+  "at_mine",
+  "at_other",
 };
 #endif
 
-#define FIELD_NORMAL  0
-#define FIELD_HEADER  1
-#define FIELD_STATUS  2
-#define FIELD_ERROR   3
-#define FIELD_QUOTED  4
-#define FIELD_AFF_FIN 5
-#define FIELD_SIG     6
-#define FIELD_FILE    7
-#define FIELD_SUMMARY 8
-#define FIELD_SEARCH  9
+#define FIELD_NORMAL   0
+#define FIELD_HEADER   1
+#define FIELD_STATUS   2
+#define FIELD_ERROR    3
+#define FIELD_QUOTED   4
+#define FIELD_AFF_FIN  5
+#define FIELD_SIG      6
+#define FIELD_FILE     7
+#define FIELD_SUMMARY  8
+#define FIELD_SEARCH   9
+#define FIELD_AT_MINE 10
+#define FIELD_AT_OTH  11
 
-#define NROF_FIELDS  10
+#define NROF_FIELDS  12
 
 /* Les fonctions */
 

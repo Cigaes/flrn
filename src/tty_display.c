@@ -57,7 +57,7 @@ int num_help_line=0;
 int row_erreur, col_erreur;
 int error_fin_displayed=0;
 /* pour l'arbre */
-unsigned char **table_petit_arbre;
+unsigned short **table_petit_arbre;
 
 /* Objet courant dans l'affichage de l'article */
 /* Espace actuellement conservé dans l'affichage de l'article */
@@ -159,9 +159,9 @@ int screen_changed_size() {
 int Init_screen(int stupid_term) {
    int res;
 
-   table_petit_arbre=safe_malloc(7*sizeof(char *));
+   table_petit_arbre=safe_malloc(7*sizeof(short *));
    for (res=0;res<7;res++)
-     table_petit_arbre[res]=safe_malloc(11);
+     table_petit_arbre[res]=safe_malloc(11*sizeof(short));
    Get_terminfo (Options.help_line);
    if (stupid_term) Set_term_cannot_scroll(1);
    res=Screen_init_smg ();
@@ -733,12 +733,12 @@ int Liste_groupe (int flags, char *mat, Newsgroup_List **retour) {
 #define SYMB_ART_UNK  '?'
 #define SYMB_ART_UNR  'O'
 #define SYMB_ART_COUR '@'
-#define SYMB_SLASH    '/'
-#define SYMB_ANTISLASH '\\'
-#define SYMB_LOWER    'v'
-#define SYMB_HIGHER   '^'
-#define SYMB_BEFORE   '<'
-#define SYMB_AFTER    '>'
+#define SYMB_SLASH    (FIELD_NORMAL<<8) + '/'
+#define SYMB_ANTISLASH (FIELD_NORMAL<<8) + '\\'
+#define SYMB_LOWER    (FIELD_NORMAL<<8) + 'v'
+#define SYMB_HIGHER   (FIELD_NORMAL<<8) + '^'
+#define SYMB_BEFORE   (FIELD_NORMAL<<8) + '<'
+#define SYMB_AFTER    (FIELD_NORMAL<<8) + '>'
 /* row, col : coordonnées du haut a gauche */
 /* on essaie d'arranger to_left et to_right... height est la max... */
 /* table est un pointeur vers un tableau de taille ((to_left+to_right)*2+3, */
@@ -748,15 +748,16 @@ int Liste_groupe (int flags, char *mat, Newsgroup_List **retour) {
 /* on renvoie la colonne atteinte...					*/
 int Aff_arbre (int row, int col, Article_List *init,
     		int to_left, int to_right, int height,
-		unsigned char **table, int add_to_scroll) {
+		unsigned short **table, int add_to_scroll) {
   Article_List *parcours=init, *parcours2, *parcours3;
   int up,down, act_right, act_right_deb, act_right_temp, left, right, initcol;
   int row_deb=row; /* juste pour l'affichage */
-  unsigned short *toto;
 
   /* on "nettoie" table */
   for (up=0;up<height+1;up++)
-    memset (table[up], ' ', (to_left+to_right)*2+3);
+      for (left=0;left<(to_left+to_right)*2+3; left++) 
+        table[up][left]=(FIELD_NORMAL<<8) + ' ';
+#define field_for_art(x) (Est_proprietaire(x) ? FIELD_AT_MINE : FIELD_AT_OTH)
 #define char_for_art(x) (x->numero== -1 ? SYMB_ART_UNK : (x->flag & FLAG_READ ? SYMB_ART_READ : SYMB_ART_UNR))
   /* Enfin, on va commencer "modifier" to_left et to_right... */
   left=up=down=act_right=act_right_deb=0;
@@ -795,8 +796,10 @@ int Aff_arbre (int row, int col, Article_List *init,
      remonte=0;
      act_right=act_right_deb;
      cl=initcol+act_right*2;
-     if (parcours==init) (table[0])[cl]=SYMB_ART_COUR;
-        else (table[0])[cl]=char_for_art(parcours);
+     if (parcours==init) (table[0])[cl]= (field_for_art(parcours)<<8) +
+	        SYMB_ART_COUR;
+        else (table[0])[cl]=(field_for_art(parcours)<<8) +
+	                         char_for_art(parcours);
      if (act_right!=-left) (table[0])[cl-1]='-'; 
      /* on commence l'infame parcours */
      parcours2=parcours->frere_prev;
@@ -832,7 +835,8 @@ int Aff_arbre (int row, int col, Article_List *init,
 	   /* on fait donc l'affichage (remonte=0 toujours ici) */
 
 	   up++; rw--;
-	   (table[rw])[cl]=char_for_art(parcours2);
+	   (table[rw])[cl]=(field_for_art(parcours2)<<8) +
+	                      char_for_art(parcours2);
 	   if (parcours2->prem_fils) (table[rw])[cl+1]=SYMB_AFTER;
 	   act_right_temp=act_right; parcours3=parcours2; c=cl;
 	   /* et on remonte pour l'affichage */
@@ -840,7 +844,8 @@ int Aff_arbre (int row, int col, Article_List *init,
 	      if (parcours3->pere->prem_fils==parcours3) {
 		 parcours3=parcours3->pere;
 		 act_right_temp--; c-=2;
-		 (table[rw])[c]=char_for_art(parcours3);
+		 (table[rw])[c]=(field_for_art(parcours3)<<8) +
+		                          char_for_art(parcours3);
 		 (table[rw])[c+1]='-';
 		 r=rw+1;
 		 if (parcours3->prem_fils->frere_suiv)
@@ -910,7 +915,8 @@ int Aff_arbre (int row, int col, Article_List *init,
 	   /* on fait donc l'affichage (remonte=0 toujours ici) */
 
 	   down++; rw++;
-	   (table[rw])[cl]=char_for_art(parcours2);
+	   (table[rw])[cl]=(field_for_art(parcours2)<<8)
+	                          + char_for_art(parcours2);
 	   if (parcours2->prem_fils) (table[rw])[cl+1]=SYMB_AFTER;
 	   act_right_temp=act_right; parcours3=parcours2; c=cl;
 	   /* et on remonte pour l'affichage */
@@ -918,7 +924,8 @@ int Aff_arbre (int row, int col, Article_List *init,
 	      if (parcours3->pere->prem_fils==parcours3) {
 		 parcours3=parcours3->pere;
 		 act_right_temp--; c-=2;
-		 (table[rw])[c]=char_for_art(parcours3);
+		 (table[rw])[c]=(field_for_art(parcours3)<<8)
+		                    + char_for_art(parcours3);
 		 (table[rw])[c+1]='-';
 		 r=rw-1;
 		 if (parcours3->prem_fils->frere_prev)
@@ -965,26 +972,24 @@ int Aff_arbre (int row, int col, Article_List *init,
   				
   for (;up>0;up--) {
     Cursor_gotorc(row++,col);
-    Screen_write_nstring(table[height+1-up],initcol+right*2+2);
+    Screen_write_color_chars(table[height+1-up],initcol+right*2+2);
     if (add_to_scroll) {
-       toto=cree_chaine_mono(table[height+1-up],FIELD_NORMAL,initcol+right*2+2);
-       if (Rajoute_color_Line(toto,row-1-row_deb,initcol+right*2+2,col)==NULL) {
+       if (Rajoute_color_Line(table[height+1-up],
+		      row-1-row_deb,initcol+right*2+2,col)==NULL) {
           Ajoute_color_Line(NULL,0,Screen_Cols);
-	  Rajoute_color_Line(toto,-1,initcol+right*2+2,col);
+	  Rajoute_color_Line(table[height+1-up],-1,initcol+right*2+2,col);
        }
-       free(toto);
     }
   }
   for (up=0;up<=down;up++) {
     Cursor_gotorc(row++,col);
-    Screen_write_nstring(table[up],initcol+right*2+2);
+    Screen_write_color_chars(table[up],initcol+right*2+2);
     if (add_to_scroll) {
-       toto=cree_chaine_mono(table[up],FIELD_NORMAL,initcol+right*2+2);
-       if (Rajoute_color_Line(toto,row-1-row_deb,initcol+right*2+2,col)==NULL) {
+       if (Rajoute_color_Line(table[up],
+		     row-1-row_deb,initcol+right*2+2,col)==NULL) {
           Ajoute_color_Line(NULL,0,Screen_Cols);
-	  Rajoute_color_Line(toto,-1,initcol+right*2+2,col);
+	  Rajoute_color_Line(table[up],-1,initcol+right*2+2,col);
        }
-       free(toto);
     }
   }
   return (row-1);
@@ -1727,16 +1732,18 @@ static int base_Aff_article(int to_build) {
 
 /* On affiche un grand thread, plus un résumé de l'article courant */
 int Aff_grand_thread(int to_build) {
-   unsigned char **grande_table;
+   unsigned short **grande_table;
    int i;
 
    if (base_Aff_article(to_build)==-1) return 0;
-   grande_table=safe_malloc((Screen_Rows-4)*sizeof(char *));
+   grande_table=safe_malloc((Screen_Rows-4)*sizeof(short *));
    for (i=0;i<Screen_Rows-4;i++)
-     grande_table[i]=safe_malloc(Screen_Cols);
+     grande_table[i]=safe_malloc(Screen_Cols*sizeof(short));
    Aff_arbre(2,0,Article_courant,Screen_Cols/4-1,Screen_Cols/4-1,
         Screen_Rows-5,grande_table,0);
    raw_Aff_summary_line(Article_courant, Screen_Rows-2, NULL, 0);
+   for (i=0;i<Screen_Rows-4;i++)
+     free(grande_table[i]);
    return 0;
 }
 

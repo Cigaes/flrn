@@ -2457,7 +2457,7 @@ int do_neth(int res) {  /* Très pratique, cette fonction, pour les tests idiots 
 }
 
 #if 0
-  unsigned char **grande_table;
+  unsigned short **grande_table;
   int i;
 
   Cursor_gotorc(1,0);
@@ -2465,9 +2465,9 @@ int do_neth(int res) {  /* Très pratique, cette fonction, pour les tests idiots 
   num_help_line=1;
   Aff_help_line(Screen_Rows-1);
   Cursor_gotorc(1,0);
-  grande_table=safe_malloc((Screen_Rows-1)*sizeof(char *));
+  grande_table=safe_malloc((Screen_Rows-1)*sizeof(short *));
   for (i=0;i<Screen_Rows-1;i++)
-    grande_table[i]=safe_malloc(Screen_Cols);
+    grande_table[i]=safe_malloc(Screen_Cols*sizeof(short));
 
   Aff_arbre(1,0,Article_courant,Screen_Cols/4-1,Screen_Cols/4-1,Screen_Rows-2,grande_table,0);
   for (i=0;i<Screen_Rows-1;i++)
