@@ -637,7 +637,7 @@ static void raw_parse_options_line (char *ligne, int flag)
   /* on n'a pas trouve */
   if (flag) Aff_error_fin("Option non reconnue",1); else
   {
-    fprintf(stderr,"Option non reconnue : %s\n",ligne);
+    fprintf(stderr,"Option non reconnue : %s\n",buf);
     sleep(1);
   }
   /* On peut se le permettre : flrn n'est pas lancé */

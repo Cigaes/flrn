@@ -22,6 +22,7 @@
 /* fonctions pour parser une option */
 int opt_do_header(char *, int);
 int opt_do_my_hdr(char *, int);
+int opt_do_include(char *, int);
 int opt_do_color(char *, int);
 int opt_do_mono(char *, int);
 int opt_do_regcolor(char *, int);
@@ -40,6 +41,7 @@ struct _Optcmd {
 } Optcmd_liste[] = {
   {"header", &opt_do_header, NULL},
   {"my_hdr", &opt_do_my_hdr, NULL},
+  {"include", &opt_do_include, NULL},
   {"my_flags", &opt_do_my_flags, NULL},
   {"color", &opt_do_color, NULL},
   {"mono", &opt_do_mono, NULL},
