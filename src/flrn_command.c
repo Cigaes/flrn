@@ -50,25 +50,34 @@ static void del_macro(int num) {
 /* renvoie -1 en cas de pb
  * si add!=0, on ajoute la commande... */
 int Bind_command_new(int key, int command, char *arg, int context, int add ) {
-  int *to_add=NULL;
-  int mac_num;
+  int parcours,*to_add=NULL;
+  int mac_num,mac_prec=-1;
   if (add) {
     if (Flcmd_rev[context][key] < 0) {
       return -1;
     }
-    if ((Flcmd_rev[context][key] & FLCMD_MACRO) == 0) {
-      mac_num = do_macro(Flcmd_rev[context][key] ,NULL);
-      Flcmd_rev[context][key] = mac_num | FLCMD_MACRO;
+    parcours=Flcmd_rev[context][key];
+    while ((parcours>-1) && (parcours & FLCMD_MACRO)) {
+      mac_prec=parcours ^ FLCMD_MACRO;
+      parcours=Flcmd_macro[parcours ^ FLCMD_MACRO].next_cmd;
+    }
+    if (parcours>-1) {
+      mac_num = do_macro(parcours ,NULL);
+      if (mac_prec==-1) Flcmd_rev[context][key] = mac_num | FLCMD_MACRO;
+          else Flcmd_macro[mac_prec].next_cmd=mac_num | FLCMD_MACRO;
       to_add = & Flcmd_macro[mac_num].next_cmd;
     } else {
-      to_add = & Flcmd_macro[Flcmd_rev[context][key] ^ FLCMD_MACRO].next_cmd;
+      to_add = & Flcmd_macro[mac_prec].next_cmd;
     }
   } else {
     to_add = &Flcmd_rev[context][key];
-    /* pour liberer la macro */
-    if ((Flcmd_rev[context][key]>=0) &&
-	(Flcmd_rev[context][key] & FLCMD_MACRO))
-      del_macro(Flcmd_rev[context][key] ^ FLCMD_MACRO);
+    parcours = Flcmd_rev[context][key];
+    while ((parcours>-1) && (parcours & FLCMD_MACRO)) {
+       /* pour liberer la macro */
+       mac_prec=parcours ^ FLCMD_MACRO;
+       parcours=Flcmd_macro[parcours ^ FLCMD_MACRO].next_cmd;
+       del_macro(mac_prec);
+    }
   }
   if (arg != NULL) {
     mac_num = do_macro(command,arg);

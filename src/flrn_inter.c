@@ -419,7 +419,7 @@ int loop(char *opt) {
 	   if (key<0) key=0; /* Aff_article_courant a renvoyé une erreur */
 	   if (etat_loop.next_cmd>=0) {
 	     res=etat_loop.next_cmd;
-	     etat_loop.next_cmd=-1;
+	     etat_loop.next_cmd=-1; /* remis à jour ensuite */
 	     Arg_str[0]='\0';
 	   } else
 	     res=get_command(key);
@@ -629,7 +629,7 @@ static union element Decode_numero(char *str, union element defaut, int *flag) {
  * On a deux règles spéciales : 0 est l'article courant,
  * 1 le premier article du groupe */
 static void Parse_nums_article(char *str, char **sortie, int flags) {
-   char *ptr=str, *ptr2, *ptrsign;
+   char *ptr=str, *ptr2=NULL, *ptrsign;
    int reussi=1, flag;
    char save_char='\0';
    union element defaut;
