@@ -10,8 +10,8 @@ Il a été rendu volontairement assez libre, il est donc possible de
 faire de nombreuses choses à la sémantique douteuse et même de faire planter
 flrn avec. La syntaxe est librement inspirée de celles de procmail et de slrn.
 
-Ce fichier est constitués de blocs séparés par une ligne blanche. # introduit
-encore des commentaires.
+Ce fichier est constitués de blocs séparés par une ligne blanche.
+'#' introduit encore des commentaires.
 
 La première ligne d'un bloc indique les groupes où cela s'applique. Elle est
 de la forme :
@@ -21,17 +21,29 @@ Il n'y a pas encore de flag implémenté.
 La suite est constituée de
 . conditions (Header: regexp ou ^Header:regexp) sur les headers (une partie des
   headers seulement pour l'instant) de la forme :
-*<condition>
-. conditions sur les flags de l'article (read/unread/all) :
+*Header: <regexp>
+*^Header: <regexp>       # on peut remplacer ^ par ~.
+*'Header: <sous-chaine>  # on peut remplacer ' par ".
+*^'Header: <sous-chaine> # attention c'est ^' et pas '^.
+
+. conditions sur les flags de l'article (read/unread/all/killed/unkilled) :
+  (par défaut, c'est unread)
 F<flag>
-. de flag a modifier (read)
+
+. de flag a modifier (read, killed)
 T<flag>
+
 . de commande à lancer (la, faire attention, il n'est fait aucune
   vérification !)
 C<commande avec arguments>
 
 On ne peut avoir qu'une ligne T, et on ne peut avoir à la fois des lignes T
 et C. Par contre, on peut avoir plusieurs commandes.
+De plus, le flag killed implique le flag read.
+Il faut remarquer que pour limiter le volume de donnees echangees avec le
+serveur, des articles correspondant au kill-file peuvent apparaitre dans le
+résumé sous certaines conditions.
+Les regexp ne sont pas case-sensitive pour l'instant.
 
 Par exemple :
 
