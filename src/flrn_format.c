@@ -445,6 +445,7 @@ static int translate_escape_seq(char *dst, char *src) {
          case 'r' : *(dst++)='\r'; break;
          case 't' : *(dst++)='\t'; break;
          case 'v' : *(dst++)='\v'; break;
+         case '\\' : *(dst++)='\\'; break;
 	 default : dst++; *(dst++)='?'; break;
      }
    }
