@@ -29,6 +29,7 @@
 #include "flrn_command.h"
 #include "options.h"
 #include "site_config.h"
+#include "slang_flrn.h"
 
 #ifdef WITH_CHARACTER_SETS
 #include "rfc2045.h"
@@ -912,7 +913,7 @@ int change_value(Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int l
 	Cursor_gotorc(Screen_Rows-2,0);
 	Screen_erase_eol();
 	Screen_write_string("Nouvelle valeur: ");
-	ret=getline(buf,60,Screen_Rows-2,17);
+	ret=flrn_getline(buf,60,Screen_Rows-2,17);
 	if (ret!=0) break;
 	new_value=strtol(buf,NULL,10);
 	changed=(new_value!=*All_options[num].value.integer);
@@ -925,7 +926,7 @@ int change_value(Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int l
 	Cursor_gotorc(Screen_Rows-2,0);
 	Screen_erase_eol();
 	Screen_write_string("Nouvelle valeur: ");
-	ret=getline(buf,60,Screen_Rows-2,17);
+	ret=flrn_getline(buf,60,Screen_Rows-2,17);
 	if (ret!=0) break;
 	if (*All_options[num].value.string) 
 	  changed=(strcmp(buf,*All_options[num].value.string)!=0);

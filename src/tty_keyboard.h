@@ -17,8 +17,8 @@
 
 extern int Init_keyboard(int);
 extern int Attend_touche(void);
-extern int getline(char * /*buf*/, int /*buffsize*/, int /*row*/, int /*col*/);
-extern int magic_getline(char * /*buf*/, int /*buffsize*/, int /*row*/,
+extern int flrn_getline(char * /*buf*/, int /*buffsize*/, int /*row*/, int /*col*/);
+extern int magic_flrn_getline(char * /*buf*/, int /*buffsize*/, int /*row*/,
     int /*col*/, char * /*magic*/, int /*flag*/, int /* key */);
 
 #endif

@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #include "flrn.h"
 #include "flrn_slang.h"
@@ -122,7 +123,7 @@ int Attend_touche() {
 /* buf DOIT etre initialise en le debut de la ligne...			*/
 /* renvoie qqchose >0 si on a appuye sur une des touches magiques et flag=0 */
 /* le code de la touche si ce n'est pas une touche magique et flag=1 */
-int magic_getline(char *buf, int buffsize, int row, int col, char *magic, int flag, int key_pressed)
+int magic_flrn_getline(char *buf, int buffsize, int row, int col, char *magic, int flag, int key_pressed)
 {
    int place;
    int key=0;
@@ -168,8 +169,8 @@ int magic_getline(char *buf, int buffsize, int row, int col, char *magic, int fl
    return 0;
 }
 
-int getline(char *buf, int buffsize, int row, int col)
+int flrn_getline(char *buf, int buffsize, int row, int col)
 {
-  return magic_getline(buf,buffsize,row,col,"",0,0);
+  return magic_flrn_getline(buf,buffsize,row,col,"",0,0);
 }
 

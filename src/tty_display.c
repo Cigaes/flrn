@@ -19,7 +19,6 @@
 #include <strings.h>
 #include <signal.h>
 #include <unistd.h>
-
 #include <ctype.h>
 
 #include "flrn.h"

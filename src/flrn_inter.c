@@ -800,7 +800,7 @@ static int get_str_arg(int res, char *beg) {
      ret2=0;
      do {
         Aff_ligne_comp_cmd(str,strlen(str),col);
-	if ((ret=magic_getline(str,MAX_CHAR_STRING,Screen_Rows2-1,col,
+	if ((ret=magic_flrn_getline(str,MAX_CHAR_STRING,Screen_Rows2-1,col,
 			"\011",0,ret2))<0) return -1;
 	ret2=0;
 	if (ret>0) ret2=Comp_general_command(str, MAX_CHAR_STRING,col,
@@ -808,7 +808,7 @@ static int get_str_arg(int res, char *beg) {
 	if (ret2<0) ret2=0;
      } while (ret!=0);
    } else {
-     ret=getline(str, MAX_CHAR_STRING, Screen_Rows2-1, col);
+     ret=flrn_getline(str, MAX_CHAR_STRING, Screen_Rows2-1, col);
      if (ret<0) return -1;
    }
    if (Flcmds[res].flags & 2) 
@@ -1389,7 +1389,7 @@ int do_omet(int res) {
        use_argstr=1;
        name=safe_malloc(30*sizeof(char));
        col=Aff_fin("Flag : ");
-       if ((ret=getline(name, MAX_PATH_LEN, Screen_Rows2-1,col)<0)) {
+       if ((ret=flrn_getline(name, MAX_PATH_LEN, Screen_Rows2-1,col)<0)) {
           free(name);
 	  etat_loop.etat=3;
 	  return 0;
@@ -2073,7 +2073,7 @@ int do_save(int res) {
     name[0]=toupper(name[0]);
     col=Aff_fin("Sauver dans : ");
     Screen_write_string(name);
-    if ((ret=getline(name, MAX_PATH_LEN, Screen_Rows2-1,col)<0)) {
+    if ((ret=flrn_getline(name, MAX_PATH_LEN, Screen_Rows2-1,col)<0)) {
       free(name);
       etat_loop.etat=3;
       return 0;
@@ -2218,7 +2218,7 @@ int do_pipe(int res) {
     name=safe_malloc(MAX_PATH_LEN*sizeof(char));
     name[0]='\0';
     col=Aff_fin("Piper dans : ");
-    if ((ret=getline(name, MAX_PATH_LEN, Screen_Rows2-1,col)<0)) {
+    if ((ret=flrn_getline(name, MAX_PATH_LEN, Screen_Rows2-1,col)<0)) {
       free(name);
       etat_loop.etat=3;
       return 0;
@@ -2826,7 +2826,7 @@ void Get_option_line(char *argument)
     col=Aff_fin("Option: ");
     do {
       if (res>0) Aff_ligne_comp_cmd(buf,strlen(buf),col);
-      if ((res=magic_getline(buf,MAX_BUF_SIZE,Screen_Rows2-1,col,
+      if ((res=magic_flrn_getline(buf,MAX_BUF_SIZE,Screen_Rows2-1,col,
 	  "\011",0,ret))<0) {
         free(buf);
         return;

@@ -12,7 +12,9 @@
 
 #define IN_FLRN_MENUS_C
 
+#include <ctype.h>
 #include <stdlib.h>
+
 #include "flrn.h"
 #include "options.h"
 #include "flrn_menus.h"

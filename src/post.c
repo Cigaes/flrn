@@ -56,7 +56,7 @@ static int get_Sujet_post(char *str) {
    Screen_write_string("Sujet : ");
    do {
      str[0]='\0';
-     res=getline(str,MAX_SUJET_LEN,2,8); 
+     res=flrn_getline(str,MAX_SUJET_LEN,2,8); 
    } while (res==-2);   /* un backspace en debut de ligne ne fait rien */
    return res; 
 }
@@ -794,7 +794,7 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
 	  if (*copy_pre) strcpy(nom2,Options.prefixe_groupe);
 	  Screen_write_string("Nom du groupe : ");
 	  Screen_write_string(nom2);
-	  ret=getline(nom2,MAX_NEWSGROUP_LEN,Screen_Rows2-1,16);
+	  ret=flrn_getline(nom2,MAX_NEWSGROUP_LEN,Screen_Rows2-1,16);
 	  if (ret<0) {
 	     strcpy(nom2,nom);
 	     to_test=0;
@@ -805,7 +805,7 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
 	col=(Options.use_regexp ? 9 : 14);
 	Screen_write_string(Options.use_regexp ? "Regexp : " :
 						 "Sous-chaîne : ");
-	ret=getline(nom2,MAX_NEWSGROUP_LEN,Screen_Rows2-1,col);
+	ret=flrn_getline(nom2,MAX_NEWSGROUP_LEN,Screen_Rows2-1,col);
 	if (ret<0) {
 	   strcpy(nom2,nom);
 	   to_test=0;

@@ -42,7 +42,7 @@ int get_new_pattern() {
    char line[SIZE_PATTERN_SEARCH];
    col=Aff_fin("Search : ");
    line[0]='\0';
-   ret=getline(line,SIZE_PATTERN_SEARCH-1,Screen_Rows2-1,col);
+   ret=flrn_getline(line,SIZE_PATTERN_SEARCH-1,Screen_Rows2-1,col);
    if ((ret==0) && (*line)) strcpy(pattern_search,line);
    return ret;
 }
