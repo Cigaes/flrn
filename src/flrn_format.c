@@ -282,6 +282,7 @@ char *vrai_nom (char *nom) {
     result=safe_malloc((strlen(nom)+1)*sizeof(char));
     memset(result, 0, strlen(nom)+1);
     *result='\0';
+    if (nom==NULL) return result;
     buf1=strchr(nom,'(');
     if (buf1) {
        buf1++;
@@ -306,6 +307,10 @@ char *local_date (char *date) {
     struct tm tim;
 
     result=safe_malloc(13*sizeof(char));
+    if (date==NULL) {
+       strcpy(result,"???");
+       return result;
+    }
     while(*mydate && !isdigit((int) *mydate)) mydate++;
 
     if(sscanf(mydate,"%d %s %d %d:%d:%d", &(tim.tm_mday), mon, &(tim.tm_year),
@@ -569,6 +574,8 @@ char * Prepare_summary_line(Article_List *article, char *previous_subject,
 	 Options.date_in_summary))
       cree_header(article,0,0,by_msgid);
     if (article->headers==NULL) return NULL;
+    if (article->headers->k_headers[FROM_HEADER]==NULL) return NULL;
+    if (article->headers->k_headers[SUBJECT_HEADER]==NULL) return NULL;
     deb_num=0; deb_nom=7;
     deb_rep=outlen-8;
     if(Options.date_in_summary)

@@ -78,7 +78,7 @@ static int calcul_hash(char *id) {
   return toto;
 }
 
-static void free_one_article(Article_List *article,int flag) {
+void free_one_article(Article_List *article,int flag) {
   if (!article) return;
   free_article_headers(article->headers);
   if (flag) {
@@ -427,7 +427,7 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others, in
   /* Resultats */
    do {
       res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
-      if (res<0) return creation; 
+      if (res<0) return NULL; 
       flag=(flag & 2 ? 1 : 0); 
       if (res>1) {
         flag|=2*(tcp_line_read[res-2]=='\r');
@@ -569,12 +569,20 @@ Article_List *ajoute_message (char *msgid, int *should_retry) {
    creation=safe_calloc(1,sizeof(Article_List));
    creation->numero=strtol(buf,NULL,10);
    creation->msgid=safe_strdup(msgid);
-   creation->headers=cree_header(creation, 0, 1, 0);
+   cree_header(creation, 0, 1, 0);
    if (creation->headers==NULL) {
       free(creation->msgid);
       free(creation);
       *should_retry=1;
       return NULL;
+   } else if ((creation->headers->k_headers[FROM_HEADER]==NULL) ||
+		(creation->headers->k_headers[SUBJECT_HEADER]==NULL))
+   {
+     free_article_headers(creation->headers);
+     free(creation->msgid);
+     free(creation);
+     *should_retry=1;
+     return NULL;
    }
 
    parcours=Article_deb; 
@@ -643,6 +651,13 @@ Article_List *ajoute_message_par_num (int min, int max) {
       free(creation->msgid);
       free(creation);
       return NULL;
+   } else if ((creation->headers->k_headers[FROM_HEADER]==NULL) ||
+		(creation->headers->k_headers[SUBJECT_HEADER]==NULL))
+   {
+     free_article_headers(creation->headers);
+     free(creation->msgid);
+     free(creation);
+     return NULL;
    }
 
    parcours=Article_deb; 

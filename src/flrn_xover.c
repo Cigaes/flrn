@@ -229,9 +229,11 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
 	 if (article->headers->k_headers[DATE_HEADER])
 	    article->headers->date_gmt=
 	      parse_date(article->headers->k_headers[DATE_HEADER]);
-	 /* FIXME :
-	   if (article->msgid==NULL) {... free_one_article(article);...}
-	 */
+	 if (article->msgid==NULL) { /* y'a eu une erreur grave */
+	    free_one_article(article,1);
+	    article=Article_deb;
+	    crees-=new_article;
+	 }
        }
        res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
        if (res<0) return -1;
@@ -288,7 +290,15 @@ int cree_liste_noxover(int min, int max, Article_List *start_article) {
       if (article) article->next=creation; 
 	  	else Article_deb=Article_courant=creation;
       creation->msgid = safe_malloc ((res-2)*sizeof(char));
-      sscanf(tcp_line_read, "%d %s", &(creation->numero), creation->msgid);
+      if (sscanf(tcp_line_read, "%d %s", &(creation->numero), creation->msgid)<2) {
+         crees--;
+	 free_one_article(creation,1);
+         res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+         if (res<0) {free(buf);return -1;}
+         tcp_line_read[res-2]='\0';  /* Idem */
+	 continue;
+      }
+
 
       creation->flag =0;
       /* on regarde si le message est lu */

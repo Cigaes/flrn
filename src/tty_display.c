@@ -1148,8 +1148,11 @@ int Aff_headers (int flag) {
 	   if (Article_courant->headers->date_gmt) {
 	     strncat(une_ligne,ctime(&Article_courant->headers->date_gmt),53);
 	   } else
-	     strncat(une_ligne,
+	     if (Article_courant->headers->k_headers[DATE_HEADER])
+	        strncat(une_ligne,
 	              Article_courant->headers->k_headers[DATE_HEADER],53);
+	     else
+	        strcat(une_ligne,"???");
 	   une_belle_ligne=safe_malloc((strlen(une_ligne)+1)*sizeof(short));
 	   Aff_color_line(0,une_belle_ligne, &length,
 	          FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);
@@ -1562,11 +1565,13 @@ int Aff_article_courant(int to_build) {
    if ((!Article_courant->headers) ||
        (Article_courant->headers->all_headers==0) || (Last_head_cmd.Article_vu!=Article_courant)) {
         cree_header(Article_courant,1,1,0);
-        if (!Article_courant->headers) {
+        if ((!Article_courant->headers) || (Article_courant->headers->k_headers[FROM_HEADER]=NULL) || (Article_courant->headers->k_headers[SUBJECT_HEADER]==NULL)) {
 	    Aff_place_article(1);
 	    Screen_set_color(FIELD_ERROR);
 	    Cursor_gotorc(row_erreur,col_erreur); 
-	    Screen_write_string("Article indisponible.");
+	    if (Article_courant->headers==NULL) 
+	       Screen_write_string("Article indisponible."); else
+	       Screen_write_string("Article incompréhensible.");
 	    Screen_set_color(FIELD_NORMAL);
 	    if (!(Article_courant->flag & FLAG_READ) && (Article_courant->numero>0) &&
 	           (Newsgroup_courant->not_read>0)) {
