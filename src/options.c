@@ -32,7 +32,8 @@ Known_Headers unknown_Headers[MAX_HEADER_LIST];
 static void free_string_list_type (string_list_type *s_l_t);
 static int parse_option_file (char *name, int flags, int flag_option);
 
-static char *option_ligne = NULL;
+static char *option_ligne=NULL;
+static int deep_inclusion=0;
 
 int var_comp(char *var, int len, Liste_Chaine *debut)
 {
@@ -273,7 +274,6 @@ int opt_do_include(char *buf, int flag)
 {
   char *buf2;
   int found;
-  static int deep_inclusion;
 
   if (buf == NULL) return -1;
   if (*buf=='"') {

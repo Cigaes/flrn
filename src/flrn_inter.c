@@ -2174,13 +2174,28 @@ static int Sauve_article(Article_List *a_sauver, void *vfichier) {
 
 /* Change de newsgroup pour récuperer le même article */
 /* On va essayer de faire quelque chose d'assez complet */
-/* pour l'instant, on ne gère pas une regexp */
+typedef struct {
+   Newsgroup_List *gpe;
+   long numero;
+} Flrn_Reference_swap;
+
 int do_swap_grp(int res) {
   Article_List *article_considere;
-  char *newsgroup, *buf, *num, *nom_temp=NULL;
-  int numero, num_temp=0;
-  Newsgroup_List *mygroup;
+  char *newsgroup, *buf, *num, *tmp_name, *gpe;
+  long numero;
+  int nostr=0;
+  regex_t reg;
+  Newsgroup_List *mygroup=NULL;
+  int avec_un_menu=Options.use_menus;
+  Liste_Menu *lemenu=NULL, *courant=NULL;
+  Flrn_Reference_swap *objet;
 
+  gpe=Arg_str;
+  while ((*gpe) && (isblank(*gpe))) gpe++;
+  if (*gpe=='\0') nostr=1;
+  if ((!nostr) && (Options.use_regexp)) {
+    if(regcomp(&reg,gpe,REG_EXTENDED|REG_NOSUB)) {etat_loop.etat=2;
+    	etat_loop.num_message=-10; return 0;} }
   article_considere=Article_courant;
   if (Arg_do_funcs.flags & 34) 
     Recherche_article(Arg_do_funcs.elem1.num, &article_considere, 0); else
@@ -2204,41 +2219,80 @@ int do_swap_grp(int res) {
   newsgroup=strtok(buf," ");
   while ((newsgroup=strtok(NULL," :"))) {
     num=strtok(NULL, ": ");
-    if (!num) {free(buf); etat_loop.etat=1; etat_loop.num_message=3; 
-    		if (nom_temp) free(nom_temp); return 0;}
+    if (!num) { free(buf); etat_loop.etat=1; etat_loop.num_message=3; 
+    		if ((!nostr) && (Options.use_regexp))
+		  regfree(&reg);
+		return 0;}
     numero=atoi(num);
-    if (strcmp(Newsgroup_courant->name,newsgroup)==0) continue;
-    if (strstr(truncate_group(newsgroup,0), Arg_str)) {   
-    				/* et si Arg_str=="" ? */
+    if ((!avec_un_menu) && (strcmp(Newsgroup_courant->name,newsgroup)==0))
+      continue;
+    if (!avec_un_menu) tmp_name=truncate_group(newsgroup,0); else
+       tmp_name=newsgroup;
+    if ((nostr) || (((!Options.use_regexp) && (strstr(tmp_name, Arg_str)))
+      || ((Options.use_regexp) && (!regexec(&reg,tmp_name,0,NULL,0)))))
+    {   
       mygroup=Newsgroup_deb;
       while (mygroup && (strcmp(mygroup->name, newsgroup))) 
 	mygroup=mygroup->next;
-      if (mygroup==NULL) continue;
-      etat_loop.Newsgroup_nouveau=mygroup;
-      etat_loop.num_futur_article=numero;
-      free(buf);
-      if (nom_temp) free(nom_temp);
-      return 1;
-    } else if ((nom_temp==NULL) && (strstr(newsgroup,Arg_str))) {
-            nom_temp=safe_strdup(newsgroup);
-	    num_temp=numero;
-    }
+      if (mygroup==NULL) {
+         mygroup=cherche_newsgroup(newsgroup,1,0);
+	 if (mygroup==NULL) continue;
+      }
+      if (avec_un_menu) {
+         objet=safe_malloc(sizeof(Flrn_Reference_swap));
+	 objet->gpe=mygroup;
+	 objet->numero=numero;
+         *(num-1)=':';
+         courant=ajoute_menu_ordre(&lemenu,newsgroup,objet,0);
+	 *(num-1)='\0';
+      } else {
+         etat_loop.Newsgroup_nouveau=mygroup;
+         etat_loop.num_futur_article=numero;
+         free(buf);
+	 if ((!nostr) && (Options.use_regexp)) regfree(&reg);
+         return 1;
+      }
+    } 
   }
-  if (nom_temp) {
-    mygroup=Newsgroup_deb;
-    while (mygroup && (strcmp(mygroup->name, newsgroup))) 
-      mygroup=mygroup->next;
-    if (mygroup==NULL) {
-      etat_loop.etat=1; etat_loop.num_message=12; free(buf); 
-      free(nom_temp); return 0;
-    }
-    etat_loop.Newsgroup_nouveau=mygroup;
-    etat_loop.num_futur_article=num_temp;
-    free(nom_temp);
-    free(buf);
-    return 1;
+  if ((!nostr) && (Options.use_regexp)) regfree(&reg);
+  if (lemenu) {
+     if (lemenu->suiv==NULL) {
+         free(buf);
+	 objet=(Flrn_Reference_swap *)(lemenu->lobjet);
+         mygroup=objet->gpe;
+	 numero=objet->numero;
+	 free(lemenu->lobjet);
+	 if (mygroup==Newsgroup_courant) {
+	    etat_loop.etat=1; etat_loop.num_message=12;
+	    return 0;
+	 } else {
+    	    etat_loop.Newsgroup_nouveau=mygroup;
+	    etat_loop.num_futur_article=numero;
+	    return 1;
+	 }
+     } else {
+         objet=(Flrn_Reference_swap *)Menu_simple(lemenu,NULL,NULL,NULL,
+	     "Quel groupe ?");
+	 /* MAINTENANT on peut liberer buf */
+	 free(buf);
+	 if ((objet==NULL) || (objet->gpe==Newsgroup_courant)) {
+	     for (courant=lemenu;courant;courant=courant->suiv) 
+	        free(courant->lobjet);
+             Libere_menu(lemenu);
+	     etat_loop.etat=(objet ? 0 : 3); return 0;
+	 } else {
+	     etat_loop.Newsgroup_nouveau=objet->gpe;
+	     etat_loop.num_futur_article=objet->numero;
+	     for (courant=lemenu;courant;courant=courant->suiv) 
+	        free(courant->lobjet);
+             Libere_menu(lemenu);
+	     return 1;
+	 }
+     }
+  } else {
+     etat_loop.etat=1; etat_loop.num_message=12;
+     return 0;
   }
-  etat_loop.etat=1; etat_loop.num_message=12; free(buf); return 0;
 }
     
 
