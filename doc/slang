@@ -22,7 +22,7 @@ Article_Courant : de type Article_Type, fait référence à l'article courant
 Fonctions
 ---------
 
-get_header(Article_Type article, String string) :
+String get_header(Article_Type article, String string) :
    renvoie une chaîne contenant l'entête <string> de l'article <article>,
    "" si cette entête n'existe pas.
    

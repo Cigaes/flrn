@@ -308,7 +308,7 @@ int Bind_command_pager(char *nom, int key, char *arg, int add) {
       commande.fun_slang, CONTEXT_PAGER, add);
   if (commande.fun_slang) free(commande.fun_slang);
 #else
-     CONTEXT_COMMAND, add);
+     CONTEXT_PAGER, add);
 #endif
   return (res<0 ? -4 : 0);
 }

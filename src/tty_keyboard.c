@@ -109,7 +109,7 @@ int Attend_touche() {
    KeyBoard_Quit=0;
    /* ^L n'est pas une commande autre que refresh */
    while((key=Keyboard_getkey())==12) {
-      Screen_touch_lines (0, Screen_Rows);
+      Screen_touch_lines (0, Screen_Rows2);
       Screen_refresh();
    }
    if (key==8) key=FL_KEY_BACKSPACE;
