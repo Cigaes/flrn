@@ -244,7 +244,7 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_OMET 7
    { "OMIT", 'O', 0, CMD_TAKE_ARTICLES|CMD_STR_FORUM|CMD_NEED_GROUP, &do_omet, NULL },
 #define FLCMD_GOMT 8
-   { "zap" , 'z', 0 , 0, &do_zap_group, NULL },
+   { "zap" , 'z', 0 , CMD_STR_FORUM|CMD_NEED_GROUP, &do_zap_group, NULL },
 #define FLCMD_ZAP  9
    { "help" , 'h', fl_key_nm_help ,0, &do_help, NULL },
 #define FLCMD_HELP 10

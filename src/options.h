@@ -292,7 +292,7 @@ static struct {
   MAKE_OPT(subscribe_first,N_("Applique auto_subscribe avant auto_ignore.")),
   MAKE_STRING_OPT(terminal_charset,N_("Jeu de caractères du terminal.")),
   MAKE_OPT(threaded_next,N_("La commande \\next-unread agit en fonction du thread, et non des numéros.")),
-  MAKE_OPT_NAME_O(threaded_space,threaded_next,N_("Obsolete (utiliser threaded_name).")),
+  MAKE_OPT_NAME_O(threaded_space,threaded_next,N_("Obsolete (utiliser threaded_next).")),
   MAKE_OPT(use_mailbox,N_("Sauve les messages au format d'une mailbox.")),
   MAKE_OPT(use_menus,N_("Utilisation des menus.")),
   MAKE_OPT(use_regexp,N_("Utilise les expresions r�gulières.")),

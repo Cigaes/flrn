@@ -356,6 +356,7 @@ int rfc2047_encode_string (char *d, flrn_char *s, size_t len,
       s=t8;
       while ((t8<l8) && (((*t8)>>7)==0)) t8++;
   }
+  while ((s<p) && (len>0)) { *(d++)=(char) *(s++); len--; }
   *d='\0';
   return 0;
 }

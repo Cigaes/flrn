@@ -79,6 +79,7 @@ static int default_charset=0;
 static int terminal_charset=1; /* this one must be 'iso-8859-1' */
 static char *terminal_charset_string=NULL;
 #define DEFAULT_MESSAGE_CHARSET "ISO-8859-1"
+#define DEFAULT_LCCTYPE_VALUE "fr_FR"
 static int message_charset;
 static char *message_charset_string=NULL; 
 static int default_message_charset=1;
@@ -141,7 +142,11 @@ int read_terminal_charset () {
     textdomain (PACKAGE);
     bind_textdomain_codeset(PACKAGE,"utf-8");
 #endif
-    if ((strcmp(locale,"C")==0) || (strcmp(locale,"POSIX")==0)) return 1;
+    if ((strcmp(locale,"C")==0) || (strcmp(locale,"POSIX")==0)) {
+	/* on change LC_CTYPE pour slang-utf8 :( */
+ 	setlocale(LC_CTYPE,DEFAULT_LCCTYPE_VALUE); 
+	return 1;
+    }
     codeset=nl_langinfo(CODESET);
     if (codeset==NULL) return -2;
     return parse_terminal_charset (codeset);

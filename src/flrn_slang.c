@@ -32,6 +32,9 @@ int KeyBoard_Quit;
 int Screen_Rows, Screen_Cols, Screen_Rows2;
 int Screen_Tab_Width;
 
+/* défini, ou non, dans slang.h */
+int SLsmg_Setlocale;
+
 void Screen_suspend() { SLsmg_suspend_smg(); }
 void Screen_resume() { SLsmg_resume_smg(); }
 void Screen_get_size(int hl) { SLtt_get_screen_size(); 
@@ -39,7 +42,11 @@ void Screen_get_size(int hl) { SLtt_get_screen_size();
 			 Screen_Rows2=SLtt_Screen_Rows;
 			 Screen_Cols=SLtt_Screen_Cols;
 		       }
-int Screen_init_smg() { int a; a=SLsmg_init_smg(); Screen_Tab_Width=SLsmg_Tab_Width; return a; }
+int Screen_init_smg() { int a; 
+    /* on met SLsmg_setlocale à 0 parce qu'on ne veut PAS de 
+     * setlocale en plus */
+    SLsmg_Setlocale=0;
+    a=SLsmg_init_smg(); Screen_Tab_Width=SLsmg_Tab_Width; return a; }
 void Screen_reset() {  SLsmg_reset_smg(); }
 
 void Get_terminfo(int hl) { SLtt_get_terminfo();
