@@ -57,6 +57,7 @@ static int get_Sujet_post(char *str) {
    return res; 
 }
 
+#ifndef NO_INTERN_EDITOR
 /* recalcule la colonne courante, avec un charactère de moins si flag=1 */
 /* Renvoie -1 si la ligne est vide et flag=1 */
 static int recalc_col (char *ligne, int flag) {
@@ -70,6 +71,7 @@ static int recalc_col (char *ligne, int flag) {
    }
    return ret;
 }
+#endif
 
 /* Copie dans le fichier temporaire le message tel qu'on suppose qu'il   */
 /* sera.								 */
@@ -341,6 +343,7 @@ int charge_postfile (char *str) {
    return 1;
 }
 
+#ifndef NO_INTERN_EDITOR
 static void include_file(FILE *to_include, File_Line_Type **last, Lecture_List **d_l, int *row, int *inited, int *empty, int *size_max_line) {
    char buf[513]; /* On suppose qu'un ligne ne peut pas faire plus de 512 */
    int act_row=*row;
@@ -416,25 +419,32 @@ static int analyse_ligne (Lecture_List **d_l, int *place, FILE **a_inclure) {
    }
    return 0;
 }
+#endif
 
 /* Obtention du corps du post.					*/
 /* La gestions des points doubles ne se fait pas.		*/
 static int Screen_Start;
 
 static int get_Body_post() {
-   int key, act_col=0, act_row=4, size_debligne, fin=0;
+   Lecture_List *lecture_courant, *debut_ligne;
+   int key, incl_in_auto=-1;
+#ifndef NO_INTERN_EDITOR
+   int act_col=0, act_row=4, size_debligne, fin=0;
+   int already_init=0;
    char chr;
    File_Line_Type *last_line=NULL;
    char *ligne_courante, *ptr_ligne_cou;
-   Lecture_List *lecture_courant, *debut_ligne;
-   int already_init=0, incl_in_auto=-1;
    int empty=1, size_max_line;
    int screen_start=0;
    FILE *to_include=NULL;
+#endif
 
    Screen_Start=0;
    Deb_body=lecture_courant=debut_ligne=alloue_chaine();
-   if (Options.auto_edit) {
+#ifndef NO_INTERN_EDITOR
+   if (Options.auto_edit) 
+#endif
+   {
       int place, res;
      
       place=res=0;
@@ -462,11 +472,22 @@ static int get_Body_post() {
 	}
         else {
 	  if (res>0) return -1; /* C'est un message non valide */
+#ifdef NO_INTERN_EDITOR
+	  Cursor_gotorc(2,0);
+	  Screen_write_string("(erreur dans l'édition, vérifier la variable d'environnement EDITOR)");
+	  Cursor_gotorc(3,0);
+	  Screen_write_string("Pour poster, éditez le .article à la main, puis utilisez \\<cmd> .article");
+	  return -1;
+#else
 	  Cursor_gotorc(2,0);
 	  Screen_write_string("   ( erreur dans l'édition. option auto_edit ignorée )");
+#endif
         }
       } 
    }
+#ifdef NO_INTERN_EDITOR
+   return -1; /* unreachable */
+#else
 
    Cursor_gotorc(4,0);
    size_debligne=0;
@@ -712,6 +733,7 @@ static int get_Body_post() {
    }
    free(ligne_courante);
    return (empty)?0:1;
+#endif
 }
 
 /* Regarde l'existence d'un groupe dans un header... essaie une correction */
@@ -1599,7 +1621,7 @@ int post_message (Article_List *origine, char *name_file,int flag) {
     if (!Header_post->k_header[SUBJECT_HEADER]) res=0;
     if (res<=0) {
       Screen_set_color(FIELD_ERROR);
-      Cursor_gotorc(4,3); /* Valeurs au pif */
+      Cursor_gotorc(Screen_Rows/2-1,3); /* Valeurs au pif */
       if (res<0) Screen_write_string("Post annulé."); else
 	Screen_write_string("Post ou sujet vide...");
       Screen_set_color(FIELD_NORMAL);

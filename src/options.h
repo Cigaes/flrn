@@ -13,6 +13,8 @@
 
 #include <stdio.h>
 #include "compatibility.h"
+#include "config.h"
+#include "flrn_config.h"
 #include "flrn_slang.h"
 #include "art_group.h"
 #include "flrn_color.h"
@@ -109,7 +111,9 @@ struct Option_struct {
   int  use_mailbox;
   int  ordered_summary;
   int  threaded_space;
+#ifndef NO_INTERN_EDITOR
   int  auto_edit;
+#endif
   int  use_regexp;
   int  use_menus;
   int  with_cousins;
@@ -198,7 +202,9 @@ static struct {
   MAKE_STRING_OPT(attribution,"Chaine précédent les citations."),
   MAKE_STRING_OPT_L(auth_user,"Nom de l'utilisateur pour l'authentification par le serveur"),
   MAKE_STRING_OPT_L(auth_pass,"Mot de passe pour l'authentification par le serveur"),
+#ifndef NO_INTERN_EDITOR
   MAKE_OPT(auto_edit,"Lancement automatique de l'éditeur dans les posts."),
+#endif
   MAKE_STRING_OPT(auto_ignore,"Expression régulières de newsgroups à ignorer."),
   MAKE_OPT(auto_kill,"Met le groupe dans le kill-file au moment de l'abonnement."),
   MAKE_STRING_OPT(auto_subscribe,"Expression régulière de newsgroups à accepter."),

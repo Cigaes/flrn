@@ -47,7 +47,9 @@ struct Option_struct Options = {
   1,			/* use_mailbox */
   1,			/* ordered_summary */
   0,			/* threaded_space */
+#ifndef NO_INTERN_EDITOR
   0,			/* auto_edit */
+#endif
   0,			/* use_regexp */
   0,			/* use_menus */
   0,			/* with_cousins */

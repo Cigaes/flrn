@@ -45,7 +45,7 @@ int Launch_Editor (int flag) {
     char *home;
     char *editor;
     pid_t pid;
-    int retval=0;
+    int retval=0, ret;
 
     sigwinchcatch=0;
     if (NULL == (home = getenv ("FLRNHOME")))
@@ -72,9 +72,9 @@ int Launch_Editor (int flag) {
        case 0 : close(tcp_fd);
                 execlp(editor, editor, name, NULL);
                 _exit(-1);
-       default : while ((wait(NULL)<0) && (errno==EINTR));
+       default : while ((wait(&ret)<0) && (errno==EINTR));
     }
-
+    if (WIFEXITED(ret) && (WEXITSTATUS(ret)==0xff)) retval=-1;
     Screen_resume();
     Init_keyboard(0); /* Ca remet SIGTSTP correct */
     signal(SIGWINCH, sig_winch);
