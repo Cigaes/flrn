@@ -1071,11 +1071,13 @@ int do_next(int res) {
 }
 
 int do_back(int res) {
-  tags_ptr += NUM_SPECIAL_TAGS-1;
-  tags_ptr %= NUM_SPECIAL_TAGS;
-  if ((tags_ptr==max_tags_ptr) || (tags[tags_ptr].article_deb_key==0)) {
-    tags_ptr++;
+  if ((etat_loop.hors_struct & 1)==0) { 
+    tags_ptr += NUM_SPECIAL_TAGS-1;
     tags_ptr %= NUM_SPECIAL_TAGS;
+    if ((tags_ptr==max_tags_ptr) || (tags[tags_ptr].article_deb_key==0)) {
+      tags_ptr++;
+      tags_ptr %= NUM_SPECIAL_TAGS;
+    }
   }
   return my_goto_tag(tags_ptr);
 }
