@@ -121,8 +121,8 @@ int main(int argc, char *argv[])
   }
 
   if (!opt_c) res=loop(newsgroup); else aff_opt_c();
-  quit_server();
   if (res) new_groups(0);
+  quit_server();
   free_groups(res);
   if (!opt_c) {
     Reset_screen();

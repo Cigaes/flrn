@@ -1259,7 +1259,7 @@ int do_zap_group(int res) {
   blah.num2=Newsgroup_courant->max;
   distribue_action(&blah,tag_article,NULL,&flag);
   Recherche_article(Newsgroup_courant->max,&Article_courant,-1);
-  if (Options.zap_change_group) {
+  if (!Options.zap_change_group) {
     etat_loop.hors_struct|=3; /* Fin du conti */
     etat_loop.etat=1; etat_loop.num_message=11;
   }

@@ -186,10 +186,13 @@ void new_groups(int opt_c) {
    char param[20];
    int good, bad;
    regex_t goodreg, badreg;
+   time_t actuel;
 
   /* On forme la date en GMT */
    if (Last_check!=0) {
-      gmt_check=gmtime(&Last_check); 
+      actuel=Last_check+Date_offset;
+      gmt_check=gmtime(&actuel); 
+      Last_check=time(NULL);
       res=strftime(param, 20, "%y%m%d %H%M%S GMT", gmt_check);
       param[res]='\0';
       if (debug) fprintf(stderr, "Date formée : %s\n",param);
