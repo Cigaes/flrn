@@ -1854,8 +1854,10 @@ int do_save(int res) {
   if (name[0]=='\0') {
     use_argstr=1;
     name=safe_malloc(MAX_PATH_LEN*sizeof(char));
-    name[0]='\0';
+    strcpy(name, Newsgroup_courant->name);
+    name[0]=toupper(name[0]);
     col=Aff_fin("Sauver dans : ");
+    Screen_write_string(name);
     if ((ret=getline(name, MAX_PATH_LEN, Screen_Rows-1,col)<0)) {
       free(name);
       etat_loop.etat=3;
@@ -1872,7 +1874,7 @@ int do_save(int res) {
     name=fullname;
   }
   if (stat(name,&status)==0) {
-      if ((!Options.use_mailbox) || (res==FLCMD_SAVE_OPT))
+      if (res==FLCMD_SAVE_OPT)
         Aff_fin("Ecraser le fichier ? ");
       else Aff_fin("Ajouter au folder ? "); 
       key=Attend_touche();
@@ -1882,7 +1884,7 @@ int do_save(int res) {
         return 0;
       }
   }
-  if ((!Options.use_mailbox) || (res==FLCMD_SAVE_OPT))
+  if (res==FLCMD_SAVE_OPT)
     fichier=fopen(name,"w");
   else fichier=fopen(name,"a");
   if (fichier==NULL) {
@@ -2159,12 +2161,41 @@ static int Sauve_header_article(Article_List *a_sauver, void *file_and_int) {
 static int Sauve_article(Article_List *a_sauver, void *vfichier) {
   time_t date;
   FILE *fichier = (FILE *) vfichier;
+  char *buf, *buf2, saved_char;
 
-  date=time(NULL);
-  if (Options.use_mailbox)
-    fprintf(fichier, "From %s%s %s", flrn_user->pw_name,"@localhost",
-        ctime(&date)); else
-    fprintf(fichier, "Newsgroup : %s     No : %d\n", Newsgroup_courant->name,
+  if (Options.use_mailbox) {
+    if ((a_sauver->headers) && (a_sauver->headers->k_headers[FROM_HEADER])
+          && (a_sauver->headers->date_gmt)) {
+      buf=strchr(a_sauver->headers->k_headers[FROM_HEADER],'<');
+      if (buf) {
+        buf++;
+	buf2=strchr(buf,'>');
+        if (buf2) {
+	   saved_char=*buf2;
+	   *buf2='\0';
+	} else saved_char='\0';
+      } else {
+         buf=a_sauver->headers->k_headers[FROM_HEADER];
+	 buf2=strchr(buf,'@');
+	 *buf2='\0'; buf=strrchr(buf,' '); 
+	 if (buf==NULL) buf=a_sauver->headers->k_headers[FROM_HEADER];
+	 *buf2='@';
+	 buf2=strchr(buf2,' ');
+	 if (buf2) {
+	    saved_char=*buf2;
+	    *buf2='\0';
+	 } else saved_char='\0';
+      }
+      fprintf(fichier, "From %s %s", buf, ctime(&(a_sauver->headers->date_gmt)));
+      if (saved_char) *buf2=saved_char;
+    } else {
+      date=time(NULL);
+      fprintf(fichier, "From %s%s %s", flrn_user->pw_name,"@localhost",
+        ctime(&date)); 
+    }
+    fprintf(fichier, "Article: %d of %s\n", a_sauver->numero, Newsgroup_courant->name);
+  } else
+  fprintf(fichier, "Newsgroup : %s     No : %d\n", Newsgroup_courant->name,
 	a_sauver->numero);
   Copy_article(fichier,  a_sauver, 1, NULL);
   fprintf(fichier,"\n");

@@ -151,9 +151,9 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_ANSW 18
    { "view", 'V', 0, 2|CMD_NEED_GROUP, &do_launch_pager, NULL },
 #define FLCMD_PAGE 19
-   { "save", 's', 0, 15|CMD_NEED_GROUP, &do_save, NULL },
+   { "save", 's', 0, 7|CMD_NEED_GROUP, &do_save, NULL },
 #define FLCMD_SAVE 20
-   { "SAVE", 'S', 0, 15|CMD_NEED_GROUP, &do_save, NULL },
+   { "SAVE", 'S', 0, 7|CMD_NEED_GROUP, &do_save, NULL },
 #define FLCMD_GSAV 21
    { "list", 'l', 0, 13, &do_list, NULL },
 #define FLCMD_LIST 22
