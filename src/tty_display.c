@@ -43,6 +43,7 @@
 #include "rfc2045.h"
 #endif
 #ifdef USE_SLANG_LANGUAGE
+#include <slang.h>
 #include "slang_flrn.h"
 #endif
 
@@ -1578,32 +1579,58 @@ int Gere_Scroll_Message (int row_act, int row_deb,
 /* Affichage du nom du newsgroup */
 void Aff_newsgroup_name(int erase_scr) {
    char *buf=NULL, *tmp_name;
-   int buf_to_free=0;
+   int buf_to_free=0,sz_buf;
    char flag_aff=0;
-
+#ifdef USE_SLANG_LANGUAGE
+   SLang_Name_Type *fun;
+   int used_slang=0;
+   
+   if ((fun=SLang_get_function("Newsgroup_title_string"))!=NULL) {
+        SLang_start_arg_list ();
+	if (Newsgroup_courant)
+	   SLang_push_string(Newsgroup_courant->name);
+        else SLang_push_string("");
+	SLang_end_arg_list ();
+	if (SLexecute_function(fun)==-1) {
+	   SLang_restart (1);
+           SLang_Error = 0;
+        } else {
+	   if (SLang_pop_slstring(&buf)>=0) {
+	       used_slang=1;
+	   }
+        } 
+   }
+#endif
    Screen_set_color(FIELD_STATUS);
    Cursor_gotorc(0,name_news_col);
    if (name_fin_col-name_news_col>0) {
-     if (Newsgroup_courant) {
-       if (!(Newsgroup_courant->flags & GROUP_MODE_TESTED))
-          test_readonly(Newsgroup_courant);
-       flag_aff=calcul_flag(Newsgroup_courant);
-       tmp_name=truncate_group(Newsgroup_courant->name,0);
-       if (strlen(tmp_name)<name_fin_col-name_news_col-((flag_aff ? 1 : 0)*3))
-          buf=tmp_name;
-       else 
-          buf=tmp_name+(strlen(tmp_name)-name_fin_col+name_news_col+((flag_aff ? 1 : 0)*3));
-       if (flag_aff) {
-	 Screen_write_char('[');
-	 Screen_write_char(flag_aff);
-	 Screen_write_char(']');
+#ifdef USE_SLANG_LANGUAGE
+     if (used_slang==0) {
+#endif
+       if (Newsgroup_courant) {
+         if (!(Newsgroup_courant->flags & GROUP_MODE_TESTED))
+            test_readonly(Newsgroup_courant);
+         flag_aff=calcul_flag(Newsgroup_courant);
+         tmp_name=truncate_group(Newsgroup_courant->name,0);
+         if (strlen(tmp_name)<name_fin_col-name_news_col-((flag_aff ? 1 : 0)*3))
+            buf=tmp_name;
+         else 
+            buf=tmp_name+(strlen(tmp_name)-name_fin_col+name_news_col+((flag_aff ? 1 : 0)*3));
+         if (flag_aff) {
+	   Screen_write_char('[');
+	   Screen_write_char(flag_aff);
+	   Screen_write_char(']');
+         }
+       } else {
+         buf=safe_malloc((name_fin_col-name_news_col+1)*sizeof(char));
+         memset(buf, ' ', name_fin_col-name_news_col+1);
+         buf_to_free=1;
        }
-     } else {
-       buf=safe_malloc((name_fin_col-name_news_col+1)*sizeof(char));
-       memset(buf, ' ', name_fin_col-name_news_col+1);
-       buf_to_free=1;
-     }
-     Screen_write_nstring(buf, name_fin_col-name_news_col+1-((flag_aff ? 1 : 0)*3));
+       sz_buf = name_fin_col-name_news_col+1-((flag_aff ? 1 : 0)*3);
+#ifdef USE_SLANG_LANGUAGE
+    } else sz_buf = name_fin_col-name_news_col+1;
+#endif
+       Screen_write_nstring(buf, sz_buf);
    }
    if (erase_scr) {
      Screen_set_color(FIELD_NORMAL);
@@ -1612,6 +1639,11 @@ void Aff_newsgroup_name(int erase_scr) {
      Screen_refresh(); 
           /* Cas particulier : pour le temps que ça prend parfois */
    }
+#ifdef USE_SLANG_LANGUAGE
+   if (used_slang) {
+       SLang_free_slstring(buf);
+   } else
+#endif
    if(buf_to_free) free(buf);
 }
      

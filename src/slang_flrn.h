@@ -30,6 +30,7 @@ extern void change_SLang_Error_Hook(int);
 extern SLang_Name_Type *Parse_fun_slang (char *, int *);
 extern int Parse_type_fun_slang(char *);
 extern int Push_article_on_stack (Article_List *, Newsgroup_List *);
+extern int Push_newsgroup_on_stack (Newsgroup_List *);
 
 #endif
 

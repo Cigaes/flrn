@@ -97,6 +97,10 @@ int Push_article_on_stack (Article_List *article, Newsgroup_List *groupe) {
    } else return 0;
 }
 
+int Push_newsgroup_on_stack (Newsgroup_List *groupe) {
+   return SLang_push_value (NEWSGROUP_TYPE_NUMBER, (VOID_STAR) groupe);
+}
+
 /***************** Les variables *****************************/
 
 static SLang_MMT_Type *flrn_SLang_article_courant_mmt;
