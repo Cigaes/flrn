@@ -164,7 +164,7 @@ AC_CHECK_FUNCS(inet_aton snprintf isdigit isblank)
 AC_SUBST(ROOTDIR)
 AC_SUBST(MANISO)
 
-AC_OUTPUT(src/Makefile Makefile)
+AC_OUTPUT(src/Makefile src/chrtrans/Makefile Makefile)
 
 echo starting make depend
 make depend
