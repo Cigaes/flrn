@@ -81,9 +81,12 @@ void init_groups() {
    FILE *flnews_file;
    Newsgroup_List *creation;
    char buf[MAX_BUF_SIZE], *deb, *ptr;
+   char name[MAX_PATH_LEN];
    
    Newsgroup_courant=Newsgroup_deb=NULL;
-   flnews_file = open_flrnfile(".flnewsrc","r",1,&Last_check);
+   strcpy(name,DEFAULT_FLNEWS_FILE);
+   if (Options.flnews_ext) strcat(name,Options.flnews_ext);
+   flnews_file = open_flrnfile(name,"r",1,&Last_check);
 
    if (flnews_file==NULL) return;
    
@@ -262,11 +265,15 @@ void free_groups(int save_flnewsrc) {
    int lu_index;
    int first=1;
    int write_flnewsrc=save_flnewsrc;
+   char name[MAX_PATH_LEN];
    
    if (debug) fprintf(stderr, "Sauvegarde du .flnewsrc\n");
    if (write_flnewsrc)
    {
-     flnews_file = open_flrnfile(".flnewsrc.new","w+",1,NULL);
+     strcpy(name,DEFAULT_FLNEWS_FILE);
+     if (Options.flnews_ext) strcat(name,Options.flnews_ext);
+     strcat(name,".new");
+     flnews_file = open_flrnfile(name,"w+",1,NULL);
      if (flnews_file==NULL) write_flnewsrc=0;;
    }
    for (Newsgroup_courant=Newsgroup_deb;Newsgroup_courant;
@@ -324,7 +331,7 @@ void free_groups(int save_flnewsrc) {
    if (write_flnewsrc) {
      fclose(flnews_file);
      if (debug) fprintf(stderr,"Ecriture du .flnewsrc.new finie.\n");
-     rename_flnewsfile(".flnewsrc.new",NULL);
+     rename_flnewsfile(name,NULL);
      if (debug) fprintf(stderr,"Renommage du .flnewsrc fini.\n");
    }
    if (debug) fprintf(stderr,"%s","C'est fini\n");

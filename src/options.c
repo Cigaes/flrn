@@ -176,6 +176,17 @@ void parse_options_line (char *ligne, int flag)
   if (ligne[0]==OPT_COMMENT_CHAR) return;
   buf=strtok(ligne,delim);
   if (buf==NULL) return;
+  if (strcmp(buf,WORD_NAME_PROG)==0) {
+     buf=strtok(NULL,delim);
+     if (buf==NULL) {
+       if (!flag) { fprintf(stderr,"name utilisé sans argument\n");
+	 sleep(1);}
+       return;
+     }
+     if (strcmp(name_program,buf)!=0) return;
+     buf=strtok(NULL,delim);
+     if (buf==NULL) return;
+  }
   if(strcmp(buf,OPT_SET)==0) {
     buf=strtok(NULL,delim);
     if (buf==NULL) {

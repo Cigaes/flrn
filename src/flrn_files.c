@@ -116,12 +116,16 @@ void rename_flnewsfile (char *old_link,char *new_link)
    strcpy(name2, name1);
    if (old_link)
        strncat(name1,old_link,MAX_PATH_LEN-strlen(name1));
-   else
+   else {
        strncat(name1,DEFAULT_FLNEWS_FILE,MAX_PATH_LEN-strlen(name1));
+       if (Options.flnews_ext) strncat(name1,Options.flnews_ext,MAX_PATH_LEN-strlen(name1));
+   }
    if (new_link)
        strncat(name2,new_link,MAX_PATH_LEN-strlen(name2));
-   else
+   else {
        strncat(name2,DEFAULT_FLNEWS_FILE,MAX_PATH_LEN-strlen(name2));
+       if (Options.flnews_ext) strncat(name2,Options.flnews_ext,MAX_PATH_LEN-strlen(name2));
+   }
 
    name1[MAX_PATH_LEN-1]=name2[MAX_PATH_LEN-1]='\0';
    res=rename(name1, name2);

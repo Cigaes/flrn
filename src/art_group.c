@@ -963,6 +963,7 @@ int Est_proprietaire(Article_List *article) {
   la_chaine=article->headers->k_headers[SENDER_HEADER];
   if (!la_chaine) la_chaine=article->headers->k_headers[FROM_HEADER];
   if (!la_chaine) return -1;
+#ifndef DOMAIN
   /* On veut une adresse EXACTE */
   ladresse=safe_malloc(257+strlen(flrn_user->pw_name));
   Get_user_address(ladresse);
@@ -971,7 +972,7 @@ int Est_proprietaire(Article_List *article) {
     free(ladresse);
     return 0;
   }
-  if ((buf!=la_chaine) && (isalnum(*buf-1))) {
+  if ((buf!=la_chaine) && (isalnum(*(buf-1)))) {
     free(ladresse);
     return 0;
   }
@@ -980,6 +981,18 @@ int Est_proprietaire(Article_List *article) {
     return 0;
   }
   free(ladresse);
+#else
+  ladresse=NULL;
+  /* on veut un login plus un nom de domaine */
+  buf=strstr(la_chaine,flrn_user->pw_name);
+  if (buf==NULL) return 0;
+  if ((buf!=la_chaine) && (isalnum(*(buf-1)))) return 0;
+  if (isalnum(*(buf+strlen(ladresse)))) return 0;
+  buf=strstr(la_chaine,DOMAIN);
+  if (buf==NULL) return 0;
+  if ((*(buf-1))!='.') return 0;
+  if (isalnum(*(buf+strlen(ladresse)))) return 0;
+#endif
   return 1; /* C'est bon */
 }
 

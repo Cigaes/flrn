@@ -14,6 +14,9 @@
 
 #define OPT_COMMENT_CHAR '#'
 
+#define WORD_NAME_PROG "name"
+#define WORD_NAME_PROG_LEN 4
+
 #define OPT_HEADER "header"
 #define OPT_HEADER_LEN 6
 
@@ -49,6 +52,7 @@ typedef struct string_list {
 struct Option_struct {
   char *serveur_name;     /* option serveur   */
   int  port;				 /* Option port	     */
+  char *flnews_ext;			 /* extension du .flnewsrc */
   char *post_name;			 /* options post_name */
   int  header_list[MAX_HEADER_LIST];     /* ordre des headers  */
   int  weak_header_list[MAX_HEADER_LIST]; /* headers "faibles" */
@@ -116,10 +120,12 @@ extern struct Option_struct Options;
 #ifdef __GNUC__
   /* une extension de gcc que j'aime bien... */
 #  define MAKE_STRING_OPT(a,b) {#a,b,OPT_TYPE_STRING,{0,0,0,0},{string:&Options.a}}
+#  define MAKE_STRING_OPT_L(a,b) {#a,b,OPT_TYPE_STRING,{1,0,0,0},{string:&Options.a}}
 #  define MAKE_STRING_OPT_NAME(a,b,c) {#a,c,OPT_TYPE_STRING,{0,0,0,0},{string:&Options.b}}
 #  define MAKE_STRING_OPT_NAME_L(a,b,c) {#a,c,OPT_TYPE_STRING,{1,0,0,0},{string:&Options.b}}
 #else /* __GNUC__ */
 #  define MAKE_STRING_OPT(a,b) {#a,b,OPT_TYPE_STRING,{0,0,0,0},{(void *)&Options.a}}
+#  define MAKE_STRING_OPT_L(a,b) {#a,b,OPT_TYPE_STRING,{1,0,0,0},{(void *)&Options.a}}
 #  define MAKE_STRING_OPT_NAME(a,b,c) {#a,c,OPT_TYPE_STRING,{0,0,0,0},{(void *)&Options.b}}
 #  define MAKE_STRING_OPT_NAME_L(a,b,c) {#a,c,OPT_TYPE_STRING,{1,0,0,0},{(void *)&Options.b}}
 #endif
@@ -155,6 +161,7 @@ static struct {
   MAKE_OPT(default_subscribe,"Abonnement par défaut."),
   MAKE_OPT(duplicate_subject,"Les sujets sont réaffichés à chaque ligne dans les résumés."),
   MAKE_OPT(edit_all_headers,"Permet d'éditer tous les headers dans un post."),
+  MAKE_STRING_OPT_L(flnews_ext,"Extension sur le nom du .flnewsrc."),
   MAKE_OPT(forum_mode,"Mode de commande forum-like."),
   MAKE_OPT(headers_scroll,"Les headers scrollent avec le reste des messages."),
   MAKE_OPT(include_in_edit,"Lorsque auto_edit est défini, inclut automatiquement le message d'origine."),

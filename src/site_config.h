@@ -9,6 +9,7 @@
 struct Option_struct Options = {
   "news.rezo.ens.fr",   /* server */
   DEFAULT_NNTP_PORT,    /* port */
+  NULL,			/* flnews_ext */
   NULL, 		/* Post name - doit rester NULL */
   {REFERENCES_HEADER,FROM_HEADER,DATE_HEADER,SUBJECT_HEADER,-1}, /* header */
   {-1},			/* weak headers */

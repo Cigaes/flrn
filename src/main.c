@@ -21,10 +21,11 @@
 int debug;
 struct passwd *flrn_user;
 char *mailbox;
+char *name_program;
 
 void Usage(char *argv[])
 {
-  printf("Utilisation : %s [-d] [-c] [-v] [-s] [<newsgroup>]\n",argv[0]);
+  printf("Utilisation : %s [-d] [-c] [-v] [-s] [-n name] [<newsgroup>]\n",argv[0]);
 }
 
 void Help(char *argv[])
@@ -33,6 +34,7 @@ void Help(char *argv[])
   printf(
 " -d|--debug  : affiche plein d'informations sur la sortie d'erreur\n"
 " -c|--co     : donne les nouveaux newsgroups, et le nombre d'articles non lus\n"
+" -n|--name   : change le nom d'appel\n"
 " -s|--show-config : donne un .flrn avec les valeurs par defaut.\n"
 " -v|--version: donne la version et quitte\n"
 " -h|--help   : affiche ce message\n\n%s\n",version_string);
@@ -46,6 +48,9 @@ int main(int argc, char *argv[])
   char *newsgroup=NULL;
 
   debug=0;
+  name_program=strrchr(argv[0],'/');
+  if (name_program) name_program++; else
+  name_program=argv[0];
   /* J'aime pas les sigpipe */
   {
     struct sigaction ign;
@@ -60,6 +65,14 @@ int main(int argc, char *argv[])
   {
     if ((strncmp(argv[i],"-d",2)==0)||(strcmp(argv[i],"--debug")==0))
     {debug=1; continue;}
+    if ((strncmp(argv[i],"-n",2)==0)||(strcmp(argv[i],"--name")==0)) {
+      if (i+1==argc) {
+        fprintf(stderr,"Option %s invalide",argv[i]);
+	Help(argv);
+	exit(1);
+      }
+      name_program=argv[++i]; continue;
+    }
     if ((strncmp(argv[i],"-v",2)==0)||(strcmp(argv[i],"--version")==0))
     {printf("%s\n",version_string); exit(0);}
     if ((strncmp(argv[i],"-c",2)==0)||(strcmp(argv[i],"--co")==0))

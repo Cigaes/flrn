@@ -11,6 +11,9 @@
 extern char *mailbox;
 #endif
 
+/* Le nom du programme */
+extern char *name_program;
+
 /* l'erreur entre notre heure et celle du serveur */
 extern int Date_offset;
 
