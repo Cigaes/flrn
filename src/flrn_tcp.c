@@ -21,21 +21,26 @@
 #include "flrn.h"
 #include "config.h"
 #include "options.h"
+#include "flrn_tcp.h"
 
 int Date_offset;
 
 /* Commandes au serveur */
-static const char *tcp_command[] = {
+/* cf flrn_config.h. On fixe le nombre pour vérifier la correspondance */
+static const char *tcp_command[NB_TCP_CMD] = {
     "QUIT", "MODE READER", "NEWGROUPS", "NEWNEWS", "GROUP",
     "STAT", "HEAD", "BODY", "XHDR", "XOVER", "POST", "LIST", "DATE", 
     "ARTICLE" };
-
+int server_command_status[NB_TCP_CMD] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 /* Ligne lue (cf flrn_glob.h) */
 char tcp_line_read[MAX_READ_SIZE];
 /* file desciptor de la socket */
 int tcp_fd;
 
+static char filter_cmd_list [MAX_NEWSGROUP_LEN+1];
+static int renvoie_direct; /* on renvoie tcp_line_read à la prochaine lecture */
+			   /* on DOIT se limiter à un code de retour...       */
 
 /* Connection au port d'une machine. La fonction est rudimentaire pour  */
 /* l'instant, mais j'ai peur que ça nécessite quelques améliorations    */
@@ -253,6 +258,12 @@ static int _nntp_try_parse_timeout(char *str) {
 int read_server_with_reconnect (char *ligne, int deb, int max) {
    int lus, code;
 
+   if (renvoie_direct) {
+      renvoie_direct=0;
+      if (ligne==tcp_line_read) return strlen(tcp_line_read);
+      /* Aie, ici c'est un bug. On élimine l'idée du renvoie_direct */
+      /* Mais logiquement, il ne peut y avoir ce bug */
+   }
    lus=read_server(ligne, deb, max);
    if (lus<3) {
       if (debug) fprintf(stderr, "Echec en lecture du serveur\n");
@@ -271,7 +282,46 @@ int read_server_with_reconnect (char *ligne, int deb, int max) {
    }
    return lus;
 }
-  
+
+/* pattern matching uniquement avec des '*' */
+static int pattern_match(char *chaine, char *pat) {
+  char *p1=chaine,*p2=pat;
+
+  while ((*p1!='\0') && (*p2!='\0')) {
+    if (*p2=='*') {
+       while (*(++p2)=='*');
+       if (*p2=='\0') return 1;
+       while (*p1) {
+          if (pattern_match(p1,p2)) return 1;
+          p1++;
+       }
+       return 0;
+    }
+    if (*p2!=*p1) return 0;
+    p2++; p1++;
+  }
+  return 1;
+}
+
+
+/* read_server_for_list : cas particulier : on peut éventuellement filtrer */
+/* la sortie...								   */
+int read_server_for_list (char *ligne, int deb, int max) {
+    int ret;
+    char *buf;
+
+    if (filter_cmd_list[0]=='\0') return read_server(ligne,deb,max);
+    while (1) {
+      ret=read_server(ligne,deb,max);
+      if (ligne[1]=='\r') return ret;
+      buf=strchr(ligne,' ');
+      if (buf) *buf='\0';
+      if (pattern_match(ligne,filter_cmd_list)) {
+         if (buf) *buf=' ';
+	 return ret;
+      }
+    }
+}
 
 /* Vire tout ce que peut envoyer le serveur jusqu'au prochain "\r\n.\r\n" */
 /* renvoie -1 en cas d'erreur.						  */
@@ -319,7 +369,10 @@ int connect_server (char *host, int port) {
        close (tcp_fd);
        return code;
     }
-    
+    server_command_status[CMD_QUIT]=CMD_FLAG_MAXIMAL;
+    server_command_status[CMD_MODE_READER]=CMD_FLAG_MAXIMAL;
+    server_command_status[CMD_POST]=(code==200 ? CMD_FLAG_MAXIMAL : 
+    						 CMD_FLAG_TESTED);
     write_command(CMD_MODE_READER, 0, NULL);
     
     ret=return_code();
@@ -344,6 +397,7 @@ int adjust_time()
   int res,code;
   char *buf;
 
+  Date_offset=0;
   write_command(CMD_DATE, 0, NULL);
   res=read_server_with_reconnect(tcp_line_read, 3, MAX_READ_SIZE-1);
   if (debug) fprintf(stderr,"Yo :%s\n",tcp_line_read);
@@ -435,7 +489,7 @@ static char line_write[MAX_READ_SIZE];
    /* on sort cette variable de la fonction : elle sert dans */
    /* reconnect_after_timeout.				     */
 
-int write_command (int num_com, int num_param, char **param) {
+static int raw_write_command (int num_com, int num_param, char **param) {
    char *ptr;
    int size, pram, tmp_len;
  
@@ -457,6 +511,88 @@ int write_command (int num_com, int num_param, char **param) {
    *(ptr++)='\r'; *(ptr++)='\n'; size+=2;
 
    return raw_write_server(line_write, size);
+}
+
+/* Cette commande va maintenant être BEAUCOUP plus difficile */
+/* C'est une petite vacherie à elle toute seule		     */
+/* retour de -2 : commande qui ne donne rien (list newsgroups avec */
+/* list minimal...						   */
+int write_command (int num_com, int num_param, char **param) {
+   int ret,code;
+   
+   filter_cmd_list[0]='\0';
+   renvoie_direct=0;
+   if ((server_command_status[num_com] & CMD_FLAG_MAXIMAL)==CMD_FLAG_MAXIMAL) 
+     return raw_write_command(num_com, num_param, param);
+
+   switch (num_com) {
+      /* NEWGROUPS : on se fiche totalement que ça marche ou non */
+      /* NEWNEWS   : appelé par cherche_newnews, le retour -1 n'est pas grave */
+      /* GROUP     : on ne peut pas le rejeter, on le suppose donc maximal */
+      case CMD_NEWGROUPS : case CMD_NEWNEWS : case CMD_GROUP :
+          server_command_status[num_com]=CMD_FLAG_MAXIMAL;
+	  return raw_write_command(num_com, num_param, param);
+      /* STAT : pfiouuuu... pour l'instant, je laisse tomber */
+      /* HEAD : idem */
+      /* BODY : idem */
+      /* ARTICLE : idem */
+      case CMD_STAT : case CMD_HEAD : case CMD_BODY : case CMD_ARTICLE :
+          server_command_status[num_com]=CMD_FLAG_MAXIMAL;
+	  return raw_write_command(num_com, num_param, param);
+      /* XHDR : bon, ça louze, mais si on est là, XOVER n'existe pas */
+      /* XOVER : on n'installe pas le test tout de suite... */
+      case CMD_XHDR : case CMD_XOVER :
+          server_command_status[num_com]=CMD_FLAG_MAXIMAL;
+	  return raw_write_command(num_com, num_param, param);
+      /* POST : théoriquement déjà testé */
+      case CMD_POST :
+          return raw_write_command(num_com, num_param, param);
+      /* LIST : ah ! enfin le truc important !!! */
+      /* On suppose le nombre de paramètre à 0 ou 1 (2 => active) */
+      case CMD_LIST :
+          if ((num_param==0) && 
+	     ((server_command_status[num_com] & CMD_FLAG_KNOWN)
+	        ==CMD_FLAG_KNOWN)) 
+          return raw_write_command(num_com, num_param, param);
+	  /* On se fout de overview.fmt */
+	  if (strcmp(*param,"overview.fmt")==0) 
+	      return raw_write_command(num_com, num_param, param);
+	  if ((server_command_status[num_com] & CMD_FLAG_KNOWN)
+	            ==CMD_FLAG_KNOWN) {
+	     if (num_param==2) {
+	        if (strncmp(*param,"active",6)==0) param++;
+		else return -2; /* erreur */
+             }
+	     if (strncmp(*param,"active ",7)==0) *param=*param+7;
+	     strncpy(filter_cmd_list,*param,MAX_NEWSGROUP_LEN-1);
+             return raw_write_command(num_com,0,NULL);
+	  }
+	  if ((server_command_status[num_com] & CMD_FLAG_TESTED)
+	            ==CMD_FLAG_TESTED) return -1; 
+		    	/* impossible pour l'instant */
+          ret=raw_write_command(num_com, num_param, param);
+	  if (ret<0) return -1;
+	  code=return_code();
+	  if (code>400) {
+	     server_command_status[CMD_LIST]=CMD_FLAG_KNOWN;
+	     return write_command(CMD_LIST, num_param, param);
+	  }
+	  renvoie_direct=1;
+	  return ret;
+       /* CMD_DATE : un détail dans un sens */
+       case CMD_DATE :
+          if ((server_command_status[num_com] & CMD_FLAG_KNOWN)
+		                       ==CMD_FLAG_KNOWN)
+	     return raw_write_command(CMD_DATE, 0, NULL);
+	  ret=raw_write_command(CMD_DATE, 0, NULL);
+	  if (ret<0) return -1;
+	  code=return_code();
+	  if (code>500) return -1;
+	  renvoie_direct=1;
+	  return ret;
+       /* Par défaut, hum... Ben... on retourne */
+       default : return raw_write_command(num_com, num_param, param);
+   }
 }
 
 

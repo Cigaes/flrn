@@ -369,12 +369,6 @@ int cree_liste(int art_num, int *part) {
    code=strtol(tcp_line_read, &buf, 10);
 
    if (code<=0) return -1;
-   if (code==503) { /* Il y a eu probablement timeout */
-     		    /* on lance donc un reconnect, et on */
-     		    /* recommence */
-     	            if (reconnect_after_timeout(0)<0) return -1;
-		    return cree_liste(art_num, part);
-		  }
    if (code==411) { if (debug) fprintf(stderr, "Newsgroup invalide !\n"); 
        return -2; }
    strtol(buf, &buf, 10);

@@ -284,6 +284,7 @@ int cree_liens() {
 	       creation2 = safe_calloc (1,sizeof(Article_List));
 	       creation2->numero=-1; /* c'est un article bidon ou ext */
 	       creation2->next=Article_exte_deb;
+	       creation2->flag=FLAG_READ;
 	       if (Article_exte_deb) Article_exte_deb->prev=creation2;
 	       Article_exte_deb=creation2;
 	       creation2->msgid = safe_strdup(buf2);
@@ -309,6 +310,7 @@ int cree_liens() {
 	  if (premier) {
 	     creation2 = safe_calloc (1,sizeof(Article_List));
 	     creation2->numero=-1; /* c'est un article bidon ou ext */
+	     creation2->flag=FLAG_READ;
 	     creation2->next=Article_exte_deb;
 	     if (Article_exte_deb) Article_exte_deb->prev=creation2;
 	     Article_exte_deb=creation2;

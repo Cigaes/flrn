@@ -25,6 +25,7 @@ extern int reconnect_after_timeout(int /*refait_commande*/);
 extern int discard_server(void);
 extern int return_code (void);
 extern int adjust_time(void);
+extern int read_server_for_list (char*, int, int);
 
 /*   flrn_files.c */
 extern FILE *open_flrnfile (char * /*file*/,char * /*mode*/, int, time_t *);

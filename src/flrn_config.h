@@ -46,8 +46,7 @@
 #define CMD_LIST 11
 #define CMD_DATE 12
 #define CMD_ARTICLE 13
-
-extern const char *tcp_command[];
+#define NB_TCP_CMD 14
 
 
 /* Touches de Commande */

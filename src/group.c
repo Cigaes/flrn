@@ -403,7 +403,7 @@ Newsgroup_List *cherche_newsgroup_re (char *name, regex_t reg, int flag)
     if (res<1) return NULL;
     code=return_code();
     if ((code<0) || (code>400)) return NULL;
-    while((res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1))>=0)
+    while((res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1))>=0)
     {
       if (tcp_line_read[1]=='\r') return NULL; /* Existe pas... */
       buf2=strchr(tcp_line_read,' ');
@@ -438,7 +438,7 @@ Newsgroup_List *cherche_newsgroup (char *name, int exact, int flag) {
     code=return_code();
     if ((code<0) || (code>400)) return NULL;
 
-    res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+    res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1);
     if (res<0) return NULL;
     if (tcp_line_read[1]=='\r') return NULL; /* Existe pas... */
 
@@ -468,7 +468,7 @@ Liste_Menu *menu_newsgroup_re (char *name, regex_t reg, int avec_reg)
     if (res<1) return NULL;
     code=return_code();
     if ((code<0) || (code>400)) return NULL;
-    while((res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1))>=0)
+    while((res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1))>=0)
     {
       if (tcp_line_read[1]=='\r') return lemenu; /* On peut repartir */
       buf=strchr(tcp_line_read,' ');
@@ -570,7 +570,7 @@ int NoArt_non_lus(Newsgroup_List *group) {
    code=return_code();
    if ((code<0) || (code>400)) return -1;
 
-   res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+   res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1);
    if (res<0) return -1;
    if (tcp_line_read[1]=='\r') {
       return -2; /* Pas glop, tout ca */
@@ -629,7 +629,7 @@ void test_readonly(Newsgroup_List *groupe) {
    code=return_code();
    if ((code<0) || (code>400)) return;
 
-   res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+   res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1);
    if (res<0) return;
    if (tcp_line_read[1]=='\r') {
       return; /* Pas glop, tout ca */
@@ -884,7 +884,7 @@ void zap_group_non_courant (Newsgroup_List *group) {
    code=return_code();
    if ((code<0) || (code>400)) return;
 
-   res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+   res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1);
    if (res<0) return;
    if (tcp_line_read[1]=='\r') {
       return; /* Pas glop, tout ca */

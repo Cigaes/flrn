@@ -395,22 +395,24 @@ int Liste_groupe (int flags, char *mat, Newsgroup_List **retour) {
       if ((passage<2) && (parcours->description==NULL)) {
         buf[1]=parcours->name;
         res=write_command (CMD_LIST, 2, buf);
-        if (res<1) return 0;
-        code=return_code();
-        if ((code<0) || (code>400)) return 0;
-        res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
-        if (res<1) return 0;
-        if (tcp_line_read[0]!='.') {
-           ptr=tcp_line_read+strlen(parcours->name);
-           parcours->description=safe_malloc((strlen(ptr)-1)*sizeof(char));
-           strncpy(parcours->description,ptr, strlen(ptr)-2);
-           parcours->description[strlen(ptr)-2]='\0';
-           discard_server();
+	if (res!=-2) {
+          if (res<1) return 0;
+          code=return_code();
+          if ((code<0) || (code>400)) return 0;
+          res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+          if (res<1) return 0;
+          if (tcp_line_read[0]!='.') {
+             ptr=tcp_line_read+strlen(parcours->name);
+             parcours->description=safe_malloc((strlen(ptr)-1)*sizeof(char));
+             strncpy(parcours->description,ptr, strlen(ptr)-2);
+             parcours->description[strlen(ptr)-2]='\0';
+             discard_server();
+	  } else parcours->description=safe_strdup("  (pas de description)  ");
         } else 
              parcours->description=safe_strdup("  (pas de description)  ");
       }
       if (passage==2) {
-        res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+        res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1);
         if (res<2) {
 	  free(buf[0]); free(buf[1]);
 	  if (Options.use_regexp) regfree(&reg);
