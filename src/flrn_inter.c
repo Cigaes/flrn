@@ -1007,6 +1007,7 @@ static int my_goto_tag (int tag) {
      case 0 : Article_courant=ret_article.article;
               return 0;
      case 1 : etat_loop.Article_nouveau=ret_article.article;
+     	      etat_loop.num_futur_article=-1;
               return 1;
      case 2 : etat_loop.num_futur_article=ret_article.number;
      	      return 1;
