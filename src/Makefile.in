@@ -72,7 +72,7 @@ installman: $(ROOTDIR)/man/flrn.1$(MANISO)
 	$(INSTALL) -m 644 $(ROOTDIR)/man/flrn.1$(MANISO) $(mandir)/man1/flrn.1
     
 depend: pathdef.h
-	$(MAKEDEPEND) $(CPPFLAGS) $(VC_FILES)
+	$(MAKEDEPEND) $(CPPFLAGS) $(VC_FILES) -I.
 
 $(ROOTDIR)/man/flrn.1: $(ROOTDIR)/man/flrn.1.iso
 	cd $(ROOTDIR)/man; make
