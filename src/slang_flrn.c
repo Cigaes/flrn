@@ -12,28 +12,151 @@
 
 #ifdef USE_SLANG_LANGUAGE
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <slang.h>
+
+#include "art_group.h"
+#include "group.h"
 
 int flrn_SLang_inited=0;
 
-char *intrin_get_header(int *num, char *name) {
-   return "Un truc pipo.";
+/****************** Les types ************************/
+
+/* groupe : Newsgroup_Type : pointeur vers un groupe */
+static SLang_Class_Type *flrn_SLang_Newsgroup_Type;
+#define NEWSGROUP_TYPE_NUMBER 128
+
+/* article : Article_Type : structure MMT : pointeur vers article et groupe */
+typedef struct s_article_and_group {
+   Newsgroup_List *groupe;
+   Article_List *article;
+} Article_and_Group;
+static SLang_Class_Type *flrn_SLang_Article_Type;
+#define ARTICLE_TYPE_NUMBER 129
+
+static char *Newsgroup_Type_string_callback(unsigned char type, VOID_STAR addr)
+{
+   Newsgroup_List *legroupe = (Newsgroup_List *)addr;
+   if ((legroupe==NULL) || (legroupe->name==NULL)) return SLmake_string("");
+   return SLmake_string(legroupe->name);
+}
+static void Newsgroup_Type_destroy_callback(unsigned char type, VOID_STAR addr)
+{
+   return; /* on ne détruit rien : la structure de groupe reste jusqu'au bout 
+            * en fait, l'idéal aurait été de tout faire en MMT, mais bon ...  */
+}
+static int Newsgroup_Type_push_callback(unsigned char type, VOID_STAR addr)
+{
+   return SLclass_push_ptr_obj(type, addr);
+}
+static int Newsgroup_Type_pop_callback(unsigned char type, VOID_STAR addr)
+{
+   return SLclass_pop_ptr_obj(type, addr);
 }
 
-SLang_Intrin_Fun_Type flrn_Intrinsics [] =
+static char *Article_Type_string_callback(unsigned char type, VOID_STAR addr)
 {
-   MAKE_INTRINSIC_2("get_header", intrin_get_header, SLANG_STRING_TYPE,
-   				SLANG_INT_TYPE, SLANG_STRING_TYPE),
+   Article_and_Group *larticle = (Article_and_Group *)addr;
+   if ((larticle==NULL) || (larticle->article==NULL) ||
+       (larticle->article->msgid==NULL)) return SLmake_string("");
+   return SLmake_string(larticle->article->msgid);
+}
+static void Article_Type_destroy_callback(unsigned char type, VOID_STAR addr)
+{
+   Article_and_Group *larticle = (Article_and_Group *)addr;
+   if (larticle) free(larticle);
+   return; 
+}
+
+/***************** Les variables *****************************/
+
+static SLang_MMT_Type *flrn_SLang_article_courant_mmt;
+static Article_and_Group flrn_SLang_article_courant;
+static Newsgroup_List *flrn_SLang_newsgroup_courant;
+
+static SLang_Intrin_Var_Type flrn_Intrin_Vars [] =
+{
+   MAKE_VARIABLE("Article_Courant", &flrn_SLang_article_courant_mmt, 
+                           ARTICLE_TYPE_NUMBER, 1),
+   MAKE_VARIABLE("Newsgroup_Courant", &flrn_SLang_newsgroup_courant,
+   			   NEWSGROUP_TYPE_NUMBER, 1),
    SLANG_END_TABLE
 };
 
 
+/***************** Les fonctions intrinsèques ****************/
+
+char *intrin_get_header(Article_and_Group *larticle, char *name) {
+    if ((larticle==NULL) || (larticle->article==NULL)) return "";
+    return get_one_header(larticle->article, larticle->groupe, name);
+}
+
+SLang_Intrin_Fun_Type flrn_Intrin_Fun [] =
+{
+   MAKE_INTRINSIC_2("get_header", intrin_get_header, SLANG_STRING_TYPE,
+   				ARTICLE_TYPE_NUMBER, SLANG_STRING_TYPE),
+   SLANG_END_TABLE
+};
+
+/***************** Les fonctions de bases ***************/
+
 /* initialisation des fonctions de SLang. retour : -1 si erreur */
 int flrn_init_SLang(void) {
-   if (-1 == SLang_init_all ()) 
+   if (-1 == SLang_init_all ()) {
+     fprintf(stderr,"Erreur d'initialisation des fonctions SLang de base.\n");
      return -1;
-   if (-1 == SLadd_intrin_fun_table (flrn_Intrinsics, NULL))
+   }
+   /* les types */
+   flrn_SLang_Newsgroup_Type=SLclass_allocate_class("Newsgroup_Type");
+   flrn_SLang_Article_Type=SLclass_allocate_class("Article_Type");
+   if ((-1 == SLclass_set_string_function(flrn_SLang_Newsgroup_Type,
+                       Newsgroup_Type_string_callback)) ||
+       (-1 == SLclass_set_push_function(flrn_SLang_Newsgroup_Type,
+                       Newsgroup_Type_push_callback)) ||
+       (-1 == SLclass_set_pop_function(flrn_SLang_Newsgroup_Type,
+                       Newsgroup_Type_pop_callback)) ||
+       (-1 == SLclass_set_destroy_function(flrn_SLang_Newsgroup_Type,
+                       Newsgroup_Type_destroy_callback)) ||
+       (-1 == SLclass_register_class(flrn_SLang_Newsgroup_Type,
+              NEWSGROUP_TYPE_NUMBER, sizeof(void *), SLANG_CLASS_TYPE_PTR)))
+   {
+     fprintf(stderr,"SLang : erreur d'initialisation du type %s.\n",
+                    "Newsgroup");
      return -1;
+   }
+   if ((-1 == SLclass_set_string_function(flrn_SLang_Article_Type,
+                       Article_Type_string_callback)) ||
+       (-1 == SLclass_set_destroy_function(flrn_SLang_Article_Type,
+                       Article_Type_destroy_callback)) ||
+       (-1 == SLclass_register_class(flrn_SLang_Article_Type,
+              ARTICLE_TYPE_NUMBER, sizeof(void *), SLANG_CLASS_TYPE_MMT)))
+   {
+     fprintf(stderr,"SLang : erreur d'initialisation du type %s.\n",
+                    "Article");
+     return -1;
+   }
+   /* les variables */
+   flrn_SLang_article_courant.article=NULL;
+   flrn_SLang_article_courant.groupe=NULL;
+   flrn_SLang_newsgroup_courant=NULL;
+   if (NULL == (flrn_SLang_article_courant_mmt = SLang_create_mmt
+            (ARTICLE_TYPE_NUMBER, (VOID_STAR) &flrn_SLang_article_courant)))
+   {
+     fprintf(stderr, "SLang : erreur dans la création d'un MMT.");
+     return -1;
+   }
+   SLang_inc_mmt(flrn_SLang_article_courant_mmt);
+   if (-1 == SLadd_intrin_var_table (flrn_Intrin_Vars, NULL))
+   {
+     fprintf(stderr,"SLang : erreur dans le chargement des %s.\n","variables");
+     return -1;
+   }
+   if (-1 == SLadd_intrin_fun_table (flrn_Intrin_Fun, NULL))
+   {
+     fprintf(stderr,"SLang : erreur dans le chargement des %s.\n","fonctions");
+     return -1;
+   }
    flrn_SLang_inited=1;
    return 0;
 }
@@ -44,6 +167,9 @@ int flrn_init_SLang(void) {
  * libérée avec un appel à SLang_free_slstring */
 int source_SLang_string(char *str, char **result) {
 
+   flrn_SLang_article_courant.article=Article_courant;
+   flrn_SLang_article_courant.groupe=Newsgroup_courant;
+   flrn_SLang_newsgroup_courant=Newsgroup_courant;
    *result=NULL;
    if (flrn_SLang_inited==0) return -1;
    if ((-1 == SLang_load_string(str)) ||  (-1 == SLang_pop_slstring(result))) {

@@ -75,7 +75,7 @@ static void free_article_headers(Article_Header *headers) {
   free(headers);
 }
 
-int calcul_hash(char *id) {
+static int calcul_hash(char *id) {
   int toto=0;
   toto=0; for(; *id; id++) toto += *id;
   toto %= HASH_SIZE;
@@ -558,6 +558,34 @@ void ajoute_reponse_a(Article_List *article) {
 
    return;
 }
+
+char *get_one_header(Article_List *article, Newsgroup_List *newsgroup,
+                         char *name) {
+   int i,len;
+   char *buf;
+   Header_List *parcours;
+
+   buf=strchr(name,':');
+   if (buf) len=buf-name; else len=strlen(name);
+   for (i=0;i<NB_KNOWN_HEADERS;i++) 
+       if ((len+1==Headers[i].header_len) &&
+           (strncasecmp(Headers[i].header,name,len)==0)) break;
+   if ((article->headers==NULL) || 
+       ((i<NB_KNOWN_HEADERS) && (article->headers->k_headers_checked[i]==0)) ||
+       ((i>=NB_KNOWN_HEADERS) && (Last_head_cmd.Article_vu!=article))) {
+       if (cree_header(article,0,(i==NB_KNOWN_HEADERS),
+               newsgroup==Newsgroup_courant ? 0 : 1)==NULL) return "";
+   }
+   if (i<NB_KNOWN_HEADERS) return article->headers->k_headers[i];
+   parcours=Last_head_cmd.headers;
+   while (parcours) {
+      if ((strncasecmp(parcours->header,name,len)==0) &&
+          ((parcours->header)[len]==':')) return parcours->header+len+2;
+      parcours=parcours->next;
+   }
+   return "";
+}
+          
 
 /* Appelé par ajoute_message et ajoute_message_par_num */
 static Article_List *ajoute_message_fin(Article_List *creation) {
@@ -1153,6 +1181,35 @@ int Recherche_article (int num, Article_List **retour, int flags) {
     *retour=NULL;
     return -2;
 }
+
+
+void recherche_article_par_msgid(Article_List **larticle,
+                Newsgroup_List **legroupe, char *msgid) {
+   int h=calcul_hash(msgid);
+   Hash_List *recherche=(*Hash_table)[h];
+   while (recherche) {
+      if ((recherche->article) && (strcmp(msgid,recherche->msgid)==0)) {
+         *legroupe=Newsgroup_courant;
+         *larticle=recherche->article;
+         return;
+      }
+      recherche=recherche->prev_hash;
+   }
+   for (*legroupe=Newsgroup_deb;*legroupe;*legroupe=(*legroupe)->next) {
+      if ((*legroupe)->Hash_table==NULL) continue;
+      if (*legroupe==Newsgroup_courant) continue;
+      recherche=(*((*legroupe)->Hash_table))[h];
+      while (recherche) {
+         if ((recherche->article) && (strcmp(msgid,recherche->msgid)==0)) {
+            *larticle=recherche->article;
+            return;
+         }
+      }
+      recherche=recherche->prev_hash;
+   }
+   *larticle=NULL;
+}
+
 
 /* Détermine si on est le propriétaire d'un article */
 /* retour : 1 si oui, 0 si non, -1 si bug */

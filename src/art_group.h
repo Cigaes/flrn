@@ -169,6 +169,11 @@ extern void apply_kill_file(int, int);
 extern Article_List *cousin_prev(Article_List *article);
 extern Article_List *cousin_next(Article_List *article);
 extern void free_one_article(Article_List *, int);
-extern int calcul_hash(char *);
+
+struct Group_List;
+
+extern void recherche_article_par_msgid(Article_List **, struct Group_List **,
+                                                char *);
+extern char *get_one_header(Article_List *, struct Group_List *, char *);
 
 #endif
