@@ -20,10 +20,10 @@
 static UNUSED char rcsid[]="$Id$";
 
 char version_string[]=
-"Flrn version 0.5.0pre0 par Damien et Jo, 10/2000.";
+"Flrn version 0.5.0pre1 par Damien et Jo, 04/2003.";
 
 char short_version_string[]=
-"Flrn (0.5.0pre0 - 10/00)";
+"Flrn (0.5.0pre1 - 03/04)";
 
 
 void print_version_defines(FILE *out)
