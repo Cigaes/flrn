@@ -77,7 +77,8 @@ static void q_encode_string (char *d, unsigned char *s, size_t len)
 
   if (!s) return;
 #ifdef WITH_CHARACTER_SETS
-  Charset=get_name_charset(terminal_charset);
+  if (terminal_charset!=-1) Charset=get_name_charset(terminal_charset);
+      else Charset="iso-8859-1";
 #endif
 
 #if HAVE_SNPRINTF
@@ -162,7 +163,8 @@ static void b_encode_string (char *d, unsigned char *s, size_t len)
   if (!s) return;
 
 #ifdef WITH_CHARACTER_SETS
-  Charset=get_name_charset(terminal_charset);
+  if (terminal_charset!=-1) Charset=get_name_charset(terminal_charset);
+      else Charset="iso-8859-1";
 #endif
 
 #if HAVE_SNPRINTF
@@ -221,7 +223,8 @@ void rfc2047_encode_string (char *d, unsigned char *s, size_t l)
   encode_t *encoder;
 
 #ifdef WITH_CHARACTER_SETS
-  Charset=get_name_charset(terminal_charset);
+  if (terminal_charset!=-1) Charset=get_name_charset(terminal_charset);
+      else Charset="iso-8859-1";
 #endif
 
   /* First check to see if there are any 8-bit characters */
@@ -265,7 +268,8 @@ static int rfc2047_decode_word (char *d, const char *s, size_t len)
   if (!p) return -1;
 
 #ifdef WITH_CHARACTER_SETS
-  Charset=get_name_charset(terminal_charset);
+  if (terminal_charset!=-1) Charset=get_name_charset(terminal_charset);
+      else Charset="iso-8859-1";
 #endif
 
   while ((pp = strtok (pp, "?")) != NULL)
