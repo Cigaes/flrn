@@ -578,7 +578,8 @@ Article_List *ajoute_message (char *msgid, int *should_retry) {
    code=strtol(tcp_line_read, &buf, 10);
    if (code>400) return NULL;
    creation=safe_calloc(1,sizeof(Article_List));
-   creation->numero=strtol(buf,NULL,10);
+   creation->numero=strtol(buf,NULL,10); /* Ceci ne marche pas toujours */
+   		/* ça renvoie 0 avec les versions récentes de INN */
    creation->msgid=safe_strdup(msgid);
    cree_header(creation, 0, 1, 0);
    if (creation->headers==NULL) {
@@ -595,7 +596,17 @@ Article_List *ajoute_message (char *msgid, int *should_retry) {
      *should_retry=1;
      return NULL;
    }
-
+   if (creation->numero==0) {
+      /* on veut vérifier si le numéro est autre chose */
+      /* seul le XREF le permet. Si le Xref n'existe pas, on abandonne */
+      if (creation->headers->k_headers[XREF_HEADER]!=NULL) {
+          if ((buf=strstr(creation->headers->k_headers[XREF_HEADER],
+	        Newsgroup_courant->name))) {
+	      buf=strchr(buf,':');
+	      if (buf) creation->numero=strtol(buf+1, NULL, 10);
+	  }
+      }
+   }
    parcours=Article_deb; 
    if ((parcours!=NULL) && (parcours!=&Article_bidon)) {
      while (parcours && (parcours->numero<creation->numero)) {
