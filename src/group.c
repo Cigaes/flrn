@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <unistd.h>
+#include <ctype.h>
 #ifdef TM_IN_SYS_TIME
 #include <sys/time.h>
 #else
@@ -119,6 +120,8 @@ void init_groups() {
       creation = add_group(&Newsgroup_courant);
       strncpy(creation->name, ptr, strlen(ptr)-1);
       creation->flags=(ptr[strlen(ptr)-1]==':' ? 0 : GROUP_UNSUBSCRIBED);
+      if (in_main_list(creation->name)) 
+        creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
       creation->name[strlen(ptr)-1]='\0';
       creation->min=1;
       creation->max=0;
@@ -157,6 +160,18 @@ static Newsgroup_List *un_nouveau_newsgroup (char *la_ligne)
     creation->read= NULL;
     creation->description= NULL;
     creation->flags=GROUP_UNSUBSCRIBED | GROUP_NEW_GROUP_FLAG;
+    if (in_main_list(creation->name)) 
+      creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
+    while (*buf && (isblank(*buf))) buf++;
+/* TODO : améliorer ce test */
+    switch (*buf) {
+      case 'n' :
+      case 'j' :
+      case '=' :
+      case 'x' : creation->flags |=GROUP_READONLY_FLAG;
+      		 break;
+    }
+    creation->flags |= GROUP_READONLY_TESTED;
     return creation;
 }
 
@@ -544,7 +559,16 @@ int NoArt_non_lus(Newsgroup_List *group) {
    buf=strchr(tcp_line_read,' ');
    group->max=strtol(buf,&buf,0);
    group->min=strtol(buf,&buf,0);
-
+   while (*buf && (isblank(*buf))) buf++;
+/* TODO : améliorer ce test */
+   switch (*buf) {
+     case 'n' :
+     case 'j' :
+     case '=' :
+     case 'x' : group->flags |=GROUP_READONLY_FLAG;
+                break;
+   }
+   group->flags |= GROUP_READONLY_TESTED;
    discard_server(); /* Si il y a plusieurs newsgroups, BEURK */
    
    non_lus=group->max-group->min+1;
@@ -563,6 +587,43 @@ int NoArt_non_lus(Newsgroup_List *group) {
 
    return non_lus;
 }
+
+void test_readonly(Newsgroup_List *groupe) {
+   char *buf;
+   int res,code;
+
+   /* On envoie un list active au serveur */
+   buf=safe_malloc((MAX_NEWSGROUP_LEN+10)*sizeof(char));
+   strcpy(buf, "active ");
+   strcat(buf, groupe->name);
+   res=write_command(CMD_LIST, 1, &buf);
+   free(buf);
+   if (res<3) return;
+   code=return_code();
+   if ((code<0) || (code>400)) return;
+
+   res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+   if (res<0) return;
+   if (tcp_line_read[1]=='\r') {
+      return; /* Pas glop, tout ca */
+   }
+   /* Normalement, une ligne de lecture suffit amplement */
+   buf=strchr(tcp_line_read,' ');
+   strtol(buf,&buf,0);
+   strtol(buf,&buf,0);
+   while (*buf && (isblank(*buf))) buf++;
+/* TODO : améliorer ce test */
+   switch (*buf) {
+     case 'n' :
+     case 'j' :
+     case '=' :
+     case 'x' : groupe->flags |=GROUP_READONLY_FLAG;
+                break;
+   }
+   groupe->flags |= GROUP_READONLY_TESTED;
+   discard_server(); /* Si il y a plusieurs newsgroups, BEURK */
+}
+
 
 void zap_newsgroup(Newsgroup_List *mygroup) {
    Newsgroup_List *pere=Newsgroup_deb;

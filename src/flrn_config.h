@@ -49,7 +49,7 @@ extern const char *tcp_command[];
 
 
 /* Touches de Commande */
-#define NB_FLCMD 58
+#define NB_FLCMD 59
 #define FLCMD_UNDEF -1
 #define FLCMD_RETURN FLCMD_SUIV
 #define FLCMD_MACRO 1024
@@ -87,6 +87,7 @@ extern int do_cancel(int);
 extern int do_hist_menu(int);
 extern int do_add_kill(int);
 extern int do_remove_kill(int);
+extern int do_pipe_header(int);
 
 
 #define MAX_FL_KEY 0x1000
@@ -100,23 +101,23 @@ extern int Flcmd_rev[MAX_FL_KEY];
 #include "flrn_slang.h"
 
 Flcmd Flcmds[NB_FLCMD] = {
-   { "prec", 'p' , '-', 2, &do_deplace },
+   { "previous", 'p' , '-', 2, &do_deplace },
 #define FLCMD_PREC 0
-   { "suiv", '\r', '\n', 2, &do_deplace },
+   { "next-article", '\r', '\n', 2, &do_deplace },
 #define FLCMD_SUIV 1
-   { "art", 'v', 0, 6, &do_deplace },
+   { "article", 'v', 0, 6, &do_deplace },
 #define FLCMD_VIEW 2
    { "goto", 'g', 0, 15, &do_goto },
 #define FLCMD_GOTO 3
    { "GOTO", 'G', 0, 15, &do_goto },
 #define FLCMD_GGTO 4
-   { "unsu", 'u', 0, 5|CMD_NEED_GROUP, &do_unsubscribe },
+   { "unsubscribe", 'u', 0, 5|CMD_NEED_GROUP, &do_unsubscribe },
 #define FLCMD_UNSU 5
-   { "abon", 'a', 0, 5|CMD_NEED_GROUP, &do_abonne },
+   { "subscribe", 'a', 0, 5|CMD_NEED_GROUP, &do_abonne },
 #define FLCMD_ABON 6
-   { "omet", 'o', 0, 6|CMD_NEED_GROUP, &do_omet },
+   { "omit", 'o', 0, 6|CMD_NEED_GROUP, &do_omet },
 #define FLCMD_OMET 7
-   { "OMET", 'O', 0, 6|CMD_NEED_GROUP, &do_omet },
+   { "OMIT", 'O', 0, 6|CMD_NEED_GROUP, &do_omet },
 #define FLCMD_GOMT 8
    { "zap" , 'z', 0 ,13|CMD_NEED_GROUP, &do_zap_group },
 #define FLCMD_ZAP  9
@@ -126,9 +127,9 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_QUIT 11
    { "QUIT" , 'Q', 0 ,0, &do_quit },
 #define FLCMD_GQUT 12
-   { "KILL_THR" , 'J', 0 ,2|CMD_NEED_GROUP, &do_kill },
+   { "kill-thread" , 'J', 0 ,2|CMD_NEED_GROUP, &do_kill },
 #define FLCMD_GKIL 13
-   { "KILL" , 'K', 0 ,2|CMD_NEED_GROUP, &do_kill },
+   { "kill-replies" , 'K', 0 ,2|CMD_NEED_GROUP, &do_kill },
 #define FLCMD_KILL 14
    { "kill" , 'k', 0 ,2|CMD_NEED_GROUP, &do_kill },
 #define FLCMD_PKIL 15
@@ -136,7 +137,7 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_SUMM 16
    { "post", 'm', 0, 5|CMD_NEED_GROUP, &do_post },
 #define FLCMD_POST 17
-   { "repond", 'R', 0, 7|CMD_NEED_GROUP, &do_post },
+   { "reply", 'R', 0, 7|CMD_NEED_GROUP, &do_post },
 #define FLCMD_ANSW 18
    { "view", 'V', 0, 2|CMD_NEED_GROUP, &do_launch_pager },
 #define FLCMD_PAGE 19
@@ -148,9 +149,9 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_LIST 22
    { "LIST", 'L', 0, 13, &do_list },
 #define FLCMD_GLIS 23
-   { "summ-fil", 't', 0, 6|CMD_NEED_GROUP, &do_summary },
+   { "summ-replies", 't', 0, 6|CMD_NEED_GROUP, &do_summary },
 #define FLCMD_THRE 24
-   { "summ-thr", 'T', 0, 6|CMD_NEED_GROUP, &do_summary },
+   { "summ-thread", 'T', 0, 6|CMD_NEED_GROUP, &do_summary },
 #define FLCMD_GTHR 25
    { "option", 0, fl_key_nm_opt, 1, &do_opt }, 
 #define FLCMD_OPT 26
@@ -162,9 +163,9 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_LEFT 29
    { "right", FL_KEY_RIGHT, 0, 2, &do_deplace },
 #define FLCMD_RIGHT 30
-   { "next", ' ', 0, 2, &do_deplace },
+   { "next-unread", ' ', 0, 2, &do_deplace },
 #define FLCMD_SPACE 31
-   { "nxt-thr", 'N', 0, 2|CMD_NEED_GROUP, &do_neth },
+   { "show-tree", 'N', 0, 2|CMD_NEED_GROUP, &do_neth },
 #define FLCMD_NETH 32
    { "swap-grp", 0, 0, 15|CMD_NEED_GROUP, &do_swap_grp },
 #define FLCMD_SWAP_GRP 33
@@ -184,38 +185,40 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_SHELLIN 40
    { "config", 0, 0, 1,&do_opt_menu },
 #define FLCMD_OPTMENU 41
-   { "mail-ans", 0, 0, 3|CMD_NEED_GROUP,&do_post },
+   { "mail-answer", 0, 0, 3|CMD_NEED_GROUP,&do_post },
 #define FLCMD_MAIL 42
    { "tag", '"', 0, 2|CMD_NEED_GROUP,&do_tag },
 #define FLCMD_TAG 43
-   { "gotag", '\'', 0, 2,&do_goto_tag },
+   { "go-tag", '\'', 0, 2,&do_goto_tag },
 #define FLCMD_GOTO_TAG 44
    { "cancel", 'e', 0, 2|CMD_NEED_GROUP, &do_cancel },
 #define FLCMD_CANCEL 45
    { "hist-prev", 'B', 0, 2, &do_back },
 #define FLCMD_HPREV 46
-   { "hist-suiv", 'F', 0, 2, &do_next },
+   { "hist-next", 'F', 0, 2, &do_next },
 #define FLCMD_HSUIV 47
-   { "hist-menu", 'H', 0, 2, &do_hist_menu },
+   { "history", 'H', 0, 2, &do_hist_menu },
 #define FLCMD_HMENU 48
    { "supersedes", 0, 0, 3|CMD_NEED_GROUP, &do_post },
 #define FLCMD_SUPERSEDES 49
-   { "sum-search" , 0, 0 ,14|CMD_NEED_GROUP, &do_summary },
+   { "summ-search" , 0, 0 ,14|CMD_NEED_GROUP, &do_summary },
 #define FLCMD_SUMM_SEARCH 50
    { "menu-summary" , 0, 0 ,6|CMD_NEED_GROUP, &do_summary },
 #define FLCMD_MENUSUMM 51
-   { "menu-fil" , 0, 0 ,6|CMD_NEED_GROUP, &do_summary },
+   { "menu-replies" , 0, 0 ,6|CMD_NEED_GROUP, &do_summary },
 #define FLCMD_MENUTHRE 52
-   { "menu-thr" , 0, 0 ,6|CMD_NEED_GROUP, &do_summary },
+   { "menu-thread" , 0, 0 ,6|CMD_NEED_GROUP, &do_summary },
 #define FLCMD_MENUGTHR 53
    { "menu-search" , '/', 0 ,14|CMD_NEED_GROUP, &do_summary },
 #define FLCMD_MENUSUMMS 54
-   { "sav-opt", 0, 0, 1, &do_save },
+   { "save-options", 0, 0, 1, &do_save },
 #define FLCMD_SAVE_OPT 55
    { "add-kill", 0, 0, 5|CMD_NEED_GROUP, &do_add_kill },
 #define FLCMD_ADD_KILL 56
    { "remove-kill", 0, 0, 5|CMD_NEED_GROUP, &do_remove_kill },
 #define FLCMD_REMOVE_KILL 57
+   { "pipe-header", 0, 0, 15|CMD_NEED_GROUP, &do_pipe },
+#define FLCMD_PIPE_HEADER 58
 };
 
 #define CMD_DEF_PLUS (sizeof(Cmd_Def_Plus)/sizeof(Cmd_Def_Plus[0]))

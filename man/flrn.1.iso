@@ -12,6 +12,7 @@ changement entre deux versions, et il n'est pas exempt de bugs.
 [\fB-d|--debug\fR]
 [\fB-n|--name\fR]
 [\fB-c|--co\fR]
+[\fB-n|--name <name>\fR]
 [\fB-s|--show-config\fR]
 
 .B flrn
@@ -41,6 +42,9 @@ Elle ne devrait pas servir en usage normal.
 L'option \fB-c\fR donne une estimation du nombre de messages à lire dans les
 groupes où l'on est abonné. Cela renvoie toujours un majorant du nombre de
 messages à lire.
+.IP \fB-n\fR
+L'option \fB-n\fR fixe le nom de lancement de flrn à \fI<name>\fR, ce qui
+permet de fixer des options spécifiques dans le .flrnrc.
 .IP \fB-h\fR
 L'option \fB-h\fR affiche la liste des options reconnues.
 .IP \fB-v\fR
@@ -64,6 +68,7 @@ Il y a six commandes :
 .B mono
 .B regcolor
 .B header
+.B my_hdr
 .B bind
 
 Les commandes peuvent maintenant etre prefixees par name <nom> pour n'etre
@@ -114,10 +119,13 @@ messages après la première.
 Avec hide on donne ceux à ne pas afficher quand on a utilise le mot réservé
 other.
 
+.IP "\fBmy_hdr <nom_du_header>: <chaine>\fR"
+Donne une ligne de header à rajouter dans tous les posts fait par flrn.
+
 .IP "\fBbind <touche> <commande> [<arguments>]\fR"
 Permet de changer la fonction d'une touche.
 Pour l'instant, on ne peut mettre pour touche un caractère n'étant pas un
-caractère spécial du .flrn comme '" :=^I' et correspondant à
+caractère spécial du .flrnrc comme '" :=^I' et correspondant à
 un caractère imprimable, ou utiliser la forme \0x20, \040 ou \32.
 On ne peut pas mettre la touche entre guillements pour l'instant.
 
@@ -150,6 +158,17 @@ Choisis si l'on doit ignorer un groupe correspondant à la fois à
 .TP 4
 .I skip_line=<n>
 Donne le nombre de lignes blanches à laisser sous la barre de status.
+.IP \fIflags_group=<8 chars> \fR
+Drapeau à indiquer devant les groupes en fonction de leurs statuts.
+.IP \fIalpha_tree \fR
+Demande d'afficher un arbre de thread plutôt que les petites flèches.
+.IP \fIparse_from \fR
+Affiche un champ From: et un champ Reponse à: plus forum-like.
+.IP \fIheaders_scroll \fR
+Demande à ce que les headers défilent avec les reste du message.
+.IP \fIscroll_after_end \fR
+Indique que, si un défilement d'un page atteint la fin d'un article,
+alors on ne doit pas s'arrêter strictement à la fin.
 .IP \fIdate_in_summary \fR
 Affiche la date dans les résumés.
 .IP \fIordered_summary \fR
@@ -172,6 +191,9 @@ Passe au message suivant avec retrn au lieu de scroller.
 .IP \fIcbreak\fR
 Passe en mode cbreak. Sans cette option, on est en mode émulation d'un
 nocbreak.
+.IP \fIforum_mode\fR
+Mode de commande forum-like : certaines commandes demandent d'appuyer sur
+<entrée> pour les executer.
 .IP \fInew_mode\fR
 Sans cette option, on retrouve le mode de saisis des commandes des premières
 releases de flrn. Avec ses bugs et ses limitations.
@@ -180,9 +202,15 @@ Permet de lire les message en suivant les discussions.
 .IP \fIcool_arrows\fR
 N'affiche pas de message d'erreur quand on essaie d'utiliser une flèche ne
 correspondant à aucun message.
+.IP \fIsavepath\fR
+Donne un chemin par défaut pour la sauvegardes des articles.
 .IP \fIuse_regexp\fR
 Permet d'utiliser des expressions régulières en arguemnt des commandes L et G.
 Les expressions utilisées sont les expressions régulières étendues de rx.
+.IP \fIuse_menus\fR
+Permet l'utilisation de menus pour certaines commandes (goto...).
+.IP \fIwith_cousins\fR
+Permet les déplacements entre articles cousins.
 .IP \fIzap_change_group\fR
 Dit à flrn de changer de groupe quand on marque tous les messages d'un groupe
 comme lus.
@@ -196,8 +224,13 @@ Quitte flrn tout de suite s'il n'y a rien à lire.
 .TP 4
 .I include_in_edit
 Insère automatiquement le message auquel on répond dans l'éditeur.
+.IP \fIattribution=<string>\fR
+Donne la chaine ajoutée devant les citations.
 .IP \fIauto_edit\fR
 Lance automatiquement l'éditeur lorsce que l'on poste un message.
+.IP \fIsimple_post\fR
+Avec cette option, flrn tente de modifier les messages pour qu'il soient
+acceptes par le serveur.
 .IP \fIpost_name=<nom>\fR
 Définit le nom réel à mettre dans le champ From.
 .IP \fIindex_string=<string>\fR
@@ -207,11 +240,28 @@ Met ">" à la place de \fIindex_string\fR si la ligne commence par ">" et que
 index_string commence aussi par ">".
 .TP 6
 .RS
+.B Le kill-file
+.RE
+.TP4
+.I kill_file_name=<fichier>
+Nom du fichier de kill_file.
+.IP \fIauto_kill\fR
+Ajoute automtiquement les nouveaux newsgroups dans la liste principale
+du kill_file.
+.TP6
+.RS
 .B Les autres
 .RE
 .TP 4
 .I use_mailbox
 Utilise le format d'une mailbox pour sauver les messages.
+.IP \fIcheck_mail\fR
+Indique lorsqu'on a reçu du nouveau mail.
+.IP \fIflnews_ext=<nom>\fR
+Donne l'extension au nom du .flnewsrc. Utile pour faire du multiserveur.
+.IP \fIprefixe_groupe\fR
+Donne un préfixe par défaut aux noms de groupes. flrn essaiera alors de
+compléter et/ou d'enlever ce préfixe dans les bonnes conditions.
 .IP \fIserver=<nom>\fR
 Utilise la machine correspondant à ce nom comme serveur.
 .IP \fIport=<n>\fR

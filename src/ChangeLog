@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. Bugfixes, flag READONLY, modif des noms de commandes, option flag_groups...
 . Assouplissement de la syntaxe des touches dans bind
 . Ajout du flag killed.
 . option parse_from

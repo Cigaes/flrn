@@ -693,7 +693,7 @@ static void Save_failed_article() {
 }
 
 /* Poste un mail */
-/* Retour : 0 : bon */
+/* Retour : 1 : bon */
 /* 	   -1 : pas bon */
 static int Mail_article() {
    Lecture_List *a_ecrire=Deb_article;
@@ -709,7 +709,7 @@ static int Mail_article() {
      a_ecrire=a_ecrire->suivant;
    } while (a_ecrire);
    Pipe_Msg_Stop(fd);
-   return 0;
+   return 1;
 }
 
 /* Poste franchement l'article         */
@@ -725,7 +725,8 @@ static int Mail_article() {
 /* -8 : article vide		       */
 /* -9 : ligne trop longue	       */
 /* -10 : adresse sous un format invalide */
-/* -11 : erreur inconnue	       */
+/* -11 : pas autorisé */
+/* -12 : erreur inconnue	       */
 static int Post_article() {
     Lecture_List *a_ecrire=Deb_article;
     int res;
@@ -752,6 +753,7 @@ static int Post_article() {
     res=strtol(tcp_line_read, &buf, 0);
     if (res==240) return 1; 
     /* On suppose que res==441 */
+    if (strstr(buf, "allowed")) return -11;
     if (strstr(buf, "Internet")) return -10;
     if (strstr(buf, "too long")) return -9;
     if (strstr(buf, "empty")) return -8;
@@ -760,7 +762,7 @@ static int Post_article() {
     if ((strstr(buf, "valid")!=NULL) || (strstr(buf,"such")!=NULL)) return -3;
     if (strstr(buf, "Newsgroups")) return -5;
     if (strstr(buf, "From")) return -4;
-    return -11;
+    return -12;
 }
 
 
@@ -1174,6 +1176,8 @@ int post_message (Article_List *origine, char *name_file,int flag) {
 	case -9 : Screen_write_string("une ligne est trop longue.");
 		  break;
         case -10: Screen_write_string("Un header contient une adresse invalide.");	break;
+        case -11: Screen_write_string("Post non autorisé.");	
+		  break;
 	default : Screen_write_string("inconnu : ");
 		  break;
       }

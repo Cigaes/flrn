@@ -80,6 +80,10 @@ typedef struct Action_Beurk {
    void *flag;
 } Action_with_args;
 
+struct file_and_int {
+   FILE *file;
+   int num;
+};
 
 int parse_arg_string(char *str,int command);
 /* On prédéfinit ici les fonctions appelés par loop... A l'exception de */
@@ -112,6 +116,7 @@ int do_cancel(int res);
 int do_abonne(int res);
 int do_remove_kill(int res);
 int do_add_kill(int res);
+int do_pipe_header(int res);
 
 
 /* Ces fonctions sont appelés par les do_* */
@@ -177,6 +182,8 @@ static void Aff_message(int type, int num)
     case 17 : Aff_error("Article(s) cancelé(s)"); break;
     case 18 : Aff_error("Groupe ajouté."); break;
     case 19 : Aff_error("Groupe retiré."); break;
+    case 20 : Aff_error("Mail envoyé."); break;
+    case 21 : Aff_error("Mail envoyé, article posté."); break;
  /* Message d'erreur */
     case -1 : Aff_error("Vous n'êtes abonné à aucun groupe."); 
 	       break;
@@ -203,6 +210,9 @@ static void Aff_message(int type, int num)
     case -13 : Aff_error("Tag invalide."); break;
     case -14 : Aff_error("Cancel refusé."); break;
     case -15 : Aff_error("Historique vide."); break;
+    case -16 : Aff_error("Vous ne pouvez pas poster ici."); break;
+    case -17 : Aff_error("Pas de header."); break;
+    case -18 : Aff_error("Header refusé."); break;
     default : Aff_error("Erreur non reconnue !!!");
 	       break;
   }
@@ -509,7 +519,9 @@ static int Lit_cmd_explicite(char *str) {
    if (strncmp(str, "key-right ",10)==0) return Lit_cmd_key(FL_KEY_RIGHT);
    /* cas "normal" */
    for (i=0;i<NB_FLCMD;i++) 
-     if (strncmp(str, Flcmds[i].nom, strlen(Flcmds[i].nom))==0) return i;
+     if ((strncmp(str, Flcmds[i].nom, strlen(Flcmds[i].nom))==0)
+         && ((str[strlen(Flcmds[i].nom)]=='\0') || 
+	     (isblank(str[strlen(Flcmds[i].nom)])))) return i;
    return FLCMD_UNDEF;
 }
 
@@ -1143,6 +1155,7 @@ int do_abonne(int res) {
    newsgroup->flags &= ~GROUP_UNSUBSCRIBED;
    if (Options.auto_kill) {
      add_to_main_list(newsgroup->name);
+     Newsgroup_courant->flags|=GROUP_IN_MAIN_LIST_FLAG;
    }
    if (newsgroup==Newsgroup_courant) Aff_newsgroup_name();
    etat_loop.etat=1; etat_loop.num_message=9;
@@ -1152,6 +1165,7 @@ int do_abonne(int res) {
 int do_add_kill(int res) {
   char *str=Arg_str;
   add_to_main_list(str[0]?str:Newsgroup_courant->name);
+  Newsgroup_courant->flags|=GROUP_IN_MAIN_LIST_FLAG;
   Aff_newsgroup_name();
   etat_loop.etat=1; etat_loop.num_message=18;
   return 0;
@@ -1160,6 +1174,7 @@ int do_add_kill(int res) {
 int do_remove_kill(int res) {
   char *str=Arg_str;
   remove_from_main_list(str?str:Newsgroup_courant->name);
+  Newsgroup_courant->flags&=~GROUP_IN_MAIN_LIST_FLAG;
   Aff_newsgroup_name();
   etat_loop.etat=1; etat_loop.num_message=19;
   return 0;
@@ -1559,15 +1574,35 @@ int display_filter_file(char *cmd, int flag) {
   return 0;
 }
 
+static int Sauve_header_article (Article_List *a_sauver, void *file_and_int);
+
 /* do_pipe : on va essayer de voir... */
 int do_pipe(int res) { 
   FILE *fichier;
   char *name=Arg_str;
-  int ret, use_argstr=0, col;
+  int ret, use_argstr=0, col, num_known_header=0;
   Numeros_List *courant=&Arg_do_funcs;
   int fd;
 
+
   while ((*name) && (isblank(*name))) name++;
+  if (res==FLCMD_PIPE_HEADER) {
+    if (name[0]=='\0') {
+	etat_loop.etat=2; etat_loop.num_message=-17; return 0;
+    }
+    for (num_known_header=0; num_known_header<NB_KNOWN_HEADERS;
+	 num_known_header++) {
+	if (strncasecmp(name,Headers[num_known_header].header,
+			Headers[num_known_header].header_len)==0)
+	    break;
+    }
+    if (num_known_header==NB_KNOWN_HEADERS) {
+	etat_loop.etat=2; etat_loop.num_message=-18; return 0;
+    }
+    name+=Headers[num_known_header].header_len;
+    while ((*name) && (isblank(*name))) name++;
+  }
+
   if (name[0]=='\0') {
     use_argstr=1;
     name=safe_malloc(MAX_PATH_LEN*sizeof(char));
@@ -1595,6 +1630,12 @@ int do_pipe(int res) {
   }
   if ((res==FLCMD_PIPE) || (res==FLCMD_FILTER))
     distribue_action(courant,Sauve_article,NULL ,fichier);
+  else if (res==FLCMD_PIPE_HEADER) {
+    struct file_and_int beurk2;
+    beurk2.file=fichier;
+    beurk2.num=num_known_header;
+    distribue_action(courant,Sauve_header_article,NULL ,&beurk2);
+  }
   else {
     Action_with_args beurk;
     beurk.action=Sauve_article;
@@ -1613,11 +1654,15 @@ int do_pipe(int res) {
 }
 
 
+
 /* do_post : lance post */
 int do_post(int res) { 
   Article_List *origine;
   char *str=Arg_str;
   int ret;
+
+  if ((res!=FLCMD_MAIL) && (Newsgroup_courant->flags & GROUP_READONLY_FLAG))
+  { etat_loop.etat=2; etat_loop.num_message=-16; return 0; }
 
   if ((res==FLCMD_ANSW) || (res==FLCMD_MAIL) || (res==FLCMD_SUPERSEDES)) {
      origine=Article_courant;
@@ -1631,6 +1676,8 @@ int do_post(int res) {
   /* Provisoirement, je ne m'occupe pas de la chaine de caractère */
   ret=post_message(origine, str, (res==FLCMD_MAIL ? 1 : 
       					(res==FLCMD_SUPERSEDES ? -1 : 0)));
+  if (ret==3) { etat_loop.etat=1; etat_loop.num_message=21; } else
+  if (ret==2) { etat_loop.etat=1; etat_loop.num_message=20; } else
   if (ret==1) { etat_loop.etat=1; etat_loop.num_message=6; } else
   if (ret==0) { etat_loop.etat=1; etat_loop.num_message=7; } else
     etat_loop.etat=3;
@@ -1699,6 +1746,17 @@ int do_list(int res) {
    else etat_loop.etat=3;
    etat_loop.hors_struct |= 1;
    return 0;
+}
+
+static int Sauve_header_article(Article_List *a_sauver, void *file_and_int) {
+  struct file_and_int *truc = (struct file_and_int *) file_and_int;
+  
+  if (a_sauver==NULL) return 0;
+  if ((a_sauver->headers==NULL) &&
+      (cree_header(a_sauver,0,0)==NULL)) return 0;
+  if (a_sauver->headers->k_headers[truc->num]==NULL) return 0;
+  fprintf(truc->file,"%s\n",a_sauver->headers->k_headers[truc->num]);
+  return 0;
 }
 
 /* Sauve l'article a_sauver dans fichier */

@@ -64,6 +64,7 @@ extern int NoArt_non_lus(Newsgroup_List * /*group*/);
 extern int cherche_newnews(void);
 extern void add_read_article(Newsgroup_List * /*group*/, int /*numero*/);
 extern char *truncate_group (char *, int);
+extern void test_readonly(Newsgroup_List *);
     
 /*  art_group.c  */
 extern int va_dans_groupe(void);
@@ -202,6 +203,7 @@ extern void check_kill_article(Article_List *, int );
 extern int add_to_main_list(char *);
 extern int remove_from_main_list(char *);
 extern void free_kill();
+extern int in_main_list(char *);
 
 
 

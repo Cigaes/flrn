@@ -96,6 +96,7 @@ struct Option_struct {
   int auto_kill;
   char *savepath;
   char *prefixe_groupe;
+  char *flags_group;
 };
 
 extern struct Option_struct Options;
@@ -163,6 +164,7 @@ static struct {
   MAKE_OPT(default_subscribe,"Abonnement par défaut."),
   MAKE_OPT(duplicate_subject,"Les sujets sont réaffichés à chaque ligne dans les résumés."),
   MAKE_OPT(edit_all_headers,"Permet d'éditer tous les headers dans un post."),
+  MAKE_STRING_OPT(flags_group,"Caractères précédents un groupe selon ses attributs."),
   MAKE_STRING_OPT_L(flnews_ext,"Extension sur le nom du .flnewsrc."),
   MAKE_OPT(forum_mode,"Mode de commande forum-like."),
   MAKE_OPT(headers_scroll,"Les headers scrollent avec le reste des messages."),

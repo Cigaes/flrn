@@ -53,6 +53,7 @@ struct Option_struct Options = {
   1,			/* auto_kill */
   "",			/* savepath */
   "",			/* prefixe_groupe */
+  " TDD*tdd",		/* flags_group */
   };
 
 #endif

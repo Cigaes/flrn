@@ -464,3 +464,8 @@ int remove_from_main_list(char *name) {
   }
   return -1;
 }
+
+int in_main_list (char *name) {
+  return (main_kill_list &&
+     find_in_liste(main_kill_list,name));
+}

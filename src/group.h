@@ -30,6 +30,9 @@ typedef struct Group_List
    unsigned int flags;
 #define GROUP_UNSUBSCRIBED              0x001
 #define GROUP_NEW_GROUP_FLAG            0x002
+#define GROUP_IN_MAIN_LIST_FLAG		0x004
+#define GROUP_READONLY_FLAG		0x008
+#define GROUP_READONLY_TESTED		0x010
 
    char name[MAX_NEWSGROUP_LEN + 1];
 

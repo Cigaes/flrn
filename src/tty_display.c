@@ -356,6 +356,12 @@ int Liste_groupe (int flags, char *mat) {
 #define SYMB_ART_UNK  '?'
 #define SYMB_ART_UNR  'O'
 #define SYMB_ART_COUR '@'
+#define SYMB_SLASH    '/'
+#define SYMB_ANTISLASH '\\'
+#define SYMB_LOWER    'v'
+#define SYMB_HIGHER   '^'
+#define SYMB_BEFORE   '<'
+#define SYMB_AFTER    '>'
 /* row, col : coordonnées du haut a gauche */
 /* on essaie d'arranger to_left et to_right... height est la max... */
 /* table est un pointeur vers un tableau de taille ((to_left+to_right)*2+3, */
@@ -385,7 +391,7 @@ int Aff_arbre (int row, int col, Article_List *init,
   }
   if (left>to_left) 
      /* On dessine le < */
-     (table[0])[0]='<';
+     (table[0])[0]=SYMB_BEFORE;
   else if (parcours->pere && (parcours->pere->numero<0)) 
      (table[0])[0]='-';
   /* L'ancêtre est celui dont on regarde pas les frères... */
@@ -403,7 +409,7 @@ int Aff_arbre (int row, int col, Article_List *init,
       parcours=parcours->prem_fils;
   }
   if (act_right_deb>to_right) {
-     (table[0])[(left+to_right)*2+2]='>';
+     (table[0])[(left+to_right)*2+2]=SYMB_AFTER;
      act_right_deb=to_right;
   }
   right=act_right_deb; /* right sera le max atteint à droite */
@@ -426,18 +432,18 @@ int Aff_arbre (int row, int col, Article_List *init,
       /* cela ne peut pas arriver si on vient de descendre. C'est un frere */
       /* A moins que remonte==2 */
 	   if (((table[rw])[cl-1]==' ') && (parcours2->frere_suiv))
-	           (table[rw])[cl-1]='/';
-	   (table[rw])[cl]='^';
+	           (table[rw])[cl-1]=SYMB_SLASH;
+	   (table[rw])[cl]=SYMB_HIGHER;
 	   c=cl-2; r=rw+1;
-	   if (((table[rw])[cl-1]=='\\') || (parcours2->frere_suiv==NULL))
+	   if (((table[rw])[cl-1]==SYMB_ANTISLASH) || (parcours2->frere_suiv==NULL))
 	           remonte=2; /* obligatoire */
 	   else
 	   if ((c<0) || ((table[rw])[c]!=' ')) remonte=1; 
 	   else {
 	     while ((r<height+1) && 
-	         ((table[r])[c]==' ') && ((table[r])[c+1]!='\\')) 
+	         ((table[r])[c]==' ') && ((table[r])[c+1]!=SYMB_ANTISLASH)) 
 	        (table[r++])[c]='|';
-	     if ((r<height+1) && (c>=0) && ((table[r])[c+1]=='\\')) remonte=2;
+	     if ((r<height+1) && (c>=0) && ((table[r])[c+1]==SYMB_ANTISLASH)) remonte=2;
 	         /* cas particulier : on veut afficher le "/^" pour le pere */
 	     else remonte=1;
 	   }
@@ -452,7 +458,7 @@ int Aff_arbre (int row, int col, Article_List *init,
 
 	   up++; rw--;
 	   (table[rw])[cl]=char_for_art(parcours2);
-	   if (parcours2->prem_fils) (table[rw])[cl+1]='>';
+	   if (parcours2->prem_fils) (table[rw])[cl+1]=SYMB_AFTER;
 	   act_right_temp=act_right; parcours3=parcours2; c=cl;
 	   /* et on remonte pour l'affichage */
            while (act_right_temp>act_right_deb) {
@@ -464,14 +470,14 @@ int Aff_arbre (int row, int col, Article_List *init,
 		 r=rw+1;
 		 if (parcours3->prem_fils->frere_suiv)
 		 while ((r<height+1) && ((table[r])[c]==' ') && 
-		     ((table[r])[c+1]!='\\'))
+		     ((table[r])[c+1]!=SYMB_ANTISLASH))
 		     (table[r++])[c]='|';
 	      } else break;
 	   }
 	   if (parcours3->frere_suiv==NULL) 
-	      (table[rw])[c-1]='\\'; else
+	      (table[rw])[c-1]=SYMB_ANTISLASH; else
 	   if (parcours3->frere_prev==NULL) {
-	      (table[rw])[c-1]='/';
+	      (table[rw])[c-1]=SYMB_SLASH;
 	      r=rw+1;
 	      while ((r<height+1) && ((table[r])[c-2]==' '))
 		(table[r++])[c-2]='|';
@@ -504,17 +510,17 @@ int Aff_arbre (int row, int col, Article_List *init,
         if ((remonte!=1) && (((up==0) ? 1 : up)+down==height)) {
       /* cela ne peut pas arriver si on vient de descendre. C'est un frere */
 	   if (((table[rw])[cl-1]==' ') && (parcours2->frere_prev))
-	            (table[rw])[cl-1]='\\';
-	   (table[rw])[cl]='v';
+	            (table[rw])[cl-1]=SYMB_ANTISLASH;
+	   (table[rw])[cl]=SYMB_LOWER;
 	   c=cl-2; r=rw-1;
-	   if (((table[rw])[cl-1]=='/') || (parcours2->frere_prev==NULL))
+	   if (((table[rw])[cl-1]==SYMB_SLASH) || (parcours2->frere_prev==NULL))
 	                         remonte=2; /* obligatoire */
 	   if ((c<0) || ((table[rw])[c]!=' ')) remonte=1; 
 	   else {
 	     while ((r>0) && 
-	         ((table[r])[c]==' ') && ((table[r])[c+1]!='/')) 
+	         ((table[r])[c]==' ') && ((table[r])[c+1]!=SYMB_SLASH)) 
 	        (table[r--])[c]='|';
-	     if ((r>0) && ((table[r])[c+1]=='/')) remonte=2;
+	     if ((r>0) && ((table[r])[c+1]==SYMB_SLASH)) remonte=2;
 	         /* cas particulier : on veut afficher le "\\v" pour le pere */
 	     else remonte=1;
 	   }
@@ -529,7 +535,7 @@ int Aff_arbre (int row, int col, Article_List *init,
 
 	   down++; rw++;
 	   (table[rw])[cl]=char_for_art(parcours2);
-	   if (parcours2->prem_fils) (table[rw])[cl+1]='>';
+	   if (parcours2->prem_fils) (table[rw])[cl+1]=SYMB_AFTER;
 	   act_right_temp=act_right; parcours3=parcours2; c=cl;
 	   /* et on remonte pour l'affichage */
            while (act_right_temp>act_right_deb) {
@@ -540,14 +546,14 @@ int Aff_arbre (int row, int col, Article_List *init,
 		 (table[rw])[c+1]='-';
 		 r=rw-1;
 		 if (parcours3->prem_fils->frere_prev)
-		 while ((r>0) && ((table[r])[c]==' ') && ((table[r])[c+1]!='/'))
+		 while ((r>0) && ((table[r])[c]==' ') && ((table[r])[c+1]!=SYMB_SLASH))
 		     (table[r--])[c]='|';
 	      } else break;
 	   }
 	   if (parcours3->frere_prev==NULL) 
-	      (table[rw])[c-1]='/'; else
+	      (table[rw])[c-1]=SYMB_SLASH; else
 	   if (parcours3->frere_suiv==NULL) {
-	      (table[rw])[c-1]='\\';
+	      (table[rw])[c-1]=SYMB_ANTISLASH;
 	      r=rw-1;
 	      while ((r>0) && ((table[r])[c-2]==' '))
 		(table[r--])[c-2]='|';
@@ -1081,25 +1087,37 @@ int Gere_Scroll_Message (int *key_int, int row_act, int row_deb,
 /* Affichage du nom du newsgroup */
 void Aff_newsgroup_name() {
    char *buf=NULL, *tmp_name;
-   int buf_to_free=0, aff_D=0;
+   int buf_to_free=0, num_flag;
+   char flag_aff=0;
 
    Screen_set_color(FIELD_STATUS);
    Cursor_gotorc(0,name_news_col);
    if (name_fin_col-name_news_col>0) {
      if (Newsgroup_courant) {
-       if ((Newsgroup_courant->flags) & GROUP_UNSUBSCRIBED) aff_D=1;
+       if (!(Newsgroup_courant->flags & GROUP_READONLY_TESTED))
+          test_readonly(Newsgroup_courant);
+       num_flag=(Newsgroup_courant->flags & GROUP_READONLY_FLAG ? 4 : 0)+
+       		(Newsgroup_courant->flags & GROUP_UNSUBSCRIBED ? 2 : 0)+
+		(Newsgroup_courant->flags & GROUP_IN_MAIN_LIST_FLAG ? 0 : 1);
+       if (Options.flags_group && (strlen(Options.flags_group)>num_flag) 
+       	     && (Options.flags_group[num_flag]!=' ')) 
+	     	flag_aff=Options.flags_group[num_flag];
        tmp_name=truncate_group(Newsgroup_courant->name,0);
-       if (strlen(tmp_name)<name_fin_col-name_news_col-(aff_D*3))
+       if (strlen(tmp_name)<name_fin_col-name_news_col-((flag_aff ? 1 : 0)*3))
           buf=tmp_name;
        else 
-          buf=tmp_name+(strlen(tmp_name)-name_fin_col+name_news_col+(aff_D*3));
-	 if (aff_D) Screen_write_string("[D]");
+          buf=tmp_name+(strlen(tmp_name)-name_fin_col+name_news_col+((flag_aff ? 1 : 0)*3));
+       if (flag_aff) {
+	 Screen_write_char('[');
+	 Screen_write_char(flag_aff);
+	 Screen_write_char(']');
+       }
      } else {
        buf=safe_malloc((name_fin_col-name_news_col+1)*sizeof(char));
        memset(buf, ' ', name_fin_col-name_news_col+1);
        buf_to_free=1;
      }
-     Screen_write_nstring(buf, name_fin_col-name_news_col+1-(aff_D*3));
+     Screen_write_nstring(buf, name_fin_col-name_news_col+1-((flag_aff ? 1 : 0)*3));
    }
    Screen_set_color(FIELD_NORMAL);
    Cursor_gotorc(1,0);
