@@ -283,6 +283,8 @@ static int rfc2047_decode_word (char *d, const char *s, size_t len)
 	  filter = 1;
 #ifdef WITH_CHARACTER_SETS
           crset=Parse_charset(pp);         
+	  if (crset==-1) filter=0; /* tant pis, on ne filtre pas
+	  				un code inconnu, parfois c'est mieux */
 #endif
         }
 	break;
