@@ -922,12 +922,13 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
    unsigned short *une_belle_ligne;
    int length;
 
-   if ((!from_file) && (tcp_line_read[0]=='.'))
+   if ((!from_file) && (tcp_line_read[0]=='.')) {
       if (tcp_line_read[1]=='.') buf=tcp_line_read+1; else 
 	return (en_deca ? 0 : -act_row+saved_space);
-      else buf=tcp_line_read; 
-   if (saved_field!=FIELD_SIG)
+   } else buf=tcp_line_read; 
+   if (saved_field!=FIELD_SIG) {
      if (buf[0]=='>') saved_field=FIELD_QUOTED; else saved_field=FIELD_NORMAL;
+   }
    if (strncmp(buf,"-- \r",4)==0) saved_field=FIELD_SIG;
    une_ligne=safe_malloc(Screen_Cols+1); /* si on atteint le max, ce sera
 					    un blanc... */
@@ -997,6 +998,7 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
       strncat(une_ligne,buf,len_to_write);
       if ((!from_file) &&
        ((!buf2) || (buf2-tcp_line_read==MAX_READ_SIZE-1)))    /* ouille ! */
+      {
          if (strlen(buf)<=len_to_write) {
              tmp_col=str_estime_len(buf,tmp_col,-1);
              res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
@@ -1018,6 +1020,7 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
 	       continue;
 	    } /* sinon, on se contente de changer de ligne */
 	 }
+      }
       else 
       if (strlen(buf)<=len_to_write) { /* fini */
 	  if (act_row<Screen_Rows-1) {

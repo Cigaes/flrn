@@ -29,7 +29,8 @@ extern int tcp_fd;
 /* minimale (à condition de trouver le home directory).			*/
 /* file, si non NULL, donne le nom du fichier à partir de HOME		*/ 
 /* mode a r pour le lire, w+ pour le creer */
-/* flag =1, créer un fichier vide, =2 créer un fichier avec du pipo,
+/* flag =1, créer un fichier vide, =2 renvoyer le fichier par défaut de config
+	(lecture seule)
  * flag=0 ne pas créer de fichier */
 
 FILE *open_flrnfile (char *file,char *mode, int flag, time_t * date)
@@ -68,11 +69,12 @@ FILE *open_flrnfile (char *file,char *mode, int flag, time_t * date)
 
    if (!(config_file=fopen(name,mode))) {
      if (flag) {
-       fprintf(stderr,"Le fichier %s ne peut être ouvert\n",name);
+       fprintf(stderr,"Le fichier %s ne peut être ouvert!\n",name);
+       fprintf(stderr,"Utilisation du fichier par défaut.\n");
        fprintf(stderr,"Si vous avez un .flrn, vous devez le renommer en %s\n",
        		DEFAULT_CONFIG_FILE);
      }
-     if (home_found && flag) {
+     if (home_found && (flag==1)) {
        if (debug) fprintf(stderr,"On va essayer de le créer\n");
        config_file=fopen(name,"w+");
        if (config_file == NULL) {
@@ -80,14 +82,19 @@ FILE *open_flrnfile (char *file,char *mode, int flag, time_t * date)
 	  sleep(1);
 	  return NULL;
        }
-       if (flag == 2) {
-	 fprintf(config_file,"#  Fichier de configuration de flrn\n");
-	 fprintf(config_file,"#  Créé automatiquement\n");
-       }
        fseek(config_file,0L,SEEK_CUR); /* Pour l'effet de synchronisation */
-     } else {
-       return NULL;
-     }
+     } else if (flag==2) {
+	 if (debug) fprintf(stderr,"Ouverture du fichier par défaut\n");
+	 strncpy(name,PATH_CONFIG_DIRECTORY,MAX_PATH_LEN-1);
+	 name[MAX_PATH_LEN-2]='\0';
+	 strncat(name,DEFAULT_CONFIG_SYS_FILE,MAX_PATH_LEN-strlen(name)-1);
+	 name[MAX_PATH_LEN-1]='\0';
+	 config_file=fopen(name,"r");
+	 if (config_file == NULL) {
+	   if (debug) fprintf(stderr,"Fichier de config inexistant ??\n");
+ 	   return NULL;
+	 }
+     } else return NULL;
    }
    return config_file;
 }

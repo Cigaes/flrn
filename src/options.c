@@ -395,7 +395,7 @@ void parse_options_line (char *ligne, int flag)
     lettre = *buf;
     if (buf[1]) {
       if (*buf == '\\') buf++;
-      if (isdigit(*buf))
+      if (isdigit((int) *buf))
 	lettre = strtol(buf,NULL,0);
       else
 	lettre = parse_key_name(buf);
@@ -646,7 +646,7 @@ void init_options() {
     unknown_Headers[i].header_len=0;
     unknown_Headers[i].header=NULL;
   }
-  flrnfile=open_flrnfile(NULL,"r+",2,NULL);
+  flrnfile=open_flrnfile(NULL,"r",2,NULL);
   if (flrnfile==NULL) return;
   while (fgets(buf1,MAX_BUF_SIZE,flrnfile)) 
     parse_options_line(buf1,0);

@@ -140,11 +140,12 @@ static int raw_read_server (char *buf, int min) {
       }
 #else
      ret_read=read(tcp_fd,buf+lus,MAX_BUF_SIZE-1-lus);
-     if (ret_read<0)  /* dans ce cas, on laisse tomber */ 
+     if (ret_read<0) { /* dans ce cas, on laisse tomber */ 
 	if (errno==EINTR)
 	   continue;
 	else
 	  { perror ("Read : "); return -1; }
+     }
      if (ret_read==0) /* pourquoi ? */
      {  if (debug) fprintf (stderr, "Qu'est-ce que signifie read=0 ?\n");
 	return -1;

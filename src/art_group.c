@@ -342,17 +342,19 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others) {
 	 }
       }
       if ((i==NB_KNOWN_HEADERS) && (!(flag & 1) || (tcp_line_read[0]!='.'))) 
-      if (others) {
-	 header_courant=UNKNOWN_HEADER;
-	 if (actuel) { 
-	   (*actuel)->next=safe_malloc(sizeof(Header_List));
-	   actuel=&((*actuel)->next);
-	 } else {
-	   actuel=&(Last_head_cmd.headers);
-	   (*actuel)=safe_malloc(sizeof(Header_List));
-	 }
-	 (*actuel)->header=safe_strdup(tcp_line_read);
-      } else header_courant=NULL_HEADER;
+      {
+        if (others) {
+	   header_courant=UNKNOWN_HEADER;
+	   if (actuel) { 
+	     (*actuel)->next=safe_malloc(sizeof(Header_List));
+	     actuel=&((*actuel)->next);
+	   } else {
+	     actuel=&(Last_head_cmd.headers);
+	     (*actuel)=safe_malloc(sizeof(Header_List));
+	   }
+	   (*actuel)->header=safe_strdup(tcp_line_read);
+        } else  header_courant=NULL_HEADER;
+      }
    } while (!(flag & 1) || (tcp_line_read[0]!='.'));
 
    if (others) (*actuel)->next=NULL;
@@ -986,12 +988,12 @@ int Est_proprietaire(Article_List *article) {
   /* on veut un login plus un nom de domaine */
   buf=strstr(la_chaine,flrn_user->pw_name);
   if (buf==NULL) return 0;
-  if ((buf!=la_chaine) && (isalnum(*(buf-1)))) return 0;
-  if (isalnum(*(buf+strlen(flrn_user->pw_name)))) return 0;
+  if ((buf!=la_chaine) && (isalnum((int) *(buf-1)))) return 0;
+  if (isalnum((int) *(buf+strlen(flrn_user->pw_name)))) return 0;
   buf=strstr(la_chaine,DOMAIN);
   if (buf==NULL) return 0;
   if ((*(buf-1))!='.') return 0;
-  if (isalnum(*(buf+strlen(DOMAIN)))) return 0;
+  if (isalnum((int) *(buf+strlen(DOMAIN)))) return 0;
 #endif
   return 1; /* C'est bon */
 }

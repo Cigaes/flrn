@@ -135,7 +135,7 @@ int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
       		/* les lignes en debut fichier */
       read_something=1;
       if ((buf[0]=='\n') && headers) {headers=0; continue;}
-      if (headers) 
+      if (headers) {
 	 if (isblank(buf[0])) {
 	   if (header_courant) {
 	     if (*header_courant) {
@@ -213,11 +213,12 @@ int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
 	      (*header_courant)[strlen(*header_courant)-1]='\0';
 	   }
 	}
-     if (headers==0) {
+      }
+      if (headers==0) {
         if (header_courant) 
 	    header_courant=NULL;
         str_cat(&lecture_courant, buf);
-     }
+      }
    }
    *d_l=lecture_courant;
    *place=lecture_courant->size;
@@ -858,8 +859,8 @@ static int Get_base_headers(int flag) {
 	   return -1;
       }
       /* Determiner si on doit faire la réponse par mail en priorité */
-      if ((flag==0) && (Pere_post->headers->k_headers[FOLLOWUP_TO_HEADER])) 
-      if  (strcasecmp(Pere_post->headers->k_headers[FOLLOWUP_TO_HEADER],"poster")==0) {
+      if ((flag==0) && (Pere_post->headers->k_headers[FOLLOWUP_TO_HEADER])) {
+        if  (strcasecmp(Pere_post->headers->k_headers[FOLLOWUP_TO_HEADER],"poster")==0) {
 	  while (flag==0) {
 	    Cursor_gotorc(Screen_Rows-1,0);
 	    Screen_write_string("Répondre par mail (O/N/A) ? ");
@@ -870,7 +871,7 @@ static int Get_base_headers(int flag) {
 	    if (key=='N') break;
 	  }
 	  par_mail=flag; /* 0 ou 1 */
-      } else {
+        } else {
 	  while (1) {
 	    Cursor_gotorc(Screen_Rows-1,0);
 	    Screen_write_string("Suivre le followup (O/N/A) ? ");
@@ -884,6 +885,7 @@ static int Get_base_headers(int flag) {
 	    }
 	    if (key=='N') break;	  
 	  }
+        } 
       }
       /* References */
       if (!supersedes) { /* Pas de References pour un supersedes ? */
@@ -918,10 +920,11 @@ static int Get_base_headers(int flag) {
       }
    }
    /* Newsgroups */
-   if (Header_post->k_header[NEWSGROUPS_HEADER]==NULL)
+   if (Header_post->k_header[NEWSGROUPS_HEADER]==NULL) {
 	 if (!supersedes) Header_post->k_header[NEWSGROUPS_HEADER]=safe_strdup(Newsgroup_courant->name);
            else
 	 Header_post->k_header[NEWSGROUPS_HEADER]=safe_strdup(Pere_post->headers->k_headers[NEWSGROUPS_HEADER]);
+   }
    /* Headers To: et In-Reply-To: */
    Cursor_gotorc(1,0);
    Screen_erase_eos();

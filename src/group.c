@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <unistd.h>
 #ifdef TM_IN_SYS_TIME
 #include <sys/time.h>
 #else

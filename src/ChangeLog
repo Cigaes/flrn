@@ -1,5 +1,8 @@
 ChangeLog Flrn
 
+. suppression d'un grand nombre de warnings avec gcc-2.8.1
+. ajout d'un fichier de config par défaut, suppression des fichiers de config
+	pipo
 . préfixe name pour les options, option flnews_ext
 . modif du cancel pour qu'il ne teste que le login et le domaine
 . usage du Message-ID quand le numéro ne marche pas. Les problème de synchro

@@ -294,8 +294,9 @@ int loop(char *opt) {
       if (Article_courant) {
 	if (etat_loop.hors_struct==1) etat_loop.hors_struct=0;
 	if (!(etat_loop.hors_struct & 8)) 
+	{
 	  if (etat_loop.num_futur_article==0)
-            change=-prochain_non_lu(etat_loop.num_message==1,&Article_courant,1);
+           change=-prochain_non_lu(etat_loop.num_message==1,&Article_courant,1);
 	  else {
 	    if (etat_loop.num_futur_article !=-1) {
 	      Arg_do_funcs.num1=etat_loop.num_futur_article;
@@ -306,6 +307,7 @@ int loop(char *opt) {
 	    }
 	    change=0;
 	  }
+	}
 	else change=0;
 	  /* change=1 : il n'y a rien a lire */
 	if ((etat_loop.Newsgroup_nouveau) && (change==1)) {
@@ -636,7 +638,7 @@ int get_command_nocbreak(int asked,int col) {
      return -2;
    while(*str==fl_key_nocbreak) str++;
    if (str[0]=='\0') return Flcmd_rev['\r'];
-   if (isdigit(str[0]) || (str[0]=='<')) {
+   if (isdigit((int) str[0]) || (str[0]=='<')) {
      Parse_nums_article(str, &str, 2);
      return FLCMD_VIEW;
    }
@@ -885,8 +887,10 @@ int do_deplace(int res) {
 			if (ret==2) { 
 			  etat_loop.Newsgroup_nouveau=Newsgroup_courant;
 			  return 1;
-		        } else if (ret==1) if (peut_changer) return 1; else
+		        } else if (ret==1) {
+			  if (peut_changer) return 1; else
 			  parcours=NULL;
+			}
 			break;
    }
    if ((res==FLCMD_UP) || (res==FLCMD_DOWN) || (res==FLCMD_LEFT) ||
@@ -894,8 +898,10 @@ int do_deplace(int res) {
       if ((parcours2) || (Options.inexistant_arrow)) parcours=parcours2;
    if (parcours==NULL) {
       etat_loop.hors_struct=1;
-      if (parc_eq_cour) if (res==FLCMD_PREC) etat_loop.hors_struct=5; else
+      if (parc_eq_cour) {
+        if (res==FLCMD_PREC) etat_loop.hors_struct=5; else
 	if ((res==FLCMD_SUIV) || (res==FLCMD_SPACE)) etat_loop.hors_struct=3;
+      }
       etat_loop.etat=1; 
       etat_loop.num_message=(etat_loop.hors_struct & 2 ? 2 : 3);
    } else {
@@ -1894,7 +1900,7 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
      if ((mygroup==Newsgroup_courant) && (!avec_un_menu) &&
             ((mygroup==NULL) ||
 	    ((!Options.use_regexp || regexec(&reg,mygroup->name,0,NULL,0))
-	    && (Options.use_regexp || !strstr(mygroup->name,gpe))))) 
+	    && (Options.use_regexp || !strstr(mygroup->name,gpe))))) {
        if (flags) { 
          if (debug) fprintf(stderr, "On va appeler cherche_newsgroup\n");
          /* on recupere la chaine minimale de la regexp */
@@ -1930,6 +1936,7 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 	  if (Options.use_regexp) regfree(&reg);
 	  return -2;
        }
+     }
    }
    if (lemenu) {
      if (lemenu->suiv==NULL) mygroup=lemenu->lobjet;

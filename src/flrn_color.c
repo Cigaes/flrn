@@ -244,6 +244,7 @@ int parse_option_color(int func, char *line)
       if (new_pat->field_mask & (1<<i)) {
         for (i=0;i<NROF_FIELDS;i++)
 	  if (new_pat->field_mask & (1<<i)) 
+	  {
 	    if (func==2) {
 	      strncpy(Colors[i].fg,new_pat->colors.fg,14);
 	      strncpy(Colors[i].bg,new_pat->colors.bg,14);
@@ -251,6 +252,7 @@ int parse_option_color(int func, char *line)
 	    } else {
 	      Colors[i].attributs_mono= new_pat->colors.attributs_mono;
 	    }
+	  }
       }
     }
     free(new_pat);

@@ -179,7 +179,7 @@ time_t parse_date (char *s)
     switch (count)
     {
       case 0: /* day of the month */
-         if (!isdigit (*t)) {
+         if (!isdigit ((int) *t)) {
            free(ns);
            return (0);
          }
@@ -306,7 +306,7 @@ char *local_date (char *date) {
     struct tm tim;
 
     result=safe_malloc(13*sizeof(char));
-    while(*mydate && !isdigit(*mydate)) mydate++;
+    while(*mydate && !isdigit((int) *mydate)) mydate++;
 
     if(sscanf(mydate,"%d %s %d %d:%d:%d", &(tim.tm_mday), mon, &(tim.tm_year),
                                      &(tim.tm_hour), &(tim.tm_min),
