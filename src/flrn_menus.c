@@ -114,9 +114,10 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
 /* Maintenant on peut faire des affichages et des choix.		*/
   last_act_row=act_row;
   {
-    int res,p;
+    int res,p,deb;
     int no_change_last_line=0;
     while (!correct) {
+      deb=0;
     
       /* On update, mais le but est de garder la même ligne... */
       if ((act_row<1+Options.skip_line) || 
@@ -225,8 +226,33 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
                                          Aff_error_fin(Messages[MES_REGEXP_BUG],1,1);
                                   Do_Scroll_Window(0,1);
                                      /* pour forcer l'affichage des lignes */
-                                }
-                                break;
+				  if (ret) break;
+				  deb=1;
+                                } /* Continue */
+      case FLCMD_MENU_NXT_SCH : { int ret, le_scroll;
+                                   ret=Do_Search(deb,&le_scroll,
+				   		act_row-1-Options.skip_line);
+                                   if (ret==-1)
+                                       Aff_error_fin(Messages[MES_NO_SEARCH],1,1);
+                                   else if (ret==-2)
+                                       Aff_error_fin(Messages[MES_NO_FOUND],1,1);
+				   else if (le_scroll<0) {
+				       for (p=0;p<-le_scroll;p++) {
+					   if (courant->prec==NULL) break; 
+					               /* beurk !*/
+					   act_row--;
+					   courant=courant->prec;
+				       }
+				   } else if (le_scroll>0) {
+				       for (p=0;p<le_scroll;p++) {
+					   if (courant->suiv==NULL) break; 
+					   act_row++;
+					   courant=courant->suiv;
+				       }
+				   }
+                                   break;
+                                 }
+
       }
     }
   }

@@ -118,11 +118,22 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
                  break;
       case FLCMD_PAGER_SEARCH : { int ret;
       				 ret=New_regexp_scroll (pattern_search);
-				 if (ret) 
-				      Aff_error_fin(Messages[MES_REGEXP_BUG],1,1);
 				 deb=1;
-				}
-				break;
+				 if (ret) {
+				      Aff_error_fin(Messages[MES_REGEXP_BUG],1,1);
+				      break;
+				  }
+				}  /* On continue */
+      case FLCMD_PAGER_NXT_SCH : { int ret;
+      				   ret=Do_Search(deb,&le_scroll,0);
+				   if (ret==-1) 
+				       Aff_error_fin(Messages[MES_NO_SEARCH],1,1);
+				   else if (ret==-2)
+				       Aff_error_fin(Messages[MES_NO_FOUND],1,1);
+				   else if (deb || le_scroll) 
+				       le_scroll=Do_Scroll_Window(le_scroll,deb);
+				   break;
+				 }
       case FLCMD_PAGER_QUIT : return -2;
     }
     if (deb || le_scroll) {
@@ -151,8 +162,8 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
         strcat(buf3,"-More-");
 	buf=buf3;
       }
-      if (buf) Aff_fin(buf);
     }
+    if (buf) Aff_fin(buf);
     deb=0;
     key=Attend_touche();
     if (KeyBoard_Quit) return -1;

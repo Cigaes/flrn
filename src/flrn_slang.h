@@ -64,6 +64,7 @@ extern int New_regexp_scroll (char *);
 extern File_Line_Type *Search_in_Lines (File_Line_Type *);
 extern void Retire_line(File_Line_Type * /*line*/);
 extern int Do_Scroll_Window(int /*n*/, int /*ob_update*/);
+extern int Do_Search(int,int *,int);
 extern int Number_current_line_scroll(void);
 extern void Screen_write_color_chars(unsigned short * /*s*/,unsigned int /*n*/);
 extern int parse_key_name(char *);

@@ -40,6 +40,8 @@ const char *Messages[NB_MESSAGES] = {
     "Historique vide.",                         /* 34 */
     "Pas de header !",                          /* 35 */
     "Header refusé !",                          /* 36 */
-    "Erreur fatale !!!"                         /* 37 */
+    "Erreur fatale !!!",                        /* 37 */
+    "Pas de recherche.",			/* 38 */ /* pager, menus */
+    "Rien trouvé.",				/* 39 */ /* pager, menus */
 };
 

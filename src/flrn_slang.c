@@ -391,6 +391,44 @@ int Do_Scroll_Window(int n, int ob_update) {
    return i;
 }
 
+/* ob_update =1 : l'update est obligatoire... */
+int Do_Search(int just_do, int *le_scroll, int from_top) {
+   int i;
+   File_Line_Type *line=Line_Window.top_window_line;
+   for (i=0;i<from_top;i++) {
+      if (line->next==NULL) break;
+      line=line->next;
+   }
+   from_top=i;
+   i=0;
+   *le_scroll=0;
+   if (regexp_scroll==NULL) return -1;
+   if (Line_Window.top_window_line == NULL)
+     return -2;
+   if (!just_do) {
+      if (line->next) {
+         line=line->next;
+	 i=1;
+      } else {
+         line=Line_Window.lines;
+	 i=-Line_Window.line_num+1-from_top;
+      }
+   }
+   while (line->data_save==NULL) {
+      if (line->next) {
+         line=line->next;
+         i++;
+      } else {
+         line=Line_Window.lines;
+	 i=-Line_Window.line_num+1-from_top;
+      }
+      if (i==0) break;
+   }
+   *le_scroll=i;
+   if (line->data_save==NULL) return -2;
+   return 0;
+}
+
 int Number_current_line_scroll() {
   return (Line_Window.line_num);
 }

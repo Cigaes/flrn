@@ -40,8 +40,10 @@
 #define MES_NO_HEADER 35
 #define MES_REFUSED_HEADER 36
 #define MES_FATAL 37
+#define MES_NO_SEARCH 38
+#define MES_NO_FOUND 39
 
-#define NB_MESSAGES 38
+#define NB_MESSAGES 40
 extern const char *Messages[NB_MESSAGES];
 
 #endif

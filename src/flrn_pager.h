@@ -3,7 +3,7 @@
 #ifndef FLRN_FLRN_PAGER_H
 #define FLRN_FLRN_PAGER_H
 
-#define NB_FLCMD_PAGER 6
+#define NB_FLCMD_PAGER 7
 #define FLCMD_PAGER_UNDEF -1
 extern char *Flcmds_pager[NB_FLCMD_PAGER];
 
@@ -22,6 +22,8 @@ char *Flcmds_pager[NB_FLCMD_PAGER] =
 #define FLCMD_PAGER_QUIT 4
      "search",
 #define FLCMD_PAGER_SEARCH 5
+     "nxt-search",
+#define FLCMD_PAGER_NXT_SCH 6
 };
 
 #define CMD_DEF_PAGER (sizeof(Cmd_Def_Pager)/sizeof(Cmd_Def_Pager[0]))
