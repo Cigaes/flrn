@@ -53,4 +53,9 @@ extern File_Line_Type *Text_scroll;
 
 extern int overview_usable;
 
+/* pour toute recherche : pager, menu */
+
+#define SIZE_PATTERN_SEARCH 80
+extern char pattern_search[SIZE_PATTERN_SEARCH];
+
 #endif

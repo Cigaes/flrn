@@ -322,7 +322,7 @@ int opt_do_set(char *str, int flag)
     /* on cherche le nom de la variable */
     if (strncmp(buf, All_options[i].name, strlen(All_options[i].name))==0){
       if(flag && All_options[i].flags.lock) {
-	Aff_error_fin("On ne peut changer cette variable",1);
+	Aff_error_fin("On ne peut changer cette variable",1,-1);
 	return -1;
       }
       /* variable entiere ? */
@@ -377,7 +377,7 @@ int opt_do_set(char *str, int flag)
       }
     }
   }
-  if(flag) Aff_error_fin ("Variable non reconnue",1);
+  if(flag) Aff_error_fin ("Variable non reconnue",1,-1);
   else { fprintf(stderr,"Variable non reconnue : %s\n",buf);
       sleep(1);}
   return -1;
@@ -401,7 +401,7 @@ static int opt_aff_color_error(int res, int flag) {
 		break;
     }
     if (flag)
-	Aff_error_fin(err,1);
+	Aff_error_fin(err,1,-1);
     else {
       fprintf(stderr,"%s: %s\n",option_ligne,err);
       sleep(1);
@@ -442,7 +442,7 @@ int opt_do_my_hdr(char * str, int flag)
   if ((buf2==NULL) || (buf2!=strpbrk(str,delim))) {
     char *err="Echec de my_hdr : header invalide.";
     if (flag)
-      Aff_error_fin(err,1);
+      Aff_error_fin(err,1,-1);
     else {
       fprintf(stderr,"%s: %s\n",option_ligne,err);
       sleep(1);
@@ -588,7 +588,7 @@ int opt_do_bind(char *str, int flag)
 	mode==CONTEXT_PAGER ? Bind_command_pager(buf2,lettre,buf3,add) : 
 		  Bind_command_explicite(buf2,lettre,buf3,add));
   if (res <0) {
-    if (flag) Aff_error_fin("Echec de la commande bind.",1); else
+    if (flag) Aff_error_fin("Echec de la commande bind.",1,-1); else
     {
       fprintf(stderr,"Echec du bind : %s\n",option_ligne);
       sleep(1);
@@ -635,7 +635,7 @@ static void raw_parse_options_line (char *ligne, int flag)
     }
   }
   /* on n'a pas trouve */
-  if (flag) Aff_error_fin("Option non reconnue",1); else
+  if (flag) Aff_error_fin("Option non reconnue",1,-1); else
   {
     fprintf(stderr,"Option non reconnue : %s\n",buf);
     sleep(1);

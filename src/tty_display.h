@@ -22,7 +22,7 @@ extern int Aff_summary_line(Article_List * /*article*/,int * /*row*/,
 extern Article_List * Menu_summary (int /*deb*/, int /*fin*/, int /*thread*/);
 extern int Aff_fin(const char * /*str*/);
 extern int Aff_error(const char * /*str*/);
-extern int Aff_error_fin(const char * /*str*/, int /*s_beep*/ );
+extern int Aff_error_fin(const char * /*str*/, int /*s_beep*/ , int );
 extern int Aff_file(FILE * /*file*/, char *, char *);
 extern int Liste_groupe(int /*n*/, char * /*mat*/, Newsgroup_List **);
 extern int Aff_arbre(int,int,Article_List *, int, int, int, unsigned char **, int);

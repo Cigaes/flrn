@@ -23,9 +23,7 @@
 int *Flcmd_pager_rev = &Flcmd_rev[CONTEXT_PAGER][0];
 /* pour les macros */
 
-#define SIZE_PATTERN_SEARCH 80
-static char pattern_search[SIZE_PATTERN_SEARCH]="";
-
+char pattern_search[SIZE_PATTERN_SEARCH]="";
 
 /* get_new_pattern */
 /* retour 0 : bon -1 ou -2 : annulé */
@@ -93,7 +91,7 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
 				  if (ret==0) {
       				    ret=New_regexp_scroll (pattern_search);
 				    if (ret) 
-				         Aff_error_fin("Regexp invalide !",1);
+				         Aff_error_fin("Regexp invalide !",1,1);
 				  }
 				  deb=1;
       			          le_scroll=Do_Scroll_Window(0,deb);

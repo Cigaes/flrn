@@ -23,6 +23,9 @@
 int *Flcmd_menu_rev = &Flcmd_rev[CONTEXT_MENU][0];
 /* pour les macros */
 
+/* Cette fonction est définie dans flrn_pager.c */
+/* Je préfère la déclarer en extern ici */
+extern int get_new_pattern();
 
 /* Cette fonction ne renvoie qu'un élément sélectionné, ou bien entendu NULL.
  * action est appelée quand le curseur est devant un item. Elle recoit une
@@ -135,6 +138,19 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
 				break;
 	 case FLCMD_MENU_QUIT : courant=NULL;
 			   correct=1; break;
+	 case FLCMD_MENU_SEARCH : {
+                                  int ret;
+                                  ret=get_new_pattern();
+                                  if (ret==0) {
+                                    ret=New_regexp_scroll (pattern_search);
+                                    if (ret) 
+                                         Aff_error_fin("Regexp invalide !",1,1);
+                                  }
+                                  Do_Scroll_Window(0,1);
+                                     /* pour forcer l'affichage des lignes */
+				  Aff_fin(chaine);
+                                }
+                                break;
 	 default : if ((action_select==NULL) || (courant==NULL)) break;
 	 case FLCMD_MENU_SELECT : if(action_select && courant) {
 			  /* on appelle l'action */

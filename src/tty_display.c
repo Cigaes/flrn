@@ -182,8 +182,9 @@ int Aff_error(const char *str) {
 }
 
 /* Affiche un message d'erreur en fin... */
-int Aff_error_fin(const char *str, int s_beep) {
+int Aff_error_fin(const char *str, int s_beep, int short_e) {
    int col=0;
+   if (short_e==-1) short_e=Options.short_errors;
    Cursor_gotorc(Screen_Rows-1,0);
 #ifdef CHECK_MAIL
    Screen_set_color(FIELD_NORMAL);
@@ -201,7 +202,7 @@ int Aff_error_fin(const char *str, int s_beep) {
    Screen_erase_eol();
    Cursor_gotorc(Screen_Rows-1, Screen_Cols-1); 
    Screen_refresh();
-   if (Options.short_errors) sleep(1); else error_fin_displayed=1;
+   if (short_e) sleep(1); else error_fin_displayed=1;
    return 0;
 }
 

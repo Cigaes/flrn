@@ -15,7 +15,7 @@ typedef struct liste_menu_desc {
 
 #include "flrn_slang.h"
 
-#define NB_FLCMD_MENU 6
+#define NB_FLCMD_MENU 7
 #define FLCMD_MENU_UNDEF -1
 
 char *Flcmds_menu[NB_FLCMD_MENU] = 
@@ -31,6 +31,8 @@ char *Flcmds_menu[NB_FLCMD_MENU] =
 #define FLCMD_MENU_QUIT 4
      "select",
 #define FLCMD_MENU_SELECT 5
+     "search",
+#define FLCMD_MENU_SEARCH 6
 };
 
 #define CMD_DEF_MENU (sizeof(Cmd_Def_Menu)/sizeof(Cmd_Def_Menu[0]))
@@ -49,6 +51,7 @@ struct cmd_predef_menu {
   { ' ', FLCMD_MENU_PGDOWN },
   { 'q', FLCMD_MENU_QUIT },
   { '\r', FLCMD_MENU_SELECT },
+  { '/', FLCMD_MENU_SEARCH },
 };
 
 #endif     /* IN_FLRN_MENUS_C */
