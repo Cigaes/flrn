@@ -4,7 +4,7 @@
 #include "pathdef.h"
 
 #define MAX_PATH_LEN 	1024
-#define DEFAULT_CONFIG_FILE	".flrn"
+#define DEFAULT_CONFIG_FILE	".flrnrc"
 #define DEFAULT_FLNEWS_FILE	".flnewsrc"
 #define TMP_POST_FILE           ".article"
   /* en fait fichier temporaire utilisé partout */

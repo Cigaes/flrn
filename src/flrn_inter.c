@@ -1081,25 +1081,41 @@ int do_goto (int res) {
 /* do_unsubscribe : pour l'instant, j'ignore les arguments... J'aimerais */
 /* bien pouvoir me desabonner a un ensemble de groupes...		 */
 int do_unsubscribe(int res) {
-   Newsgroup_courant->flags |= GROUP_UNSUBSCRIBED;
-   return 1;
+   char *str=Arg_str;
+   int ret;
+   Newsgroup_List *newsgroup=Newsgroup_courant;
+
+   ret=change_group(&newsgroup,0,str);
+   if (ret==-2) 
+   { etat_loop.etat=2; etat_loop.num_message=-8;
+     etat_loop.hors_struct|=1; return 0; }
+   newsgroup->flags |= GROUP_UNSUBSCRIBED;
+   return (newsgroup==Newsgroup_courant);
 }
 
 /* do_abonne : pour l'instant, j'ignore les arguments...      J'aimerais */
 /* bien pouvoir m'abonner a un ensemble de groupes...		 */
 int do_abonne(int res) {
-   Newsgroup_courant->flags &= ~GROUP_UNSUBSCRIBED;
+   char *str=Arg_str;
+   int ret;
+   Newsgroup_List *newsgroup=Newsgroup_courant;
+
+   ret=change_group(&newsgroup,1,str);
+   if (ret==-2) 
+   { etat_loop.etat=2; etat_loop.num_message=-8;
+     etat_loop.hors_struct|=1; return 0; }
+   newsgroup->flags &= ~GROUP_UNSUBSCRIBED;
    if (Options.auto_kill) {
-     add_to_main_list(Newsgroup_courant->name);
+     add_to_main_list(newsgroup->name);
    }
-   Aff_newsgroup_name();
+   if (newsgroup==Newsgroup_courant) Aff_newsgroup_name();
    etat_loop.etat=1; etat_loop.num_message=9;
    return 0;
 }
 
 int do_add_kill(int res) {
   char *str=Arg_str;
-  add_to_main_list(str?str:Newsgroup_courant->name);
+  add_to_main_list(str[0]?str:Newsgroup_courant->name);
   Aff_newsgroup_name();
   etat_loop.etat=1; etat_loop.num_message=18;
   return 0;
