@@ -84,7 +84,6 @@ int var_comp(char *var, int len, Liste_Chaine *debut)
     used=strlen(debut->une_chaine);
     strncat(debut->une_chaine,guess,prefix_len);
     debut->une_chaine[used+prefix_len]='\0';
-    strcat(debut->une_chaine," ");
     var[0]='\0';
     return -1;
   }
@@ -114,6 +113,7 @@ int options_comp(char *str, int len, Liste_Chaine *debut)
     if (Optcmd_liste[res].comp) {
       return (*Optcmd_liste[res].comp)(str,len,debut);
     } else {
+      debut->complet=0;
       strcat(debut->une_chaine,str);
       return 0;
     }
@@ -137,8 +137,10 @@ int options_comp(char *str, int len, Liste_Chaine *debut)
             courant=pere->suivant;
             continue;
          }
-       } else
+       } else {
          strcat(courant->une_chaine,str);
+	 courant->complet=0;
+       }
        if (res==-1) bon+=2; else bon++;
        pere=courant;
        while (pere->suivant!=suivant) pere=pere->suivant;
@@ -178,10 +180,12 @@ int bind_comp(char *str, int len, Liste_Chaine *debut)
     result[i]=0;
   if (len-strlen(debut->une_chaine)<2) return -2;
   if ((str[1]==' ')||(str[1]=='\0')) {
-    str[1]='\0';
-    strcat(debut->une_chaine,str);
-    strcat(debut->une_chaine," ");
-    return Comp_cmd_explicite(str+2,len,debut);
+    debut->une_chaine[strlen(debut->une_chaine)+2]='\0';
+    strncat(debut->une_chaine,str,2);
+    if (str[1]==' ') return Comp_cmd_explicite(str+2,len,debut); else {
+       debut->complet=0;
+       return 0;
+    }
   }
   if (str[0]=='\\') {
     offset=strcspn(str,delim);

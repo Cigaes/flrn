@@ -33,13 +33,13 @@ int Comp_general_command (char *str, int len, int col,
   } else if (res==-1) {
      courant=debut;
      do {
-       aff_ligne_comp(courant->une_chaine, strlen(courant->une_chaine)-1, col);
+       aff_ligne_comp(courant->une_chaine, strlen(courant->une_chaine)-(courant->complet), col);
        touche=Attend_touche();
        if (touche!='\011') break;
        courant=courant->suivant;
        if (courant==NULL) courant=debut;
      } while (1);
-     courant->une_chaine[strlen(courant->une_chaine)-1]='\0';
+     courant->une_chaine[strlen(courant->une_chaine)-(courant->complet)]='\0';
      strcpy(str,courant->une_chaine);
      courant=debut;
      while (courant) {

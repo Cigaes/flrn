@@ -793,11 +793,10 @@ int Comp_generic(Liste_Chaine *prefix, char *str, int len, void * truc,
       good=strlen(prefix->une_chaine);
       strncat(prefix->une_chaine,guess,prefix_len);
       prefix->une_chaine[good+prefix_len]='\0';
-      strcat(prefix->une_chaine," ");
       if (suite) { 
+        strcat(prefix->une_chaine," ");
         strcpy(str,suite); 
 	strcat(prefix->une_chaine, suite);
-	strcat(prefix->une_chaine, " ");
 	free(suite);
       } else str[0]='\0';
       return -1;
@@ -831,6 +830,7 @@ int Comp_cmd_explicite(char *str, int len, Liste_Chaine *debut)
        return (*Flcmds[res].comp)(str,len,debut);
     } else {
       strcat(debut->une_chaine,str);
+      debut->complet=0;
       return 0;
     }
   }
@@ -853,8 +853,10 @@ int Comp_cmd_explicite(char *str, int len, Liste_Chaine *debut)
 	    courant=pere->suivant;
 	    continue;
 	 } 
-       } else 
+       } else {
          strcat(courant->une_chaine,str);
+	 courant->complet=0;
+       }
        if (res2==-1) bon+=2; else bon++;
        pere=courant;
        while (pere->suivant!=suivant) pere=pere->suivant;
