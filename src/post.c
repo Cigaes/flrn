@@ -21,7 +21,6 @@
 #include "flrn_slang.h"
 #include "art_group.h"
 #include "group.h"
-#include "flrn_string.h"
 #include "flrn_func.h"
 #include "post.h"
 #include "options.h"
@@ -50,8 +49,13 @@ struct post_lecture {
 		   * 4 : mailer normal, poster+2 */
 };
 
+struct post_body {
+    struct post_body *suivant;
+    flrn_char *ligne;
+};
+
 struct post_lecture *Deb_article;
-Lecture_List *Deb_body;
+struct post_body *Deb_body;
 Article_List *Pere_post;
 int par_mail, supersedes;
 /* par_mail = 0 : juste les groupes. =1 : juste par mail. =2 : poste aussi */
@@ -75,23 +79,11 @@ static int get_Sujet_post(flrn_char *str) {
    return res; 
 }
 
-#ifndef NO_INTERN_EDITOR
-/* recalcule la colonne courante, avec un charactère de moins si flag=1 */
-/* Renvoie -1 si la ligne est vide et flag=1 */
-static int recalc_col (char *ligne, int flag) {
-   int ret=0;
-
-   if (flag && (*ligne=='\0')) return -1;
-   ret=str_estime_width(ligne,0,strlen(ligne)-flag);
-   return ret;
-}
-#endif
-
 /* Copie dans le fichier temporaire le message tel qu'on suppose qu'il   */
 /* sera.								 */
-void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
+void Copie_prepost (FILE *tmp_file, int incl) {
    Header_List *liste;
-   Lecture_List *lecture_courant;
+   struct post_body *lecture_courant;
    int rc=1; char *trad;
   
    if (Options.edit_all_headers) {
@@ -212,24 +204,20 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
    }
    lecture_courant=Deb_body;
    while (lecture_courant) {
-      if (lecture_courant==d_l)  
-	 lecture_courant->size=place;
-      lecture_courant->lu[lecture_courant->size]=fl_static('\0');
       /* Par précaution */
-      rc=conversion_to_editor(lecture_courant->lu,&trad,0,(size_t)(-1));
+      rc=conversion_to_editor(lecture_courant->ligne,&trad,0,(size_t)(-1));
       fputs(trad, tmp_file);
       if (rc==0) free(trad);
      /* J'utilise fprintf plutôt que fwrite par principe : fwrite est */
      /* a priori pour des fichiers binaires (et puis, j'ai commencé   */
      /* avec fprintf). Mais bon, on pourrait peut-être changer...     */
-      if (lecture_courant==d_l) break;
       lecture_courant=lecture_courant->suivant;
    } 
 }
 
 /* Lecture du fichier une fois l'édition finie */
 /* Renvoie -1 si le fichier est VRAIMENT trop moche */
-int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
+int Lit_Post_Edit (FILE *tmp_file) {
    char buf[1025]; /* On suppose qu'un ligne ne peut pas faire plus de 1024 */
    char *buf2, *buf3;
    char *hcur=NULL;
@@ -237,14 +225,19 @@ int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
    int header_connu=-1;
    int taille;
    int raw_head=0;
-   Lecture_List *lecture_courant;
+   struct post_body *lecture_courant,*lecture_courant2;
    int headers=1,read_something=0, i;
    Header_List *liste, *last_liste, **unk_header_courant=NULL;
    int rc; flrn_char *trad;
 
    lecture_courant=Deb_body;
-   lecture_courant->size=0;
-   lecture_courant->lu[0]=fl_static('\0');
+   while (lecture_courant) {
+       lecture_courant2=lecture_courant->suivant;
+       if (lecture_courant->ligne) free(lecture_courant->ligne);
+       free(lecture_courant);
+       lecture_courant=lecture_courant2;
+   }
+   Deb_body=NULL;
    while (fgets(buf,1025,tmp_file)) {
       if (strlen(buf)==1024) return -1; 
                /* TODO : faire sauter cette limitation */
@@ -405,11 +398,15 @@ int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
         continue;
       }
       rc=conversion_from_editor(buf,&trad,0,(size_t)(-1));
-      str_cat(&lecture_courant, trad);
-      if (rc==0) free(trad);
+      if (lecture_courant) {
+	  lecture_courant->suivant=safe_calloc(1,sizeof(struct post_body));
+	  lecture_courant=lecture_courant->suivant;
+      } else {
+	  lecture_courant=Deb_body=safe_calloc(1,sizeof(struct post_body));
+      }
+      if (rc==0) lecture_courant->ligne=trad;
+         else lecture_courant->ligne=safe_flstrdup(trad);
    }
-   *d_l=lecture_courant;
-   *place=lecture_courant->size;
    return 0;
 }
 
@@ -419,7 +416,7 @@ int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
 /* Renvoie 2 en cas de message non modifié				 */
 /* Renvoie 1 en cas de message vide					 */
 /* Renvoie 0 si pas (trop) de problèmes...				 */
-static int Summon_Editor (Lecture_List **d_l, int *place, int incl) {
+static int Summon_Editor (int incl) {
    FILE *tmp_file;
    int res;
    struct stat before, after;
@@ -433,7 +430,7 @@ static int Summon_Editor (Lecture_List **d_l, int *place, int incl) {
        put_string_utf8(_("Echec dans l'ouverture du fichier temporaire."));
        return -1;
    }
-   Copie_prepost (tmp_file, *d_l, *place, incl);
+   Copie_prepost (tmp_file, incl);
    fclose(tmp_file);
    if (stat(name,&before)<0) {
       put_string_utf8(_("Echec dans la crÃ©ation du fichier temporaire."));
@@ -467,7 +464,7 @@ static int Summon_Editor (Lecture_List **d_l, int *place, int incl) {
        put_string_utf8(_("Echec dans la rÃ©ouverture du fichier temporaire"));
        return -1;
    }
-   res=Lit_Post_Edit(tmp_file, d_l, place);
+   res=Lit_Post_Edit(tmp_file);
    fclose (tmp_file);
 #ifdef USE_MKSTEMP
    unlink(name);
@@ -481,16 +478,14 @@ static int Summon_Editor (Lecture_List **d_l, int *place, int incl) {
 int charge_postfile (char *str) {
    int res;
    FILE *post_file;
-   int size=0;
-   Lecture_List *lecture_courant;
 
-   Deb_body=lecture_courant=alloue_chaine();
+   Deb_body=NULL;
    post_file=fopen(str,"r");
    if (post_file==NULL) {
        Aff_error_utf8(_("Echec en ouverture du fichier"));
        return 0;
    }
-   res=Lit_Post_Edit(post_file,&lecture_courant, &size);
+   res=Lit_Post_Edit(post_file);
    if (res<0) {
        Aff_error_utf8(_("Fichier incomprÃ©hensible..."));
        return 0;
@@ -499,84 +494,6 @@ int charge_postfile (char *str) {
    return 1;
 }
 
-#ifndef NO_INTERN_EDITOR
-/* TODO TODO TODO TODO */
-static void include_file(FILE *to_include, File_Line_Type **last, Lecture_List **d_l, int *row, int *inited, int *empty, int *size_max_line) {
-   char buf[513]; /* On suppose qu'un ligne ne peut pas faire plus de 512 */
-   int act_row=*row;
-   int already_init=*inited;
-   int len;
-
-   while (fgets(buf,513,to_include)) {
-      *empty=0;
-      buf[512]='\0';
-      len=strlen(buf);
-      if (buf[len-1]=='\n') buf[--len]='\0';
-      if (len+1>*size_max_line) *size_max_line=len+1; /* on aura besoin d'une longue ligne */
-      (*last)=Ajoute_line(buf);
-      str_cat(d_l,buf);
-      Cursor_gotorc(act_row,0);
-      Screen_write_string(buf);
-      act_row++;
-      ajoute_char(d_l,'\n');
-      if (act_row>=Screen_Rows) {
-          if (!already_init) {
-	     Init_Scroll_window(Screen_Rows-4,4,Screen_Rows-5);
-	     already_init=1;
-	  }
-	  Do_Scroll_Window(1,1);
-	  Cursor_gotorc(Screen_Rows-1,0);
-	  Screen_erase_eol();
-	  act_row=Screen_Rows-1;
-      }
-   }
-   *row=act_row;
-   *inited=already_init;
-}
-
-
-/* Analyse le debut de la ligne tapée (pour voir les commandes spéciales */
-/* Pour l'instant, on se contente de renvoyer 1 en cas de ".\n"		 */
-/* On appelle aussi Summon_Editor en cas de "~e\n", puis on renvoie 2    */
-/* ou 3 si le message est vide 						 */
-/* 4 : ligne annulée... 						 */
-/* On implémente aussi la possibilité de faire un ~r pipo\n...		 */
-/* et aussi un ~p, pour plus tard....					 */
-static int analyse_ligne (Lecture_List **d_l, int *place, FILE **a_inclure) {
-   Lecture_List *sd_l=*d_l;
-   int splace=*place;
-   char debut[3];
-   int i, res;
-   
-   for (i=0; i<3; i++) {
-       debut[i]=sd_l->lu[splace];
-       if (debut[i]=='\n') break;
-       splace++; if (splace>=sd_l->size) { splace=0; sd_l=sd_l->suivant; }
-   }
-
-   if (strncmp(debut,".\n",2)==0) return 1;
-   if ((strncmp(debut,"~e\n",3)==0) || (strncmp(debut,"~E\n",3)==0)) {
-      res=Summon_Editor(d_l, place, (debut[1]=='E'));
-      if ((res>=0)) return (res==1)?3:2; else return -1;
-   }
-   if ((strncmp(debut,"~r\n",3)==0) || (strncmp(debut,"~r ",3)==0)) {
-     char nom[256];
-     if (i==3) {
-       for (i=0; i<255; i++) {
-          nom[i]=sd_l->lu[splace];
-	  if (nom[i]=='\n') break;
-	  splace++; if (splace>=sd_l->size) { splace=0; sd_l=sd_l->suivant; }
-       }
-       nom[i]='\0';
-       (*a_inclure)=fopen(nom,"r");
-     } else if (Options.sig_file) {
-       (*a_inclure)=open_flrnfile(Options.sig_file,"r",0,NULL);
-     } else (*a_inclure)=NULL;
-     return 4;
-   }
-   return 0;
-}
-#endif
 
 /* Afficher des informations sur le message à venir */
 static void aff_info_messages() {
@@ -637,38 +554,22 @@ static void aff_info_messages() {
 static int Screen_Start;
 
 static int get_Body_post() {
-   Lecture_List *lecture_courant, *debut_ligne;
    int incl_in_auto=-1,key;
    struct key_entry ke;
-#ifndef NO_INTERN_EDITOR
-   int act_col=0, act_row=4, size_debligne, fin=0;
-   int already_init=0;
-   char chr;
-   File_Line_Type *last_line=NULL;
-   char *ligne_courante, *ptr_ligne_cou;
-   int empty=1, size_max_line;
-   int screen_start=0;
-   FILE *to_include=NULL;
-#endif
 
    Screen_Start=0;
-   Deb_body=lecture_courant=debut_ligne=alloue_chaine();
-#ifndef NO_INTERN_EDITOR
-   if (Options.auto_edit) 
-#endif
+   Deb_body=NULL;
    {
       int place, res;
      
       ke.entry=ENTRY_ERROR_KEY;
       place=res=0;
       while (res>=0) {
-        res=Summon_Editor(&lecture_courant,&place, incl_in_auto);
+        res=Summon_Editor(incl_in_auto);
 	if ((incl_in_auto==0) && (res==2)) res=0; 
 	    		     /* C'est au moins la seconde édition, le */
 	  		     /* message a deja ete modifié une fois...*/
 	incl_in_auto=0;
-	lecture_courant->size=place;
-	lecture_courant->lu[place]=fl_static('\0');
         if (res==0) 
 	  while (res==0) {
 	    aff_info_messages();
@@ -683,8 +584,6 @@ static int get_Body_post() {
                    return 0;
 	        if (key=='E') { res=1; continue; }
 	        if (key=='P' || key=='Y' || key=='\r' ) {
-                    if (lecture_courant->suivant) 
-			free_chaine(lecture_courant->suivant);
                     return 1;
 	        }
 		if (key=='0') par_mail=0; else
@@ -694,268 +593,15 @@ static int get_Body_post() {
 	}
         else {
 	  if (res>0) return -1; /* C'est un message non valide */
-#ifdef NO_INTERN_EDITOR
 	  Cursor_gotorc(2,0);
 	  put_string_utf8(_("(erreur dans l'Ã©dition, vÃ©rifier la variable d'environnement EDITOR)"));
 	  Cursor_gotorc(3,0);
 	  put_string_utf8(_("Pour poster, Ã©ditez le .article Ã  la main, puis utilisez \\<cmd> .article"));
 	  return -1;
-#else
-	  Cursor_gotorc(2,0);
-	  put_string_utf8(_("   ( erreur dans l'édition. option auto_edit ignorÃ©e )"));
-#endif
         }
       } 
    }
-#ifdef NO_INTERN_EDITOR
    return -1; /* unreachable */
-#else
-
-   Cursor_gotorc(4,0);
-   size_debligne=0;
-   size_max_line=(Screen_Cols > DEFAULT_SIZE_LINE ? Screen_Cols+1 : DEFAULT_SIZE_LINE+1);
-   ptr_ligne_cou=ligne_courante=safe_malloc(size_max_line*sizeof(char));
-   *ptr_ligne_cou='\0';
-
-   do {
-      if (act_col-Screen_Start>=Screen_Cols) {
-        screen_start=Screen_Start;
-        Screen_Start=act_col-Screen_Cols+1;
-	if (screen_start!=Screen_Start) {
-	  screen_start=Screen_Start;
-	  Screen_set_screen_start(NULL,&screen_start);
-	  if (last_line) {
-            if (!already_init) {
-              Init_Scroll_window(act_row-4,4,Screen_Rows-5);
-              already_init=1;
-            }
-            Do_Scroll_Window(0,1);
-	  }
-          Cursor_gotorc(act_row,0);
-          Screen_write_string(ligne_courante);
-          Screen_erase_eol();
-	}
-      } else
-      if (act_col-Screen_Start<=1) {
-        screen_start=Screen_Start;
-        if (act_col<Screen_Cols) Screen_Start=0; else
-	   Screen_Start=act_col-Screen_Cols+1;
-	if (screen_start!=Screen_Start) {
-	  screen_start=Screen_Start;
-	  Screen_set_screen_start(NULL,&screen_start);
-	  if (last_line) {
-            if (!already_init) {
-               Init_Scroll_window(act_row-4,4,Screen_Rows-5);
-               already_init=1;
-            }
-            Do_Scroll_Window(0,1);
-	  }
-          Cursor_gotorc(act_row,0);
-          Screen_write_string(ligne_courante);
-          Screen_erase_eol();
-	}
-      }
-      key=Attend_touche();
-      if (sigwinch_received || KeyBoard_Quit) {
-           lecture_courant->lu[lecture_courant->size]='\0';
-	   free_text_scroll();
-	   sigwinch_received=0;
-	   free(ligne_courante);
-           return 0;
-      }
-      if (key=='\r') key='\n'; /* On ne VEUT pas distinguer ^J et ^M */
-      if ((key==FL_KEY_BACKSPACE) || (key==21) || (key==23)) {
-	int mottrouve=0;
-	int lignetrouvee=0;
-	int retour_enleve=0;
-	do {
-	  
-	  if (retour_enleve) break;
-	  chr=get_char(lecture_courant,1);
-	  if ((key==23) && (mottrouve) && (isblank(chr))) break;
-	  if ((chr=='\n') && ((last_line==NULL) || (lignetrouvee))) break;
-	  mottrouve=(!isblank(chr)) || (chr=='\n');
-	  lignetrouvee=1; /* on ne poursuit jamais au-dela d'une ligne */
-	  retour_enleve=(chr=='\n');
-	  if (chr=='\0') break;
-          enleve_char(&lecture_courant);
-	  if (chr==9)  
-	      act_col=recalc_col(ligne_courante,1);
-	    else act_col--;
-	  if (act_col<0) {
-	      Read_Line(ligne_courante, last_line);
-	      ptr_ligne_cou=index(ligne_courante, '\0');
-	      /* On enleve le dernier caractere de la ligne si on n'a pas */
-	      /* enleve le saut de ligne (logique, non ?) */
-	      if (chr!='\n')
-	        *(--ptr_ligne_cou)='\0';
-	      if (last_line->prev) 
-	      {
-		 last_line=last_line->prev;
-	         Retire_line(last_line);
-              } else
-	      {
-	         Retire_line(last_line);
-		 last_line=NULL;
-		 already_init=0;
-	      }
-	      Cursor_gotorc(act_row, 0);
-	      Screen_erase_eol();
-              act_col=recalc_col(ligne_courante, 0);
-	      act_row--;
-	      if (act_row<4) {
-		 if (already_init) Do_Scroll_Window(-1,0);
-		 act_row=4;
-		 Cursor_gotorc(act_row,0);
-	         Screen_write_string(ligne_courante);
-	      }
-	      if (chr=='\n') { 
-	         /* on doit recalculer deb_line et size_deb_line */
-		 debut_ligne=lecture_courant;
-		 cherche_char(&debut_ligne,&size_debligne,'\n');
-	      }
-	  } else *(--ptr_ligne_cou)='\0';
-	  Cursor_gotorc(act_row,act_col);
-	  Screen_erase_eol();
-	}
-	while ((key!=FL_KEY_BACKSPACE));
-	continue;
-      }
-      if (key>255) continue;
-      if (key=='\n') {
-	 ajoute_char(&lecture_courant, '\n');
-	 fin=analyse_ligne(&debut_ligne, &size_debligne, &to_include);
-	 if (fin==-1) {
-	     Cursor_gotorc(2,0);
-	     Screen_write_string(" Ligne trop longue !!! ");
-	     sleep(1);
-	     free(ligne_courante);
-	     return 0;
-	 }
-	 if (fin==0) {  /* Si rien de special, on encaisse la ligne */
-	   last_line=Ajoute_line(ligne_courante);
-	   empty=0;
-	   debut_ligne=lecture_courant;
-           size_debligne=lecture_courant->size;
-           act_row++; act_col=0;
-	   if (act_row>=Screen_Rows) {
-	      if (!already_init) {
-                Init_Scroll_window(Screen_Rows-4,4,Screen_Rows-5);
-	        already_init=1;
-	      }
-	      Do_Scroll_Window(1,1);
-/* On efface la ligne devenue superflue */
-	      Cursor_gotorc(Screen_Rows-1,0);
-	      Screen_erase_eol();
-	      act_row=Screen_Rows-1;
-	   }
-	 } else { /* On annule la ligne rentree */
-	    lecture_courant=debut_ligne;
-	    lecture_courant->size=size_debligne;
-	    act_col=0;
-	    Cursor_gotorc(act_row,0);
-	    Screen_erase_eol();
-	 }
-	 if (to_include) {
-	    int old_size_max_line=size_max_line;
-	    include_file(to_include, &last_line, &lecture_courant,&act_row,&already_init, &empty, &size_max_line);
-	    debut_ligne=lecture_courant;
-            size_debligne=lecture_courant->size;
-	    fclose(to_include);
-	    to_include=NULL;
-	    if (size_max_line!=old_size_max_line) {
-	         /* C'est lourd, une ligne longue */
-	       free(ligne_courante);
-	       ligne_courante=safe_malloc(size_max_line*sizeof(char));
-	    }
-	 }
-	 ptr_ligne_cou=ligne_courante;
-	 *ptr_ligne_cou='\0';
-	 if ((fin==2)||(fin==3)) {
-	   empty = (fin==3);
-	   Cursor_gotorc(2,0);
-	   if (fin ==2) {
-	     put_string_utf8(_(" (continue) "));
-	   } else {
-	     put_string_utf8(_(" (début) "));
-	   }
-	   act_row=4; act_col=0;
-	   already_init=0;
-	   last_line=NULL;
-	   Screen_Start=screen_start=0;
-	   Screen_set_screen_start(NULL,NULL);
-	 }
-         Cursor_gotorc(act_row, act_col);
-	 if (fin!=1) fin=0;
-      } else
-      {
-	 if ((key==4)&&(act_col==0)) {fin=1; continue;}
-         if (key==9) act_col=(act_col/Screen_Tab_Width+1)*Screen_Tab_Width; 
-	   else if (key>31) act_col++; else continue;
-         Screen_write_char(key);
-	 *(ptr_ligne_cou++)=key;
-	 *ptr_ligne_cou='\0';
-	 ajoute_char(&lecture_courant, key);
-         if (act_col>=DEFAULT_SIZE_LINE) {
-/* Cette configuration tordue de l'éditeur intégrée a été suggérée par APO */
-	     char *beuh1;
-	     int on_change=0;
-	     beuh1=strrchr(ligne_courante,' ');
-	     if (beuh1) {
-	       char *beuh2;
-	       *(beuh1++)='\0';
-	       last_line=Ajoute_line(ligne_courante);
-	       Cursor_gotorc(act_row,0);
-	       Screen_write_string(ligne_courante);
-	       Screen_erase_eol();
-               beuh2=safe_strdup(beuh1);
-	       strcpy(ligne_courante,beuh2);
-	       ptr_ligne_cou=index(ligne_courante,'\0');
-	       Cursor_gotorc(act_row+1,0);
-	       Screen_write_string(ligne_courante);
-	       act_col=ptr_ligne_cou-ligne_courante;
-	       free(beuh2);
-	       while (get_char(lecture_courant,1)!=' ') 
-	           enleve_char(&lecture_courant);
-	       enleve_char(&lecture_courant);
-	       ajoute_char(&lecture_courant, '\n');
-	       str_cat(&lecture_courant,ligne_courante);
-	       on_change=1;
-	    } else if (act_col>=Screen_Cols) {
-	       last_line=Ajoute_line(ligne_courante);
-	       ptr_ligne_cou=ligne_courante;
-	       *ptr_ligne_cou='\0';
-	       act_col=0;
-	       on_change=1;
-	    }
-	    if (on_change) {
-              act_row++;
-	      if (act_row>=Screen_Rows) {
-	         if (!already_init) {
-                   Init_Scroll_window(Screen_Rows-4,4,Screen_Rows-5);
-		   already_init=1;
-	         }
-	         Do_Scroll_Window(1,1);
-/* On efface la ligne devenue superflue */
-	         Cursor_gotorc(Screen_Rows-1,0);
-	         Screen_write_string(ligne_courante);
-	         Screen_erase_eol();
-	         act_row=Screen_Rows-1;
-	      }
-              Cursor_gotorc(act_row,act_col);
-	   }
-         }
-      }
-   } while (!fin);
-   lecture_courant->lu[lecture_courant->size]='\0';
-   free_text_scroll();
-   if (lecture_courant->suivant) {
-     free_chaine(lecture_courant->suivant);
-     lecture_courant->suivant=NULL;
-   }
-   free(ligne_courante);
-   return (empty)?0:1;
-#endif
 }
 
 /* Regarde l'existence d'un groupe dans un header... essaie une correction */
@@ -1244,14 +890,13 @@ static int Format_headers() {
 /* Si to_cancel n'est pas NULL, on rajoute le header Control */
 /* ou supersedes, selon la valeur de supersedes */
 static int Format_article(char *to_cancel) {
-   Lecture_List *lecture_courant;
+   struct post_body *lecture_courant;
    struct post_lecture *ecriture_courant;
-   int place_lu=0, deb_ligne=1, i;
+   int deb_ligne=1, i;
    Header_List *liste;
    size_t elen;
 
    if (debug) fprintf(stderr, "Appel a format_article\n");
-   lecture_courant=Deb_body;
    ecriture_courant=Deb_article=safe_calloc(1,sizeof(struct post_lecture));
 
   /* Ecriture des headers */
@@ -1390,77 +1035,35 @@ static int Format_article(char *to_cancel) {
 
 
   /* Copie du corps du message */
-   lecture_courant=Deb_body;
-   elen=0;
-   while (lecture_courant->lu[place_lu]!='\0') {
-      if (lecture_courant->lu[place_lu]=='\n') {
-	  deb_ligne=1;
-	  if (ecriture_courant->ligne) {
-	    ecriture_courant->ligne=
-		safe_realloc(ecriture_courant->ligne,elen+3);
-	    strcat(ecriture_courant->ligne,"\r\n");
-	  } else ecriture_courant->ligne=safe_strdup("\r\n");
-	  ecriture_courant->suivant=safe_calloc(1,sizeof(struct post_lecture));
-	  ecriture_courant=ecriture_courant->suivant;
-	  elen=0;
-	  place_lu++; if (place_lu==lecture_courant->size) {
-	     lecture_courant=lecture_courant->suivant;
-	     if (lecture_courant==NULL) break;
-	     place_lu=0;
-	  }
-	  continue;
-      }
-      else if ((lecture_courant->lu[place_lu]==fl_static('.')) &&
-	      (deb_ligne)) {
-	  ecriture_courant->ligne=safe_strdup(".");
-	  elen=1;
-      }	
-      {
+   for (lecture_courant=Deb_body;lecture_courant;
+	   lecture_courant=lecture_courant->suivant) {
 	 flrn_char *buf;
 	 int rc; char *trad;
 	 size_t bla;
-	 buf=fl_strchr(lecture_courant->lu+place_lu,fl_static('\n'));
+	 if (lecture_courant->ligne==NULL) continue;
+	 buf=fl_strchr(lecture_courant->ligne,fl_static('\n'));
 	 if (buf) 
-	    bla=buf-(lecture_courant->lu+place_lu);
-	 else bla=strlen(lecture_courant->lu+place_lu);
-   	 rc=conversion_to_message(lecture_courant->lu+place_lu,
+	    bla=buf-lecture_courant->ligne;
+	 else bla=fl_strlen(lecture_courant->ligne);
+   	 rc=conversion_to_message(lecture_courant->ligne,
 			&trad,0,bla);
-	 elen+=strlen(trad)+(buf ? 3 : 1);
-	 if (ecriture_courant->ligne) {
-		ecriture_courant->ligne=
-		    safe_realloc(ecriture_courant->ligne,elen+1);
-		strcat(ecriture_courant->ligne,
-			trad);
-	 } else {
-		ecriture_courant->ligne=safe_malloc(elen+1);
-		strcpy(ecriture_courant->ligne, trad);
-	 }
-	 if (rc==0) free(trad);
+	 elen=strlen(trad)+6;
+	 ecriture_courant->ligne=safe_malloc(elen);
+	 if ((deb_ligne) && (lecture_courant->ligne[0]=='.')) 
+	     strcpy(ecriture_courant->ligne,".");
+	 else ecriture_courant->ligne[0]='\0';
+	 strcat(ecriture_courant->ligne,trad);
 	 if (buf) {
-	    strcat(ecriture_courant->ligne,"\r\n");
-	    ecriture_courant->suivant=safe_calloc
-		    (1,sizeof(struct post_lecture));
-	    ecriture_courant=ecriture_courant->suivant;
-	    elen=0;
-	    if (*(buf+1)) place_lu+=bla+1;
-	    else {
-		lecture_courant=lecture_courant->suivant;
-		place_lu=0;
-		if (lecture_courant==NULL) break;
-	    }
-	    deb_ligne=1;
-	 } else {
-	     lecture_courant=lecture_courant->suivant;
-	     place_lu=0;
-	     if (lecture_courant==NULL) break;
-	     deb_ligne=0;
-	 }
-     }	
+	     strcat(ecriture_courant->ligne,"\r\n");
+	     deb_ligne=1;
+	 } else deb_ligne=0;
+	 ecriture_courant->suivant=safe_calloc(1,sizeof(struct post_lecture));
+	 ecriture_courant=ecriture_courant->suivant;
+	 if (rc==0) free(trad);
    }
-   if (ecriture_courant->ligne) {
-       ecriture_courant->ligne=
-	           safe_realloc(ecriture_courant->ligne,elen+3);
-       strcat(ecriture_courant->ligne,"\r\n");
+
+   if (deb_ligne==0) {
+       ecriture_courant->ligne=safe_strdup("\r\n");
        ecriture_courant->suivant=safe_calloc(1,sizeof(struct post_lecture));
        ecriture_courant=ecriture_courant->suivant;
    }
@@ -1471,14 +1074,11 @@ static int Format_article(char *to_cancel) {
 
 static void Save_failed_initial_article() {
     FILE *tmp_file;
-    Lecture_List *lecture_courant;
     char name[MAX_PATH_LEN];
 
     tmp_file=open_postfile(REJECT_POST_FILE,"w",name,0);
     if (tmp_file==NULL) return;
-    lecture_courant=Deb_body;
-    while (lecture_courant->suivant) lecture_courant=lecture_courant->suivant;
-    Copie_prepost(tmp_file, lecture_courant, lecture_courant->size, 0);
+    Copie_prepost(tmp_file, 0);
     fclose(tmp_file);
 }
 
@@ -1601,6 +1201,7 @@ static int Post_article() {
 /* Libere la memoire allouee */
 static void Libere_listes() {
    struct post_lecture  *pc=Deb_article, *pc2;
+   struct post_body *pb=Deb_body,*pb2;
 
    while (pc) {
        if (pc->ligne) free(pc->ligne);
@@ -1608,7 +1209,12 @@ static void Libere_listes() {
        pc=pc->suivant;
        free(pc2);
    }
-   free_chaine(Deb_body);
+   while (pb) {
+       if (pb->ligne) free(pb->ligne);
+       pb2=pb;
+       pb=pb->suivant;
+       free(pb2);
+   }
 }
 
 
@@ -2065,24 +1671,6 @@ static void Free_post_headers() {
    free(Header_post);
 }
 
-
-/* encode un header selon la rfc2047, sans se poser la question		 */
-/* des caractère spéciaux... (donc ne peut pour l'instant ne s'appliquer */
-/* qu'au sujet...)							 */
-#if 0
-static void encode_headers(char **header_to_encode) {
-   char *place_to_put, *header_content=*header_to_encode;
-
-   /* On suppose la taille max a 140+2*strlen */
-   place_to_put=safe_malloc(140+strlen(header_content)*2);
-   rfc2047_encode_string(place_to_put, 
-       (unsigned char*) header_content, 75+strlen(header_content)*2);
-   *header_to_encode=safe_realloc(*header_to_encode, strlen(place_to_put)+1);
-   strcpy(*header_to_encode, place_to_put);
-   free(place_to_put);
-}
-#endif
-
 /* Cancel un message (fonction secondaire de ce fichier).		*/
 /* Renvoie : >0 si le message est effectivement cancelé... 0 si le      */
 /* cancel est annulé, et <0 si le cancel est refusé, ou bug...		*/
@@ -2122,9 +1710,9 @@ int cancel_message (Article_List *origine, int confirm) {
      return -1;
    }
    /* On remplie un corps bidon */
-   Deb_body=alloue_chaine();
-   fl_strcpy(Deb_body->lu,fl_static("This message is canceled by flrn.\n"));
-   Deb_body->size=fl_strlen(Deb_body->lu);
+   Deb_body=safe_calloc(1,sizeof(struct post_body));
+   Deb_body->ligne=safe_flstrdup(
+	   fl_static("This message is canceled by flrn.\n"));
    Change_message_conversion("utf-8");
    res=Format_article(origine->msgid);
    res=Post_article();
@@ -2136,7 +1724,7 @@ int cancel_message (Article_List *origine, int confirm) {
 
 
 void Create_header_encoding () {
-    Lecture_List *lecture_courant;
+    struct post_body *lecture_courant;
     Header_List *liste;
     const char *result;
     /* 1ere chose, existe-t-il une entête ContentType */
@@ -2161,7 +1749,12 @@ void Create_header_encoding () {
 	tent=parse_ContentType_header(liste->header_body);
 	lecture_courant=Deb_body;
 	while (lecture_courant) {  
-	    find_best_conversion(lecture_courant->lu,lecture_courant->size,
+	    if (lecture_courant->ligne==NULL) {
+		lecture_courant=lecture_courant->suivant;
+		continue;
+	    }
+	    find_best_conversion(lecture_courant->ligne,
+		    fl_strlen(lecture_courant->ligne),
 		    &result,tent);
 	    if (result==NULL) break;
 	    lecture_courant=lecture_courant->suivant;
@@ -2174,7 +1767,12 @@ void Create_header_encoding () {
     }
     lecture_courant=Deb_body;
     while (lecture_courant) {
-	find_best_conversion(lecture_courant->lu,lecture_courant->size,
+	if (lecture_courant->ligne==NULL) {
+	    lecture_courant=lecture_courant->suivant;
+	    continue;
+	}
+	find_best_conversion(lecture_courant->ligne,
+		fl_strlen(lecture_courant->ligne),
 		&result,NULL);
 	if (result==NULL) break;
 	lecture_courant=lecture_courant->suivant;
@@ -2237,13 +1835,6 @@ int post_message (Article_List *origine, flrn_char *name_file,int flag) {
        if (rc==0) free(trad);
        if (res==0) return -1;
     } else {
-#ifndef NO_INTERN_EDITOR
-      if (Pere_post) {
-        Cursor_gotorc(2,0);
-        if (flag!=-1) put_string_utf8(_("Votre rÃ©ponse : ")); else
-	  put_string_utf8(_("Votre article de remplacement : "));
-      }
-#endif
       res=get_Body_post();
       Screen_set_screen_start(NULL,NULL);
     }

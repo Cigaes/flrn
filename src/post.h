@@ -13,7 +13,6 @@
 #ifndef FLRN_POST_H
 #define FLRN_POST_H
 
-#include "flrn_string.h"
 #include "art_group.h"
 #include "enc/enc_base.h"
 

@@ -20,10 +20,10 @@
 static UNUSED char rcsid[]="$Id$";
 
 char version_string[]=
-"Flrn version 0.9.0pre0 par Damien et Jo, 10/2003.";
+"Flrn version 0.9.0pre1 par Damien et Jo, 10/2003.";
 
 char short_version_string[]=
-"Flrn (0.9.0pre0 - 03/10)";
+"Flrn (0.9.0pre1 - 03/10)";
 
 
 void print_version_defines(FILE *out)
@@ -114,11 +114,6 @@ void print_version_defines(FILE *out)
    fputs("-USE_MKSTEMP\n",out);
 #endif
    fprintf(out,"REJECT_POST_FILE=\"%s\"\n",REJECT_POST_FILE); 
-#ifdef NO_INTERN_EDITOR
-   fputs("+NO_INTERN_EDITOR  ",out);
-#else
-   fputs("-NO_INTERN_EDITOR  ",out);
-#endif
 #ifdef CHECK_MAIL
    fprintf(out,"+CHECK_MAIL  DEFAULT_MAIL_PATH=\"%s\"\n", DEFAULT_MAIL_PATH);
 #else

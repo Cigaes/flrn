@@ -121,9 +121,6 @@ struct Option_struct {
   int  use_mailbox;
   int  ordered_summary;
   int  threaded_next;
-#ifndef NO_INTERN_EDITOR
-  int  auto_edit;
-#endif
   int  use_regexp;
   int  use_menus;
   int  with_cousins;
@@ -241,9 +238,7 @@ static struct {
   MAKE_STRING_OPT(attribution,N_("Chaîne précédent les citations.")),
   MAKE_STRING_OPT_L(auth_user,N_("Nom de l'utilisateur pour l'authentification par le serveur")),
   MAKE_STRING_OPT_L(auth_pass,N_("Mot de passe pour l'authentification par le serveur")),
-#ifndef NO_INTERN_EDITOR
-  MAKE_OPT(auto_edit,N_("Lancement automatique de l'éditeur dans les posts.")),
-#endif
+  MAKE_OPT_NULL_O(auto_edit,N_("Obsolète (l'éditeur interne est supprimé).")),
   MAKE_STRING_OPT(auto_ignore,N_("Expression régulières de groupes à ignorer.")),
   MAKE_OPT(auto_kill,N_("Met le groupe dans le kill-file au moment de l'abonnement.")),
   MAKE_STRING_OPT(auto_subscribe,N_("Expression régulière de newsgroups à accepter.")),

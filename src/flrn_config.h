@@ -86,11 +86,6 @@
 
 /* - fin des options du GNKSA - */
 
-/* Cette option supprime l'éditeur interne de flrn... Elle pose problème
- * si l'utilisateur ne réussit pas à définir un bon éditeur. Bien entendu
- * l'option auto_edit est alors supprimée. */
-#define NO_INTERN_EDITOR 1
-
 /* Répertoire où chercher les fichiers de config chez l'utilisateur */
 #define DEFAULT_DIR_FILE        ".flrn"
 
