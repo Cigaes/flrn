@@ -1,106 +1,154 @@
 1: commandes simples
 
-Les paragraphes en retrait sont des descriptions plus détaillées qui peuvent
-être ignorées.
+        flrn : description simple des commandes
+        ---------------------------------------
 
-        flrn : commandes de bases
-        -------------------------
+====================================
+A) Comment entrer une commande ?
+B) Les commandes de flrn
+     * Déplacement dans les articles
+     * Gestion des articles
+     * Affichage de résumés
+     * Gestion des groupes
+     * Posts
+     * Divers
+====================================
 
-	Syntaxe générale des commande
-	-----------------------------
+Cette section de l'aide se veut relativement simple, et ne détaille pas
+l'ensemble des fonctions de chaque commande ou la puissance d'entrée
+des commandes. De même certaines commandes ne sont pas détaillées.
+Pour plus d'informations on peut se reporter aux sections 4 et 5 de l'aide.
 
-Les commandes sont utilisables soit en tapant leur nom :
-"\goto" ou en utilisant une touche sur laquelle elles sont bindées, comme 'g'.
+A) Comment entrer une commande ?
+   -----------------------------
 
-  Quand on tappe leur nom, il y a une completion automatique obtenue avec
-  <tab>. On peut appuyer plusieurs fois de suite sur la touche pour voir
-  les différentes possibilités que propose flrn.
+Les commandes sont utilisables soit en tapant leur nom précédé d'un
+« \ » (par exemple, en tapant « \goto »), ou en utilisant une touche sur
+laquelle elles sont liées (par exemple « g » est, par défaut, un raccourci
+pour « \goto »). Il n'est pas nécessaire d'appuyer sur <enter> quand on
+utilise une touche liée sauf si la commande doit prendre une chaîne de
+caractère en argument.
 
-Certaines commandes prennent une chaîne de caractères en argument. On peut la
-mettre directement si l'on utilise la première forme : "\goto flrn".
+Certaines commandes prennent une chaîne de caractères en argument :
+"\goto aide" ou "gaide" permet ainsi de se rendre dans le groupe 'aide'.
 
-  Enfin, on peut taper avant toutes les commandes un préfixe décrivant les
-  articles auxquels elle doit s'appliquer (la sémantique varie un peu pour
-  certaines commandes particulières). La forme générale de ce préfixe est :
-  elem_1,elem_2...
-  où chaque élément peut être un numéro (15), une suite de numéro (10-20),
-  un article et ses réponses (15>) ou l'ensemble des ascendants d'un 
-  article (15_).
-  Il existe deux racourcis supplémentaires : '.' représente l'article courant,
-  '5<' représente l'origine du fil de discussion et '1' représente le
-  premier article du groupe. Enfin, '-10' et '10-' sont utilisables, et
-  représentent respectivement tous les articles de numéro inférieur à 10, 
-  et tous les articles de numéro supérieur à 10.
+On peut aussi précéder l'entrée de la commande par un préfixe décrivant
+les articles auxquels elle doit s'appliquer (si rien n'est indiqué,
+en général la commande s'applique sur l'article courant). Par exemple, pour
+la commande « s » (\save), qui permet de sauver des articles dans un fichier :
+  « s » ou « .s » permet de sauver l'article courant
+  « 15s » permet de sauver l'article 15 du groupe courant
+  « >s » permet de sauver l'article courant et tous ses descendants
+  « <>s » permet de sauver l'ensemble du fil de discussion courant
+  « *s » permet de sauver l'ensemble de la discussion courante dans ce groupe
+  « 1-100s » permet de sauver les articles entre 1 et 100 du groupe courant
+  « -s » permet de sauver l'ensemble des articles du groupe courant
 
-  Ainsi, pour avoir le résumé de la discussion en cours, on peut taper :
-  '.<>r'.
 
-	Commandes de flrn
-	-----------------
+B) Commandes de flrn
+   -----------------
 
-Les touches peuvent être rebindées. Cependant on décrit le comportement
-par défaut.
+Les raccourcis présentés sont ceux de la configuration par défaut. 
+Il est possible de changer les liens entre touches de raccourci et commandes.
 
-* Déplacement dans les articles :
+*** Déplacement dans les articles
 
-espace, enter et n changent d'article. Espace affichera l'article suivant de
-la discussion qui n'as pas encore été lu. Enter (comme n) va juste à l'article
-suivant.
+« v » (\article) passe à l'article passé en paramètre. Par exemple,
+« 15v » permet de passer à l'article numéro 15. Quand <enter>
+est précédé d'un numéro d'article, il se comporte comme « v ».
 
-v affiche un article. Par exemple '15v'.
+<espace> et « n » (\nxt-unread) permet de passer à l'article suivant de
+la discussion qui n'a pas encore été lu. Si tous les messages sont lus,
+cette commande peut changer de groupe.
 
-Les flèches permettent de se déplacer dans les discussions. La flèche gauche
-va au père, celles du haut et du bas se déplacent parmis les frères.
-(On a aussi les bindings équivalents []() comme trn, ainsi que b et f issus
-de forum).
+<enter> (\nxt-article), s'il n'est pas précédé d'un numéro d'article,
+permet de passer à l'article suivant par numéro dans le groupe.
+« p » ou « - » (\previous) permet de passer à l'article précédent par
+numéro.
 
-On peut encore avec B, F et H se déplacer parmi les articles que l'on vient
-de lire.
+Les flèches permettent de se déplacer dans les discussions.
+La flèche gauche (\left) va au père, la flèche droite (\right) a un
+des fils, les flèches haut (\up) et bas (\down) se déplacent parmi
+les frères d'un article.
+(les raccourcis « ( », « ) », « [ » et « ] » sont aussi définis
+respectivement pour \up, \down, \left et \right, et « b » et « f »
+définissent aussi \left et \right)
 
-* Gestions des articles
+flrn garde en mémoire (même entre plusieurs sessions) un historique
+des messages visités. On peut se déplacer dans cet historique avec
+« B » (\hist-prev) et « F » (\hist-next).
 
-V (\view) lance $PAGER.
-s (\save) sauve l'article.
-S (\SAVE) sauve une discussion.
-o (\omet) marque l'article comme non lu. O marque la discussion non lue.
-k (\kill) marque l'article comme lu. Cela sert quand l'article est long.
-	K et J marquent l'article et ses descendants lus (toute la discussion
-	pour J)
+*** Gestions des articles
 
-* Affichage de résumés
+« V » (\view) lance un "pager", c'est-à-dire un programme chargé d'afficher
+              du texte sur l'écran, et lui transmet les articles en paramètre.
+« s » (\save) sauve les articles dans un fichier.
+« S » (\SAVE) sauve les articles et leurs descendants.
+« o » (\omit) marque les articles comme non lus.
+« O » (\OMIT) marque les articles et leurs descendants comme non lus
+« k » (\kill) marque les articles comme lus (y compris, pour les articles
+              crosspostés, dans les autres groupes).
+« K » (\kill-replies) marque les articles et leurs descendants comme lus.
+« J » (\kill-thread) marque les articles et leurs fils de discussion comme lus.
 
-r (\summary) affiche un résumé.
-t (\summ_fil) résumé d'un article et de ses fils. (équivalent à '.>r')
-T (\summ_thr) résumé de la discussion. (équivalent à '.<>r')
-/ (\menu-search) affiche un menu des articles vérifiant une condition :
-	ça peut être soit des flags (read/unread, selected/unselected),
-	ou des entêtes (par exemple, From: toto proposera les articles
-	dont l'entête From: contient "toto").
 
-* Gestion des groupes :
+*** Affichage de résumés
 
-u (\unsubscribe) se désabonne du groupe.
-a (\subscribe) s'abonne au groupe.
-z (\zap)  marque comme lus tous les messages du groupe.
-g (\goto) change de groupe, en restant dans ceux auxquels on est abonné
-G (\GOTO) change de groupe.
-l (\list) donne la liste des groupes auxquel on est abonné.
-L (\LIST) liste tous les groupes.
+Les résumés des articles donnent un menu dans lequel on peut choisir un
+article ou appliquer certaines commandes de gestion d'articles.
 
-* Posts :
+« r » (\summary) affiche un résumé des articles sélectionnés.
+                 Exceptionnellement, cette commande sans paramètre affiche
+		 un résumé des articles « autour » de l'article courant,
+		 dans la limite d'une page.
+« t » (\summ-replies) affiche un résumé des articles et de leurs descendants.
+« T » (\summ-thread) affiche un résumé des articles et de leurs fils
+                     de discussion.
+« / » (\menu-search) fonctionne comme \summary mais permet de poser
+                     des conditions sur les articles : soit des drapeaux
+		     (par exemple « /unread » ne proposera que des articles
+		     non lus), soit une condition sur une entête (par
+		     exemple « /From: toto » proposera les articles dont
+		     l'entête From: contient "toto").
+		      
+*** Gestion des groupes :
 
-m (\post) poste un article.
-R (\reply) répond en public à un article, c-à-d poste un "followup"
+Ces commandes prennent souvent une chaîne en argument pour désigner le
+nom d'un (ou de plusieurs) groupe(s). Quand la commande ne concerne
+qu'un seul groupe et que le groupe est ambigue, un menu est proposé.
+Si aucune chaîne n'est rentrée, le groupe courant est pris en compte.
 
-* Divers :
+« u » (\unsubscribe) se désabonne d'un groupe.
+« a » (\subscribe) s'abonne à un groupe.
+« z » (\zap)  marque comme lus tous les messages d'un groupe.
+« g » (\goto) change de groupe, en restant dans les groupes abonnés. Sans
+              argument, cette commande cherche un groupe où des messages
+	      sont non lus.
+« G » (\GOTO) fonctionne comme \goto, mais ne se limite pas aux groupes
+              abonnés.
+« l » (\list) présente la liste des groupes abonnés choisis (par défaut,
+              tous les groupes abonnés), sous la forme d'un menu. On peut
+	      alors en sélectionner un, ou appliquer certaines commandes.
+« L » (\LIST) présente la liste de tous les groupes, avec jusqu'à trois
+              menus : en se limitant aux groupes abonnés, puis aux groupes
+	      connus, puis à tous les groupes (si un menu est vide, il
+	      n'est pas proposé).
 
-(\config) permet de changer la valeur de certaines options à l'aide d'un menu
-: (\option) évalue directement une ligne d'option
-q (\quit) quitte.
-Q (\QUIT) quitte sans sauver le .flnewsrc.
-h (\help) lance cette aide.
+*** Posts :
 
-Cf la page 4 pour plus de détails.
+Ces commandes peuvent prendre un nom de fichier en paramètre (qui contiendra
+le message à poster), ou alors lancent un éditeur.
+
+« m » (\post) poste un article.
+« R » (\reply) répond en public à un article.
+« e » (\cancel) permet d'annuler un article qu'on a posté.
+
+*** Divers :
+
+« : » (\option) évalue directement une ligne d'option.
+« q » (\quit) quitte flrn en prenant en compte la lecture des articles.
+« Q » (\QUIT) quitte flrn sans prendre en compte la lecture des articles.
+« h » ou « ? » (\help) lance cette aide.
 
 
 'q' permet de quitter l'aide à tout moment.

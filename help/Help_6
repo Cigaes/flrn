@@ -1,0 +1,228 @@
+6: description du kill-file
+
+	flrn : Description du kill-file
+	-------------------------------
+
+=============================================
+A) Introduction
+B) Description des blocs
+     * Les groupes
+     * Les conditions
+     * Les actions
+C) Exemples
+D) Notes
+=============================================
+
+
+A) Introduction
+   ------------
+
+  Le kill-file (ou fichier de censure) est permet d'agir directement sur
+les articles lors de l'entrée dans un groupe. Il permet par exemple de
+filtrer des articles qu'on ne souhaite pas lire, de marquer comme lus
+les articles trop vieux, et bien d'autres choses. Sa syntaxe est
+librement inspirée de procmail et de slrn, c'est dire s'il est peu
+lisible.
+
+  Le nom du kill-file est déterminé par l'option kill_file_name (par
+défaut .flrnkill).
+
+  Les kill-file est constitué de blocs séparés par des lignes blanches.
+Une ligne commençant par un « # » est un commentaire. L'ordre des blocs
+est très important : un article qui vérifie les conditions d'un bloc
+ne sera pas « testé » par les blocs qui suivent.
+
+B) Description des blocs
+   ---------------------
+
+La première ligne du bloc décrit systématiquement les groupes sur
+lesquels le bloc s'applique. On peut éventuellement trouver d'autres
+lignes complétant cette liste de groupe, puis des conditions que
+les articles doivent vérifier et enfin les actions à faire si
+ces articles les vérifient.
+
+     * Les groupes
+       -----------
+
+Le premier caractère de cette ligne doit être un « : ». La syntaxe
+de la ligne doit être celle-ci :
+:<chaine>:<drapeaux>
+
+  <drapeaux> est une suite de caractères. Les caractères qui ont un
+effet sont « f », « l » et « m ». « f » et « l » ne peuvent être mis
+simultanément, et « m » ne peut être mis qu'avec « f ». L'interprétation
+est la suivante :
+
+  - Si il n'y a aucun drapeau, <chaine> représente une expression
+régulière que le nom du groupe doit vérifier pour que le bloc soit
+pris en compte. Pour prendre tous les groupes, préférer « . » à
+l'expression régulière vide qui peut être mal interprétée par certaines
+installations.
+  - Si il y a un « f », <chaine> est un nom de fichier qui contient
+la liste des groupes pour lesquels le bloc doit être pris en compte. 
+Avec « m », cette liste devient la liste principale, qui est affectée
+par \add-kill, \remove-kill et \auto-kill et que flrn met à jour
+automatiquement.
+  - Si il y a un « l », les groupes à prendre en compte sont dans une
+liste dont <chaine> est le premier élément. Les autres éléments sont
+rajoutés au cours du bloc par des lignes de la forme
+:<nom de groupe> .
+      
+      * Les conditions (ou filtres)
+        ---------------------------
+
+Les conditions sont de deux formes : sur les drapeaux sur les articles,
+et sur les entêtes des articles. Plusieurs conditions peuvent s'ajouter
+et sont alors des conjonctions.
+
+  - Conditions sur les drapeaux 
+
+Elles sont de la forme « F<flag> » (en début de ligne) où <flag> peut être :
+       + read/unread
+       + killed/unkilled
+       + interesting/uninteresting
+       + toread/untoread
+       + selected/unselected
+       + all
+
+Par défaut, le bloc ne s'applique qu'aux articles non lus. Pour enlever
+cette condition, il faut donc rajouter un « Fall » dans le bloc.
+Plusieurs conditions peuvent s'ajouter (bien que, en théorie, un
+article ne peut être que lu ou non lu à l'entrée d'un groupes).
+
+  - Conditions sur les entêtes
+
+La ligne doit commencer par un « * ». La forme générale est
+« *<drapeaux><entete>: <chaine> ».
+
+     _ si <drapeaux> est vide, <chaine> est une expression régulière
+       que doit vérifier l'entête de nom <entête>.
+     _ si <drapeaux> vaut « ^ », <chaine> est une expression régulière
+       que l'entête ne doit pas vérifier.
+     _ si <drapeaux> vaut « ' », l'entête doit contenir la chaîne
+       <chaine>.
+     _ si <drapeaux> vaut « ^' », l'entête ne doit pas contenir la
+       chaîne <chaine>.
+
+Un cas particulier permet de faire des tests sur la date. Dans ce cas,
+la forme est « *[^]date <[chaine] » ou « *[^]date >[chaine] ».
+La présence du « ^ » permet de faire la négation de la condition,
+et [chaine] doit être une chaîne de caractère représentant une date
+locale ou relative (à la date actuelle), en anglais (la lecture est
+la même que celle de GNU date). « > » permet de tester si la date
+du message est postérieure à la date définie par [chaine], et « < »
+permet de tester si la date est antérieure à la date définie par [chaine].
+
+Note : ces conditions se retrouvent de la même façon dans les commandes
+       \menu-search et \summ-search, ainsi que pour les options my_flags.
+       Dans ce cas, les caractères « F » et « * » ne sont pas utilisés
+       pour distinguer les tests sur les drapeaux ou sur les entêtes :
+       flrn détermine directement le type du test.
+
+      * Les actions
+        -----------
+
+Deux formes d'actions sont possibles : modification des drapeaux des
+articles et commandes effectuées sur les articles. On ne peut mettre
+qu'une seule modification de drapeaux, et on ne peut pas mettre
+simultanément une modification de drapeaux et une commande. Par
+contre, on peut mettre plusieurs commandes.
+
+  - Modification de drapeaux
+
+La ligne est de la forme « T<flag> », où <flag> est semblable aux
+drapeaux proposés dans les conditions (sauf que « all » n'est pas
+admis).
+
+  - Actions sur les articles
+
+La ligne est de la forme «C<cmd> <arg>», où <cmd> doit être une commande
+explicite de contexte "command" (sans le « \ »), qui sera appliquée sur
+l'article courant.
+
+C) Exemples
+   --------
+
+    1er exemple
+    -----------
+
+# On ne veut pas lire les messages de "foobar" dans les groupes flrn
+# ligne 1 : on ne garde que les groupes contenant flrn
+# ligne 2 : on distingue les messages de foobar par le fait que le From:
+#           contient la sous-chaîne foobar@
+# ligne 3 : on marque alors les messages comme lus
+:flrn:
+*'From: foobar@
+Tread
+
+    2ème exemple
+    ------------
+
+# On ne veut pas lire les messages de "foobar" et "quz", sauf dans flrn
+# Cela doit se faire en deux blocs séparés par une ligne blanche
+# Dans le premier, on demande de ne rien faire dans les groupes flrn
+# Dans le second, on marque comme lus les messages dans tous les groupes
+# Ici, on utilise une expression régulière.
+:flrn:
+*From: (foobar|quz)@
+
+:.:
+*From: (foobar|quz)@
+Tread
+
+     3ème exemple
+     ------------
+
+# On ne veut pas lire les messages de plus de 3 jours dans les groupes
+# de censure principale, et les messages de plus de 7 jours sauf dans
+# les groupes bienvenus et annonces
+# On fait ça en trois blocs.
+# le fichier de censure principale est nommé .flrnabo
+:.flrnabo:fm
+*date <3 days ago
+Tread
+
+:(bienvenue|annonces)$:
+*date <7 days ago
+
+:.:
+*date <7 days ago
+Tread
+
+      4ème exemple
+      ------------
+
+# On veut complètement ignorer les messages autres que ceux de foobar
+# dans flrn, même les anciens
+:flrn:
+*^'From: foobar@
+Fall
+Tkilled
+
+       5ème exemple
+       ------------
+
+# Je veux que les messages non lus de foobar dans les groupes fr.test
+# et fr.bienvenue soient non seulement marqués comme interessants
+# mais sauvés dans le fichier foobar-test
+# Comme la commande \save est interactive, on utilise \pipe. D'autres
+# possibilites devraient être possibles dans l'avenir.
+# On met deux commandes puisqu'il n'est pas possible de cumuler F et C.
+:fr.test:l
+:fr.bienvenue
+*From: foobar@
+Cput-flag interesting
+Cpipe cat >> foobar-test
+
+
+D) Notes
+   -----
+
+ * La gestion des erreurs dans le kill-file est catastrophique : un 
+kill-file comportant une erreur est entièrement ignoré. Ce comportement
+est susceptible de changer à terme.
+
+
+---------------------------------------------
+'q' permet de quitter l'aide à tout moment.
+'m' permet de revenir au menu

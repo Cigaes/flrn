@@ -1,613 +1,194 @@
-4: Liste des commandes
-
-       ###########################################################
-       #       Description détaillée des commandes de flrn       #
-       ###########################################################
-
-ATTENTION : cette page est assez complète, mais difficile.
-
-flrn admet trois modes d'entrée de commandes :
-  _ le mode cbreak, décrit plus bas, qui est le mode par défaut
-  _ le mode nocbreak, pour l'instant très imparfait.
-  _ le mode forum, qui est un mode cbreak modifié pour faire une forme
-de compatibilité. C'est le mode par défaut des configurations locales.
- 
-On peut changer de mode avec les options cbreak et forum_mode.
-Dans les modes cbreak et forum, taper '@' permet de rentrer localement une 
-commande en mode nocbreak.
-
-	-----------------------
-	Contextes des commandes
-	-----------------------
-
-A chaque commande est lié un contexte dans lequel elle est valide.
-Il y a trois contextes de commande :
-	- le contexte "command", qui est le contexte générique
-	_ le contexte "pager", qui sert quand il s'agit de faire défiler
-	  un article ou de lire l'aide.
-	_ le contexte "menu", qui sert pour les menus interactifs.
-
-Souvent, lorsque flrn est en contexte "pager" ou "menu", il accepte des
-commandes liées au contexte "command", avec une priorité moindre (en cas
-d'ambiguité). En fin d'article, les commandes de "pager" sont acceptés
-avec une priorité moindre que les commandes de "menu".
-
-Dans le contexte "pager", une commande liée au contexte "command" provoque
-la sortie du contexte et est executée comme une commande normale.
-
-Par contre, dans un menu, le comportement (s'il est défini) est différent,
-et flrn ne sort pas (a priori) du contexte. Les commandes acceptés dépendent
-du menu interactif considéré.
-
-	-------------------------------
-	Syntaxe générale d'une commande
-	-------------------------------
-
-De façon générale, une commande se présente sous la forme suivante :
-
-	[chaine1] <nom_de_la_commande> [chaine2]
-
-L'interprétation de [chaine1] et [chaine2] dépend du contexte courant.
-La règle d'entrée des commandes impose que [chaine1] ne contienne que
-des caractères parmi les suivants "0123456789<>.,_*" et ne commence pas
-par '-'.
-
-------------------------------------
-Syntaxe dans le contexte de commande
-------------------------------------
-
-Une commande dans le contexte de commande se présente sous la forme
-suivante :
-
-	[ elem_1 [ ,elem_2 [ ,... ]]]<nom_de_la_commande> [chaine]
-
-dans le mode nocbreak, la commande prend la forme suivante :
-
-	<nom_de_la_commande> [ elem_1 [ ,elem_2 [ ,... ]]][ [,]chaine ]
-
-elem_1, elem_2, etc... caractérisent les articles concernés par la commande.
-Ces articles sont désignés par leur numéro dans le newsgroup courant.
-Ils sont sans importance si la commande se rapporte à un groupe donné.
-Chaque elem_i peut se présenter sous 3 formes :
-	n1	: désigne l'article portant le numéro n1
-	n2-n3	: désigne l'ensemble des articles allant de n2 à n3
-	n4>	: désigne les articles ayant n4 comme ancêtre
-	n5_	: désigne les articles ayant n5 comme descendants
-	n6*	: désigne le thread complet lié à n6, en se basant sur
-		  les entêtes "References".
-
-Les formes particulières que ces numéros peuvent prendre sont les suivantes :
-
-Forme	   n1,n4,n5 et n6	n2		n3
-<vide>	    	C(*)		D		F
-0 ou .		C		C		C
-1		D		D		D
-
-C désignant le numéro de l'article courant, D celui du début du newsgroup
-courant, et F celui de la fin du newsgroup.
-
-(*) Dans le cas de n1, un numéro vide peut donner un comportement différent
-de simplement choisir le message courant, si ceci est précisé spécifiquement
-dans la description de la commande.
-
-Chaque numéro peut être directement suivi du caractère <, auquel cas le
-numéro est remplacé par celui de la racine du thread contenant l'article
-de ce numéro. Ainsi .< désigne le numéro de la racine du thread contenant
-l'article courant.
-
-Dans le cas où aucun elem_i n'est présent, les commandes ont le plus
-souvent le même comportement qu'avec l'article courant comme seul
-article sélectionné. Il y a toutefois des exceptions.
-
-
-<nom_de_la_commande> désigne le nom de la commande tapée. Cela peut être
-soit une touche correspondant à un binding (par défaut ou obtenu par une
-option), soit une commande explicite, préfixée par le caractère '\'.
-
-Enfin, certaines commandes (comme 'list' par exemple), prennent une chaîne
-de caractère comme dernier argument. Elle est demandée en fin de commande.
-Certaines commandes (comme 'post') n'en demande pas, mais en acceptent en 
-mode nocbreak. Une chaîne de caractère en fin de commandes peut aussi
-être interprétée comme une liste d'articles. Une virgule sépare la liste
-des articles de l'éventuelle chaîne demandée.
-
-------------------------------
-Syntaxe dans le contexte pager
-------------------------------
-
-On trouve le plus souvent :
-
-	[num] <nom_de_la_commande> [chaine]	
-ou 	<nom_de_la_commande> [num][ [,][chaine] ]
-
-où [num] est un nombre qui désigne le nombre d'action liées à la commande à
-accomplir. Par exemple, \up 3 remontera de 3 lignes.
-[chaine] sert pour les recherches.
-
------------------------------
-Syntaxe dans le contexte menu
------------------------------
-
-On trouve la encore :
-
-	[num_etendu] <nom_de_la_commande> [chaine]
-ou 	<nom_de_la_commande> [num_etendu][ [,] [chaine] ]
-
-Ce format peut aussi servir pour des commandes liées au contexte "command",
-dans le contexte de menu.
-
-[num_etendu] peut être un nombre qui désigne le nombre de fois que l'action
-doit être effectuée. Les caractères suivants sont aussi possible pour
-certaines commandes (\toggle et les commandes liées au contexte "command") :
-	'*' qui désigne tous les éléments du menu
-	'.' qui désigne tous les éléments sélectionnés (par \toggle)
-	'_' qui désigne tous les éléments qui matche la regexp de recherche
-		courante
-	'<' qui désigne tous les éléments qui précédent l'élément courant
-	'>' qui désigne tous les éléments qui suivent l'élément courant
-
-[chaine] sert pour les recherches, et pour certaines commandes liées au
-contexte "command" (\put-flag par exemple).
-
-Note : les bindings du contexte "command" peuvent être utilisés dans le
-contexte "menu" s'ils se limitent à une commande (c'est-à-dire si ce ne sont
-pas des macros). Dans le cas contraire, on utilisera pour les bindings la
-commande liée au contexte menu "cmd".
-
-
-	*************************************
-		Commandes de flrn
-	*************************************
-
-I Contexte "command"
-  ==================
-
-Chaque commande est donnée avec son nom explicite et sa touche correspondante
-par défaut. Certaines touches ont des fonctions spéciales, comme 'enter'
-et '-'. D'autres ne peuvent pas être liées à une commande : c'est le
-cas de la virgule, des chiffres, du point et des caractères '<','>','_','*'.
-
-Les commandes sont classées en catégories :
-1 Déplacement dans les articles
-2 Historique et tags
-3 Gestion des articles
-4 Affichage des résumés et threads
-5 Gestion des groupes
-6 Poster
-7 Shell-escapes
-8 Divers
-
-
-1 Déplacement dans les articles
-  -----------------------------
-
-article	
-	(défaut : v, et aussi enter si un paramètre est donné)
-	Affiche le premier article donné en argument (ou l'article courant
-	s'il n'y a pas d'argument).
-	
-next-article
-	(défaut : enter, si aucun paramètre n'est donné. ^M aussi)
-	Passe à l'article suivant le premier article donné en argument.
-
-previous
-	(défaut : p, et - si c'est le PREMIER caractère de la commande)
-	Revient à l'article précédent le premier article donné en argument.
-
-up	(défaut : flèche haut)
-down	(défaut : flèche bas)
-left	(défaut : flèche gauche)
-right	(défaut : flèche droite)
-	Permet de se déplacer au sein des articles de même sujet. On part
-	du premier article sélectionné, ou de l'article courant.
-	up : va au frère précédent
-	down : va au frère suivant
-	left : va au père du message
-	right : va à un fils du message
-
-next-unread
-	(défaut : space)
-	Va au premier article non lu. Cette commande a des effets différents
-	selon les options space_is_return et threaded_space. On part dans
-	tous les cas du premier article selectionné.
-
-2 Historique et tags
-  ------------------
-
-tag
-	(défaut : ")  (prend éventuellement un caractère en argument)
-	place un "tag" sur l'article courant, c'est-à-dire demande à flrn
-	de placer un signe sur cet article pour savoir y revenir. On peut
-	fixer le nom de ce signe sous forme d'un caractère.
-	Les tags sont sauvegardés comme l'historique via
-	hist_file_name
-go-tag
-	(défaut : ') (prend éventuellement un caractère en argument)
-	va à l'article précédemment "tagué" par le bon "tag".
-
-history
-	(défaut : H)
-	place dans un menu contenant tous les article visités, en partant
-	des plus récents. On peut choisir un article dans le menu pour s'y
-	rendre.
-hist-prev
-	(défaut : B)
-	se déplace au sein de l'historique dans les sens des messages
-	visités "avant". Cette commande permet de revoir des messages
-	déjà lus.
-hist-next
-	(défaut : F)
-	se déplace au sein de l'historique dans les sens des messages
-	visités "après".
-
-
-3 Gestions des articles
-  ---------------------
-
-view   
-	(défaut : V)
-	Lance $PAGER sur les articles sélectionnés. Devrait être une macro
-	de pipe.
-
-save 
-	(défaut : s)
-	Sauve les articles sélectionnés dans un fichier (demandé en argument)
-	Une confirmation est demandé si le fichier existe déjà.
-SAVE
-	(défaut : S)
-	Même effet que save, mais sauve les descendants de tous les articles
-	sélectionnés, avec éventuellement plusieurs sauvegardes du même
-	article.
-
-omit
-	(défaut : o)
-	marque comme non lus les articles sélectionnés. Dans le cas où aucun
-	article n'est sélectionné, marque juste l'article courant non lu.
-OMIT
-	(défaut : O)
-	marque comme non lus les descendants de tous les articles sélectionnés.
-	Si aucun article n'est selectionnés, on se contente de tous les
-	descendants de l'article courant.
-
-kill
-	(défaut : k)
-	marque comme lus les articles sélectionnés avec les crossposts.
-	Si aucun article n'est sélectionné, on marque le message courant comme
-	lu. On passe ensuite au premier article non lu.
-kill-replies
-	(défaut : K)
-	marque comme lus les descendants des articles sélectionnés en prenant
-	en compte les crossposts. Si aucun article n'est selectionné, on
-	marque les descendants du message courant comme lus.
-kill-thread
-	(défaut : J)
-	marque comme lus les discussions complètes des articles sélectionnés
-	avec les crossposts. Si aucun article n'est sélectionné, on marque la
-	discussion courante comme lue.
-
-art-to-return
-	(défaut : x)
-	marque un message comme lu temporairement. Ce message sera marqué
-	non lu à la sortie du groupe.
-
-put-flags
-	(pas de défaut) (prend le drapeau en argument)
-	pose (ou enlève) un "drapeau" sur les articles sélectionnés. Les
-	drapeaux sont "read/unread", "killed/unkilled",
-	"interesting/uninteresting" et "selected/unselected".
-
-on-selected
-	(pas de défaut) (prend une commande en argument)
-	applique sur tous les articles sélectionnés qui ont en plus le
-	drapeau "selected" la commande en argument. Si cette commande est
-	"put-flag selected", alors enlève le drapeau "selected" sur les autres
-	articles du groupe qui ont ce drapeau. Les bindings de commande
-	sont acceptés si ce ne sont pas des macros (pour éviter des
-	cercles vicieux de type "bind b on-selected b".
-	Si aucun article n'est sélectionné, 'on-selected' s'applique sur tout
-	les messages du groupe qui ont le drapeau.
-
-
-4 Affichage de résumés et threads
-  -------------------------------
-
-summary 
-	(défaut : r)
-	Résumé des articles sélectionnés. Dans le cas ou aucun article n'est
-	sélectionné, on affiche un écran d'articles, centré par défaut sur
-	l'article courant. Les articles sont placés dans l'ordre des leur
-	numéro ou sous une forme threadée, selon l'option ordered_summary.
-summ_replies
-	(défaut : t)
-	Résumé des articles sélectionnés sous une forme threadée. Dans le
-	cas où aucun article n'est sélectionné, on affiche les descendants de
-	l'article courant.
-summ_thread
-	(défaut : T)
-	Même action que t, mais le comportement par défaut affiche cette fois
-	le thread complet.
-sum-search 
-	(pas de défaut) (prend un argument)
-	A exactement la même action que la commande summary, mais demande un
-	paramètre, ce qui permet de faire des recherches. L'argument de la
-	recherche (utilisable dans toutes les commandes de résumés) est de la
-	forme <header>: <regexp>, qui demande à matcher une regexp dans le
-	<header> considéré. On ne fait pas de recherche dans le corps du
-	message.
-	On peut aussi mettre un drapeau (éventuellement précédé de "un")
-	comme argument.
-
-menu-summary (pas de défaut)
-menu-fil     (pas de défaut)
-menu-thr     (pas de défaut)
-menu-search  (défaut : /)
-	Respectivement identiques aux quatre commande précédentes, mais
-	permettent de choisir un article via un menu, au lieu d'afficher
-	simplement un résumé.
-	Dans ce menu, les commandes issues du mode "command" suivantes
-	sont disponibles :
-		kill, kill-replies, kill-thread marquent comme lus les
-				articles selectionnés
-			(attention, ces trois commandes ont ici le même effet)
-		omit, OMIT les marquent non lus
-		put-flag met le drapeau passé en arguments aux articles
-				sélectionnés
-
-select	(pas de défaut)
-	Prend les mêmes paramètres qu'un menu-search, mais au lieu
-	de proposer un menu des articles sélectionnés, propose un menu
-	décrivant les enfilades contenant au moins un des articles
-	choisis.
-	Les commandes issues du mode "command" décrites dans menu-search sont
-	aussi disponibles. Plutôt que d'avoir simplement les états "marquer
-	tous les articles lus" et "marquer tous les articles non lus", on
-	trouve aussi l'état intermédiaire "ne pas changer l'état de lecture
-	des articles". Ceci ne se retrouve pas pour les autres drapeaux.
-
-
-5 Gestion des groupes
-  -------------------
-
-unsubscribe
-	(défaut : u)
-	Se désabonne du groupe courant. Peut prendre en argument une
-	sous-chaîne ou une expression réguilière donnant le groupe à se
-	désabonner.
-subscribe	
-	(défaut : a)
-	S'abonne au groupe courant. Peut là aussi prendre une sous-chaîne
-	ou une expression régulière du groupe en argument.
-add-kill
-remove-kill
-	(pas de défaut)
-	Ajoute ou retire le groupe dans la liste de censure principale.
-	Fonctionne comme subscribe.
-	
-zap	
-	(défaut : z)
-	Marque tous les messages du groupe comme lus, sans tenir compte des
-	crossposts.
-goto	
-	(défaut : g) (prend <nom> comme argument)
-	Va au premier groupe à partir du groupe courant comportant la chaine
-	<nom> en mode nouse_regexp, sinon au groupe dont le nom correspond
-	à l'expression régulière associée à <nom>. Si <nom> est vide, va au 
-	premier groupe comprenant des messages non lus. Cette commande se 
-	limite aux groupes auxquels on est abonné. Si use_menus est égal
-	à yes et qu'il y ambiguité sur le groupe, flrn propose un menu dans
-	lequel il est seulement possible de sélectionner le groupe.
-GOTO	
-	(défaut : G) (prend <nom> comme argument)
-	Même action que goto, mais on considère ici TOUS les groupes, en
-	commençant par ceux auquels on est abonnés, puis ceux qui sont dans
-	le .flnewsrc, puis les autres.
-swap-grp 
-	(pas de défaut) (prend <nom> comme argument)
-	Permet de changer de newsgroup sans changer l'article courant (pour peu
-	que celui-ci soit crossposté, ou ait été obtenu par get-father). Si
-	<nom> est non vide, on cherchera à aller dans un groupe dont le nom
-	contient <nom>. Les expressions régulières sont gérées. Un menu est
-	créé s'il y a ambiguité.
-art-msgid
-	(pas de défaut) (prend <msgid> comme argument)
-	Examine l'article de message-ID <msgid> et s'y rend. Si cet article
-	est crossposté, propose un menu pour déterminer le groupe où le
-	chercher. Ne vérifie pas que l'article est toujours dans les groupes
-	considérés.
-list	
-	(défaut : l) (prend <nom> comme argument)
-	Donne la liste des newsgroups auquel on est abonné dont le nom contient
-	<nom>, ou correspond à l'expression régulière associée à <nom> en
-	mode use_regexp.
-LIST	
-	(défaut : L) (prend <nom> comme argument)
-	Même effet que l, mais sans restriction d'abonnement.
-
-
-6 Poster
-  ------
-
-(on se reportera à la section 2 de l'aide)
-
-post	
-	(défaut : m) (prend éventuellement <nom> en paramètre)
-	Poste un article dans le newsgroup courant. Si <nom> existe, poste
-	le fichier <nom> SANS DEMANDER CONFIRMATION.
-reply	
-	(défaut : R) (prend éventuellement <nom> en paramètre)
-	Répond en public au premier article sélectionné, et à l'article
-	courant par défaut. Si <nom> existe, on poste le fichier <nom>
-	SANS DEMANDER CONFIRMATION.
-mail-answer
-	(pas de défaut) (prend éventuellement <nom> en paramètre)
-	Répond au premier article sélectionné par mail. Si <nom> existe, on
-	envoie le fichier par mail SANS DEMANDER CONFIRMATION.
-
-cancel
-	(défaut : e)
-	demande d'effacer le message courant.
-supersedes
-	(pas de défaut) (prend éventuellement <nom> en paramètre)
-	demande de "remplacer" le message courant par un autre, c'est-à-dire
-	de poster un message tout en effaçant un autre.
-
-
-7 Shell-escapes
-  -------------
-
-Toutes les commandes <nom> lancées sont équivalentes à sh -c <nom>.
-(cf man system(3))
-
-pipe	
-	(défaut : '|') (prend <nom> comme argument)
-	Lance une commande <nom> (lue par sh) avec comme entrée les articles
-	sélectionnées (par défaut l'article courant).
-PIPE	
-	(pas de défaut) (prend <nom> comme argument)
-	Comme pipe, mais envoie les threads des articles sélectionnées en
-	entrée.
-filter	
-	(défaut : '%') (prend <nom> comme argument)
-	Comme pipe, mais reprend la sortie standard et l'affiche.
-FILTER  
-	(pas de défaut) (prend <nom> comme argument)
-	Comme PIPE, mais reprend la sortie standard (cf filter)
-shell	
-	(pas de défaut) (prend <nom> comme argument)
-	Lance la commande <nom>, en laissant le contrôle du terminal.
-shin	
-	(défaut : '!') (prend <nom> comme argument)
-	Lance la commande <nom>, récupère et affiche la sortie standard.
-	(aussi bien que cette aide est affichée)
-
-pipe-header
-	(pas de défaut) (prend <header>: <nom> comme argument)
-	S'apparente à pipe, mais n'envoie que le contenu de l'entête
-	<header>: de chaque article sélectionné dans le programme <nom>.
-
-
-8 Divers
-  ------
-
-prem-grp
-	(pas de défaut)
-	demande à ce que le groupe courant soit en première place dans le
-	.flnewsrc. Cela indique que ce groupe doit être prioritaire à la
-	lecture.
-
-show-tree
-	(défaut : 'N')
-	Affiche l'arbre de la discussion sur l'écran au lieu des messages.
-	Cette commande fonctionne en mode on/off.
-
-option	
-	(défaut : ':') (prend éventuellement l'option en paramètre)
-	permet de parser une ligne d'option, afin de modifier les options
-	au cours du programme. La touche tabulation permet de faire une
-	complétion automatique.
-config  
-	(pas de défaut)
-	permet de modifier l'ensemble de la configuration à l'aide d'un
-	menu. Encore un peu incomplet. Bugue avec l'option color.
-keybindings
-	(pas de défaut) (prend éventuellement un nom de contexte en argument)
-	donne la liste des signification des touches, en se limitant
-	éventuellement à un contexte précis.
-
-quit	
-	(défaut : q)
-	Quitte le programme en sauvant le .flnewsrc
-QUIT	
-	(défaut : Q)
-	Quitte le programme sans sauver le .flnewsrc
-
-help	
-	(défaut : h et ?)
-	Lance cette aide.
-
-Note : bindings supplémentaires prédéfinis en mode command
-----------------------------------------------------------
-Les options suivantes sont prédéfinies :
-	bind b left
-	bind f right
-	bind n next-article
-	bind P hist-pref
-	bind [ left
-	bind ] right
-	bind ( up
-	bind ) down
-	bind ^B pipe urlview
-	bind + select 1+,unread
-
-
-II Contexte "pager"
-   ================
-
-Seules quelques commandes sont définies en mode pager. Ces commandes servent
-lorsque un article est en cours de défilement, ou lorsque le contenu d'un
-fichier est affiché (un fichier d'aide, ou la sortie d'un shell-escape).
-Dans le premier cas, une commande de contexte de commande sortira du pager.
-
-up	(défaut : control-K)
-	revient une ligne en arrière.
-down	(défaut : <entrée> et control-J)
-	va une ligne en avant.
-	(<entrée> est redéfini dans les configurations par défaut)
-
-pgup	(défaut : control-B)
-	remonte d'une page.
-pgdown 	(défaut : control-F et <espace>)
-	descend d'une page.
-
-search	(défaut : /) (prend une regexp en argument)
-	permet de rechercher une expression régulière dans la partie
-	défilant, et se rend à la prochaine ligne vérifiant cette expression.
-nxt-search
-	(pas de défaut)
-	se rend à la prochaine ligne vérifiant l'expression régulière
-	actuellement recherchée.
-
-quit	(défaut : q)
-	quitte le mode pager.
-
-III Contexte "menu"
-    ===============
-
-Les commandes sont valides dans tous les menus.
-
-up	(défauts : flèche haut, -, p et '(' )
-	va à l'élément précédent
-down	(défauts : flèche bas et ')' )
-	va à l'élément suivant
-
-pgup	(défaut : ^B )
-	remonte d'une page
-pgdown	(défaut : ^F, ' ')
-	descend d'une page
-
-search	(défaut : /) (prend une regexp en argument)
-	permet de rechercher une expression régulière dans le menu,
-	et se rend à la prochaine ligne vérifiant cette expression.
-nxt-search
-	(pas de défaut)
-	se rend à la prochaine ligne vérifiant l'expression régulière
-	actuellement recherchée.
-
-toggle	(pas de défaut)
-	"marque" ou "démarque" l'élément courant (ou les éléments
-	sélectionnés). Cela permet de choisir un groupe d'éléments pour
-	appliquer une commande dessus.
-cmd	(pas de défaut) (prend une commande de contexte "command" en argument)
-	applique la commande de contexte "command". Ceci sert pour liés
-	des touches à des macros en contexte de "menu".
-
-select	(défaut : <entrée>)
-	si possible, quitte le menu en renvoyant l'élément courant. Sert
-	pour tous les menus qui demandent des choix.
-quit	(défaut : 'q')
-	quitte le menu sans rien renvoyer.
-
+4: entrée des commandes
+
+	flrn : l'entrée de commandes
+	----------------------------
+
+=====================================
+A) Les contextes de commande
+B) Syntaxe générale d'une commande
+C) Interprétation des paramètres
+     * dans le contexte commande
+     * dans le contexte pager
+     * dans le contexte menu
+D) Complétion automatique, historique
+=====================================
+
+Avertissement : le système d'entrée de commandes de flrn se voulait à la fois
+                puissant, ergonomique, configurable et simple. Autant dire
+		qu'il ne pouvait qu'échouer sur toute la ligne.
+
+A) Les contextes de commande
+   -------------------------
+
+À chaque commande est associé un mode (ou contexte) de validité. Il existe
+trois contextes de commandes :
+  - le mode "command" est le mode par défaut
+  - le mode "pager" est utilisé pour faire défiler des écrans
+  - le mode "menu" est utilisé dans les menus.
+
+Les modes "command" et "pager" peuvent être valides simultanément,
+lorsque flrn affiche un article long. Si l'article affiché est à la fin,
+le mode par défaut d'interprétation des commandes est "command", sinon
+ce mode est "pager". On peut voir le mode affiché en commençant à taper
+une commande.
+
+Le mode "menu" est un contexte exclusif, mais certaines commandes
+du mode "command" peuvent y être utilisées, avec une syntaxe spécifique
+au contexte de menu.
+
+B) Syntaxe générale d'une commande
+   ------------------------------
+
+Une commande se présente de façon générale de la façon suivante :
+
+	[chaîne1] <nom_de_la_commande> [chaîne2]
+
+Normalement [chaîne1] ne doit comprendre que des caractères compris dans
+"0123456789<>.,_*-" et ne doit pas commencer par "-". Tout autre caractère
+(y compris "-" au début) sera pris comme décrivant la commande.
+
+Ensuite, <nom_de_la_commande> peut être un caractère raccourci de la commande,
+ou un nom complet précédé par « \ » (par exemple « \swap-grp ») et suivi
+par un blanc (si on doit ajouter un autre paramètre).
+
+Enfin, [chaîne2] peut contenir n'importe quoi. Dans certains cas (voir
+ci-dessous), flrn demandera forcément [chaîne2], en particulier lorsqu'il
+a besoin d'un nom qui ne peut pas être rentré avec les caractères
+de [chaîne1]. Dans tous les cas, il est possible de rentrer [chaîne2] en
+mode "nocbreak" (voir ci-dessous), ou en utilisant l'entrée explicite
+(par « \ » de la commande).
+
+On distingue deux « modes » d'entrée de la commande :
+     - Le mode "cbreak" ne demande pas forcément d'appuyer sur <enter> pour
+  terminer la commande. Il est actif si l'option cbreak est activée, et si
+  l'utilisateur ne commence pas son entrée par « @ », caractère spécial
+  qui dit de passer en "nocbreak". Dans le mode "cbreak", flrn réagit
+  directement aux touches de raccourcis sans passer par <enter>. Néanmoins, on
+  peut toujours entrer le nom de la commande de façon explicite en entrant,
+  après un éventuel préfixe [chaîne1], le caractère « \ ». De plus flrn admet
+  la complétion automatique.
+     - Le mode "nocbreak" est actif si l'option cbreak est désactivée ou
+  si l'utilisateur commence son entrée par « @ ». Dans ce mode, il est
+  nécessaire de terminer sa commande par <enter> (donc on peut ajouter
+  [chaîne2] directement), la complétion automatique ne fonctionne pas mais
+  l'historique des commandes est accessible.
+
+C) Interprétation des paramètres
+   -----------------------------
+
+       * En mode "command"
+         -----------------
+
+Dans ce mode, les paramètres peuvent servir à désigner des articles dans
+le groupe, et/ou contenir une chaîne de paramètre pour la commande (par exemple
+un nom de fichier où sauver des articles). De plus, selon les cas (et
+certaines options), la commande peut demander ou nom une chaîne de caractère
+en paramètre si celle-ci manque (cf section 5 pour la liste détaillé
+du comportement de chaque commandes).
+
+Lorsque la commande a besoin d'une liste d'articles, cette dernière
+se présente sous la forme d'éléments compris à la fois dans [chaîne1]
+et [chaîne2], séparés par des virgules. Ainsi la syntaxe générale est :
+
+ [ elem_1 [ ,elem_2 [ ,... ]]] <cmd>
+                                 [ elem_k [ ,elem_k+1 [ ,... [ ,chaine ]...]]]
+
+(si la commande accepte une chaîne en paramètre, auquelle cas ce sera le
+dernier élément)
+
+Chaque elem_i peut se décomposer sous 5 formes :
+    * n1	: désigne un seul article
+    * n2-n3	: désigner l'ensemble des articles allant de n2 à n3
+                  (par numéro dans le groupe)
+    * n4>	: désigner n4 et tous ses descendants
+    * n5_	: désigner n5 et tous ses ascendants
+    * n6* 	: désigner l'ensemble des articles ayant un parent commun
+                  (même virtuel) avec n6, donc l'ensemble du thread.
+
+Les n1 à n6 peuvent être un numéro strictement supérieur à 1 (qui représente
+dans ce cas le numéro dans l'article dans le groupe), ou vide, ou un
+0, ou 1, ou « . ». Les interprétations de ces cas particuliers sont les
+suivantes :
+
+			n1,n4,n5,n6	n2	n3
+	<vide>		    C(*)	 D	 F
+	0 ou .		    C		 C	 C
+	1		    D	 	 D	 D
+
+  (*) dans le cas ou il n'y a aucun élément, le comportement est souvent
+  mais pas toujours identique au comportement où le message courant est
+  explicitement sélectionné. Si le comportement est différent, cela sera
+  précisé dans la commande.
+
+  Dans ce tableau, "C" désigne l'article courant, "D" le début du groupe 
+courant et "F" la fin du groupe. A noter que l'appel au début du groupe
+provoque la lecture de l'ensemble du résumé du groupe, si celui-ci n'a
+pas été lu auparavant (voir l'option "max_group_size" dans la section 3
+pour plus de détails).
+
+Chaque n1 à n6 peut être précédé ou suivi du caractère « < », qui demande
+à remplacer le numéro par la racine de sa discussion (ou, plus exactement,
+par son ancêtre existant le plus ancien). Par exemple « .< » désigne la racine
+de la discussion contenant l'article courant (dans le cas où il est
+utilisé pour un intervalle de numéro, cette racine doit avoir un numéro
+dans le groupe courant).
+
+
+       * En mode "pager"
+         ----------------
+
+La syntaxe générale est :
+	    [num] <nom_de_la_commande> [num]
+   ou bien  <nom_de_la_commande> [chaine]
+
+où [num] désigne le nombre de fois que la commande doit être faite,
+si nécessaire.
+Ainsi \up 3 remontera de trois lignes. [chaine] n'est demandée et
+utilisée que pour la commande \search, et ne peut pas être utilisée
+simultanément avec [num].
+
+Si plusieurs nombres sot rentrés (par exemple avant et après la commande,
+ou avec des virgules entre), seul le premier sera pris en compte.
+
+       * En mode "menu"
+         --------------
+
+La syntaxe générale du mode "menu" peut éventuellement dépendre
+des commandes du mode "command" qu'on y trouve, il est donc plus difficile
+de la décrire précisément. Toutefois, en général, elle est de la forme :
+	  [num_etendu] <nom_de_la_commande> [chaine]
+  ou      <nom_de_la_commande> [num_etendu [ ,chaine]]
+
+ [num_etendu] peut être un nombre désignant le nombre de fois que la
+commande doit être faite, ou alors certains éléments du menus pour
+certaines commandes (\toggle et les commandes liées au contexte "command").
+Dans ce dernier cas, les caractères suivants sont utilisables seuls :
+	« * » désigne tous les éléments du menu
+	« . » désigne tous les éléments sélectionnés (par \toggle)
+	« _ » désigne tous les éléments acceptant l'expression régulière
+	      de recherche actuelle
+	« < » désigne tous les éléments jusqu'à l'élément courant
+	« > » désigne tous les éléments à partir de l'élément courant
+
+Note: les commandes du mode "command" ne peuvent être utilisées dans un
+menu que sous forme « simple », pas en macro. Pour définer une macro
+dans un menu utilisant une commande du mode "command", il faut utiliser
+la commande de menu \cmd (cf section 5).
+
+
+D) Complétion automatique, historique
+   ----------------------------------
+
+La complétion automatique, quand elle est disponible, s'utilise en
+mode "cbreak" exclusivement, avec la touche <tab>. Elle s'utilise
+en particulier pour compléter un nom de commande, et aussi dans
+certains paramètres de certaines commandes (options, drapeaux, etc.).
+Néanmoins elle n'est pas disponible partout.
+
+L'historique des commandes tapées est accessible en mode nocbreak
+avec les touches <haut> et <bas>. Cette capacité est expérimentale
+et relativement limitée.
 
 
 'q' permet de quitter l'aide à tout moment.
-'m' permet de revenir au menu.
+'m' permet de revenir au menu

@@ -3,82 +3,187 @@
 	flrn : poster des messages
 	--------------------------
 
-Comment poster un message ?
----------------------------
+================================
+A) Présentation générale
+B) Le mode d'édition de messages
+     * Étapes (a)-(e)
+C) Notes
+================================
 
-Pour poster un message, vous pouvez utiliser les commandes \post (touche m)
-et \reply (touche R).
-La commande \post permet de poster un message dans le groupe courant.
-Il vous sera alors demandé de saisir un sujet pour votre message.
-S'il est impossible de poster dans ce groupe, le groupe proposé par
-défaut sera "junk".
-La commande \reply répond en public à l'article courant.
-Ces deux commandes peuvent prendre un nom de fichier en argument. Le
-fichier est alors directement posté sans confirmation.
-Si aucun fichier n'est en argument, vous entrez dans l'éditeur intégré
-de flrn, à moins que la variable auto_edit soit définie.
 
-Taper son message
------------------
+A) Présentation générale
+   ---------------------
 
-L'éditeur de flrn est rudimentaire, mais il s'améliore régulièrement.
+Cinq commandes permettent d'interagir depuis flrn dans une discussion :
+  * \post (raccourci « m ») permet de commencer une nouvelle discussion
+  * \reply (raccourci « R ») permet de répondre à une message
+  * \supersedes (pas de raccourci) permet de remplacer un message
+  * \cancel (raccourci « e ») permet d'annuler un message
+  * \mail-answer (pas de raccourci) permet de répondre par mail à un message
 
-Pour lancer votre éditeur favori (défini par la variable d'environnement
-EDITOR) tapez ~e en début de ligne puis <Entrée>, ou ~E si vous voulez
-que soit inclu le message auquel vous répondez (si vous utilisez la commande
-\reply).
-On peut aussi inclure directement un fichier en tapant en début de ligne
-(~r <nom-de-fichier>).
 
-Pour poster votre message, entrez à la fin de celui-ci une ligne nme
-comportant que '.', ou tapez ^D (Control-D) _en début de ligne_.
-Enfin, ^C (Control-C) tapé à tout moment du message annule le post.
+La commande \cancel est la plus particulière parce qu'elle ne demande
+pas d'entrer un nouveau message et ne passe donc pas par l'édition
+de messages. Si flrn n'est pas compilé avec l'option MODE_EXPERT,
+on ne peut annuler ou remplacer que ses propres messages.
 
-Modifier les entêtes
---------------------
 
-Il est possible, une fois votre éditeur favori lancé, de modifier
-les entêtes de votre message. Si vous n'avez pas l'option edit_all_headers,
-vous ne voyez au lancement que deux entêtes :
-Groupes: [...]
-Sujet: [...]
+Les commande \post et \reply postent par défaut dans le groupe courant
+(ou "junk" si il est impossible de poster dans le groupe courant).
+Si un entête « Followup-To: » existe dans le message auquel on veut
+répondre, \reply propose de le suivre.
+Les commande \post, \reply, \supersedes et \mail-answer peuvent
+prendre un nom de fichier en paramètre qui comprendra le contenu
+du message à poster, ce qui se fait sans confirmation.
+Sinon, flrn rentre en mode d'édition de messages.
 
-Vous pouvez modifier ces lignes, qui changent respectivement le(s) groupe(s)
-et le sujet de votre message. Pour faire un entête de plusieurs lignes,
-mettez des blancs (un espace ou une tabulation) en début des lignes.
-Ne mettez jamais d'espace ou de tabulation avant le début d'un entête,
-ou entre le nom de l'entête et le ':' qui suit.
-Pour simplifier le travail de flrn, laissez enfin une ligne blanche
-entre vos entêtes et le corps du message.
 
-Vous pouvez rajouter des entêtes. Par exemple :
-Followup-To: bla
-permet de dire que vous voulez que la discussion se poursuive dans
-bla. Les autres entêtes qui vous pouvez vouloir modifier sont :
-* From:  qui donne votre identité (sous forme d'une adresse mail)
-* X-Censorship: mettez 'yes' si vous voulez que votre message soit censuré
-* Reply-To:  donne l'endroit où vous souhaitez voir arriver les réponses par
-		mail (ce champ doit être une adresse e-mail)
+B) Le mode d'édition de messages
+   -----------------------------
 
-Si vous désirez enfin que les réponses à votre message vous soient plutôt
-envoyé par mail, mettez :
-Followup-To: poster
-dans vos headers.
+Ce mode se découpe en plusieurs étapes :
+  (a) demande du sujet (pour la commande \post uniquement)
+  (b) lancement de l'éditeur externe
+  (c) menu de confirmation (retour éventuel à l'éditeur)
+  (d) vérification des groupes
+  (e) envoi du message
 
-Dans le cas où l'option edit_all_headers est définie, les autres headers
-s'affichent automatiquement au lancement de l'éditeur.
+Étape (a)
+---------
+Dans l'étape (a), flrn demande une simple ligne de sujet pour le message
+à poster. Cela ne concerne que la commande \post : pour \reply,
+flrn reprend le sujet de la discussion (en lui ajoutant éventuellement
+« Re: » au début, pour \supersedes, flrn reprend le sujet du message à
+remplacer.
 
-Poster une réponse par mail
----------------------------
+Étape (b)
+---------
+Dans l'étape (b), flrn tente de lancer un éditeur externe sur le message
+à poster. Historiquement flrn disposait d'un éditeur interne rudimentaire,
+mais ce n'est plus le cas depuis peu. Toutefois, ce changement n'est
+pas définitif. Si flrn n'arrive pas à lancer l'éditeur externe, il est
+impossible de poster par cette méthode. Donner alors le nom du fichier
+à poster.
+Ce qui est donné à l'éditeur dépend de certaines options :
+  - include_in_edit (sert pour \reply et \supersedes)
+         activée, flrn transmet le contenu du message auquel on répond
+	 (ou qu'on veut modifier). Dans le cas de \reply, le contenu est
+	 modifié par les valeurs des options attribution, index_string,
+	 quote_all et quote_sig (voir la section de l'aide sur le fichier
+	 de configuration).
+  - edit_all_headers
+         lorsque cette option est désactivée, flrn n'affiche à l'édition
+	 que les entêtes "Groupes:" (qui correspond en fait à "Newsgroups:" )
+	 et "Sujet:" (qui correspond à "Subject:"). Il est toujours possible
+	 de rajouter ou modifier à la main d'autres entêtes.
 
-On ne peut pas envoyer de mail avec flrn qui ne soit pas une réponse à
-un message.
-Si un message contient "poster" comme entête Followup-To, alors flrn
-propose automatiquement de poster une réponse par mail.
-Vous pouvez aussi utiliser la commande \mail-answer qui permet de poster
-une réponse par mail au message considéré.
-Enfin, tout message contenant des entêtes de la forme To:, Cc:, ou Bcc: sera
-aussi envoyé par mail aux personnes concernées.
+Dans tous les cas, flrn tente de décoder/encoder les entêtes et le
+contenu des messates cités de façon transparente.
 
+NOTE 1 : les formats des messages pour les groupes de discussions ou le
+mail doivent répondre à certaines règles. En particulier, toute entête doit
+se terminer par un ':' avant de mettre un espace, un entête sur
+plusieurs lignes doit avoir toutes ses lignes (sauf la première) commençant
+par un espace, et on doit laisser une ligne blanche entre la fin des entêtes
+et le corps du message. Quand ces règles ne sont pas respectés, flrn fait
+au mieux pour arranger ça, mais relativement mal.
+
+NOTE 2 : flrn a une façon particulière d'interpréter les entêtes
+quand il lit le fichier retourné par l'éditeur. En particulier, une
+entête qui n'existe pas n'est pas forcément vide : elle garde sa valeur
+définie avant l'édition. Pour effacer le contenu d'une entête, il faut
+mettre l'entête vide dans le fichier à éditer. 
+
+Étape (c)
+---------
+
+Si le message n'est pas modifié lors du passage par l'éditeur la première
+fois, flrn annule le message.
+Dans le cas contraire, il rappelle le titre du message, les groupes
+où il serait posté et ses éventuels destinataires mail. Si le message
+a une ou plusieurs entêtes « To: », « Cc: » ou « Bcc: », flrn indique
+en plus si il est prévu pour l'envoyer sur les groupes de discussions
+et/ou par mail. 
+
+Plusieurs choix sont alors proposés, accessibles par un touche :
+« P », « Y » ou <enter> permettent d'envoyer le message ((P)oster)
+« E » permet de relancer l'éditeur ((E)diter)
+« A » et <control-C> permettent d'annuler le message ((A)nnuler)
+
+Si il est possible d'envoyer le message par mail, flrn propose aussi
+« 0 » pour prévoir de l'envoyer exclusivement dans les groupes, « 1 » pour
+prévoir de l'envoyer exclusivement par mail, et « 2 » pour faire les deux.
+
+Si l'utilisateur choisit d'envoyer le message, on passe à l'étape (d).
+
+Étape (d)
+---------
+
+flrn commence par vérifier, si l'option de compilation GNKSA_ANALYSE_POSTS
+est activée, si le sujet du message est vide. Dans ce cas, le message
+est refusé.
+
+Ensuite, flrn fait plusieurs vérifications sur les entêtes du message :
+  + il met une entête « Sender: » correspondant à l'auteur réel du message
+  + il ajoute son nom et sa version dans une entête « X-Newsreader: »
+  + il vérifie, et le cas échéant corrige, la syntaxe des entêtes
+    « Newsgroups: » et « Followup-To: » pour la rendre acceptable pour le
+    serveur. Pour chaque groupe de ces entêtes, il vérifie son existence.
+    Si celui-ci n'existe pas, il propose quatre possibilités :
+      - laisser le groupe quand même (touche « L »)
+      - supprimer le groupe (touche « S » ou <control-C>)
+      - remplacer par un nom donné par l'utilisateur (touche « R »)
+      - remplacer par un groupe choisi dans un menu (touche « M »), contenant
+        une chaîne ou une expression régulière entrée par l'utilisateur.
+   + si le message doit être posté dans plusieurs groupes et qu'il n'y a
+     pas de suivi-à, il le signale et propose trois choix :
+      - poster tout de même (touche « L »)
+      - annuler le post (touche « A » ou <control-C>)
+      - choisir un suivi-à dans la liste des groupes où le message est posté
+        (touche « C »)
+   + pour finir, si un des groupes où le message doit être posté est modéré,
+     flrn le signale. Il est encore possible alors d'annuler l'envoi du
+     message par un <control-C>. Toute autre touche envoie le message.
+
+Étape (e)
+---------
+
+Lorsque flrn envoie le message, quelques dernières modifications sont
+faites sur les entêtes :
+   + si le message est envoyé à la fois par courrier électronique et dans
+     les groupes de discussions, les entêtes « To: », « Cc: » et
+     « In-Reply-To: » sont transformées en « X-To: », « X-Cc: » et
+     « X-In-Reply-To: » dans le message posté dans les groupes de discussions,
+     et l'entête « Bcc: » n'est pas reprise du tout.
+   + les entêtes « Newsgroups: », « Followup-To: » et « References: » sont
+     transformées en « X-Newsgroups: », « X-Followup-To: » et 
+     « X-References: » dans le courrier électronique.
+   + si l'option de compilation MODE_EXPERT n'est pas activée, les entêtes
+     « Control: », « Also-Control: » et « Supersedes: » sont supprimées.
+     Si la commande \supersedes est utilisée, l'entête « Supersedes: » 
+     devient le message-ID du message à remplacer.
+
+D'autre part, flrn essaye de traduire les entêtes et le message suivant
+un encodage optimal.
+flrn essaye enfin d'envoyer l'article. Si une opération échoue, flrn indique
+un message d'erreur et sauve l'article dans un fichier "dead.article".
+
+C) Notes
+   -----
+
++ le remplacement d'un message (\supersedes) ne permet pas de conserver
+les fils de discussions dès lors que le message a eu des réponses. Ce
+problème est inhérent au système des groupes de discussions (NNTP). Il
+est donc préférable de ne pas utiliser cette commande pour faire une
+correction mineure.
+
++ flrn tente de comprendre les erreurs renvoyées par le serveur de 
+groupes de discussions quand il refuse un message. Ce n'est pas le cas
+pour un refus provenant du logiciel d'envoi de mails. Pour que flrn
+puisse envoyer un mail, il faut que l'option de compilation MAILER_CMD
+pointe vers un utilitaire d'envoi de courriers électronique 
+(sendmail, postdrop...).
+
+--------------------------------------------
 'q' permet de quitter l'aide à tout moment.
 'm' permet de revenir au menu

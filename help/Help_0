@@ -4,17 +4,22 @@
 	Présentation de flrn
 	--------------------
 
-Flrn est un super-programme méga-torche pour lire les news, locales ou
-extérieures.
-Son seul bug officiel est d'être en français. Mais c'est promis, un jour je
-le traduis en russe.
+  flrn est un lecteur de groupe de discussions (news) similaire à trn
+ou slrn. Développé à l'École Normale Supérieure (en France), sa
+langue originale est le français (même si certaines commandes porte
+un nom anglais), mais des traductions sont en cours.
+  flrn se veut relativement puissant et configurable, tout en restant
+résolument en mode texte. Il fonctionne exclusivement sous Unix
+avec la bibliothèque s-lang.
 
-Pour l'instant, c'est moi <Damien.Masse@ens.fr> et Jo 
-<Joel-Yann.Fourre@ens.fr> qui travaillons dessus. Pour toute suggestion 
-ou bug-report, envoyez-nous un mail, nous serons ravis de (mal) satisfaire 
-votre demande.
+  flrn a été écrit initialement par Joël-Yann Fourré et Damien Massé.
+Ce dernier en reste le développeur principal, profitant de l'aide
+ponctuelle de contributeurs occasionnels.
 
-	Damien
+  Les commentaires sur flrn peuvent être envoyés à l'adresse
+flrn@quatramaran.ens.fr pour joindre l'équipe de développement de
+flrn, ou flrn-devel@quatramaran.ens.fr pour une liste plus large.
 
+--------
 'q' permet de quitter l'aide à tout moment.
-'m' permet de revenir au menu
+'m' permet de revenir au menu de l'aide

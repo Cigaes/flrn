@@ -1,31 +1,100 @@
-Help_3
+3: configurer flrn
 
-	flrn : options du .flrnrc
-	-------------------------
+	flrn : fichier de configuration
+	-------------------------------
 
-Les options sont aussi disponibles sur la page de manuel de flrn.
+=============================================
+A) Lieu du fichier de configuration
+B) Forme générale du fichier de configuration
+     * les conditionnelles
+     * les options principales
+C) Variables utilisées avec l'option "set"
+     * Abonnement
+     * Affichage
+     * Jeux de caractères
+     * Commandes
+     * Poster
+     * Kill-file
+     * Autres
+     * Options obsolètes
+=============================================
 
-Forme générale des options
---------------------------
 
-La forme générale des options est inspirée de mutt. Il y a sept commandes.
-Chaque commande peut être préfixée par "name <nom>" qui permet de
-dire que l'option ne doit être prise en compte que si le nom de lancement
-de flrn est <nom>.
+A) Lieu du fichier de configuration
+   --------------------------------
 
-include <bla>
-	demande de charger le fichier <bla>. Si <bla> commence par un '/',
-	alors le chemin d'accès à <bla> sera absolu. Sinon, on se basera
-	sur la variable d'environnement FLRNHOME ou HOME. Il est impossible
+Quand on lance flrn, le programme recherche un fichier de configuration
+dans plusieurs endroits, qui dépendent des variables d'environnement
+FLRNHOME, HOME, et des options de compilations DEFAULT_DIR_FILE et
+DEFAULT_CONFIG_FILE. Par défaut, DEFAULT_DIR_FILE vaut ".flrn" et 
+DEFAULT_CONFIG_FILE vaut ".flrnrc".
+
+  - tout d'abord, flrn cherche $FLRNHOME/DEFAULT_DIR_FILE/DEFAULT_CONFIG_FILE,
+    ou $HOME/DEFAULT_DIR_FILE/DEFAULT_CONFIG_FILE si FLRNHOME n'est pas défini.
+  - ensuite, flrn cherche $FLRNHOME/DEFAULT_CONFIG_FILE ou 
+    $HOME/DEFAULT_CONFIG_FILE
+  - si aucun de ces fichiers existent, flrn cherche le fichier de configuration
+    par défaut qui doit être PATH_CONFIG_DIRECTORY/DEFAULT_CONFIG_SYS_FILE
+    (par défaut /usr/local/share/flrn/flrnrc).
+
+Tous les fichiers utilisés ensuite par flrn seront recherchés ensuite dans 
+$(FLRN)HOME/DEFAULT_DIR_FILE ou $(FLRN)HOME ensuite (sauf si leur nom
+comprend un chemin d'accès absolu).
+
+B) Forme générale du fichier de configuration
+   ------------------------------------------
+
+La forme générale des options est inspirée de mutt. Chaque option prend
+une ligne, mais on peut utiliser des conditionnelles pour choisir de lire
+ou non une commande ou un bloc de commandes.
+
+  Les conditionnelles
+  -------------------
+
+Elle sont de deux formes :
+   + en précédent une option par "name <nom> ", l'option n'est prise en
+     compte que lorsque le nom d'invocation de flrn (ou de l'option --name)
+     est <nom>.
+   + (expérimental) on peut aussi faire une conditionnelle de la forme
+         if <condition>
+	    bloc d'options
+	 endif
+     <condition> doit pour l'instant prendre la forme suivante :
+         - "name <str>" renvoie vrai si le nom d'invocation contient la
+	    chaîne <str>
+	 - "version=[num]", "version<[num]", "version>[num]" ...
+	   permet de comparer la version de flrn (sous la forme
+	   (version majeure)*100+(version mineure)*10) avec un entier [num].
+	 - "has <option>" (resp. "hasnot <option>") renvoie vrai si flrn
+	   a (resp. n'a pas) la capacité <option>. Les valeurs possible
+	   pour <option> sont :
+	      . "sendmail" si l'option SENDMAIL est définie
+	      . "slang_language" si l'option USE_SLANG_LANGUAGE est définie
+	      . "check_mail" si l'option CHECK_MAIL est définie
+      si la condition est vraie, le bloc d'option est interprété.
+
+   Les options principales
+   -----------------------
+
+Elles sont au nombre de onze.
+
+include <file>
+
+        inclut le fichier <file> dans la lecture des options
+	demande de charger le fichier <file>. Si <file> commence par un '/',
+	alors le chemin d'accès à <file> sera absolu. Il est impossible
 	de faire plus de 10 inclusions imbriquées.
 
 set <variable>=<valeur>
-	Permet de modifier la valeur d'une variable. On a les racourcis 
-	suivants : "set <variable>" est équivalent à "set variable=1" ou 
-	"set variable=yes". De même, "set no<variable>" est équivalent à 
-	"set <variable>=no" ou "set <variable>=0".
+
+	Permet de modifier la valeur d'une variable de configuration.
+	On a les racourcis suivants : "set <variable>" est équivalent à "set
+	variable=1" ou "set variable=yes". De même, "set no<variable>" est
+	équivalent à "set <variable>=no" ou "set <variable>=0". La liste des
+	variables est donnée plus bas.
 
 header	list|weak|hide <une suite de chiffre ou de noms> 
+
 	donne l'ordre dans lequel les entêtes d'un
         article doivent être affichés. À chaque chiffre correspond un entête :
          1 : Newsgroups   2 : Followup-To   3 : Date          4 : Lines
@@ -54,28 +123,26 @@ my_hdr  <nom>: <champ>
 	'Newsgroups:', 'Sender:' et 'To:' de cette façon.
 	On peut modifier le header 'From:', mais si on ne désire pas changer
 	l'adresse, il est préférable d'utiliser la variable post_name.
-	Il est possible d'utiliser le format défini avec la variable
-	"attribution".
+	La chaîne <champ> est formatée comme celle de la variable
+	"attribution" (voir plus bas).
 
 my_flags <caractère> <filtre>
 my_flags clear
+
 	demande à rajouter le caractère <caractère> devant le champ Sujet
 	du message affiché si celui-ci vérifie des propriétés. <filtre>
-	peut être un état (read, unread, killed, unkilled, all), ou une
-	chaine de la forme <nom>: <regexp>. Dans ce cas, on teste si
-	l'entête <nom>: du message vérifie l'expression régulière <regexp>.
-	Pour l'instant, les seuls entêtes possibles sont les entêtes
-	"courants".
-   Par exemple, ces deux lignes sont frequemment utilisées :
+	est un filtre admis par le kill-file (voir la section 6 de l'aide).
+   Par exemple :
      my_flags - read
-     my_flags * X-Censorship: yes
-   La première demande de noter les messages lus avec un '-'.
-   La seconde demande de noter les messages censurés par une '*'.
+     my_flags * Subject: Re:
+   La première ligne demande de noter les messages lus avec un '-'.
+   La seconde ligne demande de noter les messages de réponse par un '*'.
 	
 
 color   <types> <n1> <n2> <p1>,<p2>,...
 mono   <types> <p1>,<p2> ...
 regcolor   <types> <flags> <n1> <n2> <p1>,<p2>,... <regexp>
+
         Fixe la couleur et/ou les propriétés des objets de flrn. La commande
 	color modifie les couleurs par défaut, la commande mono les spécifie
 	si le terminal est monochrome, la commande regcolor permet, pour un
@@ -91,6 +158,10 @@ regcolor   <types> <flags> <n1> <n2> <p1>,<p2>,... <regexp>
              file   : pour les fichiers (aide)   (défaut: normal)
              summary: pour les résumés           (défaut: normal)
 	     search : pour les recherches	 (défaut: inverse vidéo)
+	     at_mine: messages à soi dans l'arbre de discussion
+	                                         (défaut: rouge)
+	     at_other: messages non à soi dans l'arbre de discussion
+	                                         (défaut: normal)
 	     all    : tous les objets
 	<n1> et <n2> sont les couleurs des caractères et du fond
 	<p1> ... sont les attributs des caractères : cela comprend
@@ -119,17 +190,23 @@ regcolor   <types> <flags> <n1> <n2> <p1>,<p2>,... <regexp>
      soient en gras.
 
 bind	[<mode>] [add] <touche> <commande>
+
 	Permet de changer la fonction d'une touche. <mode> se rapporte
-	au mode d'utilisation dans lequel le binding prend effet. On
-	distingue 3 modes :
-	  _ command : mode par défaut, celui dans lequel on se trouve en
-	  	      général
-          _ pager   : lorsqu'on est en mode "défilement" d'un message, ou
-	  	      lors de la lecture de l'aide
-          _ menu    : dans un menu (mode non utilisé actuellement)
-	Les noms des commandes varient en conséquences.
-	L'ajout de "add" permet de signaler qu'on désire ajouter au binding
-	existant déjà (dans le mode considéré) une nouvelle commande.
+	au mode d'utilisation dans lequel le binding prend effet (voir
+	la section 4 de l'aide). Par défaut, le monde considéré est
+	le mode commande. Le nom de la commande doit appartenir au
+	mode utilisé.
+	
+	La commande peut prendre un argument. Si l'interface avec slang
+	est disponible, on peut aussi avoir, en mode commande, une commande
+	de la forme [<fun>] ou [<fun>,<num>]. Voir la section 7 pour
+	plus de détails.
+	
+	L'ajout de "add" permet de signaler qu'on désire ajouter au raccourci
+	existant déjà (dans le mode considéré) une nouvelle commande. Ainsi
+	on peut faire plusieurs opérations avec un seul raccourci clavier
+	(macro).
+	
 	On peut utiliser \<n> pour représenter le code ASCII <n>. <n> est
 	en base 10 normalement, en base 8 s'il commence pas un 0, et en
 	base 16 s'il commence par '0x'.
@@ -146,14 +223,9 @@ bind	[<mode>] [add] <touche> <commande>
 	C<lettre>, c<lettre>, ou ^<lettre> désigne la combinaison
 	Control-<lettre>.
 	M<touche>, m<touche> désigne la combinaison Méta-touche.
-	Dans flrn, DELETE et BACKSPACE ont TOUJOURS la même fonction, afin
-	de s'affranchir de problèmes dus à de mauvaises configuration. Cette
-	fonction correspond au backspace courant et n'est pas modifiable.
-	Les touches '-', <entrée>, <espace>, ':', '.' et ',' ne sont pas 
-	modifiables non plus, pas plus que les chiffres.
-  exemple :
+  exemples :
     bind U pipe urlview
-    bind command + select 1-,unread	# ce binding est déjà défini
+    bind command + select 1-,unread	# ce raccourci existe deja
     bind \0x01 gotag é  # ^A
     bind A tag é
     bind menu T toggle
@@ -161,9 +233,35 @@ bind	[<mode>] [add] <touche> <commande>
     bind pager pageup pgup
     bind pager pagedown pgdown
 
+  Notes : Dans flrn, DELETE et BACKSPACE ont TOUJOURS la même fonction, afin
+	  de s'affranchir de problèmes dus à de mauvaises configuration. Cette
+	  fonction correspond au backspace courant et n'est pas modifiable.
+	  De même les touches dans « -_.,*:? », ainsi que <enter>, <espace> et
+	  les chiffres ne sont pas modifiables.
 
-Variables utilisées avec l'option "set"
----------------------------------------
+autocmd enter|leave <regexp> <commande>
+
+	Cette option demande l'execution automatique de la commande 
+	<commande> quand on entre (si le mot clé enter est utilisé)
+	ou on sort (si le mot clé leave est utilisé) d'un groupe 
+	dont le nom accepte l'expression régulière <regexp>. Il est
+	préférable d'utiliser cette option avec prudence, essentiellement
+	pour modifier localement certaines variables de configuration.
+
+parse_slang <fichier>
+
+	Demande à flrn de lire et interpréter <fichier> en tant que
+	fichier slang.
+	Cette option n'est pas reconnue si flrn n'est pas compilé avec
+	l'interfaçage avec slang.
+
+
+C) Variables utilisées avec l'option "set"
+   ---------------------------------------
+
+Les valeurs par défaut sont définies dans le fichier site_config.h au
+moment de la compilation. On peut les obtenir en lançant 
+"flrn --show-config".
 
 **************
 * Abonnement *
@@ -177,7 +275,7 @@ auto_ignore=<une expression reguliere>
 auto_subscribe=<une expression reguliere>
 	demande l'abonnement automatique aux newsgroups dont le nom
 	verifie l'expression régulière
-	(défaut : "")
+	(défaut : aucun)
 
 default_subscribe=yes|no
 	définit le comportement par défaut lors de la création d'un nouveau
@@ -200,24 +298,18 @@ warn_if_new=yes|no
 * Affichage *
 *************
 
-alpha_tree=yes|no
-	affiche de jolis petits arbres incompréhensible en haut à droite
-	du terminal, à la place des jolies petites flèches incompréhensibles
-	(sauf par l'auteur de ces lignes ;-) )
-	(défaut : no)
-
 color=yes|no|auto
-	demande l'utilisation de la couleur. Auto signifie que flrn tente une
-	détection automatique.
+	demande l'utilisation de la couleur. Auto (ou -1) signifie que flrn
+	tente une détection automatique.
 	(défaut : auto)
 
 date_in_summary=yes|no
-	affiche ou non la date dans les résumés
+	affiche ou non la date dans les résumés.
 	(défaut : yes)
 
 duplicate_subject=yes|no
-	affiche le sujet à chaque ligne de résumé, même si c'est le même que
-	la ligne au-dessus.
+	activée, flrn affiche le sujet à chaque ligne de résumé, même si
+	c'est le même que la ligne au-dessus. Sinon flrn affiche des points.
 	(défaut : no)
 
 flags_group=<une chaine de 8 caractères>
@@ -225,7 +317,8 @@ flags_group=<une chaine de 8 caractères>
 	dans la barre de statut devant le nom du groupe courant, en fonction
 	des statuts de celui-ci. Si le caractère correspondant au statut est
 	un espace, aucun drapeau n'est mis. La correspondance entre place
-	du caractère et statut est la suivante :
+	du caractère et statut est la suivante (« mode censure » signifie
+	que le groupe est dans la liste principale du kill-file) :
 	 numéro du caractère    | mode censure  | abonné  |  en lecture seule
 	 	1		|     oui       |   oui   |       non
 		2		|     non       |   oui   |       non
@@ -239,9 +332,29 @@ flags_group=<une chaine de 8 caractères>
 
 headers_scroll=yes|no
 	cette option activée, les entêtes d'un message défilent avec le
-	reste du message. Ceci est de toute façon vrai si l'écran est trop
-	petit.
+	reste du message. flrn le fait également si l'écran est trop petit.
 	(défaut : no)
+
+help_line=yes|no
+	lorsque cette option est activée, flrn affiche une ligne d'aide
+	contextuelle à l'avant-dernière ligne de l'écran.
+	(défaut : yes)
+
+help_line_file=<chaîne>
+	donne le lieu du fichier d'aide utilisé par l'aide contextuelle
+	(de l'option help_line). Ce fichier doit comporter 17 lignes
+	qui servent dans les contextes suivants (si il y a moins de lignes,
+	les derniers contextes ne sont pas modifiés) :
+	 1: mode commande normal   2: mode arbre de dicussions (\show-tree)
+	 3: mode pager/commande    4: mode commande/pager
+	 5: affiche d'un fichier, \list sans menu
+	 6: menu (\history)  7: menu (résumés) 8: menu (\select)
+	 9: menu (\swap-group) 10: menu (\keybindings) 11: menu (choix seul)
+	12: menu (choix d'un groupe dans un post)  13: menu (\list et \LIST)
+	14: menu (\config)  15: résumés (sans use_menus)
+	16: mode pager pour une commande (\filter...)
+	17: fin de l'affichage dans l'aide
+	(défaut: aucun, mais des lignes sont définies par défaut dans le code)
 
 ordered_summary=yes|no
 	affiche les résumés dans l'ordre de leur numéro, et non dans un ordre
@@ -264,6 +377,47 @@ skip_line=<un numéro>
 	définit le nombre de lignes blanches à laisser sous la barre de status.
 	(défaut : 1)
 
+small_tree=yes|no|-1
+        quand cette option est activée, flrn affiche un arbre représentant
+	la discussion en haut à droite du terminal. Désactivée, flrn
+	affiche des flèches. La valeur -1 permet de ne rien afficher.
+	(défaut : no)
+
+**********************
+* Jeux de caractères *
+**********************
+
+Ces options n'ont de valeur que lorsque 
+
+editor_charset=<chaîne>
+	jeu de caractère que l'éditeur de messages est censé utiliser.
+	Quand cette option n'est pas définie, flrn suppose que le jeu
+	est le même que celui de terminal_charset.
+	(défaut : "")
+
+files_charset=<chaîne>
+	jeu de caractères utilisé par flrn pour la lecture et l'écriture
+	de fichiers (en dehors de l'éditeur), ainsi que la communication
+	avec l'interface de S-Lang et les programmes extérieures. Si
+	cette option n'est pas définie, flrn prend le jeu défini par
+	terminal_charset.
+	(défaut : "")
+
+post_charsets=<chaîne>
+	donne la liste des jeux de caractères que flrn peut utiliser
+	pour l'encodage à envoyer au serveur. Chaque nom doit être séparé
+	par des ':', et flrn tente d'abord l'encodage le plus à gauche,
+	puis, si ce n'est pas possible, évolue vers la droite. Si aucun
+	encodage n'est possible, flrn poste en utf-8. Lorsque cette
+	option n'est pas définie, flrn essaye d'utiliser terminal_charset.
+	(défaut : "")
+
+terminal_charset=<chaîne>
+	jeu de caractère utilisé pour l'affichage dans le terminal. Si
+	cette option n'est pas définie, flrn utilise les variables
+	d'environnement locales.
+	(défaut : "")
+
 *************
 * Commandes *
 *************
@@ -271,7 +425,7 @@ skip_line=<un numéro>
 cbreak=yes|no
 	passe en mode cbreak. Sans cette options, on est en mode nocbreak,
 	c'est-à-dire que chaque commande doit se terminer par la touche
-	<entrée>.
+	<entrée>. Cette option doit être activée par défaut.
 	(défaut : yes)
 
 cool_arrows=yes|no
@@ -284,6 +438,7 @@ forum_mode=yes|no
 	des commandes en demandant la touche <entrée> en fin de certaines
 	commandes. Cette option sert pour la compatibilité avec l'ancien
 	forum. Elle rend aussi certaines commandes plus intuitives.
+	La section 4 de l'aide détaille les commandes concernées.
 	(défaut: no, mais yes dans les configurations pour forum)
 
 quit_if_nothing=yes|no
@@ -298,14 +453,14 @@ savepath=<une_chaine>
 	(défaut : "")
 
 space_is_return=yes|no
-	empèche de changer de groupe par la commande next (qui correspond par
-	défaut à la barre d'espacement).
+	empêche de changer de groupe par la commande \next-unread (qui
+	correspond par défaut à la barre d'espacement).
 	(défaut : no)
 
-threaded_space=yes|no
+threaded_next=yes|no
 	permet de lire les messages en suivant la discussion (thread) ou dans
 	l'ordre des numéros. Cette option modifie l'action de la commande
-	next-unread.
+	\next-unread.
 	(défaut : no, mais yes dans la config conscrit)
 
 use_menus=yes|no
@@ -316,9 +471,10 @@ use_menus=yes|no
 	(défaut : no, mais cela va changer)
 
 use_regexp=yes|no
-	permet d'utilise les expressions régulières pour les commandes list
-	et goto. Les expressions utilisées sont les expressions étendues de
-	rx.
+	permet d'utilise les expressions régulières pour toutes les commandes
+	qui demandent de choisir un ou des groupes (\list, \goto...).
+	Les expressions utilisées sont normalement les expressions étendues
+	POSIX.
 	(défaut : no)
 
 with_cousins=yes|no
@@ -336,34 +492,32 @@ zap_change_group=yes|no
 
 attribution=<chaine>
 	donne la chaine à placer devant le message cité dans une réponse.
-	Dans cette chaîne, des symboles sont utilisés :
+	Cette chaîne est interprétée avec les symboles suivants :
 	%n désigne le nom de l'auteur du message.
 	%i le message-ID du message.
 	%G le groupe dans lequel le message est considéré, %g le nom de ce
 	  groupe "tronqué".
 	%C le numéro du message dans le groupe
 	%% désigne enfin le caractère '%'.
-	On peut aussi utiliser des entêtes "connues par flrn" du message
-	initial par l'écriture %{nom-du-header}. Ainsi, %{Subject} permet
-	d'écrire le sujet du message auquel un répond.
+	%{nom-du-header} est remplacé par l'entête dans le message
+	%`cmd` est remplacé par le résultat de la commande `cmd`
+	  executée par /bin/sh
+	%[fun] est remplacé par la sortie par S-Lang de l'interprétation
+	  de fun (si l'interface S-Lang est disponible).
 	Ce format fonctionne aussi dans l'option my_hdr.
 	(défaut : "%n, dans le post %i, a écrit :")
-
-auto_edit=yes|no
-	n'utilise pas l'éditeur intégré de flrn, et lance directement l'éditeur
-	extérieur quand on poste un message.
-	(défaut : no)
 
 edit_all_headers=yes|no
 	lors de l'édition, cette option détermine si flrn doit proposer
 	l'ensemble des entêtes qu'il connait ou juste Newsgroups: (renommé
 	Groupes:) et Subject: (renommé Sujet:). Même désactivée, il est
-	toujours possible de rajouter des entêtes à la main.
-	(défaut : no, mais activer cette option est conseillée)
+	toujours possible de rajouter des entêtes à la main. Un utilisateur
+	un peu familiarisé avec les groupes de discussions gagnera a
+	activer cette option.
+	(défaut : no)
 
 include_in_edit=yes|no
 	insère automatiquement le message auquel on répond dans l'éditeur.
-	Cette option n'a de sens qu'avec auto_edit.
 	(défaut : no)
 
 index_string=<str>
@@ -375,6 +529,17 @@ post_name=<un nom>
 	choisis le nom utilisé dans les messages envoyés.
 	Cette option est incompatible avec un 'my_hdr From:'.
 	(défaut : "")
+
+quote_all=yes|no
+	cette option demande à flrn de citer tout le message, entêtes
+	compris, lors du lancement de l'éditeur pour une réponse à un
+	message.
+	(défaut : no)
+
+quote_sig=yes|no
+	cette option demande à flrn de citer la signature du message 
+	lors du lancement de l'éditeur pour une réponse à un message.
+	(défaut : no)
 
 simple_post=yes|no
 	cette option activée, flrn essaie d'adapter le message pour
@@ -403,13 +568,38 @@ kill_fill_name=<nom>
 * Autres *
 **********
 
+alternate=<une expression reguliere>
+	permet à l'utilisateur de décrire des adresses de courrier
+	électronique comme les siennes : flrn affichera les messages ayant
+	ces adresses en From: comme provenant de l'utilisateur, et acceptera
+	les annulations et remplacements de ces messages (sous réserve que
+	le Sender: soit correct ou inexistant).
+	(défaut : aucun)
+
+auth_user=<chaîne>
+	donne un nom d'utilisateur pour l'authentification de flrn au
+	serveur de groupes de discussion, si nécessaire.
+	(défaut : aucun)
+
+auth_pass=<chaîne>
+	donne un mot de passe pour l'authentification de flrn au serveur
+	de groupes de discussion, si nécessaire. S'utilise conjointement
+	à auth_user. Si aucun mot de passe n'est donné et que le serveur
+	en demande un, flrn le demandera à l'utilisateur.
+	(défaut : aucun)
+
 check_mail=yes|no
-	vous informe si vous avez du courrier
+	lorsque cette option est activée, flrn vous informe si vous avez
+	du courier (par la variable d'environnement $MAIL). Lorsque
+	vous avez un nouveau courier, flrn affiche "(mail)" devant
+	l'invite sur la dernière ligne de l'écran.
 	(défaut : yes)
 
 default_flnewsfile=<chaîne>
 	Si le .flnewsrc avec son extension (défini par flnews_ext) n'existe
-	pas ou est vire, flrn prend le fichier désigné par cette option.
+	pas ou est vide, flrn prend le fichier désigné par cette option.
+	Cette option est tout particulièrement utile dans le fichier de
+	configuration par défaut.
 	(défaut : "")
 
 flnews_ext=<chaîne>
@@ -420,6 +610,18 @@ flnews_ext=<chaîne>
 hist_file_name=<chaîne>
 	si un nom de fichier est entré, flrn utilise ce fichier comme
 	lieu de sauvegarde de l'historique d'une session sur l'autre.
+	(défaut : "")
+
+max_group_size=<nombre>
+	permet de limiter la lecture des gros groupes par flrn aux messages
+	les plus récents. Lorsque cette valeur vaut -1, flrn charge tous
+	les messages à l'entrée dans le groupe. Sinon, la valeur donne
+	le nombre de messages à charger dans le groupe avant le premier
+	message non lu. Un appel au tout premier message du groupe (le '1')
+	fera télécharger le reste du groupe par flrn (tant que cet appel
+	n'est pas fait, flrn se comporte comme si les articles avant
+	n'existent pas.
+	(défaut : -1)
 
 port=<n>
 	utilise le port donné plutôt que le port nntp.
@@ -427,7 +629,9 @@ port=<n>
 
 prefixe_groupe=<chaine>
 	donne un préfixe par défaut commun à tous les groupes utilisés.
-	Permet de simplifier l'affichage.
+	Cette option permet de simplifier l'affichage, et est utilisée
+	aussi pour vérifier l'existence des groupes lors du post d'un
+	message.
 	(défaut : "")
 
 quit_if_nothine=yes|no
@@ -446,8 +650,27 @@ short_errors=yes|no
 	(défaut : no)
 
 use_mailbox=yes|no
-	Sauve les messages au format mailbox.
+	Sauve les messages, ou les envoie au pager ou à un programme de
+	shell, au format d'un folder mail.
+	Cette option permet de lire les messages sauvés à l'aide d'un
+	logiciel de lecture de mails.
 	(défaut : yes)
 
+* * * * * * * * * * * * *
+*** Options obsoletes ***
+* * * * * * * * * * * * *
+
+Les options suivantes ne sont plus utilisées ou ont pris un autre nom.
+
+auto_edit=yes|no
+	cette option est obsolète depuis que flrn n'a plus d'éditeur interne.
+
+alpha_tree=yes|no
+	est devenu small_tree
+
+threaded_space=yes|no
+	est devenu threaded_next
+
+---------------------------------
 'q' permet de quitter l'aide à tout moment.
 'm' permet de revenir au menu.

@@ -1,0 +1,199 @@
+7: interface avec S-Lang
+
+	flrn : interface avec S-Lang
+	----------------------------
+
+=============================================
+A) Introduction
+B) Méthodes d'appel de S-Lang
+C) Fonctions et variables intrinsèques
+=============================================
+
+
+A) Introduction
+   ------------
+
+  S-Lang est à la fois un langage interprété conçu pour être facilement
+inclus dans un programme, et une bibliothèque d'écritures de programmes
+portables (pour la gestion du terminal ou du clavier). Avant tout,
+flrn utilise la bibliothèque pour le terminal et le clavier, mais
+on peut choisir lors de l'installation de doter flrn d'une interface
+avec le langage de script, ce qui augmente largement la puissance
+du programme.
+
+  Malheureusement, cette interface n'en est qu'à ses débuts et est
+expérimentale. Il y donc encore beaucoup de "potentiel" et bien peu
+de "concret" dans l'interface avec S-Lang, et divers éléments de 
+l'interface peuvent changer.
+
+B) Méthodes d'appel de S-Lang
+   --------------------------
+
+  Il a quatre méthodes pour faire interagir flrn et S-Lang :
+     a) par l'option "slang_parse" ;
+     b) par l'appel directe d'une fonction de S-Lang comme commande ;
+     c) par la forme %[...] dans une chaîne interprétée (comme les
+        attributions) ;
+     d) par la définition du fonction S-Lang de nom particulier.
+
+  a) L'option slang_parse
+     --------------------
+
+  Cette approche est un préliminaire indispensable avant les autres
+méthodes (à l'exception éventuelle de la syntaxe %[] dans une chaîne
+interprétée). Elle peut se faire soit au lancement de flrn, lors
+de la lecture du fichier de configuration, soir interactivement
+par la commande \option.
+
+  L'option est de la forme "slang_parse <fichier>" où <fichier> est
+nom de fichier, qui sera recherché dans le répertoire courant (à moins
+de donner un nom de chemin complet). Durant la lecture, le groupe
+et l'article courant (vis-à-vis de S-Lang, cf partie C de cette aide),
+sont initialisés à vide. Bien souvent, cette option permet de définir
+des fonctions S-Lang qui seront utilisés ensuite, mais il est possible
+de lire d'éventuels messages d'erreurs.
+
+  b) Appel d'une fonction S-Lang
+     ---------------------------
+
+  Pour l'instant, cette méthode ne fonctionne que pour des commandes en
+contexte "command". Le principe est que toute commande de la forme
+« \[<fun>,<num>] " où <fun> est une chaîne de caractère et <num> un
+nombre, représente un appel à la fonction S-Lang <fun>, si celle-ci
+est défini (ce test est effectué au dernier moment, il est donc
+parfaitement possible de créer un raccourci clavier, puis seulement
+de définir la fonction). <num> représente l'interface de la fonction,
+pour le passage d'éventuels paramètres. <num> comprend
+plusieurs bits selon la signification suivante :
+  1 signifie que la fonction peut prendre une chaîne en paramètre, qui
+    sera transmise à S-Lang. flrn demande alors une chaîne en cas de
+    raccourci clavier.
+  2 signifie que la fonction peut prendre des articles en paramètre
+  4 signifie que si la fonction peut prendre des articles et que
+    plusieurs articles sont sélectionnés, alors la fonction est
+    executée une fois pour chaque article. Dans le cas contraire, la
+    fonction est executée une fois avec tous les articles.
+
+Pour l'instant, flrn place d'abord (le cas échéant) dans la pile la liste
+des articles sélectionnés, puis la chaîne de caractère, et enfin lance
+la fonction.
+
+  c) Interprétation d'une sous-chaîne S-Lang
+     ---------------------------------------
+  
+  Lorsqu'une chaîne de la variable d'option "attribution", ou d'une
+option my_hdr, est utilisée, elle est parsée pour être adaptée à l'article
+auquel on répond (voir section 3 de l'aide). La forme "%[...]" est
+alors remplacée par le résultat de l'interprétation de la chaîne
+située entre les crochets par S-Lang. L'article courant (vis-à-vis de
+S-Lang) est alors l'article auquel on répond.
+  
+  d) Redéfinition d'une fonction via S-Lang
+     --------------------------------------
+
+  Cette méthode, très expérimentale, n'a pour l'instant été implantée que
+pour un cas précis. Le principe est que flrn, lorsqu'il doit accomplir
+une fonction particulière, peut vérifier si une fonction S-Lang a
+été définie avec un nom particulier. Dans ce cas, cette fonction est
+executée à la place de ce que devait faire flrn.
+
+  La seula application est pour l'instant « Newsgroup_title_string » : 
+définir une fonction S-Lang de ce nom (qui prend en paramètre un groupe
+et renvoie une chaîne) fait que flrn affichera le résultat de cette
+chaîne (au lieu du nom du groupe) dans sa barre de statut (en haut de
+l'écran).
+
+C) Types, fonctions, variables intrinsèques et noms prédéfinis
+   -----------------------------------------------------------
+
+  a) Types
+     -----
+
+   Deux types sont prédéfinis pour l'interface entre S-Lang et flrn :
+- Article_Type désigne un article. Sa transformation en chaîne donne son
+  message-ID.
+- Newsgroup_Type désigne un groupe. Sa transformation en chaîne donne
+  son nom.
+
+  b) Variables
+     ---------
+
+   Deux variables sont prédéfinies :
+- Article_Courant de type Article_Type désigne l'article courant
+- Newsgroup_Courant de type Newsgroup_Type désigne le groupe courant
+
+  c) Fonctions
+     ---------
+
+   Les fonctions suivantes sont prédéfinies :
+
+String get_header (Article_Type article, String entete)
+   renvoie une chaîne contenant l'entête <entete> de l'article <article>,
+   "" si cette entête n'existe pas.
+
+Integer get_flags_group (Newsgroup_Type groupe)
+   renvoie les états du groupe courant sous forme d'un entier de bits : 
+   si n est le retour de la fonction :
+     n & 1 = 1    -> on est désabonné au groupe
+     n & 4 = 4    -> ce groupe est dans la liste principale de censure
+     n & 8 = 8    -> ce groupe est en lecture seule
+     n & 16 = 16  -> ce groupe est modéré
+   Les deux derniers états ne sont qu'indicatifs et pas toujours vérifiés :
+   un groupe peut être marqué comme en écriture autorisée (resp. non modéré)
+   et être en fait en lecture seule (resp. modéré). Éventuellement, 
+   si n & 32 = 32, on est sûr qu'une demande explicite a été faite au serveur
+   sur le sujet. Les autres bits servent normalement au fonctionnement interne
+   de flrn.
+
+String get_description_group (Newsgroup_Type groupe)
+   renvoie la description du groupe, si flrn la connait (là encore, flrn ne
+   la demande pas systématiquement).
+
+Integer get_groupes (String regex, Integer mode)
+   pour l'instant <mode> est ignoré. Cette fonction renvoie la liste
+   des groupes abonnés dont le nom vérifie l'expression régulière regex.
+   Ces groupes sont placés sur la pile (dans un ordre imprécis), puis
+   le nombre de groupes obtenus est retourné par la fonction.
+   A terme, <mode> devrait permettre d'affiner la recherche.
+
+Integer menu_groups (Integer mode, Integer num)
+   Crée un menu concernant une liste de groupes.
+   Si <mode> & 1 = 1, alors le premier paramètre (après les deux entrées)
+   doit être le nom d'une fonction S-Lang qui prend un groupe en paramètre
+   et renvoie la chaîne qui doit être affichée dans le menu pour décrire
+   ce groupe (par défaut, il s'agit du nom du groupe). Ensuite, on doit
+   trouver <num> groupes qui sont les éléments du menu.
+   Pour l'instant le menu ne permet que de choisir un groupe (et
+   place l'utilisateur dans ce groupe).
+   Cette fonction est susceptible de changer dans l'avenir.
+
+Integer get_option (String nom)
+   Pour l'instant, cette fonction renvoie la valeur de la variable
+   de configuration <nom>, ainsi qu'un entier qui indique son type :
+     0 -> c'est un entier
+     1 -> c'est une chaîne
+   Renvoie -1 si <nom> est vide, et -2 si le <nom> n'est pas une variable
+   valide.
+
+String get_program_name ()
+   Renvoie le nom d'appel du programme.
+
+Integer get_version_number ()
+   Renvoie la version du programme, sous la forme
+    (version_majeure * 100) + (version_mineur * 10) + patchlevel
+
+   d) Noms de fonctions
+      -----------------
+
+Les noms de fonctions prédéfinis permettent de remplacer certaines actions
+de flrn par d'autres (voir ci-dessus, le (d) de la partie B). L'utilisateur
+peut redéfinir ces fonctions.
+
+String Newsgroup_title_string (Newgroup_Type groupe)
+    cette fonction est appelée par flrn pour écrire le nom du groupe
+    dans la barre de statut (y compris éventuellement les drapeaux sur
+    le statut du groupe).
+
+---------------------------------------------
+'q' permet de quitter l'aide à tout moment.
+'m' permet de revenir au menu

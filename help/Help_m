@@ -1,17 +1,21 @@
 m: menu
 
 		
-		Aide de flrn
-		------------
+		Menu d'aide de flrn
+		-------------------
 
+Bienvenue sur l'aide interne de flrn.
 Tapez sur le chiffre correspondant à la section de votre choix.
 
 	0. Présentation de flrn
-	1. Description simple des commandes usuelles
+	1. Commandes usuelles
 	2. Poster des messages
-	3. Fichier de configuration
-	4. Description de toutes les commandes
-	5. Le kill-file de flrn
+	3. Fichiers de configuration
+	4. Système d'entrée de commandes
+	5. Descriptions de toutes les commandes 
+	6. Description du kill-file
+	7. Interfaçage avec s-lang
+	8. Glossaire
 
 'q' permet de quitter l'aide à tout moment.
 'm' permet de revenir à ce menu.

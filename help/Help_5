@@ -1,115 +1,558 @@
-5: les kill-files
+5: références des commandes
 
-	########################################################
-	#		Le kill-file de flrn                   #
-	########################################################
+	flrn : Références de toutes les commandes
+	-----------------------------------------
+
+Avertissement : cette page est assez complète, mais difficile. Il est
+conseillé d'être un peu familiarisé avec les sections 1 et 4 de l'aide
+avant de lire cette page en détail.
+
+=============================================
+A) Commandes du contexte "command"
+B) Commandes du contexte "pager"
+C) Commandes du contexte "menu"
+=============================================
+
+A) Commandes du mode "command"
+   ---------------------------
+
+Chaque commande est donnée avec son nom explicite et, le cas échéant,
+sa touche de raccourci par défaut. De plus, quelques indications sont
+données sur ses paramètres  par l'intermédiaire de 4 caractères :
+        n : accepte une liste d'articles
+        c : accepte une chaîne de caractère
+	C : demande toujours une chaîne de caractères (si la commande
+	    est entrée par un raccourci clavier)
+	F : propose d'entrer un paramètre (chaîne et/ou liste d'articles)
+	    lorsque l'option forum_mode est activée.
+
+Les commandes sont classées par ordre alphabétique de nom. Un groupement
+par catégorie est donné ci-dessous :
+
+  1 Déplacement dans les articles
+      \article  \art-msgid  \down  \left  \next-article  \next-unread 
+      \previous \right      \up
+  2 Historique et tags
+      \go-tag  \history  \hist-next  \hist-prev  \tag
+  3 Gestion des articles
+      \art-to-return  \kill  \kill-replies  \kill-thread  \omit  \OMIT
+      \on-selected    \put-flag     \save   \SAVE         \view
+  4 Affichage des résumés et discussions
+      \menu-replies  \menu-search  \menu-summary  \menu-thread 
+      \select        \summary      \summ-replies  \summ-search
+      \summ-thread
+  5 Gestion des groupes
+      \add-kill  \goto  \GOTO  \list  \LIST  \prem-grp  \remove-kill
+      \subscribe \swap-grp     \unsubscribe  \zap
+  6 Poster
+      \cancel  \mail-answer  \post  \reply  \supersedes
+  7 Lancement de commandes extérieures
+      \filter  \FILTER  \pipe  \PIPE  \pipe-header  \shell  \shin
+  8 Options
+      \config  \keybindings  \option  \save-options
+  9 Divers
+      \help  \quit  \QUIT  \show-tree
 
 
-  Le kill-file est un moyen de filtrer les articles que l'on ne souhaite
-pas lire. Il est utilisé par exemple pour implémenter la censure.
-Il a été rendu volontairement assez libre, il est donc possible de
-faire de nombreuses choses à la sémantique douteuse.
-La syntaxe est librement inspirée de celles de procmail et de slrn.
+       Commandes
+       ---------
 
-Ce fichier est constitués de blocs séparés par une ligne blanche.
-'#' introduit encore des commentaires.
+\add-kill	(pas de défaut) (interface : cF)
+	Ajoute le groupe mis en paramètre (par défaut le groupe courant)
+	dans la liste principale du kill-file (voir la section 6 de l'aide).
+	Le paramètre (si il existe) est soit une sous-chaîne du nom
+	du groupe (si l'option use_regexp n'est pas activée), soit une
+	expression régulière du nom du groupe.
+	Quand il y a ambiguité sur le nom du groupe, flrn propose un menu.
 
-Forme d'un bloc
-===============
+\article	(défaut : « v », et <enter> avec un paramètre)
+                (interface : nF)
+	Affiche le premier article donné en paramètre (ou l'article courant
+	s'il n'y a pas d'argument).
 
-1ère ligne
-----------
+\art-msgid      (pas de défaut) (interface : C)
+	Se rend à l'article ayant le message-ID pris comme argument (ce
+	message-ID doit inclure les « <> », et peut commencer par
+	« <news: » qui sera remplacé par « < »), même si cet article est dans
+	un autre groupe. Propose un menu de choix du groupe si l'article
+	est marqué comme crossposté, mais ne vérifie pas forcément que
+	l'article n'a pas expiré dans les groupes.
 
-La première ligne d'un bloc indique les groupes où cela s'applique. Elle est
-de la forme :
-:<chaine>:<flags>
+\art-to-return	(défaut : « x ») (interface : n)
+	Marque comme « temporairement lus » les articles sélectionnés : 
+	ceux-ci deviendront non lus quand flrn sortira du groupe.
 
-Si <flags> est vide, <chaine> est une expression régulière qui décrit
-les groupes sur lesquels le bloc doit s'appliquer.
+\cancel		(défaut : « e ») (interface : n)
+	Annule les articles sélectionnés (par défaut l'article courant).
+	flrn demande confirmation et refuse (sauf si l'option de compilation
+	MODE_EXPERT est définie) d'annuler des messages qui ne sont pas à
+	soi.
 
-Si <flags> contient 'f', <chaine> est le nom d'un fichier qui contient
-la liste des groupes sur lesquels le bloc doit s'appliquer. Avec 'm' en
-plus, ce fichier est celui de la liste principale qui est modifié
-interactivement avec les commandes \add-kill et \remove-kill.
+\config		(pas de défaut) (pas d'interface)
+	Affiche un menu de l'ensemble des variables d'options (modifiées
+	par « set »). Chaque option est montrée avec sa valeur actuelle.
+	Sélectionner une option permet d'en changer la valeur.
 
-Si <flags> est 'l', <chaine> est le nom d'un groupe qui est le début d'une
-liste. Dans la suite du bloc, chaque ligne commençant par ':' doit être
-suivi d'un nom de groupe à ajouter à la liste.
+\down		(défaut : <flèche bas>) (interface : n)
+	Se rend au frère suivant (ou cousin suivant si l'option
+	with_cousins est activée) l'article sélectionné (ou l'article
+	courant).
+	Note : « ) » est aussi prédéfini comme raccourci de \down.
 
-Lignes suivantes
-----------------
+\filter		(défaut : « % ») (interface : nF)
+	Execute une commande passée en argument (par l'intermédiaire de
+	/bin/sh), et y envoie en entrée standard les articles sélectionnés.
+	Les entêtes de ces articles ne sont pas décodés, mais le contenu de
+	l'article est encodé en fonction de l'option files_charset. La
+	sortie standard du programme est ensuite récupérée par flrn et
+	affichée par flrn.
 
-On trouve, dans le désordre :
+\FILTER		(pas de défaut) (interface : nF)
+	Agit comme \filter mais envoie les articles sélectionnés et leurs
+	descendants dans l'entrée standard du programme.
 
-   Ajouts à une liste
-   - - - - - - - - -
-:<nom_de_groupe>
-ajoute <nom_de_groupe> à la liste si <flags> contenait 'l'.
+\goto		(défaut : « g ») (interface : nC)
+        Se rend au groupe abonné choisis en paramètre (par défaut le premier
+	groupe abonné où il y a quelque chose à lire). Comme pour \add-kill,
+	le paramètre dépend de l'option use_regexp. Quand il y a 
+	ambiguité, flrn propose un menu.
+	Quand flrn entre dans un groupe, il se positionne par défaut
+	au premier article non lu. En passant un nombre en paramètre, on
+	choisir le numéro de l'article où flrn doit se rendre.
 
-   Conditions sur les entêtes
-   - - - - - - - - - - - - -
-Ce sont des conditions que doivent vérifier les articles pour y appliquer
-le kill-file. Elles portent sur des entêtes connues de flrn, de préférence
-disponible via l'overview du serveur. On trouve :
-*<header>: <regexp>   expression régulière que doit satisfaire l'entête
-*^<header>: <regexp>  expression que ne doit pas satisfaire l'entête
-*'<header>: <ss-chaine> sous-chaîne que doit satisfaire l'entête
-*^'<header>: <ss-chaine> sous-chaîne que ne doit pas satisfaire l'entête
+\GOTO		(défaut : « G ») (interface : nC)
+	Agit comme \goto, mais ne se limite pas aux groupes abonnés.
 
-   Condition sur les drapeaux de l'article
-   - - - - - - - - - - - - - - - - - - - -
-Ce sont les conditions que doivent vérifer les articles. Par défaut,
-c'est 'unread'.
-F<flag>
-<flag> peut être read/unread
-                 killed/unkilled
-                 interesting/uninteresting
-                 selected/unselected
+\go-tag		(défaut : « ' ») (interface : cF)
+	Se rend à l'article marqué (par la commande \tag) par le premier
+	caractère du paramètre (qui peut être vide).
 
-   Drapeaux à modifier
-   - - - - - - - - - -
-Si les articles vérifient les conditions.
-T<flag>
-<flag> peut être read, killed, intereseting ou selected. On ne peut que mettre
-des flags, pas en enlever par cette méthode.
+\help		(défaut : « ? », non modifiable, et « h ») (pas d'interface)
+	Lance l'aide en ligne de flrn en se plaçant sur le menu de cette aide.
+	
+\history	(défaut : « H ») (pas de paramètre)
+	Affiche un menu avec l'ensemble des articles visités (dans une
+	certaine limite), ensemble sauvegardé d'une session à l'autre.
+	Sélectionner un article dans ce menu permet de s'y rendre.
 
-   Commandes à lancer
-   - - - - - - - - -
-Ces commandes sont lancées sur les articles qui vérifient la condition.
-Cela risque de poser des problèmes si ces commandes veulent demander
-interactivement des arguments. Une commande est lancé pour chaque
-article, donc il ne sert à rien d'utiliser des commandes qui font des menus.
-C<commande avec arguments>
+\hist-next	(défaut : « F ») (pas de paramètre)
+	Revient à l'article vu avant l'article actuellement vu (selon
+	l'historique).
 
-On ne peut avoir qu'une ligne T, et on ne peut avoir à la fois des lignes T
-et C. Par contre, on peut avoir plusieurs commandes.
+\hist-prev	(défaut : « B ») (pas de paramètre)
+	Se rend à l'article suivant l'article actuellement vu selon 
+	l'historique.
+	Note : « P » est aussi prédéfini en raccourci de \hist-prev.
 
-De plus, le flag killed implique le flag read, et le flag interesting ne
-peut être appliqué sur un article marqué lu.
+\keybindings    (pas de défaut) (interface : cF)
+	Sans argument, cette commande affiche la liste des raccourcis
+	clavier pour l'ensemble des contextes de commande, sous
+	forme d'un tableau à quatre colonnes : la première donne la
+	touche, la seconde le contexte "command", la troisième le
+	contexte "pager" et la quatrième le contexte "menu". « undef »
+	signifie que la touche n'est pas définie dans le contexte
+	proposé, « (macro) » que la touche est une macro (commande
+	avec argument, plusieurs commandes à la suite ou fonction
+	S-Lang). 
+	Avec un nom de contexte passé en argument, seuls les
+	raccourcis du contexte passé en argument sont affichés. Dans
+	une certaine mesure, le contenu des macros est détaillé.
 
-Exemples
-========
+\kill		(défaut : « k ») (interface : n)
+	Marque comme lus les articles sélectionnés (ou l'article courant),
+	y compris dans les groupes où ils sont crosspostés.
+	
+\kill-replies	(défaut : « K ») (interface : n)
+	Marque comme lus les articles sélectionnés et leurs descendants,
+	y compris dans les groupes où ils sont crosspostés.
+	
+\kill-thread	(défaut : « J ») (interface : n)
+	Marque comme lus les discussions des articles sélectionnés,
+	y compris dans les groupes où ils sont crosspostés.
+	
+\left		(défaut : <flèche gauche>) (interface : n)
+	Se rend au père de l'article sélectionné, en restant dans le groupe.
+	Seuls sont admis hors du groupe les articles
+	Note : « b » et « [ » sont aussi prédéfinis comme raccourcis de \left.
 
-# on ne lit pas les messages postés avec flrn dans les groupes de test
-# c'est stupide, mais bon.
-:test:
-*X-Newsreader: Flrn
-Tread
+\list		(défaut : « l ») (interface : C)
+	Affiche la liste des groupes abonnés qui acceptent la chaîne passé
+	en paramètre. Si l'option use_menus est activé, \list propose
+	un menu dans lequel les commande suivantes sont disponibles :
+	  \subscribe  \unsubscribe  \goto  \remove-kill  \add-kill
+	  \zap
+	Sélectionner un groupe permet de s'y rendre.
 
-# dans linux-kernel, on ne lit que les messages de Linus.
-:kernel:
-*^From: linus
-Tread
+\LIST		(défaut : « L ») (interface : C)
+	Agit comme \list, mais en ne se limitant pas aux groupes
+	non abonnés. Pour des raisons pratiques, la liste se décompose
+	en trois : flrn affiche d'abord une première liste des groupes
+	abonnés, puis des groupes non abonnés mais présents dans le
+	.flnewsrc (en général, les groupes déjà visités), puis tous
+	les groupes. Lorsque use_menus est désactivée, on peut quitter
+	n'importe quand avec <control-C>. Lorsque use_menus est activé,
+	seule la sélection d'un groupe permet de quitter sans passer
+	par les menus. Les menus vides ne sont pas proposés. Les commande
+	accessibles dans le menu sont les mêmes que pour \list.
 
-# dans essai, je lis mes messages même si je les ai déjà lus...
-:essai:
-*From: moi
-Fread
-Comet
+\mail-answer	(pas de défaut) (interface : cn)
+	Permet de répondre par mail à l'article sélectionné. Voir la
+	section 2 de l'aide pour plus de détails.
 
-Note : un certains nombres de restrictions existent. En particulier, le
-----   kill-file n'est appliqué sur les articles que lorsqu'on entre dans
-       un groupe, ou sur les nouveaux articles quand ceux-ci sont detectés.
+\menu-replies	(pas de défaut) (interface : nF)
+	Agit comme \menu-summary mais en affichant les descendants des
+	messages sélectionnés, dans l'ordre des discussions.
 
+\menu-search	(defaut : « / ») (interface : nC)
+        Agit comme \menu-summary mais n'affiche que les messages
+	sélectionnés qui acceptent un filtre (de format semblable à
+	ceux du kill-file) passé en argument (voir la section 6
+	de l'aide).
+
+\menu-summary	(pas de défaut) (interface : nF)
+	Affiche un résumé des messages sélectionnés, sous la forme d'un
+	menu. Comme pour la commande \summary, l'ordre dans le menu
+	dépend de l'option ordered_summary. Les commandes de contexte
+	« command » admises dans le menu sont :
+	   \kill  \kill-replies  \kill-thread  \omit  \OMIT
+	   \put-flag
+        De plus, sélectionner un article permet de s'y rendre....
+
+\menu-thread	(pas de défaut) (interface : nF)
+	Agit comme \menu-summary mais en affichant les articles de
+	discussions des messages sélectionnés, dans l'ordre des
+	discussions.
+	
+\next-article	(défaut : <enter> sans paramètre) (interface : n)
+	Passe à l'article suivant (par numéro) l'article sélectionné
+	(ou l'article courant).
+	Note : « n » est aussi prédéfini en raccourci de \next-article.
+
+\next-unread	(défaut : <space>) (interface : n)
+	Passe au premier article non lu (ou intéressant) suivant l'article
+	sélectionné.
+	Ce passage est par numéro si l'option threaded_next est
+	désactivé, par ordre dans la discussion sinon. De plus, si
+	flrn affiche une fin de groupe et que l'option space_is_return
+	est désactivée, flrn passe au groupe abonné suivant où il y
+	a quelque chose à lire.
+
+\omit		(défaut : « o ») (interface : nF)
+	Marque les articles sélectionnés comme non lus dans le groupe
+	courant. Les articles « tués » ne sont pas affectés (cf. la
+	commande \put-flag).
+
+\OMIT		(défaut : « O ») (interface : nF)
+	Marque les articles sélectionnés et tous leurs descendants comme
+	non lus dans le groupe courant. Les articles « tués » ne sont
+	pas affectés.
+
+\on-selected	(pas de défaut) (interface : nC)
+	Permet d'executer une commande (en paramètre) sur les articles
+	sélectionnés qui sont en plus marqués par le drapeau "selected"
+	(dans le groupe courant). Les articles sélectionnés comprennent
+	à la fois ceux du \on-selected et ceux de la commande en paramètre.
+	Les raccourcis clavier sont autorisés comme commande, si ce
+	raccourci n'est pas une macro (pour éviter les boucles du type
+	"bind b on-selected b").
+	Si aucun article n'est sélectionné, \on-selected ne se limite
+	pas à l'article courant mais s'applique à tous les articles
+	du groupe portant le drapeau "selected".
+	Dans le cas particulier où la commande est \put-flag selected
+	(ie, on demande à mettre le drapeau "selected" aux articles
+	qui ont déjà ce drapeau), alors tous les articles du groupe
+	non sélectionnés perdent le drapeau "selected" (ce qui permet
+	de faire des intersections).
+
+\option		(défaut : « : », non modifiable) (interface : C)
+	Interprète la ligne d'option passée en argument, exactement comme
+	si elle était une ligne du .flrnrc (cf section 3 de l'aide).
+
+\pipe		(défaut : « | ») (interface : nC)
+	Lance un programme donné en argument (par l'intermédiaire de
+	/bin/sh) et lui envoie en entrée standard les articles sélectionnés
+	(par défaut l'article courant). flrn n'effectue aucun 
+	décodage sur les entêtes, mais code le corps du message
+	en fonction de files_charset. flrn n'utilise pas la sortie
+	standard du programme.
+	Note : <control-B> est prédéfini comme raccourci de
+	« \pipe urlview ».
+
+\PIPE		(pas de défaut) (interface : nC)
+	Agit comme \pipe mais envoie en entrée les articles sélectionnés
+	et leurs descendants.
+
+\pipe-header	(pas de défaut) (interface : nC)
+	La chaîne de caractères comprend deux arguments séparés par un
+	espace : le nom d'une entête et une commande. La commande (qui
+	peut aussi être entrée séparément) est executée, et flrn envoie
+	en entrée de cette commande le contenu de l'entête de chaque
+	article sélectionné (sans le nom de l'entête elle-même, ni le
+	numéro de l'article d'origine).
+
+\post		(défaut : « m ») (interface : cF)
+	Permet de poster un nouveau message dans le groupe courant.
+	Voir la section 2 de l'aide pour plus de détails.
+
+\prem-grp	(pas de défaut) (pas d'interface)
+	Place le groupe courant en tête des groupes dans le .flnewsrc,
+	de sorte qu'il soit premier dans l'ordre où flrn vérifie les
+	messages non lus dans les groupes lors du lancement. Le cas
+	échéant, recule les autres groupes d'un rang. Cette commande
+	permet de fixer l'ordre de lecture des groupes, mais est rudimentaire
+	et devrait être remplacée dans l'avenir.
+
+\previous	(défaut : « p », et « - » en premier caractère) (interface : n)
+	Passe à l'article précédent (par numéro) l'article sélectionné.
+
+\put-flag	(pas de défaut) (interace : nC)
+	Pose (ou enlève) un drapeau (ou une marque) sur les articles
+	sélectionnés. Le drapeau est passé en paramètre. On distingue
+	cinq drapeaux :
+	  - read/unread : indique si l'article est lu ou non. Utilisé
+	    par \next-unread et modifié par \kill* et \omit / \OMIT.
+	  - killed/unkilled : indique si l'article est « tué » ou non.
+	    Un article tué est forcément lu et ne peut pas être marqué non
+	    lu. De plus, il sera « sauté » par les commande \next-article
+	    et \previous.
+	  - interesting/uninteresting : indique si un article est
+	    « intéressant » ou non. On ne peut marqué un article
+	    comme intéressant que s'il est non lu. La commande \next-unread
+	    visitera les article intéressants en priorité sur les articles
+	    non lus.
+	  - selected/unselected : indique si un article est sélectionné
+	    ou non. Ce drapeau sert pour la commande \on-selected.
+	  - toread/untoread : un article marqué « toread » sera marqué
+	    comme non-lu quand flrn quittera le groupe. Ce drapeau est
+	    modifié par \art-to-return.
+
+\quit		(défaut : « q ») (pas d'interface)
+	Quitte flrn en mettant à jour le .flnewsrc, l'historique et les
+	fichiers dans la liste principale de censure.
+
+\QUIT		(défaut : « Q ») (pas d'interface)
+	Quitte flrn sans mettre à jour aucun fichier.
+
+\remove-kill	(pas de défaut) (interface : cF)
+	Retire le groupe mis en paramètre (par défaut le groupe courant)
+	dans la liste principale du kill-file (voir la section 6 de l'aide).
+	Opération inverse de \add-kill.
+
+\reply		(défaut : « R ») (interface : cnF)
+	Permet de répondre à l'article sélectionné dans ce groupe.
+	Cf la section 2 de l'aide.
+
+\right		(défaut : <flèche droite>) (interface : n)
+	Se rend au fils « courant » de l'article sélectionné, dans le
+	groupe. Le fils « courant » est le dernier fils sur lequel 
+	la commande \left a été utilisée, ou à défaut le premier fils.
+	Note : « f » et « ] » sont aussi prédéfinis en raccourcis de \right.
+
+\save		(défaut : « s ») (interface : nC)
+	Sauve les articles sélectionnés dans le fichier proposé en
+	paramètre chaîne (en prenant en compte l'option savepath si le
+	chemin est relatif). Si aucun fichier n'est proposé, flrn demande
+	un nom de fichier. Si le fichier existe déjà, flrn propose de
+	l'écraser (si l'option use_mailbox est désactivée) ou de rajouter
+	les articles (si l'option use_mailbox est activée). flrn utilise
+	la convention indiquée par l'option use_mailbox, et ne fait aucune
+	opération d'encodage/décodage sur les messages.
+
+\SAVE		(défaut : « S ») (interface : nC)
+	Sauve les articles sélectionnés et tous leurs descendants
+	en suivant les conventions de la commande \save.
+
+\save-options	(pas de défaut) (interface : C)
+	Sauve les options de la session courante de flrn dans un fichier
+	passé en paramètre. Ne peut pas sauver les "auto-commandes"
+	et les mise en valeur de couleur utilisant des expressions
+	régulières, pour l'instant.
+
+\select		(pas de défaut) (interface : nC)
+        Agit comme \menu-search mais les éléments du menu sont les
+	discussions comprenant au moins un article sélectionné.
+	Dans ce menu, les commandes du contexte "command" suivantes sont
+	disponibles : 
+           \kill   \omit  \put-flag
+	Ces commandes affectent tous les articles de la discussion à la
+	sortie du menu. \kill (ou \put-flag read) annule un effet de
+	\omit (ou \put-flag unread) et vice-versa, avant de s'appliquer
+	eux-même (de façon à pouvoir laisser la discussion en état).
+	En sélectionnant un élément du menu, on arrive sur un article
+	(normalement, racine) de la discussion choisie.
+	Note : le raccourci clavier « + » est défini par défaut sur
+	« 1-\select unread ».
+
+\shell		(pas de défaut) (interface : C)
+	Lance (via /bin/sh) la commande passée en argument. flrn est
+	interrompu durant l'execution de la commande.
+
+\shin		(défaut : « ! ») (interface : C)
+	Lance (via /bin/sh) la commande passée en argument. flrn est
+	interrompu durant l'execution de la commande, mais flrn récupère
+	sa sortie standard pour l'afficher dans le pager intégré.
+
+\show-tree	(défaut : « N ») (pas d'interface)
+	Remplace l'affichage des messages par l'affichage de l'arbre
+	de discussion sur l'ensemble de la page. Toutes les commandes sont
+	encore valables dans ce mode, mais les messages sur lesquels
+	flrn passe ne sont pas marqués comme lus. Réappliquer la même
+	commande permet de revenir en mode normal.
+
+\subscribe	(défaut : « a ») (interface : cF)
+	S'abonne au groupe passé en paramètre (par défaut le groupe
+	courant). La lecture du paramètre dépend de l'option use_regexp.
+	S'il y a ambiguité, propose un menu.
+
+\summary	(défaut : « r ») (interface : nF)
+	Affiche un résumé des messages sélectionnés. Si l'option
+	ordered_summary est activée, l'affichage se fait par ordre
+	de numéro, sinon par ordres de discussion. Quand aucun article
+	n'est sélectionné, l'affichage se limite à une page. 
+
+\summ-replies	(défaut : « t ») (interface : nF)
+	Fonctionne comme \summary mais affiche tous les descendants des
+	messages sélectionnés, et toujours dans l'ordre de la discussion
+	(indépendamment de l'option ordered_summary).
+
+\summ-search	(pas de défaut) (interface : ncF)
+	Fonctionne comme \summary mais n'affiche que les articles vérifiant
+	un filtre (du type de ceux considérés dans le kill-file) passé
+	en paramètre (voir la section 6 de l'aide sur les filtres).
+
+\summ-thread	(défaut : « T ») (interface : nF)
+	Fonctionne comme \summary mais affiche les discussions des
+	messages sélectionnés, et toujours dans l'ordre de la discussion
+	(indépendamment de l'option ordered_summary).
+
+\supersedes	(pas de défaut) (interface : nc)
+	Permet de remplacer l'article sélectionné. Cf la section 2 de l'aide.
+
+\swap-grp	(pas de défaut) (interface : nC)
+	Permet de se rendre dans un groupe autre que le groupe courant,
+	dans lequel l'article sélectionné (par défaut l'article courant)
+	a été posté, et se place sur l'article en question. La chaîne
+	passée en paramètre permet de limiter le groupe recherché (en
+	donnant une sous-chaîne ou une expression régulière). En cas
+	d'ambiguité, un menu est proposé. Utile pour suivre une discussion
+	crosspostée, ou pour aller dans le groupe où le père d'un article
+	a été posté.
+	Cette commande ne fonctionne que l'entête « Xref: » est définie,
+	ce qui n'est pas le cas pour tous les serveurs (leafnode par
+	exemple).
+
+\tag		(défaut : « " ») (interface : cnF)
+	Marque le dernier article sélectionné (ou l'article courant) par
+	le premier caractère la chaîne en paramètre (qui peut être vide).
+	Ce marquage peut être utilisé par \go-tag et est sauvé entre les
+	sessions de flrn (dans le même fichier que l'historique).
+
+\unsubscribe	(défaut : « a ») (interface : cF)
+	Se désabonne au groupe passé en paramètre (par défaut le groupe
+	courant). La lecture du paramètre dépend de l'option use_regexp.
+	S'il y a ambiguité, propose un menu. Quand on se désabonne
+	au groupe courant, flrn le quitte.
+
+\up		(défaut : <flèche haut>) (interface : n)
+	Se rend au frère précédant (ou cousin précédant si l'option
+	with_cousins est activée) l'article sélectionné (ou l'article
+	courant).
+	Note : « ( » est aussi prédéfini comme raccourci de \up.
+
+\view		(défaut : « V ») (interface : n)
+	Lance un visualiseur de fichier (par défaut "less") sur les
+	articles sélectionnés. flrn suit la convention indiquée par
+	l'option use_mailbox pour l'envoi au pager, et essaye de
+	décoder/encoder le contenu des messages (mais pas les entêtes).
+
+\zap		(défaut : « z ») (pas d'interface)
+	Marque tous les messages du groupe courant comme lus. Si
+	l'option zap_change_group est activée, flrn quitte en plus
+	le groupe.
+
+
+
+B) Commandes du mode "pager"
+   -------------------------
+
+Seules quelques commandes sont définies en mode pager. Contrairement
+aux commandes du contexte "command", elles n'ont pas d'interface spécifiques.
+
+\down		(défaut : <entree> et <control-J>)
+	Descend d'une ligne.
+
+\nxt-search	(pas de défaut)
+	Se rend à la prochaine ligne vérifiant l'expression régulière
+	recherchée.
+
+\pgdown		(défaut : <control-F> et <espace>)
+	Descend d'une page.
+
+\pgup		(défaut : <control-B>)
+	Remonte d'une page.
+
+\quit		(défaut : « q »)
+	Quitte le pager.
+
+\search		(défaut : « / »)
+	Met en valeur les éléments vérifiant une expression régulière
+	dans le texte et se rend à la prochaine ligne comportant un tel
+	élément. L'expression régulière est passée en paramètre, ou 
+	demandée sinon.
+
+\up		(défaut : <control-K>)
+	Remonte d'une ligne.
+
+
+C) Commande du mode "menu"
+   -----------------------
+
+\cmd		(pas de défaut)
+	Applique la commande de contexte "command" passée en argument.
+	Sert pour définir des macros sur ces commandes en contexte "menu".
+
+\down		(défaut : <flèche bas> et « ) » )
+	Se rend à l'élément suivant.
+
+\lock-down	(pas de défaut)
+	Descend d'une ligne en « emmenant » l'élément courant, pour changer
+	l'ordre du menu. Peut servir pour réordonner une liste, si cette
+	fonction a un intérêt dans le menu concerné.
+
+\lock-up	(pas de défaut)
+	Remonte d'une ligne en « emmenant » l'élément courant, pour changer
+	l'ordre du menu, comme \lock-down.
+
+\nxt-search	(pas de défaut)
+	Se rend à la prochaine occurence de l'expression régulière recherchée.
+
+\pgdown		(défaut : <control-F> et <espace>)
+	Descend d'une page.
+
+\pgup		(défaut : <control-B>)
+	Remonte d'une page.
+
+\quit		(défaut : « q »)
+	Quitte le menu sans renvoyer de résultat.
+
+\search		(défaut : « / »)
+	Recherche une expression régulière (passé en argument) dans la
+	liste, et se rend à la première occurence.
+
+\select		(défaut : <entree>)
+	Sélectionne l'élément courant. En général, cette commande sort
+	du menu et renvoie l'élément sélectionné. Mais sa fonction exacte
+	dépend du menu.
+
+\toggle		(pas de défaut)
+	Marque (ou enlève la marque) les éléments sélectionnés (voir la
+	section 4 de l'aide). On peut accéder aux éléments marqués par
+	le préfixe « . ».
+
+\up	(défaut : <flèche haut>, « - », « p » et « ( » )
+	Se rend à l'élément précédent.
+
+
+--------------------------------------------
 'q' permet de quitter l'aide à tout moment.
-'m' permet de revenir au menu
+'m' permet de revenir au menu.
