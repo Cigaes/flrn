@@ -1197,7 +1197,10 @@ static void add_strings_bit (flrn_char *str, size_t len, int field,
        if (lwd==0) {
 	      /* un blanc */
 	      /* on affiche d'abord ce qui reste */
-	      if ((cf->blreste) && (cf->reste)) { /* col==0 a priori */
+	      if ((cf->blreste) && 
+		      ((cf->reste) || (str==NULL))) { /* col==0 a priori */
+		       /* si str==NULL, on affiche quand même le blanc,
+			* même si cf->reste!=NULL */
 		  if (cf->afficher) 
 		      Screen_write_color_chars(cf->blreste,cf->blrstlen);
 		  if (add_to_scroll) {
