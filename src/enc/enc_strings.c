@@ -827,29 +827,14 @@ int appr_conv_one (long unichar,
 size_t fl_approximate_conv (flrn_char **inbuf, size_t *inbl,
 	                    char **outbuf, char **outptr, size_t *outbl) {
      if (conv_base[TERM_CONV].status<=0) return (size_t)(-2);
-     if (conv_base[TERM_CONV].status==1) 
-	 return fl_appconv_from_flstring (inbuf,
-				inbl,outbuf,outptr,outbl);
+     if (conv_base[TERM_CONV].status<=2) 
+	 return fl_appconv_from_flstring_ce (&(conv_base[TERM_CONV]),
+		 (const flrn_char **)inbuf, inbl,outbuf,outptr,outbl);
 #if 0
      /* app_conv==0 est impossible , et on refuse aussi app_conv = 2 
       * pour cause de traduction wchar_t -> UCS */
      return (size_t)(-2);
 #else
-     if (conv_base[TERM_CONV].status==2) {
-	 int max;
-	 if (*outbuf==NULL) {
-	     *outbuf=*inbuf;
-	     *outptr=*outbuf;
-	     return (size_t)(-3);
-	 }
-	 max=*inbl;
-	 if (max>*outbl) max=*outbl;
-	 *outptr=*outbuf;
-	 strncpy(*outbuf,*inbuf,max);
-	 (*outptr)+=max; (*inbuf)+=max;
-	 (*outbl)-=max; (*inbl)-=max;
-	 return 0;
-     }
      {
 	 long uch;
 	 flrn_char *sinbuf=*inbuf;
