@@ -311,10 +311,8 @@ int loop(char *opt) {
       if (Newsgroup_courant==NULL) /* Troisieme passe */
 	Newsgroup_courant=cherche_newsgroup(opt,0,0);
       if (Newsgroup_courant==NULL) {
-	Aff_error("Newsgroup non trouvé");
-	Screen_refresh();
-	sleep(2);
-	quit=1;
+      	etat_loop.etat=2; etat_loop.num_message=-8;
+        Article_deb=&Article_bidon;
       } else {
 	to_build=1;
 	etat_loop.hors_struct=0;
