@@ -79,6 +79,7 @@ extern char *fl_static_rev(const flrn_char *);
 extern flrn_char *fl_dynamic_tran(const char *, int *);
 extern char *fl_dynamic_rev(const flrn_char *, int *);
 #define fl_strspn(X,Y)	wcsspn((X),(Y))
+#define fl_strcspn(X,Y)	wcscspn((X),(Y))
 #define fl_snprintf(...)	swprintf(__VA_ARGS__)
 #define fl_memset(X,Y,Z)	wmemset((X),(Y),(Z))
 #define fl_strcspn(X,Y)		wcscspn((X),(Y))
@@ -120,6 +121,7 @@ extern char *fl_dynamic_rev(const flrn_char *, int *);
 #define fl_dynamic_tran(X,Y)	(X)
 #define fl_dynamic_rev(X,Y)	(X)
 #define fl_strspn(X,Y)	strspn((X),(Y))
+#define fl_strcspn(X,Y)	strcspn((X),(Y))
 #define fl_snprintf(...)	snprintf(__VA_ARGS__)
 #define fl_memset(X,Y,Z)	memset((X),(Y),(Z))
 #define fl_strcspn(X,Y)		strcspn((X),(Y))
