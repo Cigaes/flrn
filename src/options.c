@@ -470,11 +470,51 @@ int change_value(void *value, char **nom, int i, char *name, int len) {
 	All_options[num].name);
     return 0;
   }
-  if (All_options[num].type == OPT_TYPE_BOOLEAN) {
-    *All_options[num].value.integer = !(*All_options[num].value.integer);
-    changed=1;
-  } else {
-    strncpy(name,"   Impossible de changer cette option. Non implémenté.",len);
+  switch (All_options[num].type) {
+    case OPT_TYPE_BOOLEAN : 
+    	*All_options[num].value.integer = !(*All_options[num].value.integer);
+    	changed=1;
+	break;
+    case OPT_TYPE_INTEGER : {
+	int new_value, ret;
+	buf[0]='\0';
+	Cursor_gotorc(Screen_Rows-2,0);
+	Screen_erase_eol();
+	Screen_write_string("Nouvelle valeur: ");
+	ret=getline(buf,60,Screen_Rows-2,17);
+	if (ret!=0) break;
+	new_value=strtol(buf,NULL,10);
+	changed=(new_value!=*All_options[num].value.integer);
+	*All_options[num].value.integer=new_value;
+	break;
+	}
+    case OPT_TYPE_STRING : {
+	int ret;
+	buf[0]='\0';
+	Cursor_gotorc(Screen_Rows-2,0);
+	Screen_erase_eol();
+	Screen_write_string("Nouvelle valeur: ");
+	ret=getline(buf,60,Screen_Rows-2,17);
+	if (ret!=0) break;
+	if (*All_options[num].value.string) 
+	  changed=(strcmp(buf,*All_options[num].value.string)!=0);
+	else changed=(strlen(buf)!=0);
+	if (changed) {
+	   if (All_options[num].flags.allocated) 
+	   	free(*All_options[num].value.string);
+	   if (strlen(buf)!=0) {
+	     All_options[num].flags.allocated=1;
+	     *All_options[num].value.string=safe_strdup(buf);
+	   } else {
+	     All_options[num].flags.allocated=0;
+	     *All_options[num].value.string=NULL;
+	   }
+	}
+	break;
+	}
+    default : 
+    	strncpy
+	   (name,"   Impossible de changer cette option. Non implémenté.",len);
   }
   if (changed) {
     free(*nom);
