@@ -6,10 +6,6 @@
  * Ce code est soumis à la GNU General Public License
  */ 
 
-/* Attention, il faudra definir proprement Charset, et le renommer
- * Options.Charset... */
-
-static char Charset[]="iso-8859-1";
 
 #include "rfc2047.h"
 
@@ -20,6 +16,13 @@ static char Charset[]="iso-8859-1";
 #include "config.h"
 #include "flrn.h"
 
+#ifndef WITH_CHARACTER_SETS
+  static char Charset[]="iso-8859-1";
+#else
+  #include "rfc2045.h" 		/* defini terminal_charset */
+  const char *Charset;
+#endif
+  
 #define strfcpy(A,B,C) strncpy(A,B,C), *(A+(C)-1)=0
 #define hexval(c) Index_hex[(int)(c)]
 
@@ -73,6 +76,10 @@ static void q_encode_string (char *d, unsigned char *s, size_t len)
   char *wptr = d;
 
   if (!s) return;
+#ifdef WITH_CHARACTER_SETS
+  Charset=get_name_charset(terminal_charset);
+#endif
+
 #if HAVE_SNPRINTF
   snprintf (charset, sizeof (charset),
    "=?%s?Q?", strcasecmp ("us-ascii", Charset)==0 ?"unknown-8bit":Charset);
@@ -80,6 +87,7 @@ static void q_encode_string (char *d, unsigned char *s, size_t len)
   sprintf (charset,
    "=?%s?Q?", strcasecmp ("us-ascii", Charset)==0 ?"unknown-8bit":Charset);
 #endif
+
   cslen = strlen (charset);
 
   /*
@@ -153,6 +161,10 @@ static void b_encode_string (char *d, unsigned char *s, size_t len)
 
   if (!s) return;
 
+#ifdef WITH_CHARACTER_SETS
+  Charset=get_name_charset(terminal_charset);
+#endif
+
 #if HAVE_SNPRINTF
   snprintf (charset, sizeof (charset), "=?%s?B?", Charset);
 #else
@@ -208,6 +220,10 @@ void rfc2047_encode_string (char *d, unsigned char *s, size_t l)
   unsigned char *p = s;
   encode_t *encoder;
 
+#ifdef WITH_CHARACTER_SETS
+  Charset=get_name_charset(terminal_charset);
+#endif
+
   /* First check to see if there are any 8-bit characters */
   while (*p)
   {
@@ -242,7 +258,15 @@ static int rfc2047_decode_word (char *d, const char *s, size_t len)
   char *pp = p;
   char *pd = d;
   int enc = 0, filter = 0, count = 0, c1, c2, c3, c4;
+#ifdef WITH_CHARACTER_SETS
+  int crset=0;
+#endif
+
   if (!p) return -1;
+
+#ifdef WITH_CHARACTER_SETS
+  Charset=get_name_charset(terminal_charset);
+#endif
 
   while ((pp = strtok (pp, "?")) != NULL)
   {
@@ -250,8 +274,12 @@ static int rfc2047_decode_word (char *d, const char *s, size_t len)
     switch (count)
     {
       case 2:
-	if (strcasecmp (pp, Charset) != 0)
+	if (strcasecmp (pp, Charset) != 0) {
 	  filter = 1;
+#ifdef WITH_CHARACTER_SETS
+          crset=Parse_charset(pp);         
+#endif
+        }
 	break;
       case 3:
 	if (toupper (*pp) == 'Q')
@@ -327,12 +355,22 @@ static int rfc2047_decode_word (char *d, const char *s, size_t len)
   }
   if (filter)
   {
-    pd = d;
-    while (*pd)
+#ifdef WITH_CHARACTER_SETS
+    char *output;
+    int res;
+    if ((res=Decode_ligne_with_charset(d, &output, crset))!=0)
+#endif
     {
-      if (!IsPrint ((unsigned char) *pd))
-	*pd = '?';
-      pd++;
+      pd = d;
+      while (*pd)
+      {
+        if (!IsPrint ((unsigned char) *pd))
+	  *pd = '?';
+        pd++;
+      }
+#ifdef WITH_CHARACTER_SETS
+      if (res==1) free(output); /* TODO : voir si on peut mieux faire */
+#endif
     }
   }
   return (0);

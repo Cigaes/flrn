@@ -76,7 +76,7 @@ static struct UC_charset UCInfo[MAXCHARSETS];
 
 static int UCNumCharsets=0;
 static int default_charset=0;
-static int terminal_charset=-1;
+int terminal_charset=-1;
 static int message_charset=-1;
 
 #define UCT_ENC_7BIT 0
@@ -144,24 +144,28 @@ void UC_Charset_Setup(
     return;
 }
 
+/* parse juste une chaine charset... -1 -> pas réussi */
+int Parse_charset (char *buf) {
+    int i;
+    for (i = 0; i < UCNumCharsets; i++) {
+        if ((strcasecmp(UCInfo[i].MIMEname, buf)==0) ||
+	     (strcasecmp(UCInfo[i].FLRNname, buf)==0)) {
+	   return i;
+	}
+    }
+    return -1;
+}
 
 /* Parse une chaine d'option de CharSet et remvoie -1 si échec, 0 si
    vide, 1 sinon */
 int Parse_charset_line (char *charset_line) {
-    int i;
     char *buf=charset_line;
 
     terminal_charset=-1;
     if (charset_line==NULL) return 0;
     while ((*buf) && (isblank(*buf))) buf++;
     if (*buf=='\0') return 0;
-    for (i = 0; i < UCNumCharsets; i++) {
-        if ((strcasecmp(UCInfo[i].MIMEname, buf)==0) ||
-	     (strcasecmp(UCInfo[i].FLRNname, buf)==0)) {
-	   terminal_charset=i;
-	   return 1;
-	}
-    }
+    if ((terminal_charset=Parse_charset(buf))>=0) return 1;
     /* Échec */
     return -1;
 }
@@ -169,7 +173,7 @@ int Parse_charset_line (char *charset_line) {
 /* Parse une ligne Content-Type, renvoie -1, 0 ou 1, selon... */
 int Parse_ContentType_header (char *contenttype_line) {
     char *buf=contenttype_line, *buf2, sc='\0';
-    int i, found=0;
+    int found;
 
     message_charset=-1;
     if (terminal_charset==-1) return 0;
@@ -188,13 +192,7 @@ int Parse_ContentType_header (char *contenttype_line) {
     buf2=buf;
     while ((*buf2) && (!isblank(*buf2))) buf2++;
     sc=*buf2;
-    for (i = 0; i < UCNumCharsets; i++) {
-	if (strcasecmp(UCInfo[i].MIMEname, buf)==0) {
-           message_charset=i;
-	   found=1;
-           break;
-        }
-    }
+    found=((message_charset=Parse_charset(buf))>=0);
     if (found) {
 	if (message_charset==terminal_charset) return 0;
 	if (UCInfo[message_charset].enc==0) return 0;
@@ -203,33 +201,33 @@ int Parse_ContentType_header (char *contenttype_line) {
     return -1;
 }
 
-/* deoodage d'une ligne... renvoie une nouvelle ligne allouee et sa taille */
-/* si retour=1, ligne_lue=output */
-int Decode_ligne_message (char *ligne_lue, char **output) {
+/* décodage d'un bout de texte avec charset. retour=1 -> ligne_lue=output */
+int Decode_ligne_with_charset (char *ligne_lue, char **output, int chrset) {
     int size_needed=0, can_replace=1, count, i;
     u8 *bufread=(u8 *) ligne_lue;
     u16 uni_carac;
     unsigned char *bufwrite;
     int le_charset;
 
+    if (UCInfo[chrset].enc==0) return 0;
     /* TODO : s'occuper de l'utf-8 */
-    if (UCInfo[message_charset].enc>2) {
+    if (UCInfo[chrset].enc>2) {
         *output=ligne_lue;
 	return -1;
     }
     while (*bufread!='\0') {
-        if ((UCInfo[message_charset].unicount[*bufread]==0) ||
-            (*bufread<UCInfo[message_charset].lowest_eight)) {
+        if ((UCInfo[chrset].unicount[*bufread]==0) ||
+            (*bufread<UCInfo[chrset].lowest_eight)) {
 	    bufread++; /* on va le copier bêtement */
 	    size_needed++;
 	    continue;
 	}
 	count=0; i=0;
 	while (i<*bufread) {
-	   count+=UCInfo[message_charset].unicount[i];
+	   count+=UCInfo[chrset].unicount[i];
 	   i++;
 	}
-	uni_carac=UCInfo[message_charset].unitable[count];
+	uni_carac=UCInfo[chrset].unitable[count];
 	/* bon, on a le caractère unicode */
 	/* transcrivons-le en le bon truc */
 	/* on regarde s'il existe pas déjà */
@@ -285,8 +283,8 @@ int Decode_ligne_message (char *ligne_lue, char **output) {
     bufwrite=*output;
     bufread=(u8 *) ligne_lue;
     while (*bufread!='\0') {
-        if ((UCInfo[message_charset].unicount[*bufread]==0) ||
-            (*bufread<UCInfo[message_charset].lowest_eight)) {
+        if ((UCInfo[chrset].unicount[*bufread]==0) ||
+            (*bufread<UCInfo[chrset].lowest_eight)) {
 	    if ((u8 *)bufwrite!=bufread) *bufwrite=*bufread;
 	    bufread++;
 	    bufwrite++;
@@ -294,10 +292,10 @@ int Decode_ligne_message (char *ligne_lue, char **output) {
 	}
 	count=0; i=0;
 	while (i<*bufread) {
-	   count+=UCInfo[message_charset].unicount[i];
+	   count+=UCInfo[chrset].unicount[i];
 	   i++;
 	}
-	uni_carac=UCInfo[message_charset].unitable[count];
+	uni_carac=UCInfo[chrset].unitable[count];
 	/* bon, on a le caractère unicode */
 	/* transcrivons-le en le bon truc */
 	/* on regarde s'il existe pas déjà */
@@ -357,6 +355,16 @@ int Decode_ligne_message (char *ligne_lue, char **output) {
     }
     *bufwrite='\0';
     return (can_replace);
+}
+
+/* deoodage d'une ligne... renvoie une nouvelle ligne allouee et sa taille */
+/* si retour=1, ligne_lue=output */
+int Decode_ligne_message (char *ligne_lue, char **output) {
+    return Decode_ligne_with_charset (ligne_lue, output, message_charset);
+}
+
+const char *get_name_charset(int num) {
+    return UCInfo[num].MIMEname;
 }
 
 void init_charsets() {

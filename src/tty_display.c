@@ -1354,9 +1354,8 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file,
      if (buf[0]=='>') saved_field=FIELD_QUOTED; else saved_field=FIELD_NORMAL;
    }
    if (strcmp(buf,"-- ")==0) saved_field=FIELD_SIG;
-   une_ligne=safe_malloc(Screen_Cols+1); /* si on atteint le max, ce sera
-					    un blanc... */
-   une_belle_ligne=safe_malloc(sizeof(short)*(Screen_Cols+1));
+   une_ligne=safe_malloc(Screen_Cols+2);
+   une_belle_ligne=safe_malloc(sizeof(short)*(Screen_Cols+2));
    length=0;
    une_ligne[0]='\0';
    if (*buf=='\0') { 
