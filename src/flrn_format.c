@@ -21,6 +21,11 @@
 #include "flrn_slang.h"
 #include "flrn_shell.h"
 #include "getdate.h"
+/* langage SLang */
+#include "slang_flrn.h"
+#ifdef USE_SLANG_LANGUAGE
+#include <slang.h>
+#endif
 
 
 /* On ne parse plus la date ici, on utilise getdate.y (cf GNU date) */
@@ -523,21 +528,23 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 		    }
 	 case '{' : /* un header du message */
 	 case '`' : /* une commande à insérer */
+	 case '[' : /* une commande de script */
+	    /* ces trois cas devraient être unifiés */
 	            if (*buf=='{')
 	            { buf++;
 		      ptr_att=strchr(buf,'}'); 
 		      if (ptr_att) {
 		         /* on suppose le header connu */
-		         int n,len;
+		         int n,len3;
 			 char *str;
 		         *ptr_att='\0';
-			 len=strlen(buf);
+			 len3=strlen(buf);
 			 ptr_att++;
 			 if (article==NULL) break;
 			 for (n=0;n<NB_KNOWN_HEADERS;n++) {
-			    if ((len!=Headers[n].header_len) &&
-			        (len!=Headers[n].header_len-1)) continue;
-			    if (strncasecmp(buf,Headers[n].header,len)!=0)
+			    if ((len3!=Headers[n].header_len) &&
+			        (len3!=Headers[n].header_len-1)) continue;
+			    if (strncasecmp(buf,Headers[n].header,len3)!=0)
 			      continue;
 		            str=article->headers->k_headers[n];	
 			    if (str) {
@@ -553,8 +560,8 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 			 }
 		         break;
 	  	      } else ptr_att=buf; /* -> default */
-		   } else
-	 	   { buf++;
+		   } else if (*buf=='`')
+	 	   {  buf++;
 		      ptr_att=strchr(buf,'`');
 		      if (ptr_att) {
 		        /* TODO : deplacer ca et unifier */
@@ -586,6 +593,32 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 			}
 			break;
 		      } 
+		      ptr_att=buf; /* -> default */
+		   } else {
+		      buf++;
+		      ptr_att=strchr(buf,']');
+		      if (ptr_att) {
+		         char *str=NULL, *str1;
+#ifdef USE_SLANG_LANGUAGE
+			 *ptr_att='\0';
+			 source_SLang_string(buf, &str);
+			 *ptr_att=']';
+			 ptr_att++;
+			 if (str!=NULL) {
+			    *ptr_att=']';
+			    str1=safe_strdup(str);
+			    SLang_free_slstring(str);
+			    str=str1;
+                            if (tmp_file) copy_bout(tmp_file,str); else
+                            { strncat(result,str,len2); len2-=strlen(str); if
+	                       (len2<=0) { result[len]=0; free(str);
+			             free(att); return; } else 
+			      result[len-len2]=0; }
+			    free(str);
+			 }
+			 break;
+#endif
+	              }
 		      ptr_att=buf; /* -> default */
 		   }
          default : { char *str=safe_malloc(3);

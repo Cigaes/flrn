@@ -46,7 +46,7 @@ struct Option_struct Options = {
   0,			/* duplicate_subject */
   1,			/* use_mailbox */
   1,			/* ordered_summary */
-  0,			/* threaded_space */
+  1,			/* threaded_space */
 #ifndef NO_INTERN_EDITOR
   0,			/* auto_edit */
 #endif

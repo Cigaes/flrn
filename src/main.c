@@ -35,6 +35,9 @@
 #ifdef WITH_CHARACTER_SETS
 #include "rfc2045.h"
 #endif
+/* les langages. Les #iddef sont directement dans les fichiers inclus */
+#include "slang_flrn.h"
+
 
 extern int with_direc;
 int debug;
@@ -123,6 +126,11 @@ int main(int argc, char *argv[])
 #endif
 #ifdef WITH_CHARACTER_SETS
   init_charsets ();
+#endif
+#ifdef USE_SLANG_LANGUAGE
+  if (flrn_init_SLang()<0) {
+     fprintf(stdout, "Erreur dans l'initialisation du langage SLang.\nImpossible d'utiliser le langage.\n");
+  }
 #endif
   init_Flcmd_rev();
   init_Flcmd_pager_rev();
