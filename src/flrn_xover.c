@@ -134,7 +134,11 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin, 
          num=0;
 	 buf=tcp_line_read;
 	 buf2=strchr(buf,'\t');
-	 if (!buf2) { return -1; }
+	 if (!buf2) { /* il y a un bug dans l'overview, mais on continue 
+			 en espérant que... */
+              res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+	      if (res<0) return -1;
+              continue; }
 	 *buf2='\0';
          creation = safe_calloc (1,sizeof(Article_List));
 	 creation->numero=strtol(buf,NULL,10);
@@ -483,10 +487,22 @@ int cree_liste(int art_num, int *part) {
      *part=1;
    }
    Date_groupe = time(NULL)+Date_offset;
-   if (overview_usable)
-     res=cree_liste_xover(min,max,NULL,&newmin,&newmax);
-   else
-     res=cree_liste_noxover(min,max,NULL,&newmin,&newmax);
+   res=0;
+   while (1) {
+     if (overview_usable)
+       res=cree_liste_xover(min,max,NULL,&newmin,&newmax);
+     else
+       res=cree_liste_noxover(min,max,NULL,&newmin,&newmax);
+     if ((res!=0) || (*part==0)) break;
+     /* on a trouvé aucun groupe , mais on n'a pas tout fait , alors
+      * on recommence jusqu'à... */
+     art_num -= 100;
+     if (art_num<=Newsgroup_courant->min) {
+	   art_num=Newsgroup_courant->min;
+           *part=0;
+     }
+     min=art_num;
+   } 
 
    if (res<=0) return res;
    Article_exte_deb=NULL;

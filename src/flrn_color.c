@@ -339,7 +339,7 @@ int raw_Aff_color_line(int to_print, unsigned short *format_line,
   int high_allocated=0;
 
   if (high==NULL) {
-    high=safe_malloc(sizeof(int)*3*len);
+    high=safe_malloc(sizeof(int)*3*(len+1));
     *high=-1;
     high_allocated=1;
   }

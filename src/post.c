@@ -112,8 +112,8 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
          fputs(Header_post->k_header[NEWSGROUPS_HEADER],tmp_file);
       putc('\n',tmp_file);
       fputs("Sujet: ",tmp_file);
-      if (Header_post->k_header[SUBJECT_HEADER]);
-         fputs(Header_post->k_header[SUBJECT_HEADER],tmp_file);
+      if (Header_post->k_header[SUBJECT_HEADER])
+	 fputs(Header_post->k_header[SUBJECT_HEADER],tmp_file);
       putc('\n',tmp_file);
       liste=Header_post->autres;
       while (liste) {
@@ -1493,14 +1493,18 @@ static int Get_base_headers(int flag, Article_List *article) {
    }
    /* Newsgroups */
    if (Header_post->k_header[NEWSGROUPS_HEADER]==NULL) {
+	 if  (
 #ifndef GNKSA_NEWSGROUPS_HEADER
-	 if (!supersedes) {
+	     (!supersedes) ||
+#endif
+	     (!Pere_post) ||
+	         (!(Pere_post->headers->k_headers[NEWSGROUPS_HEADER])))
+         {
 	    if (Newsgroup_courant->flags & GROUP_READONLY_FLAG) 
 	        Header_post->k_header[NEWSGROUPS_HEADER]=safe_strdup("junk");
 	    else
 	 	Header_post->k_header[NEWSGROUPS_HEADER]=safe_strdup(Newsgroup_courant->name);
 	 } else
-#endif
 	    Header_post->k_header[NEWSGROUPS_HEADER]=safe_strdup(Pere_post->headers->k_headers[NEWSGROUPS_HEADER]);
    }
    /* Headers To: et In-Reply-To: */
@@ -1687,14 +1691,20 @@ int post_message (Article_List *origine, char *name_file,int flag) {
       res=get_Body_post();
       Screen_set_screen_start(NULL,NULL);
     }
-    if (!Header_post->k_header[SUBJECT_HEADER]) res=0;
-    if (res<=0) {
+#ifdef GNKSA_ANALYSE_POSTS
+    if (!Header_post->k_header[SUBJECT_HEADER]) {
+      Save_failed_article();
+      Cursor_gotorc(1,0);
+      Screen_erase_eos();
       Screen_set_color(FIELD_ERROR);
       Cursor_gotorc(Screen_Rows/2-1,3); /* Valeurs au pif */
-      if (res<0) Screen_write_string("Post annulé."); else
-	Screen_write_string("Post ou sujet vide...");
-      Screen_set_color(FIELD_NORMAL);
+      Screen_write_string("Ce message n'a pas de sujet. Post annulé.");
+      Cursor_gotorc(Screen_Rows/2,3);
+      Screen_write_string("Message sauvé dans ~/");
+      Screen_write_string(TMP_REJECT_POST_FILE);
+      res=-1;
     }
+#endif
     if (res<=0) { Free_post_headers(); Libere_listes(); return res; }
 /* On n'encode que le sujet... C'est pas bo de toute façon */
     if (Header_post->k_header[SUBJECT_HEADER])
@@ -1714,7 +1724,8 @@ int post_message (Article_List *origine, char *name_file,int flag) {
       Screen_erase_eos();
       Screen_set_color(FIELD_ERROR);
       Cursor_gotorc(Screen_Rows/2-1,3); /* Valeurs au pif */
-      Screen_write_string("Post refusé... L'article est sauvé dans ~/dead.article");
+      Screen_write_string("Post refusé... L'article est sauvé dans ~/");
+      Screen_write_string(TMP_REJECT_POST_FILE);
       Cursor_gotorc(Screen_Rows/2,3);
       Screen_write_string("Raison du refus : ");
       switch (res_post) {

@@ -72,7 +72,7 @@
 /* #undef GNKSA_REWRAP_TEXT */
 
 /* Cette option active les autres :-) */
-#undef USE_GNKSA
+/* #undef USE_GNKSA */
 #ifdef USE_GNKSA
   #define GNKSA_DISPLAY_HEADERS
   #define GNKSA_STANDARD_COMMANDS
@@ -127,7 +127,7 @@
 
 /* Options de lancement de sendmail (le lieu où trouver sendmail est 
    défini via configure dans config.h */
-#define MAILER_CMD SENDMAIL " -U -t"
+#define MAILER_CMD SENDMAIL " -t"
 
 
 /* -- ne rien modifier ensuite, normalement -- */
