@@ -877,7 +877,7 @@ int Liste_groupe (int flags, flrn_char *mat, Newsgroup_List **retour) {
 /* on renvoie la colonne atteinte...					*/
 int Aff_arbre (int row, int col, Article_List *init,
     		int to_left, int to_right, int height,
-		unsigned short **table, int add_to_scroll) {
+		Colored_Char_Type **table, int add_to_scroll) {
   Article_List *parcours=init, *parcours2, *parcours3;
   int up,down, act_right, act_right_deb, act_right_temp, left, right, initcol;
   int row_deb=row; /* juste pour l'affichage */

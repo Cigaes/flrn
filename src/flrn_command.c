@@ -632,6 +632,7 @@ int save_command (Cmd_return *la_commande) {
    }
    la_commande->len_desc=0;
    free (la_commande->description);
+   return 0;
 }
    
 int get_command(struct key_entry *key_depart, int princip, int second, 

@@ -905,12 +905,12 @@ int isolate_non_critical_element (flrn_char *s, flrn_char *f,
     if (tl=l) 
 	while ((*(tl+1)!=L'\0') && (iswalnum(*tl))) tl++;
 #else
-#define fl_isalnum(X)	((((X)>='A') && ((X)<='Z')) || (((X)>='a') && ((X)<='z')) || (((X)>='0') && ((X)<='9')))
-    while ((f!=s) && (fl_isalnum(*(f-1)))) f--;
+#define fl_isalnum2(X)	((((X)>='A') && ((X)<='Z')) || (((X)>='a') && ((X)<='z')) || (((X)>='0') && ((X)<='9')))
+    while ((f!=s) && (fl_isalnum2(*(f-1)))) f--;
     while ((tl!=l) && (*(tl+1)!='<') && (*(tl+1)!=')')) tl++;
     while ((tl!=f) && (*tl==' ')) tl--;
     if (tl==l) 
-	while ((*(tl+1)!='\0') && (fl_isalnum(*tl))) tl++;
+	while ((*(tl+1)!='\0') && (fl_isalnum2(*tl))) tl++;
 #endif
     *rf=f;
     *rl=tl;

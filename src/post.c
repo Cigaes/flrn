@@ -45,12 +45,16 @@ extern char short_version_string[];
 struct post_lecture {
     struct post_lecture *suivant;
     char *ligne;
+    int cas_mail; /* 0 : normal   1 : poster seulement
+		   * 2 : mailer seulement  3 : poster normal, mailer+2
+		   * 4 : mailer normal, poster+2 */
 };
 
 struct post_lecture *Deb_article;
 Lecture_List *Deb_body;
 Article_List *Pere_post;
 int par_mail, supersedes;
+/* par_mail = 0 : juste les groupes. =1 : juste par mail. =2 : poste aussi */
 int in_moderated_group;
 
 Post_Headers *Header_post;
@@ -116,8 +120,9 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
 	    fputs(Header_post->k_raw_header[i-NB_DECODED_HEADERS],tmp_file);
 	putc('\n',tmp_file);
       }
-      liste=Header_post->autres;
-      while (liste) {
+      for (liste=Header_post->autres;liste;liste=liste->next) {
+	 if ((!par_mail) && (fl_strncasecmp(liste->header_head,
+			 fl_static("In-Reply-To:"),12)==0)) continue;
 	 rc=conversion_to_editor(liste->header_head,&trad,
 		 0,(size_t)(-1));
 	 fputs(trad,tmp_file);
@@ -128,7 +133,6 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
 	 fputs(trad,tmp_file);
 	 if (rc==0) free(trad);
 	 putc('\n',tmp_file);
-	 liste=liste->next;
       }
    } else {
        /* FIXME : français */
@@ -222,7 +226,7 @@ int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
    char *buf2, *buf3;
    char *hcur=NULL;
    flrn_char **header_courant=NULL;
-   int header_connu=0;
+   int header_connu=-1;
    int taille;
    int raw_head=0;
    Lecture_List *lecture_courant;
@@ -245,10 +249,14 @@ int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
 	         if (hcur) {
 		    rc=conversion_from_editor(hcur,&trad,0,(size_t)(-1));
 		    *header_courant=trad;
+		    if ((par_mail==0) && 
+		        ((header_connu==TO_HEADER) || (header_connu==CC_HEADER)
+			 || (header_connu==BCC_HEADER)))
+			par_mail=2;
 		    if (rc==0) free(hcur);
 		    hcur=NULL;
 	         } else {
-		    if (header_connu==0) {
+		    if (header_connu==-1) {
 		       liste=(*unk_header_courant)->next;
 		       free((*unk_header_courant)->header_head);
 		       free(*unk_header_courant);
@@ -281,7 +289,6 @@ int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
            buf2=strchr(buf,':');
 	   buf3=strpbrk(buf, " \t");
 	   if ((buf2==NULL) || ((buf3) && (buf3-buf2<0))) headers=0; else {
-	      header_connu=1;
 	      for (i=0; i<NB_KNOWN_HEADERS; i++) 
 	        if (strncasecmp(buf,Headers[i].header,Headers[i].header_len)==0)
 		{
@@ -293,17 +300,21 @@ int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
 		  }
 		  break;
 		}
+	      header_connu=i;
               if (i==NB_KNOWN_HEADERS) {
 		  /* FIXME : francais */
 	         if ((strncasecmp(buf,"sujet:", 6)==0) && 
-		     !Options.edit_all_headers)
+		     !Options.edit_all_headers) {
 		    header_courant=&(Header_post->k_header[SUBJECT_HEADER]); 
+		    header_connu=SUBJECT_HEADER;
+		 }
 		 /* FIXME : français */
 		 else if ((strncasecmp(buf,"groupes:", 8)==0) && 
-		     !Options.edit_all_headers)
+		     !Options.edit_all_headers) {
 		    header_courant=&(Header_post->k_header[NEWSGROUPS_HEADER]); 
-		 else {
-		   header_connu=0;
+		    header_connu=NEWSGROUPS_HEADER;
+		 } else {
+		   header_connu=-1;
 		   taille=buf2+1-buf;
 		   rc=conversion_from_editor(buf,&trad,0,taille);
                    liste=Header_post->autres;
@@ -1072,6 +1083,8 @@ static int Format_headers() {
        Header_post->k_header[j]=flb3;
     }
   }
+  if (par_mail==1) return 0; /* on ne teste pas le fu2 si il n'y a pas
+				de post */
   /* Test du newsgroups */
   flb1=Header_post->k_header[NEWSGROUPS_HEADER];
   nb_groups=0;
@@ -1175,13 +1188,25 @@ static int Format_article(char *to_cancel) {
 	  int crit, rc;
 	  char *trad;
 	  size_t len;
+	  if ((i==TO_HEADER) || (i==CC_HEADER) || (i==BCC_HEADER)) {
+	      if (par_mail==0) continue;
+	      if (par_mail==2) 
+		  ecriture_courant->cas_mail=(i==BCC_HEADER ? 2 : 3);
+	  }
+	  if (((i==NEWSGROUPS_HEADER) || (i==FOLLOWUP_TO_HEADER)) && 
+		  (par_mail))
+	      ecriture_courant->cas_mail=4;
 	  /* FIXME : nombre absurde */
-	  len=Headers[i].header_len+140+
+	  len=Headers[i].header_len+145+
 	      fl_strlen(Header_post->k_header[i])*2; 
 	  ecriture_courant->ligne=safe_malloc(len+1);
-	  strcpy(ecriture_courant->ligne,Headers[i].header);
+	  if (ecriture_courant->cas_mail>2) 
+	      strcpy(ecriture_courant->ligne,"X-");
+	  else (ecriture_courant->ligne)[0]='\0';
+	  strcat(ecriture_courant->ligne,Headers[i].header);
 	  strcat(ecriture_courant->ligne," ");
-	  trad=ecriture_courant->ligne+Headers[i].header_len+1;
+	  trad=ecriture_courant->ligne+Headers[i].header_len+1+
+	      (ecriture_courant->cas_mail>2 ? 2 : 0);
 	  len-=Headers[i].header_len+1;
 	  if (i<NB_UTF8_HEADERS) {
 	      rc=conversion_to_utf8(Header_post->k_header[i],
@@ -1202,11 +1227,16 @@ static int Format_article(char *to_cancel) {
    for (i=0; i<NB_RAW_HEADERS; i++) 
       if (Header_post->k_raw_header[i]) {
 	  size_t len;
-	  len=Headers[i+NB_DECODED_HEADERS].header_len+5+
+	  if (i==REFERENCES_HEADER) {
+	      if (par_mail==1) continue;
+	      if (par_mail==2) ecriture_courant->cas_mail=4;
+	  }
+	  len=Headers[i+NB_DECODED_HEADERS].header_len+8+
 	      strlen(Header_post->k_raw_header[i]);
 	  ecriture_courant->ligne=safe_malloc(len+1);
 	  snprintf(ecriture_courant->ligne,len+1,
-		  "%s %s\r\n",Headers[i+NB_DECODED_HEADERS].header,
+		  "%s%s %s\r\n",(ecriture_courant->cas_mail>2 ? "X-" : ""),
+		  Headers[i+NB_DECODED_HEADERS].header,
 		  Header_post->k_raw_header[i]);
 	  ecriture_courant->suivant=safe_calloc(1,sizeof(struct post_lecture));
 	  ecriture_courant=ecriture_courant->suivant;
@@ -1228,11 +1258,19 @@ static int Format_article(char *to_cancel) {
 	  }
       				/* pas abuser non plus */
 #endif
+	  if (fl_strncasecmp(liste->header_head,
+		      fl_static("In-Reply-To:"),12)==0) {
+	      if (par_mail==0) { liste=liste->next; continue; }
+	      if (par_mail==2) ecriture_courant->cas_mail=3;
+	  }
 	  /* FIXME: nombre absurde */
-	  len=fl_strlen(liste->header_head)*2+140+
+	  len=fl_strlen(liste->header_head)*2+145+
 	      fl_strlen(liste->header_body)*2;
 	  ecriture_courant->ligne=safe_malloc(len+1);
-	  trad=ecriture_courant->ligne;
+	  if (ecriture_courant->cas_mail>2) {
+	      strcpy(ecriture_courant->ligne,"X-");
+	      trad=ecriture_courant->ligne+2;
+	  } else trad=ecriture_courant->ligne;
 	  rc=conversion_to_utf8(liste->header_head,
 		  &trad, len-6, (size_t)(-1));
 	  {
@@ -1377,7 +1415,9 @@ static void Save_failed_article() {
     if (tmp_file==NULL) return;
     lecture_courant=Deb_article;
     while (lecture_courant) {
-	fputs(lecture_courant->ligne,tmp_file);
+	if (lecture_courant->cas_mail!=2) 
+	    fputs(lecture_courant->ligne+
+		    2*(lecture_courant->cas_mail==4),tmp_file);
 	lecture_courant=lecture_courant->suivant;
     }
     fclose(tmp_file);
@@ -1391,15 +1431,22 @@ static int Mail_article() {
    int fd, res;
    size_t len;
    char name[MAX_PATH_LEN];
+   char *bla;
 
    fd=Pipe_Msg_Start (1,0,MAILER_CMD,name); 
    	/* pas de stdout : sendmail envoie tout */
    	/* par mail...				*/
    if (fd==-1) return -1;
    do {
-     len=strlen(a_ecrire->ligne);
-       /* TODO : reformater certains headers */
-     res=write(fd,a_ecrire->ligne,len);
+     if (a_ecrire->cas_mail==1) {
+	 a_ecrire=a_ecrire->suivant;
+	 if (a_ecrire==NULL) break;
+	 continue;
+     } else if (a_ecrire->cas_mail==3) {
+	 bla=a_ecrire->ligne+2;
+     } else bla=a_ecrire->ligne;
+     len=strlen(bla);
+     res=write(fd,bla,len);
      if (res!=len) return -1;
      a_ecrire=a_ecrire->suivant;
    } while (a_ecrire);
@@ -1430,7 +1477,7 @@ static int Post_article() {
     struct post_lecture  *a_ecrire=Deb_article;
     int res;
     size_t len;
-    char *buf;
+    char *buf,*bla;
     
     Screen_set_color(FIELD_NORMAL);
     res=write_command(CMD_POST, 0, NULL);
@@ -1440,8 +1487,15 @@ static int Post_article() {
     if ((res<0) || (res>400)) return ((res<0) || (res>499) ? -1 : -2);
     
     do {
-       len=strlen(a_ecrire->ligne);
-       res=raw_write_server(a_ecrire->ligne, len);
+       if (a_ecrire->cas_mail==2) {
+	   a_ecrire=a_ecrire->suivant;
+	   if (a_ecrire==NULL) break;
+	   continue;
+       } else if (a_ecrire->cas_mail==4) {
+	   bla=a_ecrire->ligne+2;
+       } else bla=a_ecrire->ligne;
+       len=strlen(bla);
+       res=raw_write_server(bla, len);
        if (res!=len) return -1; /* on laisse tomber de toute facon */
        a_ecrire=a_ecrire->suivant;
     } while (a_ecrire);
@@ -1831,7 +1885,7 @@ static int Get_base_headers(int flag, Article_List *article) {
    /* Headers To: et In-Reply-To: */
    Cursor_gotorc(1,0);
    Screen_erase_eos();
-   if (par_mail) {   /* Ceci suppose que Pere_post soit défini */
+   if (Pere_post) { /* on crée un header REPLY_TO de toute façon */
      int rc;
      char *trad;
      Header_List *parcours2=Header_post->autres;
@@ -2140,10 +2194,10 @@ int post_message (Article_List *origine, flrn_char *name_file,int flag) {
     res=Format_article((supersedes ? origine->msgid : NULL));
     if (res<0) { Save_failed_initial_article();
 	Free_post_headers(); Libere_listes(); return 0; }
-    if (Header_post->k_header[TO_HEADER] ||
+    if ((par_mail) && ((Header_post->k_header[TO_HEADER] ||
 	Header_post->k_header[CC_HEADER] ||
-	Header_post->k_header[BCC_HEADER]) res_mail=Mail_article();
-    if ((!par_mail) && (Header_post->k_header[NEWSGROUPS_HEADER])) 
+	Header_post->k_header[BCC_HEADER]))) res_mail=Mail_article();
+    if ((par_mail!=1) && (Header_post->k_header[NEWSGROUPS_HEADER])) 
          res_post=Post_article(); 
 	 /* Si on ne veut pas répondre par mail, on ne répond pas par mail...*/
     if ((res_post<0) || (res_mail<0)) Save_failed_article();
