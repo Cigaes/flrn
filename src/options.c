@@ -20,6 +20,8 @@ static char *delim = "=: \t\n";
 
 Known_Headers unknown_Headers[MAX_HEADER_LIST];
 
+static void free_string_list_type (string_list_type *s_l_t);
+
 
 void var_comp(char *var, int len)
 {
@@ -300,7 +302,7 @@ void parse_options_line (char *ligne, int flag)
   } else
   if (strcmp(buf,OPT_MY_HEADER)==0) {
     char *buf2;
-    user_hdr_type *parcours, *parcours2;
+    string_list_type *parcours, *parcours2;
     int len;
 
     buf=strtok(NULL,"\n");
@@ -339,7 +341,7 @@ void parse_options_line (char *ligne, int flag)
 	strcpy(parcours->str+len+1,buf2);
       }
     } else if (*buf2!='\0') {
-      parcours=safe_malloc(sizeof(user_hdr_type));
+      parcours=safe_malloc(sizeof(string_list_type));
       parcours->str=safe_malloc(len+strlen(buf2)+2);
       strncpy(parcours->str,buf,len);
       (parcours->str)[len]=' ';
@@ -348,6 +350,26 @@ void parse_options_line (char *ligne, int flag)
       if (parcours2) parcours2->next=parcours; else
         Options.user_header=parcours;
     }
+    return;
+  } else
+  if (strcmp(buf,OPT_MY_FLAGS)==0) {
+    string_list_type *parcours, *parcours2;
+
+    buf=strtok(NULL,"\n");
+    if (buf==NULL) return;
+    if (strncasecmp(buf,"clear",5)==0) {
+      free_string_list_type(Options.user_flags);
+      Options.user_flags=NULL;
+      return;
+    }
+    parcours2=Options.user_flags;
+    while (parcours2 && (parcours2->next)) 
+      parcours2=parcours2->next;
+    parcours=safe_malloc(sizeof(string_list_type));
+    parcours->str=safe_strdup(buf);
+    parcours->next=NULL;
+    if (parcours2) parcours2->next=parcours; else
+        Options.user_flags=parcours;
     return;
   } else
   if (strcmp(buf,OPT_HEADER)==0) {
@@ -458,7 +480,7 @@ static char *print_option(int i, char *buf, int buflen) {
 void dump_variables(FILE *file) {
   int i;
   char buf[80];
-  user_hdr_type *parcours;
+  string_list_type *parcours;
   fprintf(file,"# Variables :\n");
   for (i=0; i< NUM_OPTIONS; i++){
     fprintf(file,"set %s",print_option(i,buf,80));
@@ -503,7 +525,7 @@ void print_header_name(FILE *file, int i) {
 void dump_flrnrc(FILE *file) {
   int i;
   char buf[80];
-  user_hdr_type *parcours;
+  string_list_type *parcours;
   fprintf(file,"# Variables, modifiables avec set :\n\n");
   for (i=0; i< NUM_OPTIONS; i++){
     if (!All_options[i].flags.modified) continue;
@@ -656,18 +678,25 @@ void init_options() {
 /* ne sert a rien, mais bon */
 void free_options() {
   int i;
-  user_hdr_type *parcours, *parcours2;
   for (i=0; i< NUM_OPTIONS; i++)
     if (All_options[i].flags.allocated) {
       free(*All_options[i].value.string);
       All_options[i].flags.allocated=0;
       *All_options[i].value.string=NULL;
     }
-  parcours=Options.user_header;
+  free_string_list_type(Options.user_header);
+  free_string_list_type(Options.user_flags);
+}
+
+void free_string_list_type (string_list_type *s_l_t) {
+  string_list_type *parcours, *parcours2;
+
+  if (s_l_t==NULL) return;
+  parcours=s_l_t;
   while (parcours) {
     parcours2=parcours->next;
     free(parcours->str);
     free(parcours);
     parcours=parcours2;
   }
-}
+}  

@@ -842,7 +842,7 @@ static char *extract_post_references (char *str, int len_id) {
 static int Get_base_headers(int flag) {
    int res, len1, len2=0, len3, key, i;
    char *real_name, *buf;
-   user_hdr_type *parcours;
+   string_list_type *parcours;
 
    Header_post=safe_calloc(1,sizeof(Post_Headers));
    memset(Header_post,0,sizeof(Post_Headers));

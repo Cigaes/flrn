@@ -69,6 +69,7 @@ Il y a six commandes :
 .B regcolor
 .B header
 .B my_hdr
+.B my_flags
 .B bind
 
 Les commandes peuvent maintenant etre prefixees par name <nom> pour n'etre
@@ -121,6 +122,14 @@ other.
 
 .IP "\fBmy_hdr <nom_du_header>: <chaine>\fR"
 Donne une ligne de header à rajouter dans tous les posts fait par flrn.
+
+.IP "\fBmy_flags <caractère> <filtre>\fR"
+.IP "\fBmy_flags clear\fR"
+Dans le premier cas, rajoute le caractère \fI<caractère>\fR devant
+le champ Sujet d'un message qui passe le filtre, celui-ci étant soit
+un drapeau (read, unread, killed, unkilled, ...), soit la combinaison
+d'un nom de header et d'une expression régulière.
+Dans le second cas, supprime tous les \fImy_flags\fR lus jusqu'à présent.
 
 .IP "\fBbind <touche> <commande> [<arguments>]\fR"
 Permet de changer la fonction d'une touche.

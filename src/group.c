@@ -535,7 +535,7 @@ int cherche_newnews() {
 /* returne -1 en cas d'erreur de lecture.              */
 /*         -2 si le newsgroup n'existe pas (glup !)    */
 int NoArt_non_lus(Newsgroup_List *group) {
-   int i, res, code, non_lus;
+   int i, res, code, non_lus, max, min;
    Range_List *actuel;
    char *buf;
 
@@ -557,8 +557,14 @@ int NoArt_non_lus(Newsgroup_List *group) {
    }
    /* Normalement, une ligne de lecture suffit amplement */
    buf=strchr(tcp_line_read,' ');
-   group->max=strtol(buf,&buf,0);
-   group->min=strtol(buf,&buf,0);
+   /* SURTOUT ne pas changer group->max et group->min si le groupe est déjà */
+   /* connu : ça fait planter les changement de groupes qui suivent...	    */
+   max=strtol(buf,&buf,0);
+   min=strtol(buf,&buf,0);
+   if (group->Article_deb==NULL) {
+     group->max=max;
+     group->min=min;
+   }
    while (*buf && (isblank(*buf))) buf++;
 /* TODO : améliorer ce test */
    switch (*buf) {
@@ -571,14 +577,14 @@ int NoArt_non_lus(Newsgroup_List *group) {
    group->flags |= GROUP_READONLY_TESTED;
    discard_server(); /* Si il y a plusieurs newsgroups, BEURK */
    
-   non_lus=group->max-group->min+1;
+   non_lus=max-min+1;
    if (group->max==0) { return 0; /* le groupe est vide */
    }
    actuel=group->read;
    while (actuel) { 
       for (i=0; i<RANGE_TABLE_SIZE; i++) {
-	  if (actuel->max[i]<group->min) continue;
-	  if (actuel->min[i]<group->min) non_lus-=actuel->max[i]-group->min+1;
+	  if (actuel->max[i]<min) continue;
+	  if (actuel->min[i]<min) non_lus-=actuel->max[i]-min+1;
 	     else non_lus-=actuel->max[i]-actuel->min[i]+1;
       }
       actuel=actuel->next;

@@ -132,6 +132,6 @@ int main(int argc, char *argv[])
 #ifdef CHECK_MAIL
   if (getenv("MAIL")==NULL) free(mailbox);
 #endif
-  fprintf(stdout,"That's all folks !\n");
+  if (!opt_c) fprintf(stdout,"That's all folks !\n");
   return 0;
 }

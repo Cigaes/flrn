@@ -23,6 +23,9 @@
 #define OPT_MY_HEADER "my_hdr"
 #define OPT_MY_HEADER_LEN 6
 
+#define OPT_MY_FLAGS "my_flags"
+#define OPT_MY_FLAGS_LEN 8
+
 #define OPT_SET_COLOR "color"
 #define OPT_SET_COLOR_LEN 5
 
@@ -46,7 +49,7 @@ extern Known_Headers unknown_Headers[MAX_HEADER_LIST];
 typedef struct string_list {
   char *str;
   struct string_list *next;
-} user_hdr_type;
+} string_list_type;
 
 
 struct Option_struct {
@@ -57,7 +60,8 @@ struct Option_struct {
   int  header_list[MAX_HEADER_LIST];     /* ordre des headers  */
   int  weak_header_list[MAX_HEADER_LIST]; /* headers "faibles" */
   int  hidden_header_list[MAX_HEADER_LIST]; /* headers a cacher */
-  user_hdr_type *user_header;
+  string_list_type *user_header;
+  string_list_type *user_flags;
   int  headers_scroll;
   int  skip_line;                /* nombre de lignes avant le header */
   int  color;

@@ -672,6 +672,39 @@ static int Aff_header (int flag, int with_arbre, int row, int col, char *str,
       /* Si flag!=0, on n'est pas arrive en fin de ligne */
 }
 
+/* Utilise Options.user_flags pour faire des flags immonde */
+/* Pour l'instant, on fait seulement les Known_headers */
+static char *Recupere_user_flags (Article_List *article) {
+   char *str, flag, *buf;
+   int size=0;
+   flrn_filter *filt;
+   string_list_type *parcours=Options.user_flags;
+
+   while (parcours) {
+     size++;
+     parcours=parcours->next;
+   }
+   if (size==0) return NULL;
+   str=safe_malloc(size+1);
+   size=0;
+   filt=new_filter();
+   parcours=Options.user_flags;
+   while (parcours) {
+     memset(filt,0,sizeof(flrn_filter));
+     filt->action.flag=FLAG_ACTION;
+     buf=parcours->str;
+     parcours=parcours->next;
+     flag=*(buf++);
+     while ((*buf) && (isblank(*buf))) buf++;
+     if (parse_filter_flags(buf,filt)) 
+       parse_filter(buf,filt);
+     if (!check_article(article,filt,0)) str[size++]=flag;
+   }
+   free_filter(filt);
+   if (size==0) free(str); else str[size]='\0';
+   return (size==0 ? NULL : str);
+}
+
 /* Affichage des headers... Le parametre flag vaut 1 si c'est la suite d'un */
 /* message 								    */
 /* Un truc bien est maintenant d'ajouter éventuellement au scrolling les    */
@@ -681,7 +714,7 @@ int Aff_headers (int flag) {
    int index=0, row, col, i, j, i0, length;
    char buf[15];
    Header_List *tmp=Last_head_cmd.headers;
-   char *une_ligne=NULL;
+   char *une_ligne=NULL, *flags_header;
    unsigned short *une_belle_ligne=NULL;
    int flags[NB_KNOWN_HEADERS];
    int with_arbre;
@@ -813,14 +846,15 @@ int Aff_headers (int flag) {
 	   col=0;
 	   if (flag) { Screen_write_string("(suite) "); col+=8; }
 	      /* pas besoin d'allouer : add_to_scroll =0  dans Aff_header */
-           if (Article_courant->flag& FLAG_READ) { 
-	  	Screen_write_char('-'); 
-		col++; 
+	   if ((flags_header=Recupere_user_flags(Article_courant))) {
+	  	Screen_write_string(flags_header); 
+		col+=strlen(flags_header); 
 		if (!flag) {
-		  une_belle_ligne=cree_chaine_mono("-",FIELD_HEADER,-1);
-		  Ajoute_color_Line(une_belle_ligne,1,Screen_Cols);
+		  une_belle_ligne=cree_chaine_mono(flags_header,FIELD_HEADER,-1);
+		  Ajoute_color_Line(une_belle_ligne,strlen(flags_header),Screen_Cols);
 		  free(une_belle_ligne);
 		}
+		free(flags_header);
 	   }
 	   une_ligne=safe_malloc(9+strlen(Article_courant->headers->k_headers[SUBJECT_HEADER]));
            strcpy(une_ligne,"Sujet: ");
