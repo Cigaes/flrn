@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. Ajout du message-id a k_headers.
 . Mise a jour de max dans cree_liste_xover pour les pb de synchronisation
 . Passage non inline des safe_*, ajout de safe_strappend
 . Simplification de cree_liste_xover

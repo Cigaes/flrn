@@ -174,6 +174,8 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
 	    if (new_article && (overview_list[num]==-1)) {
 	      /* article->msgid est == NULL ssi suite_ligne==0, non ? */
 	      article->msgid=safe_strappend(article->msgid,buf);
+	      article->headers->k_headers[MESSAGE_ID_HEADER]=article->msgid;
+	      article->headers->k_headers_checked[MESSAGE_ID_HEADER]=1;
 	    } else
 	    if (overview_list[num]>=0) {
 	      i=overview_list[num] & ~FULL_HEADER_OVER;
@@ -328,6 +330,8 @@ int cree_liste_noxover(int min, int max, Article_List *start_article) {
       if (code == article->numero) {
 	/* on construit le champ References */
 	article->headers=new_header();
+	article->headers->k_headers[MESSAGE_ID_HEADER]=article->msgid;
+	article->headers->k_headers_checked[MESSAGE_ID_HEADER]=1;
 	article->headers->k_headers_checked[REFERENCES_HEADER] = 1;
 	if ((buf2 = strchr(buf2,'<')))
 	  article->headers->k_headers[REFERENCES_HEADER] =

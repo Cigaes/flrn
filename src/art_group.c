@@ -34,6 +34,7 @@ const Known_Headers Headers[NB_KNOWN_HEADERS] = {
    { "Cc:", 3 },
    { "Bcc:", 4 },
    { "Xref:", 5 },
+   { "Message-Id:", 11 },
    { "X-Censorship:", 13 },
 };
 
@@ -56,9 +57,10 @@ time_t Date_groupe;
 void free_article_headers(Article_Header *headers) {
   int i;
   if (!headers) return;
+  /* attention au message-id */
   for (i=0; i<NB_KNOWN_HEADERS; i++) 
-    if (headers->k_headers[i])
-	  free(headers->k_headers[i]);
+    if ((i!=MESSAGE_ID_HEADER) && (headers->k_headers[i]))
+      free(headers->k_headers[i]);
   if (headers->reponse_a) free(headers->reponse_a);
   free(headers);
 }
@@ -221,7 +223,7 @@ void apply_kill_file() {
 }
 
 Article_Header *new_header() {
-   return (Article_Header *) safe_calloc(1,sizeof(Article_Header));
+  return (Article_Header *) safe_calloc(1,sizeof(Article_Header));
 }
 
 /* Fonction pour libérer Last_head_cmd */
@@ -274,6 +276,8 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others) {
 
    free_article_headers(article->headers);
    article->headers=creation=new_header();
+   article->headers->k_headers[MESSAGE_ID_HEADER]=article->msgid;
+   article->headers->k_headers_checked[MESSAGE_ID_HEADER]=1;
    if (others) {
      Free_Last_head_cmd();
      Last_head_cmd.Article_vu=article;

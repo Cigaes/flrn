@@ -36,10 +36,11 @@ extern const Known_Headers Headers[];
 #define CC_HEADER 13
 #define BCC_HEADER 14
 #define XREF_HEADER 15
-#define X_CENSORSHIP 16
+#define MESSAGE_ID_HEADER 16
+#define X_CENSORSHIP 17
 
 
-#define NB_KNOWN_HEADERS 17
+#define NB_KNOWN_HEADERS 18
 
 typedef struct Flrn_art_header
 {

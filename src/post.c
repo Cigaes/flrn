@@ -70,6 +70,7 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
 	if (i==LINES_HEADER) continue;
 	if (i==XREF_HEADER) continue;
 	if (i==X_NEWSREADER_HEADER) continue;
+	if (i==MESSAGE_ID_HEADER) continue;
 	if ((i==TO_HEADER) && (!par_mail)) continue;
 	if ((i==CC_HEADER) && (!par_mail)) continue;
 	if ((i==BCC_HEADER) && (!par_mail)) continue;
