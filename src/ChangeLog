@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. Ajout du flag killed.
 . option parse_from
 . changement cosmétique, reparse du header followup-to
 . modif de la sémantique d'espace, qui ne renvoie pas le message courant
