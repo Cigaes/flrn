@@ -1,9 +1,11 @@
 #include "flrn.h"
 #include "flrn_filter.h"
 #include "art_group.h"
+#include "flrn_lists.h"
 
 /* on met ici le contenu du kill_file */
-static flrn_kill *flrn_kill_deb;
+static flrn_kill *flrn_kill_deb=NULL;
+static Flrn_liste *main_kill_list=NULL; /* la liste pour l'abonnement */
 
 /* regarde si condition est vérifié */
 /* renvoie -1, s'il manque des headers
@@ -184,9 +186,15 @@ void free_kill(flrn_kill *kill) {
     k2=kill->next;
     if (kill->filter)
       free_filter(kill->filter);
-    if (kill->newsgroup_cond) {
-      regfree(kill->newsgroup_cond);
-      free(kill->newsgroup_cond);
+    if (kill->newsgroup_regexp) {
+      if (kill->newsgroup_cond.regexp) {
+	regfree(kill->newsgroup_cond.regexp);
+	free(kill->newsgroup_cond.regexp);
+      }
+    } else {
+      if (kill->newsgroup_cond.liste) {
+	free_liste(kill->newsgroup_cond.liste);
+      }
     }
     free(kill);
     kill=k2;
@@ -246,8 +254,10 @@ int parse_kill_file(FILE *fi) {
 	k2=kill;
 	*(buf2++)='\0';
 	/* buf2 pointe sur les flags */
-	kill->newsgroup_cond = safe_malloc(sizeof(regex_t));
-	if (regcomp(kill->newsgroup_cond,buf1,REG_EXTENDED|REG_NOSUB))
+	/* FIXME : parser les listes */
+	kill->newsgroup_regexp=1;
+	kill->newsgroup_cond.regexp = safe_malloc(sizeof(regex_t));
+	if (regcomp(kill->newsgroup_cond.regexp,buf1,REG_EXTENDED|REG_NOSUB))
 	  out=1;
 	else {
 	  kill->filter=parse_kill_block(fi);
@@ -270,10 +280,18 @@ static int check_group(flrn_kill *kill) {
       (Newsgroup_courant->article_deb_key == kill->Article_deb_key))
     return kill->group_matched;
   kill->Article_deb_key=Newsgroup_courant->article_deb_key;
-  if (regexec(kill->newsgroup_cond,
-      Newsgroup_courant->name,0,NULL,0)==0) {
-    kill->group_matched=1;
-    return 1;
+  if (kill->newsgroup_regexp) {
+    if (regexec(kill->newsgroup_cond.regexp,
+	Newsgroup_courant->name,0,NULL,0)==0) {
+      kill->group_matched=1;
+      return 1;
+    }
+  } else {
+    if (kill->newsgroup_cond.liste &&
+	find_in_liste(kill->newsgroup_cond.liste,Newsgroup_courant->name)) {
+      kill->group_matched=1;
+      return 1;
+    }
   }
   kill->group_matched=0;
   return 0;

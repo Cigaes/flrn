@@ -2,6 +2,8 @@
 #ifndef FLRN_FILTER_H
 #define FLRN_FILTER_H
 
+#include "flrn_lists.h"
+
 typedef struct _flrn_condition {
   int flags;
 #define FLRN_COND_REV 1
@@ -31,7 +33,11 @@ typedef struct _flrn_filter {
 
 /* les kill-files */
 typedef struct _flrn_kill {
-  regex_t *newsgroup_cond;
+  int newsgroup_regexp;  /* dit si l'on utilise une regexp ou une liste */
+  union {
+    regex_t *regexp;
+    Flrn_liste *liste;
+  } newsgroup_cond;
   long Article_deb_key; /* on reprend ce moyen rapide de validation */
   int  group_matched;
   flrn_filter * filter;

@@ -39,7 +39,7 @@ static int Size_Window(int flag, int col_num) {
    num_art_col=num_max_col-13-col_num;
 
    if (num_art_col<name_news_col+5) {
-      if (debug || flag) fprintf(stderr, "Nombre de colonnes insuffisante.\n");
+      if (debug || flag) fprintf(stderr, "Nombre de colonnes insuffisant.\n");
       return 0;
    } else if (num_art_col<name_news_col+20) aff_mess=0; else
      if (num_art_col>name_news_col+28) aff_help=1;
@@ -47,7 +47,7 @@ static int Size_Window(int flag, int col_num) {
    if (aff_mess==0) num_art_col+=8;
    if (Screen_Rows<3+2*Options.skip_line) {
       row_erreur=(Screen_Rows ? 1 : 0);
-      if (debug || flag) fprintf(stderr, "Nombre de lignes insuffisante.\n");
+      if (debug || flag) fprintf(stderr, "Nombre de lignes insuffisant.\n");
       return 0;
    } else 
       row_erreur=Screen_Rows/2;
