@@ -561,6 +561,7 @@ int parse_kill_file(FILE *fi) {
     buf2=strchr(buf1,'\n');
     if (buf2) *buf2=0;
     else out=1;
+    if (buf1[0]=='\0') continue;  /* skip empty_lines at the end */
     if (buf1[0]=='\n') continue; /* skip empty_lines */
     if (buf1[0]=='#') continue; /* skip comments */
     if (buf1[0]!=':') out=1; 
