@@ -17,10 +17,12 @@
 #include "site_config.h"
 
 static char *delim = "=: \t\n";
+static int deep_inclusion=0;
 
 Known_Headers unknown_Headers[MAX_HEADER_LIST];
 
 static void free_string_list_type (string_list_type *s_l_t);
+static int parse_option_file (char *name, int flags, int flag_option);
 
 
 void var_comp(char *var, int len)
@@ -94,6 +96,15 @@ void options_comp(char *option, int len)
       return;}
     if (!strtok(NULL,delim)) {
       strcpy(option,OPT_SET_COLOR); strcat(option," ");
+    }
+  } else
+  if (strncmp(buf,OPT_INCLUDE,used)==0) {
+    if (used<OPT_INCLUDE_LEN) {
+      strcpy(option,OPT_INCLUDE); strcat(option," ");
+      free(my_option);
+      return;}
+    if (!strtok(NULL,delim)) {
+      strcpy(option,OPT_INCLUDE); strcat(option," ");
     }
   } else
   if (strncmp(buf,OPT_MY_HEADER,used)==0) {
@@ -198,6 +209,29 @@ void parse_options_line (char *ligne, int flag)
      if (strcmp(name_program,buf)!=0) return;
      buf=strtok(NULL,delim);
      if (buf==NULL) return;
+  }
+  if(strcmp(buf,OPT_INCLUDE)==0) {
+    char *buf2;
+    buf=strtok(NULL,"\n");
+    if (buf)
+      buf+=strspn(buf, delim);
+    if (buf && (*buf=='"')) {
+       buf++;
+       buf2=strchr(buf,'"'); 
+       if (buf2) *buf2='\0';  /* Pour enlever le '"' en fin */
+    }
+    if (buf && (*buf)) {
+       deep_inclusion++;
+       if (deep_inclusion<10)
+         found=parse_option_file(buf,0,flag);
+       else found=-1;
+       deep_inclusion--;
+       if ((found==-1) && (!flag)) {
+          fprintf(stderr,"Erreur : include %s impossible !\n",buf);
+          sleep(1);
+       }
+    }
+    return;
   }
   if(strcmp(buf,OPT_SET)==0) {
     buf=strtok(NULL,delim);
@@ -665,9 +699,24 @@ void menu_config_variables() {
   return;
 }
 
-void init_options() {
-  char *buf,buf1[MAX_BUF_SIZE];
+/* Ouvre et parse un fichier... Renvoie -1 si pas de fichier */
+/* flags = flags d'appel de open_flrnfile (2 si config initiale, 0 sinon */
+/* flag_option = flag d'appel pour parse_option_line */
+static int parse_option_file (char *name, int flags, int flag_option) {
+  char buf1[MAX_BUF_SIZE];
   FILE *flrnfile;
+
+  flrnfile=open_flrnfile(name,"r",flags,NULL);
+  if (flrnfile==NULL) return -1;
+  while (fgets(buf1,MAX_BUF_SIZE,flrnfile)) 
+    parse_options_line(buf1,flag_option);
+  fclose(flrnfile);
+  return 0;
+}
+
+
+void init_options() {
+  char *buf;
   int i;
 
   buf=getenv("NNTPSERVER");
@@ -684,11 +733,7 @@ void init_options() {
     unknown_Headers[i].header_len=0;
     unknown_Headers[i].header=NULL;
   }
-  flrnfile=open_flrnfile(NULL,"r",2,NULL);
-  if (flrnfile==NULL) return;
-  while (fgets(buf1,MAX_BUF_SIZE,flrnfile)) 
-    parse_options_line(buf1,0);
-  fclose(flrnfile);
+  parse_option_file(NULL,2,0);
 }  
 
 /* ne sert a rien, mais bon */

@@ -40,19 +40,24 @@ FILE *open_flrnfile (char *file,char *mode, int flag, time_t * date)
    FILE *config_file;
    struct stat buf;
 
-   if (NULL == (home = getenv ("FLRNHOME")))
-      home = getenv ("HOME");
+   if ((file==NULL) || (*file!='/')) {
+     if (NULL == (home = getenv ("FLRNHOME")))
+        home = getenv ("HOME");
 
-   if (home == NULL)
-   {
-      strcpy(name,"./");
-      home_found = 0;
-   }
-   else
-   {
-      strncpy(name, home, MAX_PATH_LEN-1); 
-      name[MAX_PATH_LEN-2]='\0';   /* oui, je sais, precaution ridicule */
-      strcat(name, "/");
+     if (home == NULL)
+     {
+        strcpy(name,"./");
+        home_found = 0;
+     }
+     else
+     {
+        strncpy(name, home, MAX_PATH_LEN-1); 
+        name[MAX_PATH_LEN-2]='\0';   /* oui, je sais, precaution ridicule */
+        strcat(name, "/");
+     }
+   } else {
+     home_found=0;
+     name[0]='\0';
    }
    if (file)
        strncat(name,file,MAX_PATH_LEN-strlen(name)-1);

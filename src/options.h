@@ -23,6 +23,9 @@
 #define OPT_MY_HEADER "my_hdr"
 #define OPT_MY_HEADER_LEN 6
 
+#define OPT_INCLUDE "include"
+#define OPT_INCLUDE_LEN 7
+
 #define OPT_MY_FLAGS "my_flags"
 #define OPT_MY_FLAGS_LEN 8
 
