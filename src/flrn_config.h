@@ -94,8 +94,6 @@ extern int do_select(int);
 
 /* ATTENTION : MAX_FL_KEY DOIT ÊTRE UN BIT SEULEMENT */
 #define MAX_FL_KEY 0x1000 
-/* le tableau touche -> commande */
-extern int Flcmd_rev[MAX_FL_KEY];
 
 #include "flrn_inter.h"
 

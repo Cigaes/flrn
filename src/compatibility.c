@@ -78,10 +78,10 @@ void *__safe_realloc(void *ptr, size_t s,
 #ifdef DEBUG_MALLOC
        fprintf(stderr,"%8lx free *realloc* (%8lx) %ld, %s :%s, %d\n",
 	   (long) ptr, (long) res,
-	   (long) s, __PRETTY_FUNCTION__,__FILE__,__LINE__);
+	   (long) s, f,fi,l);
        fprintf(stderr,"%8lx malloc *realloc* (%8lx) %ld, %s :%s, %d\n",
 	   (long) res, (long) ptr,
-	   (long) s, __PRETTY_FUNCTION__,__FILE__,__LINE__);
+	   (long) s, f,fi,l);
 #endif
        return res;
      }

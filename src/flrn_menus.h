@@ -1,4 +1,3 @@
-
 #ifndef FLRN_MENUS_H
 #define FLRN_MENUS_H
 
@@ -17,7 +16,6 @@ typedef struct liste_menu_desc {
 #include "flrn_slang.h"
 
 #define NB_FLCMD_MENU 6
-#define FLCMD_MACRO_MENU 1024
 #define FLCMD_MENU_UNDEF -1
 
 char *Flcmds_menu[NB_FLCMD_MENU] = 

@@ -4,7 +4,6 @@
 #define FLRN_FLRN_PAGER_H
 
 #define NB_FLCMD_PAGER 5
-#define FLCMD_MACRO_PAGER 1024
 #define FLCMD_PAGER_UNDEF -1
 
 char *Flcmds_pager[NB_FLCMD_PAGER] = 

@@ -1,9 +1,8 @@
 #ifndef FLRN_MACROS_H
 #define FLRN_MACROS_H
 
+/* on partage les macros entre tous les contextes */
 #define MAX_FL_MACRO 256
-#define MAX_FL_MACRO_MENU 32 /* Pas exagerer non plus */
-#define MAX_FL_MACRO_PAGER 32 /* Pas exagerer non plus */
 
 typedef struct {
   int cmd;

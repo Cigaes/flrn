@@ -15,6 +15,7 @@
 #define IN_OPTION_C
 #include "options.h"
 #include "site_config.h"
+#include "flrn_command.h"
 
 static char *delim = "=: \t\n";
 static int deep_inclusion=0;
@@ -453,9 +454,9 @@ void parse_options_line (char *ligne, int flag)
     int res, mode=-1; /* mode=0 : commande mode=1 : menu mode=2 : pager */
     buf=strtok(NULL,delim);
     if (!buf) return;
-    if (strncasecmp(buf,"menu",7)==0) mode=1; else
-      if (strncasecmp(buf,"pager",5)==0) mode=2; else
-	if (strncasecmp(buf,"command",7)==0) mode=0;
+    if (strncasecmp(buf,"menu",7)==0) mode=CONTEXT_MENU; else
+      if (strncasecmp(buf,"pager",5)==0) mode=CONTEXT_PAGER; else
+	if (strncasecmp(buf,"command",7)==0) mode=CONTEXT_COMMAND;
     if (mode!=-1) buf=strtok(NULL,delim); else
       mode=0;
     lettre = *buf;
@@ -475,8 +476,8 @@ void parse_options_line (char *ligne, int flag)
     if (buf3) 
       buf3+=strspn(buf3, delim);
 
-    res=(mode==1 ? Bind_command_menu(buf2,lettre,buf3) :
-	 mode==2 ? Bind_command_pager(buf2,lettre,buf3) : 
+    res=(mode==CONTEXT_MENU ? Bind_command_menu(buf2,lettre,buf3) :
+	 mode==CONTEXT_PAGER ? Bind_command_pager(buf2,lettre,buf3) : 
 	           Bind_command_explicite(buf2,lettre,buf3));
     if (res <0) {
       if (flag) Aff_error("Echec de la commande bind."); else

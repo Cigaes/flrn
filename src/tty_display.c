@@ -16,6 +16,7 @@
 #include "options.h"
 #include "group.h"
 #include "flrn_menus.h"
+#include "flrn_command.h"
 
 /* place des objets de la barre */
 int name_news_col, num_art_col, num_rest_col, num_col_num, name_fin_col;
@@ -231,7 +232,7 @@ int chg_grp_in(void *value, char **nom, int i, char *name, int len, int key) {
      key=Attend_touche();
    }
    if (KeyBoard_Quit) key=0;
-   switch (key<MAX_FL_KEY ? Flcmd_rev[key] : FLCMD_UNDEF) {
+   switch (key<MAX_FL_KEY ? Flcmd_rev[CONTEXT_COMMAND][key] : FLCMD_UNDEF) {
      case FLCMD_ABON : choisi->flags&=~GROUP_UNSUBSCRIBED;
                 break;
      case FLCMD_UNSU : choisi->flags|=GROUP_UNSUBSCRIBED;

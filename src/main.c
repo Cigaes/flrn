@@ -18,6 +18,7 @@
 #include "options.h"
 #include "group.h"
 #include "version.h"
+#include "flrn_command.h"
 
 extern int with_direc;
 int debug;
@@ -133,6 +134,7 @@ int main(int argc, char *argv[])
   free_options();
   free_kill(); /* pour sauver le kill-file... */
   free_highlights();
+  free_Macros();
 #ifdef CHECK_MAIL
   if (getenv("MAIL")==NULL) free(mailbox);
 #endif

@@ -14,14 +14,11 @@
 #include "flrn_menus.h"
 #include "flrn_inter.h"
 #include "flrn_macros.h"
+#include "flrn_command.h"
 
 /* le tableau touche -> commande */
-int Flcmd_menu_rev[MAX_FL_KEY];
+int *Flcmd_menu_rev = &Flcmd_rev[CONTEXT_MENU][0];
 /* pour les macros */
-
-Flcmd_macro_t Flcmd_macro_menu[MAX_FL_MACRO_MENU];
-
-int Flcmd_num_macros_menu=0;
 
 
 /* Cette fonction ne renvoie qu'un élément sélectionné, ou bien entendu NULL.
@@ -265,21 +262,16 @@ int Bind_command_menu(char *nom, int key, char *arg) {
       Flcmd_menu_rev[key]=FLCMD_MENU_UNDEF;
       return 0;
     }
-    for (i=0;i<NB_FLCMD_MENU;i++)
-      if (strcmp(nom, Flcmds_menu[i])==0) {
-        Flcmd_menu_rev[key]=i;
-        return 0;
+  }
+  for (i=0;i<NB_FLCMD_MENU;i++)
+    if (strcmp(nom, Flcmds_menu[i])==0) {
+      if (arg ==NULL) {
+	Flcmd_menu_rev[key]=i;
+	return 0;
+      } else {
+	if (Bind_command_new(key,i,arg,CONTEXT_MENU)<0) return -4;
+	return 0;
       }
-  } else {
-    if (Flcmd_num_macros_menu == MAX_FL_MACRO_MENU) return -4;
-    for (i=0;i<NB_FLCMD_MENU;i++)
-      if (strcmp(nom, Flcmds_menu[i])==0) {
-        Flcmd_macro_menu[Flcmd_num_macros_menu].cmd = i;
-        Flcmd_macro_menu[Flcmd_num_macros_menu].arg = safe_strdup(arg);
-        Flcmd_menu_rev[key]=Flcmd_num_macros_menu | FLCMD_MACRO_MENU;
-        Flcmd_num_macros_menu++;
-        return 0;
-      } 
-  } 
+  }
   return -1;
 }

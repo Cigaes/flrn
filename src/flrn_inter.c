@@ -21,6 +21,7 @@
 #include "flrn_filter.h"
 #include "flrn_tags.h"
 #include "flrn_macros.h"
+#include "flrn_command.h"
 
 /* On va définir ici des structures et des variables qui seront utilisées */
 /* pour loop, et les fonctions qui y sont associés. Il faudrait en fait   */
@@ -60,12 +61,8 @@ int gthread_action(Article_List *article,int all, Action action, void *param);
 char Arg_str[MAX_CHAR_STRING];
 
 /* le tableau touche -> commande */
-int Flcmd_rev[MAX_FL_KEY];
+int *Flcmd_rev_command = &Flcmd_rev[CONTEXT_COMMAND][0];
 /* pour les macros */
-
-Flcmd_macro_t Flcmd_macro[MAX_FL_MACRO];
-
-int Flcmd_num_macros=0;
 
 /* Cette horrible structure sert a stocker une action et son argument en un */
 /* seul pointeur...							    */
@@ -430,27 +427,20 @@ int loop(char *opt) {
 
 void init_Flcmd_rev() {
   int i;
-  for (i=0;i<MAX_FL_KEY;i++) Flcmd_rev[i]=FLCMD_UNDEF;
+  for (i=0;i<MAX_FL_KEY;i++) Flcmd_rev_command[i]=FLCMD_UNDEF;
   for (i=0;i<NB_FLCMD;i++) 
-     Flcmd_rev[Flcmds[i].key]=Flcmd_rev[Flcmds[i].key_nm]=i;
+     Flcmd_rev_command[Flcmds[i].key]=Flcmd_rev_command[Flcmds[i].key_nm]=i;
   for (i=0;i<CMD_DEF_PLUS;i++) 
-    if (Cmd_Def_Plus[i].args==NULL) 
-      Flcmd_rev[Cmd_Def_Plus[i].key]=Cmd_Def_Plus[i].cmd; else {
-      Flcmd_macro[Flcmd_num_macros].cmd=Cmd_Def_Plus[i].cmd;
-      Flcmd_macro[Flcmd_num_macros].arg=strdup(Cmd_Def_Plus[i].args);
-      					/* un strdup car je VEUX pouvoir */
-					/* parser la chaine */
-      Flcmd_rev[Cmd_Def_Plus[i].key]=Flcmd_num_macros | FLCMD_MACRO;
-      Flcmd_num_macros++;
-    }
-  Flcmd_rev[0]=FLCMD_UNDEF;
+    Bind_command_new(Cmd_Def_Plus[i].key,Cmd_Def_Plus[i].cmd,
+	Cmd_Def_Plus[i].args,CONTEXT_COMMAND);
+  Flcmd_rev_command[0]=FLCMD_UNDEF;
   return;
 }
 
 /* Renvoie le nom d'une commande par touche raccourcie */
 static int Lit_cmd_key(int key) {
    if ((key <0) || (key >= MAX_FL_KEY)) return FLCMD_UNDEF;
-   return Flcmd_rev[key];
+   return Flcmd_rev_command[key];
 }
 
 int fonction_to_number(char *nom) {
@@ -484,22 +474,17 @@ int Bind_command_explicite(char *nom, int key, char *arg) {
       return -3;
   if (arg ==NULL) {
     if (strcmp(nom, "undef")==0) {
-      Flcmd_rev[key]=FLCMD_UNDEF;
+      Flcmd_rev_command[key]=FLCMD_UNDEF;
       return 0;
     }
-    for (i=0;i<NB_FLCMD;i++)
-      if (strcmp(nom, Flcmds[i].nom)==0) {
-	Flcmd_rev[key]=i;
+  }
+  for (i=0;i<NB_FLCMD;i++)
+    if (strcmp(nom, Flcmds[i].nom)==0) {
+      if (arg ==NULL) {
+	Flcmd_rev_command[key]=i;
 	return 0;
-      }
-  } else {
-    if (Flcmd_num_macros == MAX_FL_MACRO) return -4;
-    for (i=0;i<NB_FLCMD;i++)
-      if (strcmp(nom, Flcmds[i].nom)==0) {
-	Flcmd_macro[Flcmd_num_macros].cmd = i;
-	Flcmd_macro[Flcmd_num_macros].arg = safe_strdup(arg);
-	Flcmd_rev[key]=Flcmd_num_macros | FLCMD_MACRO;
-	Flcmd_num_macros++;
+      } else {
+	if (Bind_command_new(key,i,arg,CONTEXT_COMMAND)<0) return -4;
 	return 0;
       }
   }
@@ -659,7 +644,7 @@ int get_command_nocbreak(int asked,int col) {
    
    /* Dans le cas où asked='\r', et vient donc directement d'une interruption */
    /* on ne prend pas de ligne de commande : on l'a déjà...		      */
-   if (asked=='\r') return Flcmd_rev['\r'];
+   if (asked=='\r') return Flcmd_rev_command['\r'];
    if (asked) Screen_write_char(asked);
    if (asked && (asked!=fl_key_nocbreak))  *(str++)=asked; 
    *str='\0';
@@ -667,7 +652,7 @@ int get_command_nocbreak(int asked,int col) {
    if ((res=getline(str,MAX_CHAR_STRING,Screen_Rows-1,col+(asked && (asked==fl_key_nocbreak))))<0)
      return -2;
    while(*str==fl_key_nocbreak) str++;
-   if (str[0]=='\0') return Flcmd_rev['\r'];
+   if (str[0]=='\0') return Flcmd_rev_command['\r'];
    if (isdigit((int) str[0]) || (str[0]=='<')) {
      Parse_nums_article(str, &str, 2);
      return FLCMD_VIEW;
@@ -806,7 +791,7 @@ int get_command(int key_depart) {
    if (key==fl_key_explicite) return get_command_explicite(NULL,col);
    else {
       /* Beurk pour '-' et ',' */
-      if (index(",-",key)) return Flcmd_rev[key];
+      if (index(",-",key)) return Flcmd_rev_command[key];
       if (strchr("0123456789<>.,_*",key)==NULL) res=Lit_cmd_key(key);
          else res=get_command_newmode(key,col);
    }
@@ -1478,7 +1463,7 @@ static int thread_menu (void *value, char **nom, int i, char *name, int len, int
    char *buf=(*nom)+5;
    char sauv=*(buf+5);
 
-   switch (key<MAX_FL_KEY ? Flcmd_rev[key] : FLCMD_UNDEF) {
+   switch (key<MAX_FL_KEY ? Flcmd_rev_command[key] : FLCMD_UNDEF) {
       case FLCMD_KILL :
       case FLCMD_GKIL :
       case FLCMD_PKIL : action=kill_article;

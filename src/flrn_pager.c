@@ -12,15 +12,11 @@
 #include "options.h"
 #include "flrn_pager.h"
 #include "flrn_macros.h"
+#include "flrn_command.h"
 
 /* le tableau touche -> commande */
-int Flcmd_pager_rev[MAX_FL_KEY];
+int *Flcmd_pager_rev = &Flcmd_rev[CONTEXT_PAGER][0];
 /* pour les macros */
-
-Flcmd_macro_t Flcmd_macro_pager[MAX_FL_MACRO_PAGER];
-
-int Flcmd_num_macros_pager=0;
-
 
 /* 		Page_message						*/
 /* La fonction principale du pager */
@@ -48,7 +44,7 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
   at_end=(num_elem<Screen_Rows-row_deb);
   while (1) {
     if ((short_exit) && 
-        (at_end==1) && (key<MAX_FL_KEY) && (Flcmd_rev[key]!=FLCMD_PAGER_UNDEF))
+        (at_end==1) && (key<MAX_FL_KEY) && (Flcmd_pager_rev[key]!=FLCMD_PAGER_UNDEF))
            return (key | MAX_FL_KEY); 
 	   	/* note : on ne teste pas '0-9,-<>.', qui ne doivent */
 	   	/* PAS être bindés				    */
@@ -128,22 +124,17 @@ int Bind_command_pager(char *nom, int key, char *arg) {
       Flcmd_pager_rev[key]=FLCMD_PAGER_UNDEF;
       return 0;
     }
-    for (i=0;i<NB_FLCMD_PAGER;i++)
-      if (strcmp(nom, Flcmds_pager[i])==0) {
-        Flcmd_pager_rev[key]=i;
-        return 0;
+  }
+  for (i=0;i<NB_FLCMD_PAGER;i++)
+    if (strcmp(nom, Flcmds_pager[i])==0) {
+      if (arg ==NULL) {
+	Flcmd_pager_rev[key]=i;
+	return 0;
+      } else {
+	if (Bind_command_new(key,i,arg,CONTEXT_PAGER)< 0) return -4;
+	return 0;
       }
-  } else {
-    if (Flcmd_num_macros_pager == MAX_FL_MACRO_PAGER) return -4;
-    for (i=0;i<NB_FLCMD_PAGER;i++)
-      if (strcmp(nom, Flcmds_pager[i])==0) {
-        Flcmd_macro_pager[Flcmd_num_macros_pager].cmd = i;
-        Flcmd_macro_pager[Flcmd_num_macros_pager].arg = safe_strdup(arg);
-        Flcmd_pager_rev[key]=Flcmd_num_macros_pager | FLCMD_MACRO_PAGER;
-        Flcmd_num_macros_pager++;
-        return 0;
-      } 
-  } 
+    }
   return -1;
 }
 

@@ -1,6 +1,7 @@
 ChangeLog Flrn
 
 
+. reprise du code des macros... memory leaks, bug fixes.
 . corrections de memory leaks
 
 -----------------------------
