@@ -41,8 +41,11 @@ char tcp_line_read[MAX_READ_SIZE];
 int tcp_fd;
 
 static char filter_cmd_list [MAX_NEWSGROUP_LEN+1];
+static int group_instead_of_list=0;
+static int renvoie_courte_liste=0;
 static int renvoie_direct; /* on renvoie tcp_line_read à la prochaine lecture */
-			   /* on DOIT se limiter à un code de retour...       */
+			   /* pour un code de retour, ou bien pour une */
+			   /* lecture de liste limitee a une ligne...  */
 
 /* Connection au port d'une machine. La fonction est rudimentaire pour  */
 /* l'instant, mais j'ai peur que ça nécessite quelques améliorations    */
@@ -312,6 +315,15 @@ int read_server_for_list (char *ligne, int deb, int max) {
     int ret;
     char *buf;
 
+    if (renvoie_courte_liste==1) {
+       renvoie_courte_liste=0;
+       strcpy(ligne,".\r\n");
+       return 3;
+    } else if (renvoie_courte_liste==2) {
+       if (ligne!=tcp_line_read) strcpy(ligne,tcp_line_read);
+       renvoie_courte_liste=1;
+       return strlen(tcp_line_read);
+    }
     if (filter_cmd_list[0]=='\0') return read_server(ligne,deb,max);
     while (1) {
       ret=read_server(ligne,deb,max);
@@ -331,6 +343,11 @@ int discard_server() {
    int ret;
 
    if (debug) fprintf(stderr,"Discard server\n");
+   /* cas d'un renvoie_courte_liste */
+   if (renvoie_courte_liste) {
+     renvoie_courte_liste=0;
+     return 0;
+   }
    do {
       ret=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
       if (ret<1) return -1;
@@ -427,11 +444,12 @@ int adjust_time()
 /* On utilise read_server_with_reconnect				*/
 int return_code () {
    int lus, code;
+   char *buf;
 
    lus=read_server_with_reconnect(tcp_line_read, 3, MAX_READ_SIZE-1);
    if (lus<3) return -1;
    
-   code=atoi(tcp_line_read);
+   code=(int)strtol(tcp_line_read,&buf,10);
 
    /* Ici, on gere le cas d'une ligne trop longue */
    while (tcp_line_read[lus-1]!='\n') {
@@ -444,7 +462,25 @@ int return_code () {
        }
        if (debug) fprintf(stderr, "%s", tcp_line_read);
     }
-    return code;
+   if (group_instead_of_list) {
+      group_instead_of_list=0;
+      if (code<400) {
+        long min, max;
+	/* Attention, on a change de groupe, 
+	   il faut revenir au groupe normal... */
+        strtol(buf,&buf,10);
+        min=strtol(buf,&buf,10);
+	max=strtol(buf,&buf,10);
+	if (Newsgroup_courant) {
+	  va_dans_groupe();
+	  return_code(); /* ICI et pas ailleurs, sinon on casse tcp_line_read */
+	}
+        snprintf(tcp_line_read,2047,"%s %ld %ld y\r\n",filter_cmd_list,max,min);
+	renvoie_courte_liste=2;
+      } else renvoie_courte_liste=1;
+      return 215;
+   }
+   return code;
 }
 
 /* Cette fonction ecrit brutalement au serveur, jusqu'au bout, si c'est */
@@ -522,6 +558,7 @@ static int raw_write_command (int num_com, int num_param, char **param) {
 int write_command (int num_com, int num_param, char **param) {
    int ret,code;
    char **param2=param;
+   char *buf;
    
    filter_cmd_list[0]='\0';
    renvoie_direct=0;
@@ -566,9 +603,13 @@ int write_command (int num_com, int num_param, char **param) {
 	        if (strncmp(*param2,"active",6)==0) param2++;
 		else return -2; /* erreur */
              }
-	     if (strncmp(*param2,"active ",7)==0) *param2=*param2+7;
-	     strncpy(filter_cmd_list,*param2,MAX_NEWSGROUP_LEN-1);
-             return raw_write_command(num_com,0,NULL);
+	     if (strncmp(*param2,"active ",7)==0) buf=*param2+7; else buf=*param2;  /* Ne pas changer *param2 */
+	     strncpy(filter_cmd_list,buf,MAX_NEWSGROUP_LEN-1);
+	     /* On va bien cradifier... */
+	     if (strchr(buf,'*')) 
+                 return raw_write_command(num_com,0,NULL);
+             group_instead_of_list=1;
+             return raw_write_command(CMD_GROUP,1,&buf);
 	  }
 	  if ((server_command_status[num_com] & CMD_FLAG_TESTED)
 	            ==CMD_FLAG_TESTED) return -1; 
