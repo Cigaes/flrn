@@ -780,11 +780,18 @@ void detruit_liste(int flag) {
    if (min) {
      msg_lus->min[lus_index] = min;
      msg_lus->max[lus_index] = Newsgroup_courant->max; 
-     				    /* Peut être (hélas !) different du max */
-				    /* du groupe...            		    */
      				    /* Dans ce cas, on préférera peut-être  */
      				    /* le max du groupe, je sais pas... :-( */
      lus_index++;
+   }
+   /* cas particulier : si aucun message existant n'a été lu, on ne met
+    * rien, comme ça en cas de non-abonnement la ligne sera supprimée
+    * du .flnewsrc (cf save_groups) */
+   if ((lus_index==1) && (Newsgroup_courant->read==msg_lus) &&
+	   (Newsgroup_courant->flags & GROUP_UNSUBSCRIBED) &&
+	   (Newsgroup_courant->Article_deb!=NULL) &&
+	   (Newsgroup_courant->Article_deb->numero>msg_lus->max[0])) {
+       msg_lus->min[0] = msg_lus->max[0] =0;
    }
    /* on met a 0 la fin de la table */
    for (; lus_index< RANGE_TABLE_SIZE; lus_index++)
