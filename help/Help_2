@@ -13,7 +13,7 @@ Il vous sera alors demandé de saisir un sujet pour votre message.
 S'il est impossible de poster dans ce groupe, le groupe proposé par
 défaut sera "junk".
 La commande \reply répond à l'article courant.
-Ces deux commandes peuvent prendrent un nom de fichier en argument. Le
+Ces deux commandes peuvent prendre un nom de fichier en argument. Le
 fichier est alors directement posté sans confirmation.
 Si aucun fichier n'est en argument, vous entrez dans l'éditeur intégré
 de flrn, à moins que l'option auto_edit soit définie, ce qui est le
