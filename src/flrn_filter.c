@@ -172,14 +172,17 @@ int parse_filter(char * istr, flrn_filter *start) {
   cond=safe_calloc(1,sizeof(flrn_condition));
 
   /* si ça commence par ^ ou ~, on inverse la condition */
-  if (*str == '~' || *str == '^') {
-    cond->flags |= FLRN_COND_REV;
-    str++;
-  }
-  /* si ça commence par ' ou ", on fait un match exact */
-  if (*str == '\'' || *str == '"') {
-    cond->flags |= FLRN_COND_STRING;
-    str++;
+  while(1) {
+    if (*str == '~' || *str == '^') {
+      cond->flags |= FLRN_COND_REV;
+      str++;
+    } else
+    /* si ça commence par ' ou ", on fait un match exact */
+    if (*str == '\'' || *str == '"') {
+      cond->flags |= FLRN_COND_STRING;
+      str++;
+    }
+    else break;
   }
   /* on cherche le header correspondant */
   for (i=0;i<NB_KNOWN_HEADERS;i++) {
