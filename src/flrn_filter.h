@@ -30,7 +30,8 @@ typedef struct _flrn_action {
 typedef struct _flrn_filter {
   long cond_mask;  /* masque sur les flag de l'article */
   long cond_res;
-  time_t diff_date;
+  time_t date_before;
+  time_t date_after;
   flrn_condition *condition;
   int flag; /* est-ce flag ou action ? */
   union {

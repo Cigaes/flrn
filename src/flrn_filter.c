@@ -13,11 +13,12 @@
 #include "flrn_xover.h"
 #include "flrn_inter.h"
 
+#include "getdate.h"
+
 /* on met ici le contenu du kill_file */
 static flrn_kill *flrn_kill_deb=NULL;
 static Flrn_liste *main_kill_list=NULL; /* la liste pour l'abonnement */
 static char *main_list_file_name=NULL;
-static time_t timeone=0;
 
 /* regarde si l'article correspond au filtre */
 /* renvoie -1, s'il manque des headers
@@ -47,10 +48,13 @@ int check_article(Article_List *article, flrn_filter *filtre, int flag) {
       apply_kill_file();
     }
   }
-  if (filtre->diff_date>0) {
-     if (timeone==0) timeone=time(NULL);
+  if (filtre->date_after>0) {
      if ((article->headers) && (article->headers->date_gmt>0)) 
-        if (timeone-article->headers->date_gmt>filtre->diff_date) return 1;
+        if (article->headers->date_gmt<filtre->date_after) return 1;
+  }
+  if (filtre->date_before>0) {
+     if ((article->headers) && (article->headers->date_gmt>0)) 
+        if (article->headers->date_gmt>filtre->date_before) return 1;
   }
   while(regexp) {
     if ((article->headers == NULL) ||
@@ -216,7 +220,8 @@ int parse_filter(char * istr, flrn_filter *start) {
      /* cas d'une date */
      if (strncasecmp(str,"date ",5)==0) {
         buf=str+5;
-	start->diff_date=strtol(buf,NULL,10);
+	if (*buf=='>') start->date_after=get_date(buf+1,NULL);
+	  else if (*buf=='<') start->date_before=get_date(buf+1,NULL);
      }
      return -1; 
   }

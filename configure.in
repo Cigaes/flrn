@@ -8,6 +8,7 @@ AC_CONFIG_HEADER(src/config.h)
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
+AC_PROG_YACC
 
 dnl En fait, on peut s'en passer...
 AC_CHECK_PROGS(MAKEDEPEND,gccmakedep makedepend, echo)

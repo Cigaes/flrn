@@ -1429,7 +1429,7 @@ int do_omet(int res) {
   Aff_not_read_newsgroup_courant();
   if (use_argstr) free(name);
   etat_loop.etat=1; etat_loop.num_message=(res==FLCMD_OMET ?
-  				(res==FLCMD_GOMT ? 5 : 4) : 23);
+  				4 : (res==FLCMD_GOMT ? 5 : 23));
   return 0;
 }
 

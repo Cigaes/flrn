@@ -16,8 +16,10 @@
 #include "group.h"
 #include "flrn_format.h"
 #include "flrn_slang.h"
+#include "getdate.h"
 
 
+#if 0
 /* Parsing de la date */
 /* Pompé sur mutt...  */
 const char *Months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug",
@@ -273,7 +275,12 @@ time_t parse_date (char *s)
 }
 
 /* fin de la partie prise sur mutt */
+#endif
 
+
+time_t parse_date (char *s) {
+    return get_date(s,NULL);
+}
 
 /* Détermination du real name a partir d'une chaine type From */
 char *vrai_nom (char *nom) {
