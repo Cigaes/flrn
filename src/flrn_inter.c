@@ -1362,7 +1362,7 @@ int do_omet(int res) {
        }
      }
      ret=parse_flags(name,&toset,&flag);
-     if (ret==-1) {
+     if (ret<0) {
         if (use_argstr) free(name);
         etat_loop.etat=2; etat_loop.num_message=-19;
         return 0;

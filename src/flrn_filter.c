@@ -114,33 +114,21 @@ flrn_filter *new_filter() {
 
 /* Parse une ligne commencant par F 
  * Par exemple : Fread */
-/* TODO ajouter des flags supplémentaires */
 int parse_filter_flags(char * str, flrn_filter *filt) {
-  if (strcmp(str,"unread") ==0 ) { filt->cond_mask |= FLAG_READ;
-    filt->cond_res &= ~FLAG_READ;
-  } else
-  if (strcmp(str,"read") ==0 ) {
-    filt->cond_res |=  FLAG_READ;
-    filt->cond_mask |= FLAG_READ;
-  } else
-  if (strcmp(str,"unkilled") ==0 ) { filt->cond_mask |= FLAG_KILLED;
-    filt->cond_res &= ~FLAG_KILLED;
-  } else
-  if (strcmp(str,"killed") ==0 ) {
-    filt->cond_res |=  FLAG_KILLED;
-    filt->cond_mask |= FLAG_KILLED;
-  } else
-  if (strcmp(str,"interesting") ==0 ) {
-    filt->cond_res |=  FLAG_IMPORTANT;
-    filt->cond_mask |= FLAG_IMPORTANT;
-  } else
-  if (strcmp(str,"uninteresting") ==0 ) {
-    filt->cond_res &=  ~FLAG_IMPORTANT;
-    filt->cond_mask |= FLAG_IMPORTANT;
-  } else
-  if (strcmp(str,"all") ==0 )
-    filt->cond_res = filt->cond_mask = 0;
-  else return -1;
+  int ret,flag, flagset;
+  ret=parse_flags(str,&flagset,&flag);
+  if (ret==-1) return -1;
+  if (ret==-2) {
+     filt->cond_res = filt->cond_mask = 0;
+     return 0;
+  }
+  if (flagset) {
+     filt->cond_res |= flag;
+     filt->cond_mask |= flag;
+  } else {
+     filt->cond_res &= ~flag;
+     filt->cond_mask |= flag;
+  }
   return 0;
 }
 
@@ -169,21 +157,21 @@ int parse_filter_action(char * str, flrn_filter *filt) {
   return 0;
 }
 
-/* Parse une ligne commençant par
+/* Parse une ligne commençant par T
  * Par exemple Tread */
 int parse_filter_toggle_flag(char * str, flrn_filter *filt) {
+  int ret,flag, toset;
+  ret=parse_flags(str,&toset,&flag);
   if (filt->flag) return -1;
-  if (strcmp(str,"read") ==0 )
-    filt->action.flag = FLAG_READ;
-  else if (strcmp(str,"killed") ==0 )
-    filt->action.flag = FLAG_KILLED;
-  else if (strcmp(str,"interesting") ==0 )
-    filt->action.flag = FLAG_IMPORTANT;
-  else return -1;
-  /* on ajoute le flag au filtre */
-  filt->cond_mask |= filt->action.flag;
-  filt->cond_res &= ~filt->action.flag;
-  return 0;
+  if (ret<0) return -1;
+  if (toset) {
+    filt->action.flag = flag;
+    filt->cond_mask |= flag;
+    filt->cond_res &= ~flag;
+    return 0;
+  } 
+  /* On ne peut que mettre des flags. On ne peut pas en enlever */
+  return -1;
 }
 
 /* La, on parse une condition, du genre ^From: jo
@@ -509,6 +497,7 @@ int in_main_list (char *name) {
 int parse_flags(char *name, int *toset, int *flag) {
    char *buf=name;
    *flag=0;
+   if (strcmp(buf,"all")==0) return -2; /* cas pour les filtres */
    if (strncmp(name,"un",2)==0) {
       buf+=2;
       *toset=0;
