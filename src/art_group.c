@@ -559,12 +559,48 @@ void ajoute_reponse_a(Article_List *article) {
    return;
 }
 
+/* Appelé par ajoute_message et ajoute_message_par_num */
+static Article_List *ajoute_message_fin(Article_List *creation) {
+   Article_List *parcours, *last=NULL;
+
+   parcours=Article_deb;
+   if ((parcours!=NULL) && (parcours!=&Article_bidon)) {
+     while (parcours && (parcours->numero<creation->numero)) {
+         last=parcours;
+         parcours=parcours->next;
+     }
+     if (parcours && (parcours->numero==creation->numero)) {
+        free_one_article(creation,1);
+        return 0;
+     }
+     if (parcours!=Article_deb) {
+         last -> next=creation;
+         creation->prev=last;
+     } else Article_deb=creation;
+     if (parcours!=NULL) {
+        creation->next=parcours;
+        parcours->prev=creation;
+     }
+   } else Article_deb=creation;
+   if (Newsgroup_courant->max<creation->numero) {
+      Newsgroup_courant->max=creation->numero;
+      Aff_newsgroup_courant();
+   }
+   cree_liens(); /* On va s'occuper de cet article sans thread associé */
+   if (Newsgroup_courant->virtual_in_not_read)
+      Newsgroup_courant->virtual_in_not_read--; else
+      Newsgroup_courant->not_read++;
+   creation->flag |= FLAG_NEW;
+   check_kill_article(creation,1);
+   return creation;
+}
+
 /* Ajouter un message localement à la liste des messages d'un newsgroup      */
 /* On ne se casse surtout pas la tête.				             */
 /* On renvoie NULL en cas d'echec, l'article cree en cas de succes.	     */
 /* should_retry est mis a un si il semble y avoir un pb d'update du serveur  */
 Article_List *ajoute_message (char *msgid, int *should_retry) {
-   Article_List *creation, *parcours, *last=NULL;
+   Article_List *creation;
    char *buf;
    int res,code;
 
@@ -607,36 +643,7 @@ Article_List *ajoute_message (char *msgid, int *should_retry) {
 	  }
       }
    }
-   parcours=Article_deb; 
-   if ((parcours!=NULL) && (parcours!=&Article_bidon)) {
-     while (parcours && (parcours->numero<creation->numero)) {
-         last=parcours;
-         parcours=parcours->next;
-     }
-     if (parcours && (parcours->numero==creation->numero)) {
-	free_one_article(creation,1);
-	return 0; 
-     }
-     if (parcours!=Article_deb) {
-         last -> next=creation;
-         creation->prev=last;
-     } else Article_deb=creation;
-     if (parcours!=NULL) {
-        creation->next=parcours;
-        parcours->prev=creation;
-     }
-   } else Article_deb=creation;
-   if (Newsgroup_courant->max<creation->numero) {
-      Newsgroup_courant->max=creation->numero;
-      Aff_newsgroup_courant();
-   }
-   cree_liens(); /* On va s'occuper de cet article sans thread associé */
-   if (Newsgroup_courant->virtual_in_not_read) 
-      Newsgroup_courant->virtual_in_not_read--; else 
-      Newsgroup_courant->not_read++;
-   creation->flag |= FLAG_NEW;
-   check_kill_article(creation,1);
-   return creation;
+   return ajoute_article_fin(creation);
 }
 
 /* Essaie d'ajout direct d'un message localement  */
@@ -645,9 +652,8 @@ Article_List *ajoute_message (char *msgid, int *should_retry) {
 /* Enfin... d'une suite de numéro, on rend le premier qui marche...	     */
 /* On renvoie NULL en cas d'echec, l'article cree en cas de succes.	     */
 /* Beaucoup de code vient de ajoute_message... C'est dommage, mais tant pis  */
-/* On devra corriger ça plus tard...					     */
 Article_List *ajoute_message_par_num (int min, int max) {
-   Article_List *creation, *parcours, *last=NULL;
+   Article_List *creation;
    char *buf, *buf2;
    int i,res,code;
 
@@ -682,36 +688,7 @@ Article_List *ajoute_message_par_num (int min, int max) {
      return NULL;
    }
 
-   parcours=Article_deb; 
-   if ((parcours!=NULL) && (parcours!=&Article_bidon)) {
-     while (parcours && (parcours->numero<creation->numero)) {
-         last=parcours;
-         parcours=parcours->next;
-     }
-     if (parcours && (parcours->numero==creation->numero)) {
-	free_one_article(creation,1);
-	return 0;  /* Théoriquement, on ne peut arriver ici */
-     }
-     if (parcours!=Article_deb) {
-         last -> next=creation;
-         creation->prev=last;
-     } else Article_deb=creation;
-     if (parcours!=NULL) {
-        creation->next=parcours;
-        parcours->prev=creation;
-     }
-   } else Article_deb=creation;
-   if (Newsgroup_courant->max<creation->numero) {
-      Newsgroup_courant->max=creation->numero;
-      Aff_newsgroup_courant();
-   }
-   cree_liens();
-   creation->flag |= FLAG_NEW;
-   if (Newsgroup_courant->virtual_in_not_read) 
-      Newsgroup_courant->virtual_in_not_read--; else 
-      Newsgroup_courant->not_read++;
-   check_kill_article(creation,1);
-   return creation;
+   return ajoute_article_fin(creation);
 }
 
 

@@ -605,7 +605,6 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 			 *ptr_att=']';
 			 ptr_att++;
 			 if (str!=NULL) {
-			    *ptr_att=']';
 			    str1=safe_strdup(str);
 			    SLang_free_slstring(str);
 			    str=str1;

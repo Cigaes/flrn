@@ -16,9 +16,23 @@
 
 int flrn_SLang_inited=0;
 
+char *intrin_get_header(int *num, char *name) {
+   return "Un truc pipo.";
+}
+
+SLang_Intrin_Fun_Type flrn_Intrinsics [] =
+{
+   MAKE_INTRINSIC_2("get_header", intrin_get_header, SLANG_STRING_TYPE,
+   				SLANG_INT_TYPE, SLANG_STRING_TYPE),
+   SLANG_END_TABLE
+};
+
+
 /* initialisation des fonctions de SLang. retour : -1 si erreur */
 int flrn_init_SLang(void) {
    if (-1 == SLang_init_all ()) 
+     return -1;
+   if (-1 == SLadd_intrin_fun_table (flrn_Intrinsics, NULL))
      return -1;
    flrn_SLang_inited=1;
    return 0;
