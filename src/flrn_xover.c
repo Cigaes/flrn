@@ -223,6 +223,9 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
 	 if (article->headers->k_headers[DATE_HEADER])
 	    article->headers->date_gmt=
 	      parse_date(article->headers->k_headers[DATE_HEADER]);
+	 /* FIXME :
+	   if (article->msgid==NULL) {... free_one_article(article);...}
+	 */
        }
        res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
        if (res<0) return -1;

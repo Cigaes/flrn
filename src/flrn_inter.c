@@ -1407,6 +1407,15 @@ int do_save(int res) {
       return 0;
     }
   }
+  if (name[0]!='/' && (Options.savepath[0]!='\0')) {
+    /* on n'a pas un path complet */
+    char *fullname=safe_malloc(strlen(name)+strlen(Options.savepath)+1);
+    strcpy(fullname,Options.savepath);
+    strcat(fullname,"/");
+    strcat(fullname,name);
+    if (use_argstr) free(name);
+    name=fullname;
+  }
   if (stat(name,&status)==0) {
       if ((!Options.use_mailbox) || (res==FLCMD_SAVE_OPT))
         Aff_fin("Ecraser le fichier ? ");

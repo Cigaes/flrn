@@ -49,6 +49,7 @@ struct Option_struct Options = {
   0,			/* alpha_tree, temporaire */
   ".flrnkill",		/* kill_file_name */
   1,			/* auto_kill */
+  "",			/* savepath */
   };
 
 #endif

@@ -89,6 +89,7 @@ struct Option_struct {
   int alpha_tree;
   char *kill_file_name;
   int auto_kill;
+  char *savepath;
 };
 
 extern struct Option_struct Options;
@@ -163,6 +164,7 @@ static struct {
   MAKE_INTEGER_OPT_L(port,"Port d'accès au serveur (119 en général)."),
   MAKE_STRING_OPT(post_name,"Nom de posts des messages."),
   MAKE_OPT(quit_if_nothing,"Quitte si il n'y a rien de nouveau au lancement."),
+  MAKE_STRING_OPT(savepath,"Répertoire ou sauver les articles."),
   MAKE_OPT(scroll_after_end,"Modifie le comportement final du scrolling."),
   MAKE_STRING_OPT_NAME_L(server,serveur_name,"Nom du serveur de news."),
   MAKE_OPT(simple_post,"Tente de faciliter le posts des messages."),
