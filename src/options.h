@@ -126,6 +126,7 @@ struct Option_struct {
   char *auth_user;
   char *auth_pass;
   char *sig_file;
+  int quote_all;
 };
 
 extern struct Option_struct Options;
@@ -212,6 +213,7 @@ static struct {
   MAKE_STRING_OPT(post_name,"Nom de posts des messages."),
   MAKE_STRING_OPT(prefixe_groupe,"Préfixe par défaut de noms de groupes."),
   MAKE_OPT(quit_if_nothing,"Quitte si il n'y a rien de nouveau au lancement."),
+  MAKE_OPT(quote_all,"Inclut l'ensemble du message, en-têtes comprises."),
   MAKE_STRING_OPT(savepath,"Répertoire ou sauver les articles."),
   MAKE_OPT(scroll_after_end,"Modifie le comportement final du scrolling."),
   MAKE_STRING_OPT_NAME_L(server,serveur_name,"Nom du serveur de news."),

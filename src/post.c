@@ -117,7 +117,7 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
    fprintf(tmp_file, "\n");
    if (Pere_post && ((incl==1) || ((incl==-1) && (Options.include_in_edit)))) { 
        if (!supersedes) Copy_format (tmp_file,Options.attribution,Pere_post,NULL,0);
-       Copy_article(tmp_file,Pere_post, 0, (supersedes ? NULL : Options.index_string));
+       Copy_article(tmp_file,Pere_post, Options.quote_all, (supersedes ? NULL : Options.index_string));
        fprintf(tmp_file,"\n");
    }
    if ((incl==-1) && (Options.sig_file)) {

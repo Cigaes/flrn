@@ -156,7 +156,6 @@ extern Article_List *ajoute_message(char * /*msgid*/, int * /*should_retry*/);
 extern Article_List *ajoute_message_par_num(int , int);
 extern void detruit_liste(int);
 extern void libere_liste(void);
-extern void free_article_headers(Article_Header *);
 extern Article_List *next_in_thread(Article_List * /*start*/,
     long /*flag*/, int * /*level*/,
     int /*deb*/, int /*fin*/, int /*set*/, int);

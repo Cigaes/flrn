@@ -2599,7 +2599,7 @@ int do_art_msgid(int res) {
       return 0;
    }
    ret=art_swap_grp(article_temp.headers->k_headers[XREF_HEADER],NULL,NULL);
-   free_article_headers(article_temp.headers);
+   free_one_article(&article_temp,0);
    return ret;
 }
 

@@ -151,8 +151,7 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin, 
 	   if (article && (article->numero == creation->numero)) {
 	     /* on l'a déjà, celui-la */
 	       new_article=0;
-	       free_article_headers(article->headers);
-	       article->headers=NULL;
+	       free_one_article(article,0); /* on detruit juste les headers */
 	       free(creation);
 	   } else {
 	     if (article) {

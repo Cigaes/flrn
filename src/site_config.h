@@ -68,6 +68,7 @@ struct Option_struct Options = {
   NULL,			/* auth_user */
   NULL,			/* auth_pass */
   NULL,			/* sig_file */
+  0,			/* quote_all */
   };
 
 #endif

@@ -64,7 +64,7 @@ time_t Date_groupe;
 Hash_List *(*Hash_table)[HASH_SIZE];
 
 /* libere la memoire d'un article */
-void free_article_headers(Article_Header *headers) {
+static void free_article_headers(Article_Header *headers) {
   int i;
   if (!headers) return;
   /* attention au message-id */
@@ -95,15 +95,11 @@ void free_one_article(Article_List *article,int flag) {
 
 /* cette fonction annule relie_article */
 static void derelie_article(Article_List *pere, Article_List *fils) {
-    if ((fils==NULL) || (pere==NULL)) return;
-    fils->pere=NULL;
-    fils->parent=0;
     if (fils->frere_suiv) fils->frere_suiv->frere_prev=fils->frere_prev;
     if (fils->frere_prev) fils->frere_prev->frere_suiv=fils->frere_suiv;
     if (pere->prem_fils==fils) 
     		pere->prem_fils=(fils->frere_prev ? fils->frere_prev :
     							     fils->frere_suiv);
-    fils->frere_prev=fils->frere_suiv=NULL;
     return;
 }
 
@@ -157,11 +153,11 @@ static Thread_List *fusionne_thread(Thread_List *thread1, Thread_List *thread2) 
    thread1->flags|=thread2->flags;
    for (parcours=thread2->premier_hash; ;
         parcours=parcours->next_in_thread) 
-	{
-	  if (parcours->article) parcours->article->thread=thread1;
-	  parcours->thread=thread1;
-	  if (parcours->next_in_thread==NULL) break;
-	}
+   {
+        if (parcours->article) parcours->article->thread=thread1;
+	parcours->thread=thread1;
+	if (parcours->next_in_thread==NULL) break;
+   }
    parcours->next_in_thread=thread1->premier_hash;
    thread1->premier_hash=thread2->premier_hash;
    if (Thread_deb==thread2) {
@@ -195,11 +191,6 @@ int cree_liens() {
 
   /* on fait tout en une seule passe... on est des torcheurs... */
   /* Evidemment, ça bouffe de la mémoire...			*/
-  /* Si on veut économiser, l'idée c'est de vérifier via les tables */
-  /* de hash quand on crée un article s'il est pas en trop... cela  */
-  /* doit se faire dans cree_liste_xover...			    */
-  /* [TODO] : faire ce qui est décrit au-dessus. A terme réunir article */
-  /* et hash...							        */
 
   for(creation=Article_deb; creation; creation=creation->next) {
     if (creation->thread) continue;
