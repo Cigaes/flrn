@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. Enrichissement des filtres pour avoir des matchs exacts et non des regexp
 . Ajout du message-id a k_headers.
 . Mise a jour de max dans cree_liste_xover pour les pb de synchronisation
 . Passage non inline des safe_*, ajout de safe_strappend

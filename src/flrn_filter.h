@@ -7,8 +7,12 @@
 typedef struct _flrn_condition {
   int flags;
 #define FLRN_COND_REV 1
+#define FLRN_COND_STRING 2
   int header_num;
-  regex_t *condition;
+  union {
+    regex_t *regex;
+    char *string;
+  } condition;
   struct _flrn_condition *next;
 } flrn_condition;
 

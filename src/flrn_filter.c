@@ -47,11 +47,21 @@ int check_article(Article_List *article, flrn_filter *filtre, int flag) {
       if (flag) cree_header(article,0,0);
       else return -1;
     }
-    if(regexec(regexp->condition,
+    if (!(regexp->flags & FLRN_COND_STRING)) {
+      if(regexec(regexp->condition.regex,
 	article->headers->k_headers[regexp->header_num]?
 	article->headers->k_headers[regexp->header_num]:"",
 	0,NULL,0)!=(regexp->flags & FLRN_COND_REV)?REG_NOMATCH:0)
-      return 1;
+	return 1;
+    } else {
+      if(strstr(article->headers->k_headers[regexp->header_num]?
+	article->headers->k_headers[regexp->header_num]:"",
+	regexp->condition.string)!=NULL) {
+	  if ((regexp->flags & FLRN_COND_REV) != 0) return 1;
+      } else {
+	  if ((regexp->flags & FLRN_COND_REV) == 0) return 1;
+      }
+    }
     regexp=regexp->next;
   }
   return 0;
@@ -146,6 +156,11 @@ int parse_filter(char * istr, flrn_filter *start) {
     cond->flags |= FLRN_COND_REV;
     str++;
   }
+  /* si ça commence par ' ou ", on fait un match exact */
+  if (*str == '\'' || *str == '"') {
+    cond->flags |= FLRN_COND_STRING;
+    str++;
+  }
   /* on cherche le header correspondant */
   for (i=0;i<NB_KNOWN_HEADERS;i++) {
     if (strncasecmp(str,Headers[i].header,Headers[i].header_len)==0) {
@@ -157,9 +172,13 @@ int parse_filter(char * istr, flrn_filter *start) {
   buf = str + Headers[cond->header_num].header_len;
   while(*buf==' ') buf++;
   /* on parse la regexp */
-  cond->condition = safe_malloc(sizeof(regex_t));
-  if (regcomp(cond->condition,buf,REG_EXTENDED|REG_NOSUB|REG_ICASE))
-  {free(cond) ; return -2;}
+  if (cond->flags & FLRN_COND_STRING) {
+    cond->condition.string = safe_strdup(buf);
+  } else {
+    cond->condition.regex = safe_malloc(sizeof(regex_t));
+    if (regcomp(cond->condition.regex,buf,REG_EXTENDED|REG_NOSUB|REG_ICASE))
+    {free(cond->condition.regex); free(cond) ; return -2;}
+  }
   /* on l'ajoute au filtre */
   if (start->condition==NULL)
     start->condition=cond;
@@ -172,9 +191,16 @@ int parse_filter(char * istr, flrn_filter *start) {
 }
 
 static void free_condition( flrn_condition *cond) {
-  if (cond->condition)
-    regfree(cond->condition);
-  cond->condition=NULL;
+  if (!cond->flags & FLRN_COND_STRING) {
+    if (cond->condition.regex)
+      regfree(cond->condition.regex);
+      free(cond->condition.regex);
+      cond->condition.regex=NULL;
+  } else {
+    if (cond->condition.string)
+      free(cond->condition.string);
+      cond->condition.string=NULL;
+  }
 }
 
 static void free_action( flrn_action *act) {
