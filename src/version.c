@@ -103,7 +103,7 @@ void print_version_defines(FILE *out)
 #endif
 	,out);
    fprintf(out,"DEFAULT_DIR_FILE=\"%s\"  ", DEFAULT_DIR_FILE);
-   fprintf(out," DEFAULT_FLNEWS_FILE=\"%s\"\n ", DEFAULT_FLNEWS_FILE);
+   fprintf(out," DEFAULT_FLNEWS_FILE=\"%s\"\n", DEFAULT_FLNEWS_FILE);
    fprintf(out,"DEFAULT_CONFIG_FILE=\"%s\"  ", DEFAULT_CONFIG_FILE);
    fprintf(out,"DEFAULT_CONFIG_SYS_FILE=\"%s\"\n", DEFAULT_CONFIG_SYS_FILE);
    fprintf(out,"TMP_POST_FILE=\"%s\"  ", TMP_POST_FILE);
