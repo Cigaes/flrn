@@ -643,7 +643,7 @@ Article_List *ajoute_message (char *msgid, int *should_retry) {
 	  }
       }
    }
-   return ajoute_article_fin(creation);
+   return ajoute_message_fin(creation);
 }
 
 /* Essaie d'ajout direct d'un message localement  */
@@ -688,7 +688,7 @@ Article_List *ajoute_message_par_num (int min, int max) {
      return NULL;
    }
 
-   return ajoute_article_fin(creation);
+   return ajoute_message_fin(creation);
 }
 
 
