@@ -34,7 +34,7 @@ static int parse_option_file (char *name, int flags, int flag_option);
 
 static char *option_ligne = NULL;
 
-void var_comp(char *var, int len)
+int var_comp(char *var, int len)
 {
   char *buf=var;
   int used;
@@ -66,110 +66,126 @@ void var_comp(char *var, int len)
       buf[prefix_len]='\0';
     }
   }
-  return;
+  return 0;
 }
 
-/* il faut que len soit plus grand que touts les noms de commandes
+static char *get_optcmd_name(void * ptr,int num)
+{
+  return ((struct _Optcmd *)ptr)[num].name;
+}
+/* on fait maintenant les checks sur len...
  * on pourait ajouter pour la completude la completion apres color
  * mais ca veut dire reecrire le code qui gere ca... */
-void options_comp(char *option, int len)
+
+int options_comp(char *str, int len)
 {
-  int used;
   int res;
-  char *my_option=safe_malloc(len);
-  char *buf;
-
-  if (len <5) {free(my_option); return;}
-  strcpy(my_option,option);
-  buf=strtok(my_option,delim);
-  if (!buf) {free(my_option); return;}
-  used=strlen(buf);
-
-  if (strncmp(buf,OPT_SET,used)==0) {
-    if (used<OPT_SET_LEN) {
-      strncpy(option,OPT_SET,len-2);
-      strcat(option," ");
-      free(my_option);
-      return;}
-    if((buf=strtok(NULL,delim))) {
-      if (!strtok(NULL,delim)) {
-	var_comp(buf, len - 3 - (buf - option));
-	sprintf(option,"%s %s",OPT_SET,buf);
-      }
-    } else {strcpy(option,OPT_SET); strcat(option," ");}
-    free(my_option);
-    return;
-  } else
-  if (strncmp(buf,OPT_SET_COLOR,used)==0) {
-    if (used<OPT_SET_COLOR_LEN) {
-      strncpy(option,OPT_SET_COLOR,len-2); strcat(option," ");
-      free(my_option);
-      return;}
-    if (!strtok(NULL,delim)) {
-      strcpy(option,OPT_SET_COLOR); strcat(option," ");
+  int offset;
+  res = Comp_generic(str,len,(void *)Optcmd_liste,NUMBER_OF_OPT_CMD,
+      get_optcmd_name,&offset,delim);
+  if ((res >= 0)&&(offset>0)) {
+    if (Optcmd_liste[res].comp) {
+      return (*Optcmd_liste[res].comp)(str+offset,len-offset);
     }
-  } else
-  if (strncmp(buf,OPT_INCLUDE,used)==0) {
-    if (used<OPT_INCLUDE_LEN) {
-      strncpy(option,OPT_INCLUDE, len -2); strcat(option," ");
-      free(my_option);
-      return;}
-    if (!strtok(NULL,delim)) {
-      strcpy(option,OPT_INCLUDE); strcat(option," ");
-    }
-  } else
-  if (strncmp(buf,OPT_MY_HEADER,used)==0) {
-    /* On ne fait pas de complétion pour my_header, même si ca pourrait */
-    /* se faire dans le cas de remove... A noter que my_header est en   */
-    /* concurrence avec mono...						*/
-    if (used<OPT_MY_HEADER_LEN) {
-      strncpy(option,OPT_MY_HEADER,len -2); strcat(option," ");
-      free(my_option);
-      return;}
-    if (!strtok(NULL,delim)) {
-      strcpy(option,OPT_MY_HEADER); strcat(option," ");
-    }
-  } else
-  if (strncmp(buf,OPT_MY_FLAGS,used)==0) {
-    /* On ne fait pas de complétion pour my_flags */
-    if (used<OPT_MY_FLAGS_LEN) {
-      strncpy(option,OPT_MY_FLAGS,len -2); strcat(option," ");
-      free(my_option);
-      return;}
-    if (!strtok(NULL,delim)) {
-      strcpy(option,OPT_MY_FLAGS); strcat(option," ");
-    }
-  } else
-  if (strncmp(buf,OPT_HEADER,used)==0) {
-    if (used<OPT_HEADER_LEN) {
-      strncpy(option,OPT_HEADER,len -2); strcat(option," ");
-      free(my_option);
-      return;}
-    if (!strtok(NULL,delim)) {
-      strcpy(option,OPT_HEADER); strcat(option," ");
-    }
-  } else
-  if (strncmp(buf,OPT_BIND,used)==0) {
-    char *buf1;
-    if (used<OPT_BIND_LEN) {
-      strncpy(option,OPT_BIND,len -2); strcat(option," ");
-      free(my_option);
-      return;}
-    if((buf1=strtok(NULL,delim))) {
-      if ((buf=strtok(NULL,delim))) {
-        if (*buf=='\\') buf++;
-	res = Comp_cmd_explicite(buf,len - (buf-option) -3);
-	sprintf(option,"%s %s %s",OPT_BIND,buf1,buf);
-      }
-    } else {
-      strcpy(option,OPT_BIND); strcat(option," ");
-    }
-    free(my_option);
-    return;
   }
-  free(my_option);
-  return;
+  if (res < -1) return -1;
+  return 0;
 }
+
+static char *bindarg_names[] = {
+  "add",
+  "menu",
+  "pager",
+  "command"
+};
+
+static char *get_name_liste(void *p,int i) {
+  return ((char **)p)[i];
+}
+
+int bind_comp(char *str, int len)
+{
+  int res;
+  int offset;
+  if (len <2) return -1;
+  if (str[1]==' ') {
+    return Comp_cmd_explicite(str+2,len-2);
+  }
+  if (str[0]=='\\') {
+    offset=strcspn(str,delim);
+    if (offset< len) {
+      offset += strspn(str+offset,delim);
+      return Comp_cmd_explicite(str+offset,len-offset);
+    }
+    return -1;
+  }
+  res = Comp_generic(str,len,(void *)bindarg_names,
+      sizeof(bindarg_names)/sizeof(bindarg_names[0]),
+      get_name_liste,&offset,delim);
+  if ((res >= 0)&&(offset>0)) {
+    return bind_comp(str+offset,len-offset);
+  }
+  if (res < -1) return -1;
+  return 0;
+}
+
+
+
+#if 0
+
+  int lettre;
+  char *buf, *buf2, *buf3;
+  int res, mode=-1; /* mode=0 : commande mode=1 : menu mode=2 : pager */
+  int add=0;
+
+  buf=strtok(str,delim);
+  if (!buf) return -1;
+  if (strcasecmp(buf,"add")==0) {
+    add =1;
+    buf=strtok(NULL,delim);
+    if (!buf) return -1;
+  }
+  if (strcasecmp(buf,"menu")==0) mode=CONTEXT_MENU; else
+    if (strcasecmp(buf,"pager")==0) mode=CONTEXT_PAGER; else
+      if (strcasecmp(buf,"command")==0) mode=CONTEXT_COMMAND;
+  if (mode!=-1) buf=strtok(NULL,delim); else
+    mode=0;
+  if (!buf) return -1;
+  if (strcasecmp(buf,"add")==0) {
+    add =1;
+    buf=strtok(NULL,delim);
+    if (!buf) return -1;
+  }
+  lettre = *buf;
+  if (buf[1]) {
+    if (*buf == '\\') buf++;
+    if (isdigit((int) *buf))
+      lettre = strtol(buf,NULL,0);
+    else
+      lettre = parse_key_name(buf);
+    if (lettre <0) lettre =0;
+    if (lettre >=MAX_FL_KEY) lettre = MAX_FL_KEY-1;
+  }
+  buf2=strtok(NULL,delim);
+  if (!buf2) return -1;
+  if (*buf2=='\\') buf2++;
+  buf3=strtok(NULL,"\n");
+  if (buf3) 
+    buf3+=strspn(buf3, delim);
+
+  res=(mode==CONTEXT_MENU ? Bind_command_menu(buf2,lettre,buf3,add) :
+	mode==CONTEXT_PAGER ? Bind_command_pager(buf2,lettre,buf3,add) : 
+		  Bind_command_explicite(buf2,lettre,buf3,add));
+  if (res <0) {
+    if (flag) Aff_error_fin("Echec de la commande bind.",1); else
+    {
+      fprintf(stderr,"Echec du bind : %s\n",option_ligne);
+      sleep(1);
+    }
+  }
+  return (res <0) ? -1 : 0;
+}
+#endif
 
 /* ajout d'un header, éventuellement a unknown_header */
 int Le_header(char *buf) {

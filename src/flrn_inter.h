@@ -13,6 +13,7 @@ typedef struct command_desc {
 		  32: demande à avoir un groupe valide */
 #define CMD_NEED_GROUP 32
    int (*appel)(int);
+   int (*comp)(char *, int);
 } Flcmd;
 
 
@@ -23,6 +24,8 @@ extern int call_func(int, char *);
 extern int loop(char * /*opt*/);
 extern void aff_opt_c(void);
 extern void init_Flcmd_rev(void);
+extern int Comp_generic(char *, int, void *, int, char *(void *,int),
+    int *, char *);
 extern int Comp_cmd_explicite(char * /*str*/, int /*len*/);
 extern int Bind_command_explicite(char * /*nom*/, int /*key*/, char *, int);
 extern void save_etat_loop(void);

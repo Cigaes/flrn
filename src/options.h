@@ -17,35 +17,8 @@
 #  define OPT_COMMENT_CHAR '#'
 
 #  define WORD_NAME_PROG "name"
-#  define WORD_NAME_PROG_LEN 4
 
-#  define OPT_HEADER "header"
-#  define OPT_HEADER_LEN 6
-
-#  define OPT_MY_HEADER "my_hdr"
-#  define OPT_MY_HEADER_LEN 6
-
-#  define OPT_INCLUDE "include"
-#  define OPT_INCLUDE_LEN 7
-
-#  define OPT_MY_FLAGS "my_flags"
-#  define OPT_MY_FLAGS_LEN 8
-
-#  define OPT_SET_COLOR "color"
-#  define OPT_SET_COLOR_LEN 5
-
-#  define OPT_SET_MONO "mono"
-#  define OPT_SET_MONO_LEN 4
-
-#  define OPT_SET_NEWCOLOR "regcolor"
-#  define OPT_SET_NEWCOLOR_LEN 8
-
-#  define OPT_SET "set"
-#  define OPT_SET_LEN 3
-
-#  define OPT_BIND "bind"
-#  define OPT_BIND_LEN 4
-
+/* fonctions pour parser une option */
 int opt_do_header(char *, int);
 int opt_do_my_hdr(char *, int);
 int opt_do_color(char *, int);
@@ -55,7 +28,11 @@ int opt_do_set(char *, int);
 int opt_do_bind(char *, int);
 int opt_do_my_flags(char *, int);
 
-struct {
+/* pour la comptetion automatique */
+int var_comp(char *, int);
+int bind_comp(char *, int);
+
+struct _Optcmd {
   char *name;
   int (*parse)(char *, int);
   int (*comp)(char *, int);
@@ -66,8 +43,8 @@ struct {
   {"color", &opt_do_color, NULL},
   {"mono", &opt_do_mono, NULL},
   {"regcolor", &opt_do_regcolor, NULL},
-  {"set", &opt_do_set, NULL},
-  {"bind", &opt_do_bind, NULL},
+  {"set", &opt_do_set, &var_comp},
+  {"bind", &opt_do_bind, &bind_comp},
 };
 
 #define NUMBER_OF_OPT_CMD (sizeof(Optcmd_liste)/sizeof(Optcmd_liste[0]))
@@ -247,7 +224,7 @@ extern void init_options(void);
 extern void parse_options_line(char * /*ligne*/, int /*flag*/);
 extern void dump_variables(FILE * /*file*/);
 extern void dump_flrnrc(FILE * /*file*/);
-extern void options_comp(char * /*option*/, int /*len*/);
+extern int  options_comp(char * /*option*/, int /*len*/);
 extern void free_options(void);
 extern void menu_config_variables(void);
 

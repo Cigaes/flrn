@@ -688,36 +688,85 @@ int get_command_nocbreak(int asked,int col) {
    return parse_arg_string(str,res);
 }
 
-/* Completion automagique sur les commandes explicites */
-int Comp_cmd_explicite(char *str, int len)
-{
+int Comp_generic(char *str, int len, void * truc, int num,
+  char *get_str(void *, int ), int *offset, char *delim) {
   char *guess=NULL;
+  char *cur=NULL;
   int prefix_len=0;
   int match=0;
   int i,j;
-  for (i=0;i<NB_FLCMD;i++) 
-    if (strncmp(str, Flcmds[i].nom, strlen(str))==0) {
+  int good=0;
+  char *suite;
+
+  *offset=0;
+  suite=strtok(str,delim);
+  if (suite)
+    suite=strtok(NULL,"\0");
+  if (suite) suite=safe_strdup(suite);
+
+  for (i=0;i<num;i++) 
+    if (strncmp(str, cur=get_str(truc,i), strlen(str))==0) {
       if (match) {
 	if (!prefix_len) prefix_len=strlen(guess);
 	for (j=0;j<prefix_len;j++)
-	if (guess[j] != Flcmds[i].nom[j]){
+	if (guess[j] != cur[j]){
 	  prefix_len=j; break;
 	}
       }
-      guess=Flcmds[i].nom;
+      guess=cur;
+      good=i;
       match++;
     }
   if (match==1) {
     if (strlen(guess) < 1+len) { strcpy(str, guess);
       strcat(str," ");
-      return 0;
+      if (suite) {
+	*offset=strlen(str);
+	strncat(str,suite,len-strlen(str));
+	free(suite);
+      }
+      return good;
     }
   } else if (match >1) {
-      if (prefix_len < len) {strncpy(str, guess, prefix_len);
+      if (prefix_len < len-1) {strncpy(str, guess, prefix_len);
 	str[prefix_len]='\0';
+	if (suite) {
+	  strcat(str," ");
+	  *offset=strlen(str);
+	  strncat(str,suite,len-strlen(str));
+	  free(suite);
+	}
+	return -1;
       }
     }
-  return 1;
+  if (suite) {
+    strncat(str,suite,len-strlen(str));
+    free(suite);
+  }
+  return -2;
+}
+
+static char * get_command_name(void * cmdlist, int num) {
+  return ((Flcmd *) cmdlist)[num].nom;
+}
+
+/* Completion automagique sur les commandes explicites */
+int Comp_cmd_explicite(char *str, int len)
+{
+  int res;
+  int offset;
+  if (*str=='\\') {
+    str++; len--;
+  }
+  res = Comp_generic(str,len,(void *)Flcmds,NB_FLCMD,
+      get_command_name,&offset," ");
+  if ((res >= 0)&&(offset>0)) {
+    if (Flcmds[res].comp) {
+      return (*Flcmds[res].comp)(str+offset,len-offset);
+    }
+  }
+  if (res < -1) return -1;
+  return 0;
 }
 
 /* Prend une commande explicite */
@@ -739,7 +788,7 @@ int get_command_explicite(char *start, int col) {
      if ((res=magic_getline(str+prefix_len,MAX_CHAR_STRING-prefix_len,
 	 Screen_Rows-1,col+prefix_len,"\011",0))<0)
        return -2;
-     if (res>0) Comp_cmd_explicite(str+prefix_len,MAX_CHAR_STRING-prefix_len); 
+     if (res>0) (void) Comp_cmd_explicite(str+prefix_len,MAX_CHAR_STRING-prefix_len); 
    } while (res!=0);
    res=Lit_cmd_explicite(str+prefix_len); 
    str=strchr(str,' ');
@@ -2137,7 +2186,7 @@ void Get_option_line(char *argument)
         return;
       }
       if (res>0)
-        options_comp(buf,MAX_BUF_SIZE);
+        (void ) options_comp(buf,MAX_BUF_SIZE);
     } while (res!=0);
   }
   /* hack pour reconstruir les couleurs au besoin */
