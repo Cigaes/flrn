@@ -555,7 +555,7 @@ int write_command (int num_com, int num_param, char **param) {
 	        ==CMD_FLAG_KNOWN)) 
           return raw_write_command(num_com, num_param, param);
 	  /* On se fout de overview.fmt */
-	  if (strcmp(*param,"overview.fmt")==0) 
+	  if ((num_param>0) && (strcmp(*param,"overview.fmt")==0))
 	      return raw_write_command(num_com, num_param, param);
 	  if ((server_command_status[num_com] & CMD_FLAG_KNOWN)
 	            ==CMD_FLAG_KNOWN) {
@@ -577,6 +577,8 @@ int write_command (int num_com, int num_param, char **param) {
 	     server_command_status[CMD_LIST]=CMD_FLAG_KNOWN;
 	     return write_command(CMD_LIST, num_param, param);
 	  }
+	  if (num_param==0) server_command_status[CMD_LIST]=CMD_FLAG_KNOWN;
+	     else server_command_status[CMD_LIST]=CMD_FLAG_MAXIMAL;
 	  renvoie_direct=1;
 	  return ret;
        /* CMD_DATE : un détail dans un sens */
