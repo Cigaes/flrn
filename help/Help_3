@@ -1,0 +1,218 @@
+Help_3
+
+	flrn : options du .flrn
+	-----------------------
+
+Les options sont aussi disponibles sur la page de manuel de flrn.
+La forme générale des options est inspirée de mutt. Il y a six commandes :
+
+set <variable>=<valeur>
+	Permet de modifier la valeur d'une variable. On a les racourcis 
+	suivants : "set <variable>" est équivalent à "set variable=1" ou 
+	"set variable=yes". De même, "set no<variable>" est équivalent à 
+	"set <variable>=no" ou "set <variable>=0".
+
+header	list|weak|hide <une suite de chiffre ou de noms> 
+	donne l'ordre dans lequel les headers d'un
+        article doivent être affichés. À chaque chiffre correspond un header :
+	  1 : Auteur      2 : Réponse à     3 : Sujet         4 : Date
+	  5 : Newsgroups  6 : Followup-To   7 : Organization  8 : Lines  
+	  9 : Sender     10 : Reply-To     11 : Expires      12 : X-Newsreader
+	On peut mettre d'autres headers en donnant leur nom complet. 
+	On peut aussi mettre others pour signifier tous les autres headers.
+	(défaut : 2 1 4 3)
+	Avec weak, on donne ceux qui ne doivent pas être réaffichés après la
+	première page d'un message.
+	Avec hide, on indique les headers à ne pas afficher avec others.
+	(pas de défaut)
+
+color   <types> <n1> <n2> <p1>,<p2>,...
+mono   <types> <p1>,<p2> ...
+regcolor   <types> <flags> <n1> <n2> <p1>,<p2>,... <regexp>
+        Fixe la couleur et/ou les propriétés des objets de flrn. La commande
+	color modifie les couleurs par défaut, la commande mono les spécifie
+	si le terminal est monochrome, la commande regcolor permet, pour un
+	objet choisi, de modifier des patterns donnés.
+        <types> est une suite de mots séparés par des virgules, choisis dans :
+	     normal : pour l'article par exemple (défaut: valeurs du terminal)
+	     header : pour les headers           (défaut: vert sur fond normal)
+	     status : pour la barre de newsgroup (défaut: inverse video)
+	     error  : pour les messages d'erreur (défaut: rouge gras)
+             quoted : pour les citations         (défaut: magenta)
+	     fin    : pour le "A vous:" final    (défaut: en gras)
+             sig    : pour les signatures        (défaut: en bleu)
+             file   : pour les fichiers (aide)   (défaut: normal)
+             summary: pour les résumés           (défaut: normal)
+	     all    : tous les objets
+	<n1> et <n2> sont les couleurs des caractères et du fond
+	<p1> ... sont les attributs des caractères : cela comprend
+	   	bold (gras), blink (souvent non défini),
+		underline (souligné), et reverse (en inverse video),
+		normal et - (qui équivaut à normal)
+	on peut aussi mettre pour les couleurs et les attributs std (couleur
+	du dernier type utilisé dans la commande), et std-<type> qui
+	représente la couleur|attribut du dernier color|mono <type> fait.
+	<flags> est une suite de flags, parmis :
+		case : la regexp est case-sensitive
+		exclude : on exclue les autres regcolor d'un ligne qui matche
+		line : toute la ligne est mise dans la couleur choisie
+		n dans [1-9] : seule le groupe n est coloré
+	<regexp> est une expression régulière
+  Par exemple :
+    color file std-normal std-normal bold,underline
+    regcolor normal line std-quoted std-quoted std-quoted ^(»|»|<<)
+    mono status,error bold
+
+
+
+bind	<touche> <commande>
+	Permet de changer la fonction d'une touche. La syntaxe changera
+	surement dans les versions a venir, comme les noms ou sémantiques des
+	commandes. Pour l'instant, on ne peut binder que des touches ne
+	correspondant pas à des caratères spéciaux du .flrn, et correspondant
+	à des caractères imprimables.
+  Par exemple :
+    bind U pipe urlview
+    bind + summary unread
+    bind \0x01 gotag é  # ^A
+    bind A tag é
+
+
+Voici les variables utilisées :
+
+* Abonnement
+
+auto_subscribe=<une expression reguliere>
+	demande l'abonnement automatique aux newsgroups dont le nom
+	verifie l'expression régulière
+	(défaut : "")
+
+auto_ignore=<une expression reguliere>
+	demande le non-abonnement automatique aux newsgroups dont le
+	nom vérifie l'expression régulière
+	(défaut : "^control|^[^.]+$", soit en gros ignorer control et junk)
+
+default_subscribe=yes|no
+	définit le comportement par défaut lors de la création d'un nouveau
+	groupe, quand il ne s'applique pas à auto_subscribe et auto_ignore.
+	(défaut : yes)
+
+* Affichage
+
+skip_line=<un numéro>
+	définit le nombre de lignes blanches à laisser sous la barre de status.
+	(défaut : 1)
+
+date_in_summary=yes|no
+	affiche ou non la date dans les résumés
+	(défaut : yes)
+
+ordered_summary=yes|no
+	affiche les résumés dans l'ordre de leur numéro, et non dans un ordre
+	threadé.
+	(défaut : yes)
+
+duplicate_subject=yes|no
+	affiche le sujet à chaque ligne de résumé, même si c'est le même que
+	la ligne au-dessus.
+	(défaut : no)
+
+color=yes|no|auto
+	demande l'utilisation de la couleur. Auto signifie que flrn tente une
+	détection automatique.
+	(défaut : auto)
+
+* Commandes
+	
+space_is_return=yes|no
+	empèche de changer de groupe par la commande next (qui correspond par
+	défaut à la barre d'espacement).
+	(défaut : no)
+
+return_dont_scroll=yes|no
+	si cette option est activée, la touche "enter" ne scrolle pas d'une
+	ligne dans les messages longs, mais est directement executée hors
+	du message.
+
+cbreak=yes|no
+	passe en mode cbreak. Sans cette options, on est en mode nocbreak.
+	(défaut : yes)
+
+new_mode=yes|no
+	si cbreak=yes, définit le mode d'entrée des commandes. Le nouveau
+	mode est plus puissant que l'ancien, qui correspond aux commandes des
+	premières release de flrn.
+	(défaut : yes)
+
+use_menus=yes|no
+	utilise des menus interactifs avec certaines commandes. Cette option
+	est expérimentale.
+	(défaut : no pour l'instant)
+
+threaded_space=yes|no
+	permet de lire les messages en suivant la discussion (thread) ou dans
+	l'ordre des numéros. Cette option modifie l'action de la commande next.
+	(défaut : no)
+
+cool_arrows=yes|no
+	N'affiche pas de message d'erreur quand on utilise une commande de
+	déplacement dans le thread et que ce déplacement est invalide.
+	(défaut : yes)
+
+use_regexp=yes|no
+	permet d'utilise les expressions régulières pour les commandes list
+	et goto. Les expressions utilisées sont les expressions étendues de
+	rx.
+	(défaut : no)
+
+zap_change_group=yes|no
+	dit a flrn de changer de groupe si on utilise la commande zap.
+	(défaut : no)
+
+* Poster
+
+include_in_edit=yes|no
+	insère automatiquement le message auquel on répond dans l'éditeur.
+	Cette option n'a de sens qu'avec auto_edit.
+	(défaut : no)
+
+auto_edit=yes|no
+	n'utilise pas l'éditeur intégré de flrn, et lance directement l'éditeur
+	extérieur quand on poste un message.
+	(défaut : no)
+
+post_name=<un nom>
+	choisis le nom utilisé dans les messages envoyés.
+	(défaut : "")
+
+index_string=<str>
+	donne la chaîne ajoutée au début de chaque ligne du message auquel
+	on répond pour quoter celui-ci.
+	(défaut : "> ")
+
+smart_quote=yes|no
+	si index_string commence par '>' et que la ligne à quoter commence
+	aussi par '>', quote simplement par ">" et non par index_string.
+	(défaut : yes)
+
+* Autres
+
+quit_if_nothine=yes|no
+	Quitte directement flrn si il n'y a rien de nouveau. Malheureusement,
+	efface quand même l'écran.
+	(défaut : no, parce que ce comportement est insupportable actuellement)
+
+use_mailbox=yes|no
+	Sauve les messages au format mailbox.
+	(défaut : yes)
+
+server=<string>
+	utilise la machine correspondant à ce nom comme serveur.
+	(défaut : selon l'installation locale)
+
+port=<n>
+	utilise le port donné plutôt que le port nntp.
+	(défaut : le port nntp)
+
+'q' permet de quitter l'aide à tout moment.
+'m' permet de revenir au menu.

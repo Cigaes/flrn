@@ -1,0 +1,80 @@
+#------------------------------------------------------------------------------
+#
+# Makefile pour flrn
+# Une tentative désespérée de faire sérieux en faisant un joli makefile.
+#
+#    damien@naoned.ens.fr          21/11/97
+#------------------------------------------------------------------------------
+
+# C compiler
+
+CC = @CC@
+DEBUGFLAGS = 
+CPPFLAGS = $(DEBUGFLAGS) @CPPFLAGS@
+CFLAGS = @CFLAGS@
+LDFLAGS = @LDFLAGS@
+MISCLIBS = @LIBS@
+MAKEDEPEND = @MAKEDEPEND@
+INSTALL = @INSTALL@
+
+# define it to .iso if man accects 8 bit pages.
+MANISO = @MANISO@
+
+# Quelques répertoires
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+datadir = @datadir@
+mandir = @mandir@
+flrndir = $(datadir)/flrn
+helpdir = $(flrndir)/help
+
+#Sources
+
+C_FILES = flrn_tcp.c options.c flrn_files.c group.c art_group.c tty_display.c tty_keyboard.c flrn_inter.c post.c flrn_string.c main.c rfc2047.c flrn_help.c flrn_regexp.c flrn_slang.c flrn_xover.c flrn_menus.c flrn_color.c compatibility.c flrn_shell.c flrn_pager.c flrn_format.c flrn_filter.c
+
+#Headers
+
+HDRS = flrn.h options.h flrn_config.h flrn_glob.h extern.h group.h art_group.h post.h flrn_string.h rfc2047.h pathdef.h version.h site_config.h flrn_slang.h flrn_menus.h flrn_filter.h flrn_pager.h
+
+#Objets
+
+OBJS = art_group.o compatibility.o flrn_color.o flrn_files.o flrn_format.o flrn_help.o flrn_inter.o flrn_menus.o flrn_pager.o flrn_regexp.o flrn_shell.o flrn_slang.o flrn_string.o flrn_tcp.o flrn_xover.o group.o main.o options.o post.o rfc2047.o tty_display.o tty_keyboard.o flrn_filter.o
+
+# Suite a modifier au cas où
+
+all:  flrn ../man/flrn.1$(MANISO)
+
+flrn:  $(OBJS)
+	$(CC) $(LDFLAGS) -o flrn $(OBJS) $(MISCLIBS)
+
+clean:
+	rm -f *.o core
+
+install: installbin installhelp installman
+
+installbin: flrn
+	$(INSTALL) -d -m 755 $(bindir)
+	$(INSTALL) -s -m 755 flrn $(bindir)/flrn
+
+installhelp:
+	$(INSTALL) -d -m 755 $(helpdir)
+	for i in ../help/* ; do $(INSTALL) -m 644 $$i $(helpdir); done
+
+installman: ../man/flrn.1$(MANISO)
+	$(INSTALL) -d -m 755 $(mandir)/man1
+	$(INSTALL) -m 644 ../man/flrn.1$(MANISO) $(mandir)/man1/flrn.1
+    
+depend: pathdef.h
+	$(MAKEDEPEND) $(CPPFLAGS) $(C_FILES)
+
+../man/flrn.1: ../man/flrn.1.iso
+	cd ../man; make
+
+pathdef.h: Makefile
+	rm -f pathdef.h
+	-@echo 'Building pathdef.h'
+	-@echo '/* This file is automatically created by Makefile' >> pathdef.h
+	-@echo ' * DO NOT EDIT!  Change Makefile only. */' >> pathdef.h
+	-@echo '#define PATH_HELP_DIRECTORY "$(helpdir)/"' >> pathdef.h

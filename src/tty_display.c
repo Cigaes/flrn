@@ -1,0 +1,895 @@
+/* flrn v 0.1                                                           */
+/*             tty_display.c          25/11/97                          */
+/*                                                                      */
+/*  Programme de gestion de l'écran et d'affichage des articles.        */
+/*  S'occupe aussi des entrees des posts.                               */
+/*  Faisait aussi la gestion des scrollings.                            */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <strings.h>
+#include <signal.h>
+
+#include <ctype.h>
+
+#include "flrn.h"
+#include "options.h"
+#include "group.h"
+
+/* place des objets de la barre */
+int name_news_col, num_art_col, num_max_col, num_col_num, name_fin_col;
+/* place des messages d'erreur */
+int row_erreur, col_erreur;
+
+/* Objet courant dans l'affichage de l'article */
+/* Espace actuellement conservé dans l'affichage de l'article */
+int saved_field, saved_space, en_deca;
+
+/* (re-)Determinations des caractéristiques de la fenêtre */
+/* si col_num!=0, c'est la taille à réserver pour les numéros */
+static int Size_Window(int flag, int col_num) {
+   int aff_help=0, aff_mess=1;
+
+   name_news_col=5;
+   if (col_num==0) col_num=num_col_num;
+   num_col_num=col_num;
+   num_max_col=Screen_Cols-5-col_num;
+   num_art_col=num_max_col-13-col_num;
+
+   if (num_art_col<name_news_col+5) {
+      if (debug || flag) fprintf(stderr, "Nombre de colonnes insuffisante.\n");
+      return 0;
+   } else if (num_art_col<name_news_col+20) aff_mess=0; else
+     if (num_art_col>name_news_col+28) aff_help=1;
+   if (aff_help) name_news_col+=9;
+   if (aff_mess==0) num_art_col+=8;
+   if (Screen_Rows<3) {
+      row_erreur=(Screen_Rows ? 1 : 0);
+      if (debug || flag) fprintf(stderr, "Nombre de colonnes insuffisante.\n");
+      return 0;
+   } else 
+      row_erreur=Screen_Rows/2;
+   col_erreur=3;
+
+   Screen_set_color(FIELD_STATUS);
+   Screen_erase_eol(); /* Juste pour tout remplir */
+   Screen_write_string("Flrn");
+   if (aff_help) Screen_write_string(" (?:Aide)");
+   Screen_write_string(": ");
+   name_fin_col=num_art_col-1;
+   Cursor_gotorc (0,num_art_col);
+   if (aff_mess) Screen_write_string("Message ");
+   Screen_write_string("No: ");
+   num_art_col+=(aff_mess ? 12 : 4);
+   Cursor_gotorc (0,num_max_col);
+   Screen_write_string("Max: ");
+   num_max_col+=5;
+   Screen_set_color(FIELD_NORMAL);
+
+   return 1;
+}
+
+/* SIGWINCH */
+void sig_winch(int sig) {
+   
+   Screen_get_size();
+   Screen_init_smg ();
+   if (Size_Window(0,0)) {
+     if (Newsgroup_courant) { Aff_newsgroup_name(); Aff_newsgroup_courant(); }
+     Aff_error ("Changement de taille de la fenêtre");
+   } else Aff_error ("Fenetre trop petite !!!");
+   Screen_refresh();
+   sigwinch_received=1;
+   /*SL*/signal(SIGWINCH, sig_winch);
+
+   return;
+}
+  
+
+/* Initialise l'écran, crée la barre */
+int Init_screen() {
+   int res;
+
+   Get_terminfo ();
+   res=Screen_init_smg ();
+  
+#if 0  /* Les valeurs de retour de la fonction ont changés */
+   if (res==0) {
+      fprintf(stderr, "Mémoire insuffisante pour initialiser l'écran.\n");
+      return 0;
+   }
+#endif
+   Init_couleurs();
+
+   /*SL*/signal(SIGWINCH, sig_winch);
+    
+   return Size_Window(1,5);
+ 
+}
+
+
+/* Affiche un message en bas de l'ecran.				*/
+int Aff_fin(const char *str) {
+   Cursor_gotorc(Screen_Rows-1,0);
+   Screen_set_color(FIELD_AFF_FIN);
+   Screen_write_string((char *)str);
+   Screen_set_color(FIELD_NORMAL);
+   Screen_erase_eol();
+   Cursor_gotorc(Screen_Rows-1, strlen(str)); /* En changeant l'objet */
+    				              /* on change la pos du  */
+   					      /* curseur.		  */
+   return 0;
+}
+
+/* Affiche un message sur l'écran (pour l'instant d'une seule ligne max). */
+int Aff_error(const char *str) {
+   Cursor_gotorc(1,0);
+   Screen_erase_eos();
+   Screen_set_color(FIELD_ERROR);
+   Cursor_gotorc(row_erreur,col_erreur); 
+   Screen_write_string((char *)str);
+   Screen_set_color(FIELD_NORMAL);
+   return 0;
+}
+
+
+/* Affichage de la ligne résumé d'un article */
+/* NE FAIT PAS LE REFRESH, heureusement ! */
+static void raw_Aff_summary_line(Article_List *article, int row,
+    char *previous_subject,
+    int level) {
+  char *buf= safe_malloc(Screen_Cols);
+  Prepare_summary_line(article,previous_subject, level, buf, Screen_Cols);
+  Cursor_gotorc(row,0);
+  Aff_color_line(1,NULL,NULL,FIELD_SUMMARY,buf,Screen_Cols,1,FIELD_SUMMARY);
+  free(buf);
+}
+
+int Aff_summary_line(Article_List *art, int *row,
+    char *previous_subject, int level) {
+  int key;
+  if (*row==0) *row=1+Options.skip_line;
+  if (*row>=Screen_Rows-1-Options.skip_line) {
+    Aff_fin("-suite-");
+    key=Attend_touche();
+    if (KeyBoard_Quit) return 1;
+    Cursor_gotorc(1,0);
+    Screen_erase_eos();
+    *row=1+Options.skip_line;
+    previous_subject=NULL;
+  } 
+  raw_Aff_summary_line(art,(*row)++,previous_subject,level);
+  return 0;
+}
+
+/* Affichage d'une liste de groupes */
+/* flags=1 -> on affiche tout le .flnewsrc */
+/* flags=2 -> on affiche tout */
+/* On essaie une manip a coup de regexp... */
+/* renvoie -1 en cas de pb avec les regexp */
+
+int Liste_groupe (int flags, char *mat) {
+   int row=0;
+   int res, code, key;
+   char *buf[2], *ptr;
+   int passage=-1;
+   Newsgroup_List *parcours;
+   regex_t reg;
+   
+   if (Options.use_regexp) {
+     if (regcomp(&reg,mat,REG_EXTENDED|REG_NOSUB))
+       return -1;
+   }
+
+   buf[0]=safe_malloc(11*sizeof(char));
+   strcpy(*buf, "newsgroups");
+   parcours=NULL;
+   while (parcours || (passage<flags)) {
+      if (parcours==NULL) {
+	 if (passage>=0) {
+           Aff_fin("-suite-");
+           key=Attend_touche();
+           if (KeyBoard_Quit) {
+	     free(buf[0]);
+	     if (Options.use_regexp) regfree(&reg);
+	     return 0;
+	   }
+	 }
+         row=1+Options.skip_line;
+         Cursor_gotorc(1,0);
+         Screen_erase_eos();
+         Cursor_gotorc(row,0);
+	 passage++;
+	 switch (passage) {
+	   case 0 : Screen_write_string("Newsgroups auquels vous êtes abonnés : ");
+		    break;
+	   case 1 : Screen_write_string("Newsgroups présents dans le .flnewsrc : ");
+		    break;
+	   case 2 : Screen_write_string("Autres newsgroups : ");
+		    strcpy (*buf, "active");
+		    {
+		       char *buf2;
+		       int tofree=0;
+		       if (Options.use_regexp)
+		       {buf2=reg_string(mat,1); tofree=1; }
+		       else
+			 buf2=mat;
+		       if (!buf2) {buf2="*"; tofree=0;}
+		       buf[1]=safe_malloc(strlen(buf2)+4);
+		       if (Options.use_regexp)
+			 sprintf(buf[1],"%s",buf2);
+		       else
+		         sprintf(buf[1],"*%s*",buf2);
+		       if(tofree) free(buf2);
+		    }
+		    if (debug) fprintf(stderr,"Liste des groupes %s\n",
+			buf[1]);
+
+		    res=write_command (CMD_LIST, 2, buf);
+		    if (res<1) code=-1; 
+		    else code=return_code();
+                    if ((code<0) || (code>400)) {
+		      free(buf[0]); free(buf[1]);
+		      if (Options.use_regexp) regfree(&reg);
+		      return 0;
+		    }
+		    break;
+         }
+         parcours=Newsgroup_deb;
+         row++;
+	 continue;
+      }
+
+      if ((passage==0) && (parcours->flags & GROUP_UNSUBSCRIBED)) {
+	 parcours=parcours->next;
+	 continue;
+      }
+      if ((passage==1) && !(parcours->flags & GROUP_UNSUBSCRIBED)) {
+	 parcours=parcours->next;
+	 continue;
+      }
+      if ( (passage<2) &&(
+	  (Options.use_regexp && regexec(&reg,parcours->name,0,NULL,0)!=0) ||
+	  (!Options.use_regexp && !strstr(parcours->name, mat)))) {
+	 parcours=parcours->next;
+	 continue;
+      }
+      /* Peut-etre a mettre ailleurs */
+      if ((passage<2) && (parcours->description==NULL)) {
+        buf[1]=parcours->name;
+        res=write_command (CMD_LIST, 2, buf);
+        if (res<1) return 0;
+        code=return_code();
+        if ((code<0) || (code>400)) return 0;
+        res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+        if (res<1) return 0;
+        if (tcp_line_read[0]!='.') {
+           ptr=tcp_line_read+strlen(parcours->name);
+           parcours->description=safe_malloc((strlen(ptr)-1)*sizeof(char));
+           strncpy(parcours->description,ptr, strlen(ptr)-2);
+           parcours->description[strlen(ptr)-2]='\0';
+           discard_server();
+        } else 
+             parcours->description=safe_strdup("  (pas de description)  ");
+      }
+      if (passage==2) {
+        res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+        if (res<2) {
+	  free(buf[0]); free(buf[1]);
+	  if (Options.use_regexp) regfree(&reg);
+	  return 0;
+	}
+        if (tcp_line_read[0]=='.') { parcours=NULL; continue; }
+	ptr=strchr(tcp_line_read,' ');
+	if (ptr) *ptr='\0'; else tcp_line_read[res-2]='\0';
+	/* Test si ce newsgroup existe deja */
+	while (parcours) {
+	   if (strcmp(tcp_line_read, parcours->name)==0) {
+	      parcours=Newsgroup_deb;
+	      break;
+	   }
+	   parcours=parcours->next;
+	}
+	if (parcours!=NULL) continue;
+	parcours=Newsgroup_deb;
+	if (Options.use_regexp && regexec(&reg,tcp_line_read,0,NULL,0))
+	  continue;
+	if (!Options.use_regexp && !strstr(tcp_line_read,mat))
+	  continue;
+      }  /* On se sert directement de tcp_line_read */
+	 
+      if (row>Screen_Rows-2-Options.skip_line) {
+         Aff_fin("-suite-");
+         key=Attend_touche();
+         if (KeyBoard_Quit) { 
+	   if (passage==2) discard_server();
+	   return 0;
+	 }
+         Cursor_gotorc(1,0);
+         Screen_erase_eos();
+         row=1+Options.skip_line;
+      } 
+       
+      if (passage<2) {
+        Cursor_gotorc(row,0);
+        if (parcours->flags & GROUP_UNSUBSCRIBED)
+          Screen_write_string("U ");
+        else if (parcours==Newsgroup_courant) Screen_write_char('>'); else
+	  if (NoArt_non_lus(parcours)>0) Screen_write_string("* ");
+      }
+      Cursor_gotorc(row,2);
+      if (passage<2) {
+        Screen_write_string(parcours->name);
+        Screen_write_string(parcours->description);
+        parcours=parcours->next;
+      } else Screen_write_string(tcp_line_read);
+      row++;
+   }
+   free(buf[0]);
+   if (Options.use_regexp) regfree(&reg);
+   if (passage==2) free(buf[1]);
+   return 0;
+}
+
+
+/* Affichage d'un header, juste appelé par Aff_headers */
+/* flag=1 : juste une ligne... flag=2 : cas particulier reponse_a */
+static int Aff_header (int flag, int row, int col, char *str, 
+    		unsigned short *to_aff) {
+   char *buf=str, *buf2;
+   unsigned short *ptr=to_aff;
+   int decalage;
+
+   while (buf && *buf) {
+      Cursor_gotorc(row,col);
+      buf2=strchr(buf,'\n');
+      if (buf2==NULL) buf2=strchr(buf,'\0'); 
+      decalage=flag ? 5 : 0;
+      if (flag==2) decalage+=8;
+      if (row<4+Options.skip_line) decalage+=5;
+      if (buf2-buf>Screen_Cols-col-decalage) {
+	 Screen_write_color_chars(ptr, Screen_Cols-col-decalage);
+	 if (flag) {
+	    Screen_write_string("[...]");
+	    return (row+1);
+	 }
+	 buf+=Screen_Cols-col-flag;
+	 ptr+=Screen_Cols-col-flag;
+	 col=0; row++;
+      } else {
+	 Screen_write_color_chars(ptr, buf2-buf);
+	 if (flag) col+=buf2-buf+1;
+	 else { col=0; row++; }
+	 if (*buf2) { ptr=to_aff+(buf2-str)+1; buf=buf2+1; }
+	   else buf=NULL;
+      }
+  }
+  return (row+(flag>0)); 
+      /* Si flag!=0, on n'est pas arrive en fin de ligne */
+}
+
+/* Affichage des headers... Le parametre flag vaut 1 si c'est la suite d'un */
+/* message 								    */
+int Aff_headers (int flag) {
+   int index=0, row, col, i, j, i0, length;
+   char buf[15];
+   Header_List *tmp=Last_head_cmd.headers;
+   char *une_ligne=NULL;
+   unsigned short *une_belle_ligne=NULL;
+   int flags[NB_KNOWN_HEADERS];
+
+   row=1+Options.skip_line;
+   /* On commence pas mettre le flag pour tous les headers référencés */
+   for (j=0;j<NB_KNOWN_HEADERS;j++) flags[j]=-1;
+   while (tmp) { tmp->num_af=-1; tmp=tmp->next; }
+   while ((i=Options.header_list[index++])!=-1) {
+      if ((i>NB_KNOWN_HEADERS) || (i<-MAX_HEADER_LIST-1)) continue;
+      if ((i>=0) && (i<NB_KNOWN_HEADERS)) flags[i]=index; else
+      if (i==NB_KNOWN_HEADERS) {
+	tmp=Last_head_cmd.headers;
+	while (tmp) { if (tmp->num_af==-1) tmp->num_af=index;
+	  		tmp=tmp->next; }
+	for (j=0;j<NB_KNOWN_HEADERS;j++) if (flags[j]<0) flags[j]=index;
+      } else { /* i<-1 */ /* On suppose que ce header ne peut etre double */
+	tmp=Last_head_cmd.headers;
+	while (tmp) {
+	  if (strncasecmp(tmp->header,unknown_Headers[-2-i].header,
+		unknown_Headers[-2-i].header_len)==0) break;
+	  tmp=tmp->next;
+	}
+	if (tmp) tmp->num_af=index;
+      }
+   }
+   index=0;
+   while ((i=Options.hidden_header_list[index++])!=-1) {
+      if ((i>NB_KNOWN_HEADERS) || (i<-MAX_HEADER_LIST-1)) continue;
+      if ((i>=0) && (i<NB_KNOWN_HEADERS)) flags[i]=-1; else
+      if (i==NB_KNOWN_HEADERS) {
+	/* depuis quand hidden_header peut contenir others ??? */
+      } else { /* i<-1 */ /* On suppose que ce header ne peut etre double */
+	tmp=Last_head_cmd.headers;
+	while (tmp) {
+	  if (strncasecmp(tmp->header,unknown_Headers[-2-i].header,
+		unknown_Headers[-2-i].header_len)==0) break;
+	  tmp=tmp->next;
+	}
+	if (tmp) tmp->num_af=-1;
+      }
+   }
+
+   index=0;
+   while ((i=Options.header_list[index++])!=-1)
+   {
+     if ((i>NB_KNOWN_HEADERS) || (i<-MAX_HEADER_LIST-1)) continue;
+     if (flag) {
+       for (j=0; Options.weak_header_list[j]!=-1; j++)
+         if (Options.weak_header_list[j]==i) break;
+       if (Options.weak_header_list[j]!=-1) continue;
+     }
+     if (i==NB_KNOWN_HEADERS) i0=0; else i0=i;
+     for (;i0<=i;i0++) { 
+       if ((i==NB_KNOWN_HEADERS) && (i0!=NB_KNOWN_HEADERS) &&
+	   (flags[i0]!=index)) continue;
+       if (une_ligne) {
+	 free(une_ligne);
+	 une_ligne=NULL;
+       }
+       if (une_belle_ligne) {
+	 free(une_belle_ligne);
+	 une_belle_ligne=NULL;
+       }
+       switch (i0) {
+         case REFERENCES_HEADER: /* traitement special */
+           if (Article_courant->headers->reponse_a) {
+	     une_ligne=safe_malloc(18+strlen(Article_courant->headers->reponse_a));
+             strcpy(une_ligne,"Réponse à: ");
+	     strcat(une_ligne,Article_courant->headers->reponse_a);
+	     une_belle_ligne=safe_malloc((strlen(une_ligne)+1)*sizeof(short));
+	     Aff_color_line(0,une_belle_ligne, &length,
+		 FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);
+	     row=Aff_header(2, row, 0, une_ligne, une_belle_ligne);
+   	     Screen_set_color(FIELD_HEADER);
+	     if (Article_courant->parent>0) {
+	        sprintf(buf," [%d]", Article_courant->parent);
+	        Screen_write_string(buf);
+	     }
+	    /* On ne garde qu'une ligne dans tous les cas */
+           } else if (Article_courant->parent!=0) {
+   	      Screen_set_color(FIELD_HEADER);
+              Cursor_gotorc((row++),0);
+              Screen_write_string("Réponse à un message enlevé ou d'un autre newsgroup.");
+           } 
+         break;
+         case DATE_HEADER:
+           Cursor_gotorc(row++,0);
+	   une_ligne=safe_malloc(60);
+           strcpy(une_ligne,"Date: ");
+	   if (Article_courant->headers->date_gmt) {
+	     strncat(une_ligne,ctime(&Article_courant->headers->date_gmt),53);
+	   } else
+	    strncat(une_ligne,Article_courant->headers->k_headers[DATE_HEADER],53);
+	   Aff_color_line(1,NULL, NULL,
+		FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);
+           break;
+         case FROM_HEADER:
+	   une_ligne=safe_malloc(10+strlen(Article_courant->headers->k_headers[FROM_HEADER]));
+           strcpy(une_ligne,"Auteur: ");
+	   strcat(une_ligne,Article_courant->headers->k_headers[FROM_HEADER]);
+	   une_belle_ligne=safe_malloc((strlen(une_ligne)+1)*sizeof(short));
+	   Aff_color_line(0,une_belle_ligne, &length,
+		 FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);
+	   row=Aff_header(flag,row,0,une_ligne,une_belle_ligne);
+         break;
+         case SUBJECT_HEADER:
+   	   Screen_set_color(FIELD_HEADER);
+           Cursor_gotorc(row,0);
+	   col=0;
+	   if (flag) { Screen_write_string("(suite) "); col+=8; }
+           if (Article_courant->flag& FLAG_READ) { Screen_write_char('-'); col++; }
+	   une_ligne=safe_malloc(9+strlen(Article_courant->headers->k_headers[SUBJECT_HEADER]));
+           strcpy(une_ligne,"Sujet: ");
+	   strcat(une_ligne,Article_courant->headers->k_headers[SUBJECT_HEADER]);
+	   une_belle_ligne=safe_malloc((strlen(une_ligne)+1)*sizeof(short));
+	   Aff_color_line(0,une_belle_ligne, &length,
+		 FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);
+	   row=Aff_header(flag,row,col,une_ligne,une_belle_ligne);
+         break;
+         default: if (i0==NB_KNOWN_HEADERS) {
+		    tmp=Last_head_cmd.headers;
+		    while (tmp) {
+		      if (tmp->num_af==index) {
+			if (une_belle_ligne) free(une_belle_ligne);
+	   		une_belle_ligne=safe_malloc((strlen(tmp->header)+1)
+			    		*sizeof(short));
+			Aff_color_line(0,une_belle_ligne, &length, 
+			    FIELD_HEADER, tmp->header, strlen(tmp->header),
+			    1,FIELD_HEADER);
+	   		row=Aff_header(flag,row,0,tmp->header,une_belle_ligne);
+		      }
+		      tmp=tmp->next;
+		    }
+		    break;
+		  } 
+	 	  if ((i0>=0) && 
+		      (Article_courant->headers->k_headers[i0])==NULL) 
+		    break; else
+		  if (i0<0) {
+		    tmp=Last_head_cmd.headers;
+		    while (tmp) {
+		      if (tmp->num_af==index) break;
+		      tmp=tmp->next;
+		    }
+		    if (!tmp) break;
+		    une_ligne=tmp->header;
+		  } 
+	 	  if (i0>=0) {
+	            une_ligne=safe_malloc(Headers[i0].header_len+3+
+			    strlen(Article_courant->headers->k_headers[i0]));
+           	    strcpy(une_ligne,Headers[i0].header);
+		    strcat(une_ligne," ");
+	            strcat(une_ligne,Article_courant->headers->k_headers[i0]);
+	          }
+	         une_belle_ligne=safe_malloc((strlen(une_ligne)+1)*sizeof(short));
+	         Aff_color_line(0,une_belle_ligne, &length,
+		   FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);
+		 row=Aff_header(flag,row,0,une_ligne,une_belle_ligne);
+		 if (i<0) une_ligne=NULL; /* Ne pas libérer un header */
+         break;
+       }
+     }
+   }
+   if (une_ligne) free(une_ligne);
+   if (une_belle_ligne) free(une_belle_ligne);
+   Screen_set_color(FIELD_NORMAL);
+   /* On affiche les petites fleches */
+   Cursor_gotorc(2+Options.skip_line, Screen_Cols-4);
+   Screen_write_char('+');
+   if (Article_courant->frere_prev) {
+      Cursor_gotorc(1+Options.skip_line, Screen_Cols-4);
+      Screen_write_char('^');
+      if (Article_courant->frere_prev->prem_fils)
+        Screen_write_char('\'');
+   }
+   if (Article_courant->frere_suiv) {
+      Cursor_gotorc(3+Options.skip_line, Screen_Cols-4);
+      Screen_write_char('v');
+      if (Article_courant->frere_suiv->prem_fils)
+        Screen_write_char(',');
+   }
+   if (Article_courant->pere) {
+      Cursor_gotorc(2+Options.skip_line, Screen_Cols-5);
+      Screen_write_char('<');
+   }
+   if (Article_courant->prem_fils) {
+      int numfils=1;
+      Article_List *parcours=Article_courant->prem_fils;
+      while ((parcours->frere_prev)) parcours=parcours->frere_prev;
+      while ((parcours=parcours->frere_suiv)) numfils++;
+      Cursor_gotorc(2+Options.skip_line, Screen_Cols-3);
+      if (numfils > 9) Screen_write_char('*');
+      else if (numfils > 1) Screen_write_char('0'+numfils);
+       Screen_write_char('>');
+      if (Article_courant->prem_fils->prem_fils)
+        Screen_write_char('>');
+   }
+   return row;
+}
+
+
+/* Formate et affiche une ligne d'un article. Prend la ligne courante 	*/
+/* et renvoie la nouvelle ligne courante.				*/
+/* On ajoute aussi la ligne pour un futur scrolling...			*/
+/* Renvoie 0 en fin de message, négatif si un scroll doit etre fait     */
+/* on renvoie alors - la ligne ou nous sommes arrivés...		*/
+/* Si from_file=1, on ne formate pas...					*/
+int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
+   int res, tmp_col=0, percent, len_to_write;
+   char *buf,*buf2, *une_ligne;
+   char buf3[15];
+   int last_color;
+   int bol;
+   unsigned short *une_belle_ligne;
+   int length;
+
+   if ((!from_file) && (tcp_line_read[0]=='.'))
+      if (tcp_line_read[1]=='.') buf=tcp_line_read+1; else 
+	return (en_deca ? 0 : -act_row+saved_space);
+      else buf=tcp_line_read; 
+   if (saved_field!=FIELD_SIG)
+     if (buf[0]=='>') saved_field=FIELD_QUOTED; else saved_field=FIELD_NORMAL;
+   if (strncmp(buf,"-- \r",4)==0) saved_field=FIELD_SIG;
+   une_ligne=safe_malloc(Screen_Cols+1); /* si on atteint le max, ce sera
+					    un blanc... */
+   une_belle_ligne=safe_malloc(sizeof(short)*(Screen_Cols+1));
+   length=0;
+   une_ligne[0]='\0';
+   if (*buf=='\r') { 
+     saved_field=FIELD_NORMAL; /* On enleve le style "signature" */
+     saved_space++;
+     free(une_ligne); free(une_belle_ligne);
+     return (act_row+1); /* On sort tout de suite, mais en augmentant le  */
+     	                 /* nombre de ligne (pour éviter le fameux (100%) */
+   }
+   /*
+   Screen_set_color(saved_field);
+   */
+   if (from_file) saved_field=FIELD_FILE;
+   last_color=saved_field;
+   bol=1;
+
+   buf2=strchr(buf,(from_file ? '\n' : '\r'));    
+   	/* Bon d'accord, on formate rien, mais bon */
+   if (buf2) *buf2='\0';
+   while (1) {
+      if ((act_row>Screen_Rows-2) && (en_deca)) {  /* Fin de l'ecran */
+
+	 if ((!from_file) && (Article_courant->headers->nb_lines!=0)) {
+	    percent=((read_line-saved_space-1)*100)/(Article_courant->headers->nb_lines+1);
+            sprintf(buf3,"(%d%%)",percent);
+	 } else buf3[0]='\0';
+	 strcat(buf3,"-More-");
+	 Aff_fin(buf3);
+	 Screen_refresh(); /* CAS particulier */
+	 en_deca=0;
+      }
+      while (saved_space>0) { /* Alors une_ligne[0]='\0' */
+	Ajoute_form_Ligne(une_ligne, saved_field);
+        saved_space--;
+      }
+      if (buf[0]=='\0') {
+	if (act_row<Screen_Rows-1) {
+	  Cursor_gotorc(act_row,0);
+	}
+	last_color=Aff_color_line((act_row<Screen_Rows-1),une_belle_ligne,
+	    &length,saved_field, une_ligne, Screen_Cols, bol,last_color);
+	bol=0;
+	Ajoute_color_Line(une_belle_ligne,length);
+	free(une_ligne); free(une_belle_ligne);
+	return (act_row+1); /* Fin de ligne */
+      }
+      len_to_write=to_make_len(buf,Screen_Cols,tmp_col);
+      if (len_to_write==0) { 
+	if (act_row<Screen_Rows-1) {
+	  Cursor_gotorc(act_row,0);
+	}
+	last_color=Aff_color_line((act_row<Screen_Rows-1),une_belle_ligne,
+	    &length,saved_field, une_ligne, Screen_Cols, bol,last_color);
+	bol=0;
+	Ajoute_color_Line(une_belle_ligne,length);
+	une_ligne[0]='\0';
+	act_row++; tmp_col=0; 
+	continue; 
+      } /* on a deja elimine le cas fin de ligne */
+
+      strncat(une_ligne,buf,len_to_write);
+      if ((!from_file) &&
+       ((!buf2) || (buf2-tcp_line_read==MAX_READ_SIZE-1)))    /* ouille ! */
+         if (strlen(buf)<=len_to_write) {
+             tmp_col=str_estime_len(buf,tmp_col,-1);
+             res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+             if (res<1) {free(une_ligne); free(une_belle_ligne);
+	       return act_row; }
+             buf=tcp_line_read;
+           /* le cas ou buf2 est défini correspond a un \r en fin de lecture */
+           /* dans ce cas, on est sur de lire simplement \n */
+             if (!buf2) buf2=strchr(buf,'\r'); else buf2=tcp_line_read;
+             if (buf2) *buf2='\0';
+             continue;
+          } else { 
+	    buf+=len_to_write;
+	    tmp_col=str_estime_len(buf,tmp_col,len_to_write);
+	    if (str_estime_len(buf,0,-1)<Screen_Cols-1) {
+	       strcpy(tcp_line_read,buf); /* A priori, cols < 1024 */
+	       buf=tcp_line_read;
+               res=read_server(buf+strlen(buf), 1, MAX_READ_SIZE-strlen(buf)-1);
+	       continue;
+	    } /* sinon, on se contente de changer de ligne */
+	 }
+      else 
+      if (strlen(buf)<=len_to_write) { /* fini */
+	  if (act_row<Screen_Rows-1) {
+	    Cursor_gotorc(act_row,0);
+	  }
+	  last_color=Aff_color_line((act_row<Screen_Rows-1),une_belle_ligne,
+	      &length,saved_field, une_ligne, Screen_Cols, bol,last_color);
+	  bol=0;
+	  Ajoute_color_Line(une_belle_ligne,length);
+	  free(une_ligne); free(une_belle_ligne);
+          return (act_row+1);
+      }
+      else buf+=len_to_write;
+      if (act_row<Screen_Rows-1) {
+        Cursor_gotorc(act_row,0);
+      }
+      last_color=Aff_color_line((act_row<Screen_Rows-1),une_belle_ligne,
+	  &length,saved_field, une_ligne, Screen_Cols, bol,last_color);
+      bol=0;
+      Ajoute_color_Line(une_belle_ligne,length);
+      une_ligne[0]='\0';
+      tmp_col=0;
+      act_row++;
+   }
+   return 0;
+}      
+
+
+/* Gestion du scrolling... */
+int Gere_Scroll_Message (int *key_int, int row_act, int row_deb) {
+  int act_row, key;
+  int num_elem=-row_act-row_deb;
+
+  key=Attend_touche();
+  if (KeyBoard_Quit) return -1;
+  Cursor_gotorc(1,0);
+  Screen_set_color(FIELD_NORMAL);
+  Screen_erase_eos();
+  act_row=Aff_headers(1)+1;
+  Init_Scroll_window(num_elem,act_row,Screen_Rows-act_row-1);
+  key=Page_message(num_elem, 1, key, act_row, row_deb, NULL, NULL);
+  if (key!=-1) *key_int=key; 
+  return ((key==0) ? 0 : -1);
+}
+
+/* Affichage du nom du newsgroup */
+void Aff_newsgroup_name() {
+   char *buf=NULL;
+   int buf_to_free=0, aff_D=0;
+
+   Screen_set_color(FIELD_STATUS);
+   Cursor_gotorc(0,name_news_col);
+   if (name_fin_col-name_news_col>0) {
+     if (Newsgroup_courant) {
+       if ((Newsgroup_courant->flags) & GROUP_UNSUBSCRIBED) aff_D=1;
+       if (strlen(Newsgroup_courant->name)<name_fin_col-name_news_col-(aff_D*3))
+          buf=Newsgroup_courant->name;
+       else 
+          buf=Newsgroup_courant->name+(strlen(Newsgroup_courant->name)-name_fin_col+name_news_col+(aff_D*3));
+	 if (aff_D) Screen_write_string("[D]");
+     } else {
+       buf=safe_malloc((name_fin_col-name_news_col+1)*sizeof(char));
+       memset(buf, ' ', name_fin_col-name_news_col+1);
+       buf_to_free=1;
+     }
+     Screen_write_nstring(buf, name_fin_col-name_news_col+1-(aff_D*3));
+   }
+   Screen_set_color(FIELD_NORMAL);
+   Cursor_gotorc(1,0);
+   Screen_erase_eos();
+   Screen_refresh(); /* Cas particulier : pour le temps que ça prend parfois */
+   if(buf_to_free) free(buf);
+}
+     
+
+/* Affichage du newsgroup courant */
+void Aff_newsgroup_courant() {
+   char buf[10];
+   int ret=1;
+
+   if (Newsgroup_courant) {
+     if ((Newsgroup_courant->max>99999) && (num_col_num<6)) ret=Size_Window(0,8);
+     if ((Newsgroup_courant->max<100000) && (num_col_num>5)) ret=Size_Window(0,5);
+     if (ret==0) Size_Window(0,5); /* retour arriere, et tant pis */
+   }
+   Screen_set_color(FIELD_STATUS);
+   Cursor_gotorc(0,num_art_col);
+   Screen_write_nstring("         ",num_col_num+1);
+   Cursor_gotorc(0,num_max_col);
+   if (Newsgroup_courant) {
+     sprintf(buf,(num_col_num==5 ? "%5d " : "%8d "), Newsgroup_courant->max);
+     Screen_write_string(buf); } else
+   Screen_write_nstring("         ",num_col_num+1);
+   Screen_set_color(FIELD_NORMAL);
+   Screen_refresh(); /* Cas particulier aussi */
+}
+
+
+/* Affichage de l'article courant */
+/* Cette fonction renvoie le code de la touche qui suit, ssi il y a eu */
+/* interruption... et 0 sinon...			 */
+/* Note : les appels se font avec le numero de l'article */
+/* comme il semble que ça marche mieux...		 */
+int Aff_article_courant() {
+   int res, actual_row, read_line=1;
+   int key_interrupt, first_line;
+   char *num, buf[10];
+   
+   if (debug) fprintf(stderr, "Appel a Aff_article_courant\n");
+
+   key_interrupt=0;
+  /* barre */
+   Screen_set_color(FIELD_STATUS);
+   Cursor_gotorc(0,num_art_col);
+   if (Article_courant->numero>=0) {
+     sprintf(buf,(num_col_num==8 ? "%8d " : "%5d "), Article_courant->numero);
+     Screen_write_string(buf); } else 
+     Screen_write_string(num_col_num==8 ? "    ?   " : "  ?  ");
+   Cursor_gotorc(0,num_max_col);
+   sprintf(buf, (num_col_num==8 ? "%8d " : "%5d "), Newsgroup_courant->max);
+   Screen_write_string(buf);
+   Cursor_gotorc(0,num_art_col);
+
+   Screen_set_color(FIELD_NORMAL);
+   if (Article_courant->numero==-10) 
+	return Aff_error("Pas d'article disponible.");
+    
+   Cursor_gotorc(1,0);
+   Screen_erase_eos(); /* on veut effacer aussi les lignes du haut */
+   Cursor_gotorc(1+Options.skip_line,0);
+
+  /* Headers  -- on veut all_headers <=> un appel a cree_headers */
+   if ((!Article_courant->headers) ||
+       (Article_courant->headers->all_headers==0) || (Last_head_cmd.Article_vu!=Article_courant)) {
+        cree_header(Article_courant,1,1);
+        if (!Article_courant->headers) 
+	    return Aff_error("Article indisponible, peut-être cancelé.");
+        /* On suppose ca provisoire */
+	/* le bon check, c'est pere != NULL ou parent !=0 ?
+	 * esperons que ca coincide */
+   } else if ((Article_courant->pere) && (Article_courant->headers->reponse_a_checked==0)) ajoute_reponse_a(Article_courant);
+   actual_row=Aff_headers(0);
+   
+  /* Messages */
+   saved_field=FIELD_NORMAL;
+   saved_space=0;
+   en_deca=1;
+   first_line=++actual_row;  /* on saute une ligne */
+   
+   num=safe_malloc(280*sizeof(char));
+   if (Article_courant->numero!=-1) 
+     sprintf(num, "%d", Article_courant->numero); else
+     strcpy(num, Article_courant->msgid);
+   res=write_command(CMD_BODY, 1, &num);
+   free(num);
+   if (res<0) { if (debug) fprintf(stderr, "erreur en ecriture\n"); 
+     free_text_scroll();
+     return -1; }
+   res=return_code();
+   if (res<0 || res>400) { 
+     if (debug)
+       fprintf(stderr, "Pas d'article : %d\n", Article_courant->numero); 
+     Aff_error("Article indisponible."); 
+     free_text_scroll(); 
+     return -1; 
+   }
+   do {
+      res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+      if (res<1) { 
+	if (debug) fprintf(stderr, "Erreur en lecture...\n"); 
+	free_text_scroll(); return -1; }
+      actual_row=Ajoute_aff_formated_line(actual_row, read_line,0);
+      read_line++;
+   } while (actual_row>0);
+   if (actual_row<0)  /* On entame un scrolling */
+      actual_row=Gere_Scroll_Message(&key_interrupt,actual_row,first_line);
+   free_text_scroll();
+   if (actual_row==0)  
+     article_read(Article_courant); /*Article_courant->flag |= FLAG_READ;*/
+   if (debug) fprintf(stderr,"Fin d'affichage \n");
+   return key_interrupt;
+}
+
+       
+/* Affichage d'un fichier. */
+int Aff_file (FILE *file, char *exit_chars, char *end_mesg) {
+   int row=1,read_line=1;
+   int key=0;
+  
+   saved_field=FIELD_NORMAL;
+   saved_space=0;
+   en_deca=1;
+   Cursor_gotorc(1,0);
+   Screen_erase_eos();
+   while (fgets(tcp_line_read, MAX_READ_SIZE-1, file)) {
+      row=Ajoute_aff_formated_line(row, read_line, 1);
+      read_line++;
+   }
+   if (row>Screen_Rows-1) {  /* On entame un scrolling */
+      key=Attend_touche();
+      if (KeyBoard_Quit) return 0;
+      Init_Scroll_window(row-1, 1, Screen_Rows-2);
+      key=Page_message(row-1, 0, key, 1, 1, exit_chars, end_mesg); 
+      if (key==-1) key=0;
+   }
+   free_text_scroll();
+   return key;
+}

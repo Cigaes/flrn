@@ -1,0 +1,225 @@
+.TH FLRN 1 "Jan 1998"
+.SH NOM
+.I flrn
+- Forum Like rn
+
+Attention, c'est encore un programme en développement. Il peut y avoir de gros
+changement entre deux versions, et il n'est pas exempt de bugs.
+.SH SYNTAXE
+.B flrn
+[\fB-v|--version\fR]
+[\fB-h|--help\fR]
+[\fB-d|--debug\fR]
+[\fB-c|--co\fR]
+[\fB-s|--show-config\fR]
+
+.B flrn
+\fB<nom>\fR
+
+.SH DESCRIPTION
+.B Flrn
+est un lecteur de news dont l'interface est largement inspirée de celles de
+forum, trn, mutt et slrn. Il est assez configurable, mais la configuration par
+défaut est assez proche de forum. On a la valeur par défaut de toutes les
+variables en utilisant '\fI flrn -s\fR'
+
+Il y a une aide accessible par la commande 'h' dans flrn. Elle est souvent
+plus à jour que cette page.
+
+Si on lui passe un nom sur la ligne de commande, flrn va dans le premier
+groupe où l'on trouve ce sous mot, en cherchant en priorité dans les groupes
+auxquels on est abonné.
+
+.SS Description des options de ligne de commande
+.TP 6
+.B \fB-d\fR
+L'option \fB-d\fR affiche sur la sortie d'erreur des message de mis au point.
+Elle ne devrait pas servir en usage normal.
+.IP \fB-c\fR
+L'option \fB-c\fR donne une estimation du nombre de messages à lire dans les
+groupes où l'on est abonné. Cela renvoie toujours un majorant du nombre de
+messages à lire.
+.IP \fB-h\fR
+L'option \fB-h\fR affiche la liste des options reconnues.
+.IP \fB-v\fR
+Affiche le numéro de version.
+.IP \fB-s\fR
+Donne un fichier de configuration contenant les valeurs par défaut de toutes
+les variables.
+
+
+.SS Options de configuration
+Se reporter à l'aide interne pour avoir une description à jour.
+On peut maintenant modifier les options pendant l'utilisation de flrn avec
+la commande '\config'.
+
+La forme générale des options est inspiree de \fBmutt\fR.
+Il y a six commandes :
+.B set
+.B color
+.B mono
+.B regcolor
+.B header
+.B bind
+
+.TP 8
+.B set <variable_name>=<value>
+Permet de modifier la valeur d'une variable
+On a les racourcis suivants :
+"set <variable>" est équivalent à "set variable=1" ou "set variable=yes".
+De même, "set no<variable>" est équivalent à "set <variable>=no" ou
+"set <variable>=0".
+
+.IP "\fBcolor <types> <premier plan> <arriere plan> <attributs>\fR"
+.IP "\fBmono <types> <attributs>\fR"
+.IP "\fBregcolor <types> <flags> <p.p.> <a.p.> <attributs> <regexp>\fR"
+Permet de définir les couleurs.
+<Types> est un une suite de mots séparés par des virgules (sans espace)
+parmis : normnal, header, status, quoted, error, aff_fin et sig ou le mot all.
+<p.p.> et <a.p.> sont des couleurs. On a le droit à la couleur default, et
+aux couleurs std-normal, std-header ... et std. std-<type> représente la couleur
+du dernier color type fait (ou la couleur par défaut si c'est le premier).
+Std correspond a la couleur du dernier type utilisé dans cette commande.
+<Attributs> est une suite de mots clefs parmis : bold, blink, underline,
+normal, reverse, std et std-*.
+<flags> est une suite de flags, parmis : case, exclude, line, 1...9. On peut
+mettre 0 ou - si l'on en veut aucun.
+<regexp> est une expression régulière.
+
+Par exemple :
+"color header std std bold" ne passe les headers en gras, sans rien changer
+d'autre.
+
+.IP "\fBheader list|weak|hide <numero|nom> <numero|nom> ...\fR"
+Avec list donne la liste des headers à afficher (nom ou numero, cf l'aide
+interactive pour la correspondance numero-nom).
+Avec weak, on donne ceux à ne pas réafficher pour les pages d'un
+messages après la première.
+Avec hide on donne ceux a ne pas afficher quand on a utilise le mot réservé
+other.
+
+.IP "\fBbind <touche> <commande> [<arguments>]\fR"
+Permet de changer la fonction d'une touche.
+Pour l'instant, on ne peut mettre pour touche un caractère n'étant pas un
+caractère spécial du .flrn comme '" :=^I' et correspondant à
+un caractère imprimable, ou utiliser la forme \0x20, \040 ou \32.
+On ne peut pas mettre la touche entre guillements pour l'instant.
+
+.SS Les variables :
+Voivi une liste partielle des variables. Une liste à jour completée
+des valeurs par défaut est obtenue avec ./flrn -s.
+
+.TP 6
+.RS
+.B Abonnement
+.RE
+.TP 4
+.I default_subscribe
+Définit le comportement par défaut lors de la création d'un nouveau groupe.
+Cela s'applique pour les groupes ne correspondant ni à \fIauto_subscribe\fR
+ni à \fIauto_ignore\fR.
+.IP \fIauto_subscribe=<regexp>\fR
+Abonne automatiquement aux nouveaux groupes correspondant à l'expression
+régulière donnée.
+.IP \fIauto_ignore=<regexp>\fR
+Désabonne automatiquement des groupes qui correspondent.
+.IP \fIsubscribe_first\fR
+Choisis si l'on doit ignorer un groupe correspondant à la fois à
+\fIauto_subscribe\fR et \fIauto_ignore\fR.
+
+.TP 6
+.RS
+.B Affichage
+.RE
+.TP 4
+.I skip_line=<n>
+Donne le nombre de lignes blanches à laisser sous la barre de status.
+.IP \fIdate_in_summary \fR
+Affiche la date dans les résumés.
+.IP \fIordered_summary \fR
+Affiche les résumés dans l'ordre (c'est-à-dire sans tenir compre des
+discussions).
+.IP \fIduplicate_subject \fR
+Affiche je sujet à chaque ligne d'un résumé, même si c'est le même que la
+ligne d'au dessus.
+.IP \fIcolor\fR
+Permet d'utiliser la couleur.
+.TP 6
+.RS
+.B Commandes
+.RE
+.TP 4
+.I space_is_return
+Empeche de changer de groupe en utilisant la touche espace.
+.I return_dont_scroll
+Passe au message suivant avec retrn au lieu de scroller.
+.IP \fIcbreak\fR
+Passe en mode cbreak. Sans cette option, on est en mode émulation d'un
+nocbreak.
+.IP \fInew_mode\fR
+Sans cette option, on retrouve le mode de saisis des commandes des premières
+releases de flrn. Avec ses bugs et ses limitations.
+.IP \fIthreaded_space\fR
+Permet de lire les message en suivant les discussions.
+.IP \fIcool_arrows\fR
+N'affiche pas de message d'erreur quand on essaie d'utiliser une flèche ne
+correspondant à aucun message.
+.IP \fIuse_regexp\fR
+Permet d'utiliser des expressions régulières en arguemnt des commandes L et G.
+Les expressions utilisées sont les expressions régulières étendues de rx.
+.IP \fIzap_change_group\fR
+Dit à flrn de changer de groupe quand on marque tous les messages d'un groupe
+comme lus.
+(cf egrep(1)).
+.IP \fIquit_if_nothing\fR
+Quitte flrn tout de suite s'il n'y a rien à lire.
+.TP 6
+.RS
+.B Poster
+.RE
+.TP 4
+.I include_in_edit
+Insère automatiquement le message auquel on répond dans l'éditeur.
+.IP \fIauto_edit\fR
+Lance automatiquement l'éditeur lorsce que l'on poste un message.
+.IP \fIpost_name=<nom>\fR
+Définit le nom réel à mettre dans le champ From.
+.IP \fIindex_string=<string>\fR
+Donne la chaine ajouté au début de chaque ligne du message auquel on répond.
+.IP \fIsmart_quote\fR
+Met ">" à la place de \fIindex_string\fR si la ligne commence par ">" et que
+index_string commence aussi par ">".
+.TP 6
+.RS
+.B Les autres
+.RE
+.TP 4
+.I use_mailbox
+Utilise le format d'une mailbox pour sauver les messages.
+.IP \fIserver=<nom>\fR
+Utilise la machine correspondant à ce nom comme serveur.
+.IP \fIport=<n>\fR
+Utilise le port donné plutôt que le port nntp.
+
+
+.SH FICHIERS
+Flrn utilise deux fichiers dans le home dir de l'utilisateur:
+.TP 10
+.B "\fB.flrn\fR"
+C'est le fichier de configuration.
+.IP "\fB.flnewsrc\fR"
+C'est un fichier avec la même syntaxe qu'un .newsrc qui est utilisé par
+flrn pour marquer les messages lus.
+
+.SH VOIR AUSSI
+Pour les expressions régulières, voir
+regex(7) ou regcomp(3) ou encore la doc de rx ou egrep(1).
+
+.SH BUGS
+Il y en a encore plein. Si vous en trouvez, dites-le nous.
+
+.SH AUTEURS
+Damien (Damien.Masse@rezo.ens.fr)
+.br
+Jo (Joel-Yann.Fourre@rezo.ens.fr)
+

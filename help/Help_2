@@ -1,0 +1,32 @@
+2: Poster des messages
+
+	flrn : poster des messages
+	--------------------------
+
+Pourquoi poster des messages ? N'est-ce pas mieux de lire simplement ?
+Si vous voulez vraiment, les commande post et respond permettent de poster un
+message. respond répond à un message. Si auto_edit est indéfini, vous entrez
+alors dans l'éditeur intégré de flrn (qui est très sommaire).
+Pour poster votre message, entrez à la fin de celui-ci une ligne ne 
+comportant qu'un '.' ou tapez ^D.
+
+Vous pouvez lancer une éditeur (défini par la variable d'environnement
+EDITOR) en entrant juste ~e ou ~E sur une ligne. En mode edit_all_headers,
+tous les headers définis seront affichés (et vous pourrez en ajouter). Dans
+le mode par défaut, seul le sujet et les groupes dans lesquels le message
+est postés sont affichés.
+
+Si vous entrez ~E, le corps du message auquel vous répondez sera inclus
+dans le post avant de lancer l'éditeur, et sera quoté par la chaine
+index_string.
+
+La commande mail-ans peut être utilisée pour envoyer un mail de réponse à
+un article. Si respond est utilisé et qu'un Followup-To est défini, il
+vous sera demandé si vous souhaitez en tenir compte. Si il est plutôt demandé
+un post dans le newsgroup, et que le message contient en champ To, Cc, ou Bcc,
+le message sera aussi envoyé par mail.
+
+Dans tous les cas, ^C annule le post.
+
+'q' permet de quitter l'aide à tout moment.
+'m' permet de revenir au menu

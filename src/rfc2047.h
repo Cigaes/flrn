@@ -1,0 +1,4 @@
+#define SHORT_STRING 128
+#define ENCQUOTEDPRINTABLE 1
+#define ENCBASE64 2
+

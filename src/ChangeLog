@@ -1,0 +1,222 @@
+ChangeLog Flrn
+
+----------------------------
+Version 0.2.3
+----------------------------
+
+. bugfixes d'affichage et de mode nocbreak
+. option scroll_after_end
+. patch pour être plus ansi... bugfixes.
+. Préparation des kill-files.
+. Ajout des noms up, left... pour pouvoir binder des touches.
+. Ajout de la possibilité de binder MC et CG
+. Déplacement du code des résumés.
+. Bugfix des menus.
+. Ajout de commandes pour les résumés.
+. Possibilité d'avoir les résumés sous forme de menus.
+. modif de SUIV pour qu'il cherche de nouveaux messages et corrige les oublis
+  dus à une mauvaise synchro du serveur.
+. bindings par défaut de macros
+. rajout de bindings de touches dans le pager (et bientot dans le menu)
+. bugfixes dans flrn_inter.c et post.c -> moins de segfault
+. bugfix dans l'affichage des menus
+. modif dans Aff_file
+
+----------------------------
+Version 0.2.2
+----------------------------
+
+. ajout des couleurs FIELD_SUMMARY, modification de Aff_summary_line pour
+  l'utiliser
+. nettoyage de group.c
+. nettoyage, ajout de CMD_NEED_GROUP
+. modification de l'historique.
+. bugfixes...
+. ajout des couleurs FIELD_FILE
+. ajout de la ligne de résumé à hist_menu
+. découpage de la fonction de résumé
+. ajout de Screen_refresh() avant cree_liste_end.
+. introduction de bugs nouveaux, et bugfixes en tout genre.
+. élimination des articles bidon surnuméraires...
+. entrée dans un groupe en deux temps.
+. cree_liste_xover appelé au besoin par flrn_filter.
+. Modification de cree_liste_xover et cree_liens pour pouvoir les rappeler
+. Possibilité de mettre des filtres pour les résumés
+. Adaptation du code d'affichage pour Aff_file
+. Ajout de %g %G et %C aux formats...
+. suppression des messages dupliqués dans l'historique
+. début de flrn_pager
+. suppression de messages de debug
+. bugfixes avec les articles exterieurs.
+. supersedes ajouté. Also-Control refusé
+. code des tags complet -- marche avec les articles exterieurs.
+. Bugfixes et optimisations des tags
+. La structure des groupe est conservée
+. Ajout de libere_liste et d'un flag a detruit_liste
+. Bugfixes dans main.c
+. Ajout d'un historique. Et donc de hist-{prev|suiv|menu}.
+. Les tags peuvent faire changer de groupe
+. Ajout d'un Libere_menu_noms qui libère la mémoire des noms du menu...
+
+----------------------------
+Version 0.2.1
+----------------------------
+
+. Modification du code pour le rendre plus portable.
+. Modification de configure.in pour ajouter des checks.
+. Ajout du cancel (grassouille)
+. On modifie un peu le real pour éviter les ",444,,"
+. On modifie la structure du code...
+. début de la possibilité de taguer des messages
+. début de attribution
+. ajout de bindings par défaut pour certaines commandes
+. bugfix dans l'encodage des headers
+. bugfix de configure.in si gccmakedep et makedepend manquent
+. passage de DOMAIN et DEFAULT_HOST dans config.h.in
+  ajout des options a configure pour les changer
+. mise à jour du configure pour détecter correctement rx
+. modifs dans post.c
+
+----------------------------
+Version 0.2.0
+----------------------------
+
+. bugfixes dans flrn_color
+. changement pour l'affichage initial... (voir avec Jo)
+. bugfix dans change_group
+. bugfixes du code de regcolor, ajout de l'option mono
+  changement de syntaxe de color
+. utilisation du texte décoré dans les headers
+. utilisation du nouveau scrolling dans tty_display pour le corps du message
+. modification des scrolling pour pouvoir gérer du texte décoré
+. nouveau code de mise en relief (flrn_color.c)
+. ajout de mail-ans
+. Modification de bind. Possibilité de d'utiliser \0x20 pour la touche
+  Possibilité de donner des arguments.
+. Nouveau code des options. Passage de Int_options+String_options a
+  All_options.
+. Mise a jour du configure.in pour chercher sendmail
+. Possibilité d'envoyer des mails.
+. Ajout d'une commande \config
+. Ajout de free_options() pour faciliter la verification des allocations
+  mémoire.
+. Empeche l'envoie d'un message vide.
+. Bugfix dans list qui mettait etat_loop.hors_struct a 1...
+. Bugfixes, memory leaks
+. Modif dans l'affichage si beaucoup de lignes blanches en fin de messages.
+. Modif dans les changements de groupe : si on veut aller à un article
+  inexistant, on ne change pas groupe
+. ajout de header hide, et de others dans header list
+. Bugfixes du Makefile.in, la dépendance est correcte maintenant pour les
+  pages de man sous sunos/solaris.
+
+----------------------------
+Version 0.2pre4
+----------------------------
+
+. Modifications des headers : on peut voir des headers inconnus
+. Modifs des flèches, mais c'est encore crade
+. Ajout des pipes/filtres/shell escapes
+. Bugfixes dans Launch_Editor
+. Nettoyage du code : on vire les refresh intempestifs.
+. Scrolling dans l'affichage du message
+. Commande prem_grp : un début d'ordre dans le .flnewsrc
+
+----------------------------
+Version 0.2pre3 (si je trouve Jo)
+----------------------------
+
+. Parsing de la date (tiré de mutt) pour changement en local
+. Decodage du header subject seulement si XOVER utilisé
+. Formattage automatique des paragraphes des posts... (Beurk !)
+. Petit début de menus interactifs
+. Petit bugfix dans art_group.c
+. Modification des commandes explicites.
+. Bugfix dans new_header (on oubliait reponse_a_checked)
+. Petit bugfix dans cherche_newnews (à vérifier)
+
+---------------------------
+Version 0.2pre2
+---------------------------
+
+. Passage a XOVER s'il est fiable
+. Préparation pour le passage a xover
+. création automatique de parents exterieurs.
+. modification de la sémantique de parent <=0
+. bugfix dans flrn_tcp, on il manquait un test de EINTR.
+. bugfix du calcul de decalage de date, non ?
+. modif/bugfix des commandes explicites
+. ajout de free_one_article
+. suppression de GROUP_ZAPPED, Aff_thread
+. modification du hack pour '-'
+. nettoyage du code...
+
+---------------------------
+Version 0.2pre1
+---------------------------
+
+. bugfix sur le calcul du decalage de date. Grrr...
+. bugfix pour do_zap_group si on n'est dans aucun groupe
+. regroupement des appels slang sur un seul fichier
+. ajout de l'option quit_if_nothing
+. ajout de la commande swap-grp
+. modif de la commande goto pour choisir le numéro d'arrivée
+. ajout de la commande get-father
+. bugfix dans la gestion des crossposts
+. nouvelle option zap_change_group
+. bugfixes dans le post et ajout du post d'un fichier
+. bugfixes dans flrn_tcp.c (pour l'heure)
+. changement complet de la saisie des commandes
+. reprise complete de flrn_inter.c et nombreux bugfixes
+. debug de la gestion des threads cycliques
+. et plein d'autres changements...
+
+-----------------------------
+Preparation des versions 0.2.x
+-----------------------------
+
+. bugfixes sur flrn_inter.c
+. bugfixes/ameliorations sur flrn_regexp
+
+-----------------------------
+version 0.1.1
+-----------------------------
+
+. abandon des regexp de slang, et passage a rx
+. bugfixes
+. Creation de site_config.h
+. Suppression des options obscoletes name_news et restrict
+. Passage de toutes les options chaines en char *
+. Correction d'un bug avec auto_ignore/auto_subscribe
+. Ajout des options index_string et smart_quote
+. Ajout de '~E'
+
+-----------------------------
+version 0.1.0
+-----------------------------
+
+. changement de color en set_color
+. completion automatiques des options
+. crosspost
+. bugfixes
+
+-----------------------------
+version 0.1pre4
+-----------------------------
+...
+
+-----------------------------
+version 0.1pre3
+-----------------------------
+refonte du post et des headers par Damien
+-----------------------------
+. debug de next_in_thread en cas de cycles
+. Possibilite de threader ' '
+. Possibilite de threader 'r'
+. Ajout des commandes 'l' et 'L'
+. Correction d'un bug ou l'on pouvait se retrouver dans un groupe au lancement
+sans y etre abonne.
+. Ajout de la possibilité de sauver comme un folder mail
+-----------------------------
+version 0.1pre2
+-----------------------------

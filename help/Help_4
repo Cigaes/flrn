@@ -1,0 +1,240 @@
+4: Liste des commandes
+
+       +---------------------------+
+       |flrn : Toutes les commandes|
+       +---------------------------+
+
+flrn admet trois modes d'entrée de commandes :
+  _ le vieux mode cbreak, très semblable au mode de forum, qui sera remplacé
+rapidement par le nouveau mode (non documenté)
+  _ le nouveau mode cbreak, décrit plus bas, qui est le mode par défaut
+  _ le mode nocbreak, pour l'instant très imparfait.
+ 
+On peut changer de mode avec les options new_mode et cbreak.
+Dans les modes cbreak, taper '@' permet de rentrer localement une commande
+en mode nocbreak.
+
+
+	Syntaxe générale d'une commande
+	-------------------------------
+
+une commande se présente sous la forme suivante dans le nouveau mode :
+
+	[ elem_1 [ ,elem_2 [ ,... ]]]<nom_de_la_commande> [chaine]
+
+dans le mode nocbreak, la commande prend la forme suivante :
+
+	<nom_de_la_commande> [ elem_1 [ ,elem_2 [ ,... ]]][ [,]chaine ]
+
+elem_1, elem_2, etc... caractérisent les articles concernés par la commande.
+Ces articles sont désignés par leur numéro dans le newsgroup courant.
+Ils sont sans importance si la commande se rapporte à un groupe donné.
+Chaque elem_i peut se présenter sous 3 formes :
+	n1	: désigne l'article portant le numéro n1
+	n2-n3	: désigne l'ensemble des articles allant de n2 à n3
+	n4>	: désigne les articles ayant n4 comme ancêtre
+	n5_	: désigne les articles ayant n5 comme descendants
+
+Les formes particulières que ces numéros peuvent prendre sont les suivantes :
+
+Forme	   n1,n4 et n5		n2		n3
+<vide>	    	C		D		F
+0 ou .		C		C		C
+1		D		D		D
+
+C désignant le numéro de l'article courant, D celui du début du newsgroup
+courant, et F celui de la fin du newsgroup.
+
+Chaque numéro peut être directement suivi du caractère <, auquel cas le
+numéro est remplacé par celui de la racine du thread contenant l'article
+de ce numéro. Ainsi .< désigne le numéro de la racine du thread contenant
+l'article courant.
+
+Dans le cas où aucun elem_i n'est présent, les commandes ont le plus
+souvent le même comportement qu'avec l'article courant comme seul
+article sélectionné. Il y a toutefois des exceptions.
+
+
+<nom_de_la_commande> désigne le nom de la commande tapée. Cela peut être
+soit une touche correspondant à un binding (par défaut ou obtenu par une
+option), soit une commande explicite, préfixée par le caractère '\'.
+
+Enfin, certaines commandes (comme 'list' par exemple), prennent une chaine
+de caractère comme dernier argument. Elle est demandée en fin de commande.
+Certaines commandes (comme 'post') n'en demande pas, mais en acceptent en 
+mode nocbreak.
+
+
+	Commandes de flrn
+	-----------------
+
+Chaque commande est donnée avec son nom explicite et sa touche correspondante
+par défaut. Certaines touches ont des fonctions spéciales, comme 'enter'
+et '-'. D'autres ne peuvent pas être liées à une commande : c'est le
+cas de la virgule, des chiffres, du point et des caractères '<' et '>'.
+
+* Déplacement dans les articles :
+
+art	(défaut : v, et aussi enter si un paramètre est donné)
+	Affiche le premier article donné en argument (ou l'article courant
+	s'il n'y a pas d'argument).
+	
+suiv	(défaut : enter, si aucun paramètre n'est donné)	
+	Passe à l'article suivant le premier article donné en argument.
+
+prev	(défaut : p, et - si c'est le PREMIER caractère de la commande)
+	Revient à l'article précédent le premier article donné en argument.
+	(la touche - n'est pas garantie dans les versions suivantes)
+
+up	(défaut : flèche haut)
+down	(défaut : flèche bas)
+left	(défaut : flèche gauche)
+right	(défaut : flèche droite)
+	Permet de se déplacer au sein des articles de même sujet. On part
+	du premier article sélectionné, ou de l'article courant.
+
+next	(défaut : space)
+	Va au premier article non lu. Cette commande a des effets différents
+	selon les options space_is_return et threaded_space. On part dans
+	tous les cas du premier article selectionné.
+
+nxt-thr	(défaut : n)
+	Passe au thread suivant où il y a quelque chose à lire en partant du
+	premier article sélectionné ou de l'article courant. (non implémentée)
+
+
+* Gestions des articles
+
+view    (défaut : V)
+	Lance $PAGER sur les articles sélectionnés. Devrait être une macro
+	de pipe.
+
+save 	(défaut : s)
+	Sauve les articles sélectionnés dans un fichier (demandé en argument)
+	Une confirmation est demandé si le fichier existe déjà.
+SAVE	(défaut : S)
+	Même effet que save, mais sauve les descendants de tous les articles
+	sélectionnés, avec éventuellement plusieurs sauvegardes du même
+	article.
+
+omet	(défaut : o)
+	marque comme non lus les articles sélectionnés. Dans le cas où aucun
+	article n'est sélectionné, marque juste l'article courant non lu.
+OMET	(défaut : O)
+	marque comme non lus les descendants de tous les articles sélectionnés.
+	Si aucun article n'est selectionnés, on se contente de tous les
+	descendants de l'article courant.
+
+kill	(défaut : k)
+	marque comme lus les articles sélectionnés avec les crossposts.
+	Si aucun article n'est sélectionné, on marque le message courant comme
+	lu. On passe ensuite au premier article non lu.
+KILL	(défaut : K)
+	marque comme lus les descendants des articles sélectionnés en prenant
+	en compte les crossposts. Si aucun article n'est selectionné, on
+	marque les descendants du message courant comme lus.
+KILL-THR (défaut : J)
+	marque comme lus les discussions complètes des articles sélectionnés
+	avec les crossposts. Si aucun article n'est sélectionné, on marque la
+	discussion courante comme lue.
+
+
+* Affichage de résumés
+
+summary (défaut : r)
+	Résumé des articles sélectionnés. Dans le cas ou aucun article n'est
+	sélectionné, on affiche un écran d'articles, centré par défaut sur
+	l'article courant. Les articles sont placés dans l'ordre des leur
+	numéro ou sous une forme threadée, selon l'option ordered_summary.
+summ_fil (défaut : t)
+	Résumé des articles sélectionnés sous une forme threadée. Dans le
+	cas où aucun article n'est sélectionné, on affiche les descendants de
+	l'article courant.
+summ_thr (défaut : T)
+	Même action que t, mais le comportement par défaut affiche cette fois
+	le thread complet.
+
+* Gestion des groupes :
+
+unsu	(défaut : u)
+	Se désabonne du groupe courant
+abon	(défaut : a)
+	S'abonne au groupe courant
+zap	(défaut : z)
+	Marque tous les messages du groupe comme lus, sans tenir compte des
+	crossposts.
+goto	(défaut : g) (prend <nom> comme argument)
+	Va au premier groupe à partir du groupe courant comportant la chaine
+	<nom> en mode nouse_regexp, sinon au groupe dont le nom correspond
+	à l'expression régulière associée à <nom>. Si <nom> est vide, va au 
+	premier groupe comprenant des messages non lus. Cette commande se 
+	limite aux groupes auxquels on est abonné.
+GOTO	(défaut : G) (prend <nom> comme argument)
+	Même action que goto, mais on considère ici TOUS les groupes, en
+	commençant par ceux auquels on est abonnés, puis ceux qui sont dans
+	le .flnewsrc, puis les autres.
+swap-grp (pas de défaut) (prend <nom> comme argument)
+	Permet de changer de newsgroup sans changer l'article courant (pour peu
+	que celui-ci soit crossposté, ou ait été obtenu par get-father). Si
+	<nom> est non vide, on cherchera à aller dans un groupe dont le nom
+	contient <nom>. Les regexp seront gérées comme avec goto dès que
+	possible.
+list	(défaut : l) (prend <nom> comme argument)
+	Donne la liste des newsgroups auquel on est abonné dont le nom contient
+	<nom>, ou correspond à l'expression régulière associée à <nom> en
+	mode use_regexp.
+LIST	(défaut : L) (prend <nom> comme argument)
+	Même effet que l, mais sans restriction d'abonnement.
+
+* Posts :
+
+post	(défaut : m) (prend éventuellement <nom> en paramètre)
+	Poste un article dans le newsgroup courant. Si <nom> existe, poste
+	le fichier <nom> SANS DEMANDER CONFIRMATION.
+repond	(défaut : R) (prend éventuellement <nom> en paramètre)
+	Répond au premier article sélectionné, et à l'article courant par
+	défaut. Si <nom> existe, on poste le fichier <nom> SANS DEMANDER
+	CONFIRMATION.
+mail-ans (pas de défaut) (prend éventuellement <nom> en paramètre)
+	Répond au premier article sélectionné par mail. Si <nom> existe, on
+	envoie le fichier par mail SANS DEMANDER CONFIRMATION.
+
+* Shell-escapes :
+
+Toutes les commandes <nom> lancées sont équivalentes à sh -c <nom>.
+(cf man system(3))
+
+pipe	(défaut : '|') (prend <nom> comme argument)
+	Lance une commande <nom> (lue par sh) avec comme entrée les articles
+	sélectionnées (par défaut l'article courant).
+PIPE	(pas de défaut) (prend <nom> comme argument)
+	Comme pipe, mais envoie les threads des articles sélectionnées en
+	entrée.
+filter	(défaut : '%') (prend <nom> comme argument)
+	Comme pipe, mais reprend la sortie standard et l'affiche.
+FILTER  (pas de défaut) (prend <nom> comme argument)
+	Comme PIPE, mais reprend la sortie standard (cf filter)
+shell	(pas de défaut) (prend <nom> comme argument)
+	Lance la commande <nom>, en laissant le contrôle du terminal.
+shin	(défaut : '!') (prend <nom> comme argument)
+	Lance la commande <nom>, récupère et affiche la sortie standard.
+	(aussi bien que cette aide est affichée)
+
+* Divers :
+
+option	(défaut : ':') (prend éventuellement l'option en paramètre)
+	permet de parser une ligne d'option, afin de modifier les options
+	au cours du programme. La touche tabulation permet de faire une
+	complétion automatique.
+config  (pas de défaut)
+	permet de modifier l'ensemble de la configuration à l'aide d'un
+	menu. Encore un peu incomplet. Bugue avec l'option color.
+quit	(défaut : q)
+	Quitte le programme en sauvant le .flnewsrc
+QUIT	(défaut : Q)
+	Quitte le programme sans sauver le .flnewsrc
+help	(défaut : h et ?)
+	Lance cette aide.
+
+'q' permet de quitter l'aide à tout moment.
+'m' permet de revenir au menu.

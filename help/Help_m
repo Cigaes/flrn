@@ -1,0 +1,16 @@
+m: menu
+
+		
+		Aide de flrn
+		------------
+
+Tapez sur le chiffre correspondant à la section de votre choix.
+
+	0. Présentation de flrn
+	1. Description simple des commandes usuelles
+	2. Poster des messages
+	3. Options du .flrn
+	4. Description de toutes les commandes
+
+'q' permet de quitter l'aide à tout moment.
+'m' permet de revenir à ce menu.
