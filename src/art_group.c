@@ -697,12 +697,20 @@ void detruit_liste(int flag) {
    }
    /* attention au premier article... */
    if(Article_deb && (Article_deb->numero==1) &&
-       !(Article_deb->flag & FLAG_READ))
+       (!(Article_deb->flag & FLAG_READ) || 
+         (Article_deb->flag & FLAG_WILL_BE_OMITTED)))
      min=0;
     
    tmparticle=Article_courant=Article_deb;
    for (;Article_courant; Article_courant=tmparticle) {
        tmparticle=Article_courant->next;
+       if (Article_courant && (Article_courant->flag & FLAG_WILL_BE_OMITTED)) {
+         if (Article_courant->flag & FLAG_READ) {
+            if (Newsgroup_courant->not_read!=-1) Newsgroup_courant->not_read++;
+	    Article_courant->thread->non_lu++;
+	 }
+         Article_courant->flag&=~(FLAG_READ | FLAG_WILL_BE_OMITTED);
+       }
        if ((Article_courant->flag & FLAG_READ) && (!min))
        {
 	   min = Article_courant->numero;

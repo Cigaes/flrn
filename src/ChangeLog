@@ -1,6 +1,6 @@
 ChangeLog Flrn
 
-
+. modif de la sélection. commande art-to-return
 . reprise du code des macros... memory leaks, bug fixes.
 . corrections de memory leaks
 

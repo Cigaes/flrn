@@ -174,7 +174,7 @@ static void Aff_message(int type, int num)
     case 6 : Aff_error("Post envoyé."); break;
     case 7 : Aff_error("Post annulé."); break;
     case 8 : Aff_error("Article(s) sauvé(s)."); break;
-    case 9 : Aff_error("Vous êtes abonnés à ce newsgroup."); break;
+    case 9 : Aff_error("Vous êtes abonné à ce newsgroup."); break;
     case 10 : Aff_error("Pas d'autre thread non lu."); break;
     case 11 : Aff_error("Tous les articles sont marqués lus.");
 	      break;
@@ -188,6 +188,7 @@ static void Aff_message(int type, int num)
     case 19 : Aff_error("Groupe retiré."); break;
     case 20 : Aff_error("Mail envoyé."); break;
     case 21 : Aff_error("Mail envoyé, article posté."); break;
+    case 22 : Aff_error("Article(s) marqué(s) lu(s) temporairement."); break;
  /* Message d'erreur */
     case -1 : Aff_error("Vous n'êtes abonné à aucun groupe."); 
 	       break;
@@ -1305,6 +1306,10 @@ int do_omet(int res) {
  * KILL tue des threads ? */
 static int kill_article(Article_List *article, void * toto)
 { article_read(article); return 0; }
+static int temp_kill_article(Article_List *article, void * toto)
+{ article_read(article); 
+  article->flag|=FLAG_WILL_BE_OMITTED;
+  return 0; }
 int do_kill(int res) {
   Numeros_List *courant=&Arg_do_funcs;
   Action_with_args beurk;
@@ -1315,12 +1320,19 @@ int do_kill(int res) {
       distribue_action(courant,grand_distribue,NULL,&beurk);
   else if (res==FLCMD_PKIL)
       distribue_action(courant,kill_article,NULL,NULL);
+  else if (res==FLCMD_ART_TO_RETURN) 
+      distribue_action(courant,temp_kill_article,NULL,NULL);
   else
       distribue_action(courant,thread_distribue,NULL,&beurk);
   etat_loop.etat=0;
   /* Est-ce un hack trop crade ? */
   courant->flags=0;
   Aff_not_read_newsgroup_courant();
+  if (res==FLCMD_ART_TO_RETURN) {
+     etat_loop.etat=1;
+     etat_loop.num_message=22;
+     return 0;
+  }
   if (Article_courant->flag & FLAG_READ) do_deplace(FLCMD_SPACE);
   else etat_loop.etat=3;
   return 0;
@@ -1463,31 +1475,24 @@ Article_List * Menu_summary (int deb, int fin, int thread) {
   return raw_Do_summary(deb,fin,thread,Do_menu_summary_line);
 }
 
-static void selector_line(void *item, char *line, int length) {
-  Article_List *art = (Article_List *)item;
-  *line='\0';
-  Prepare_summary_line(art,NULL,0,line,length,1);
-}
-
 static int thread_menu (void *value, char **nom, int i, char *name, int len, int key) {
-   Article_List *art=(Article_List *)value;
-   Action action=NULL;
-   char *buf=(*nom)+5;
-   char sauv=*(buf+5);
+   Thread_List *thr=(Thread_List *)value;
 
    switch (key<MAX_FL_KEY ? Flcmd_rev_command[key] : FLCMD_UNDEF) {
       case FLCMD_KILL :
       case FLCMD_GKIL :
-      case FLCMD_PKIL : action=kill_article;
+      case FLCMD_PKIL : if (thr->flags & FLAG_THREAD_UNREAD) 
+      				thr->flags&=~FLAG_THREAD_UNREAD;
+			   else thr->flags|=FLAG_THREAD_READ;
       			break;
       case FLCMD_OMET :
-      case FLCMD_GOMT : action=omet_article;
+      case FLCMD_GOMT : if (thr->flags & FLAG_THREAD_READ)
+      				thr->flags&=~FLAG_THREAD_READ;
+			   else thr->flags|=FLAG_THREAD_UNREAD;
 			break;
    }
-   if (action) gthread_action(art,0,action,NULL);
-   if (art->thread->non_lu>9999) strcpy(buf," *** "); else
-           sprintf(buf,"%4d ",art->thread->non_lu);
-   *(buf+5)=sauv;
+   **nom=(thr->flags & FLAG_THREAD_READ ? '-' :
+   	  (thr->flags & FLAG_THREAD_UNREAD ? '+' : ' '));
    return 0;
 }
 
@@ -1497,9 +1502,11 @@ static void Menu_selector () {
    Article_List *art;
    Liste_Menu *courant=NULL, *menu=NULL, *start=NULL;
    char *buf, *buf2;
-   int place;
+   int place, non_lu;
 
    for (;parcours;parcours=parcours->next_thread) {
+      parcours->flags&=~FLAG_THREAD_READ;
+      parcours->flags&=~FLAG_THREAD_UNREAD;
       if (!(parcours->flags & FLAG_THREAD_SELECTED)) continue;
       hash_parc=parcours->premier_hash;
       while ((hash_parc) && ((hash_parc->article==NULL) 
@@ -1515,22 +1522,34 @@ static void Menu_selector () {
       place=Screen_Cols-2;
       if (Screen_Cols-2>15) {
         if (parcours->number>9999) strcpy(buf," *** "); else
-           sprintf(buf,"%4d ",parcours->number);
-	buf2=buf+5;
+           sprintf(buf," %4d ",parcours->number);
+	buf2=buf+6;
         if (parcours->non_lu>9999) strcpy(buf2," *** "); else
            sprintf(buf2,"%4d ",parcours->non_lu);
 	buf2+=5;
-	place-=10;
+	place-=11;
       }
       strncpy(buf2,art->headers->k_headers[SUBJECT_HEADER],place);
-      courant=ajoute_menu(courant,buf,(void *)art);
+      courant=ajoute_menu(courant,buf,(void *)parcours);
       if (Article_courant->thread==parcours) start=courant;
       if (!menu) menu=courant;
    }
     
    if (menu) {
-      Menu_simple(menu,start,selector_line,thread_menu,"<total> <non lus>. q pour quitter.");
+      Menu_simple(menu,start,NULL,thread_menu,"<total> <non lus>. q pour quitter.");
       Libere_menu_noms(menu);
+   }
+   parcours=Thread_deb;
+   for (;parcours;parcours=parcours->next_thread) {
+       if (parcours->flags & (FLAG_THREAD_UNREAD | FLAG_THREAD_READ)) {
+         non_lu=parcours->flags & FLAG_THREAD_UNREAD;
+         for (hash_parc=parcours->premier_hash;hash_parc;
+	      hash_parc=hash_parc->next_in_thread) 
+	    if (hash_parc->article) {
+	       if (non_lu) omet_article(hash_parc->article,NULL);
+	       else kill_article(hash_parc->article,NULL);
+	    }
+       }
    }
 }
 

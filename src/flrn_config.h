@@ -50,7 +50,7 @@
 
 
 /* Touches de Commande */
-#define NB_FLCMD 60
+#define NB_FLCMD 61
 #define FLCMD_UNDEF -1
 #define FLCMD_RETURN FLCMD_SUIV
 #define FLCMD_MACRO 1024
@@ -222,6 +222,8 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_PIPE_HEADER 58
    { "select", 0, 0, 14|CMD_NEED_GROUP, &do_select },
 #define FLCMD_SELECT 59
+   { "art-to-return", 'x', 0, 2|CMD_NEED_GROUP, &do_kill },
+#define FLCMD_ART_TO_RETURN 60
 };
 
 #define CMD_DEF_PLUS (sizeof(Cmd_Def_Plus)/sizeof(Cmd_Def_Plus[0]))
