@@ -476,7 +476,7 @@ int parse_key_name(char *name) {
   for (i=0;i<sizeof(fl_key_names)/sizeof(fl_key_names[0]);i++)
     if (strcmp(name,fl_key_names[i])==0) return i+FIRST_FL_KEY_OFFSET;
   if ((*name=='F') || (*name =='f'))
-    return strtol(name,NULL,10) + FIRST_FN_OFFSET;
+    return strtol(name+1,NULL,10) + FIRST_FN_OFFSET;
   if ((*name=='M') || (*name =='m')) {
     if ((name[1] == '-') && name[2]) return name[2]|128;
     return name[1]|128;
