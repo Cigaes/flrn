@@ -14,8 +14,8 @@
 extern int terminal_charset;
 
 extern void init_charsets ();
-extern int Parse_charset (char *);
-extern int Parse_charset_line (char *);
+extern int Parse_charset (const char *);
+extern int Parse_charset_line (const char *);
 extern int Parse_ContentType_header (char *);
 extern int Decode_ligne_with_charset (char *, char **, int);
 extern int Decode_ligne_message (char *, char **);

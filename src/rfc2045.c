@@ -145,7 +145,7 @@ void UC_Charset_Setup(
 }
 
 /* parse juste une chaine charset... -1 -> pas réussi */
-int Parse_charset (char *buf) {
+int Parse_charset (const char *buf) {
     int i;
     for (i = 0; i < UCNumCharsets; i++) {
         if ((strcasecmp(UCInfo[i].MIMEname, buf)==0) ||
@@ -158,8 +158,8 @@ int Parse_charset (char *buf) {
 
 /* Parse une chaine d'option de CharSet et remvoie -1 si échec, 0 si
    vide, 1 sinon */
-int Parse_charset_line (char *charset_line) {
-    char *buf=charset_line;
+int Parse_charset_line (const char *charset_line) {
+    const char *buf=charset_line;
 
     terminal_charset=-1;
     if (charset_line==NULL) return 0;

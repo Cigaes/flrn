@@ -21,6 +21,7 @@
 #else
   #include "rfc2045.h" 		/* defini terminal_charset */
   const char *Charset;
+  static char Default_Charset[]="iso-8859-1";
 #endif
   
 #define strfcpy(A,B,C) strncpy(A,B,C), *(A+(C)-1)=0
@@ -78,7 +79,7 @@ static void q_encode_string (char *d, unsigned char *s, size_t len)
   if (!s) return;
 #ifdef WITH_CHARACTER_SETS
   if (terminal_charset!=-1) Charset=get_name_charset(terminal_charset);
-      else Charset="iso-8859-1";
+      else Charset=Default_Charset;
 #endif
 
 #if HAVE_SNPRINTF
@@ -164,7 +165,7 @@ static void b_encode_string (char *d, unsigned char *s, size_t len)
 
 #ifdef WITH_CHARACTER_SETS
   if (terminal_charset!=-1) Charset=get_name_charset(terminal_charset);
-      else Charset="iso-8859-1";
+      else Charset=Default_Charset;
 #endif
 
 #if HAVE_SNPRINTF
@@ -224,7 +225,7 @@ void rfc2047_encode_string (char *d, unsigned char *s, size_t l)
 
 #ifdef WITH_CHARACTER_SETS
   if (terminal_charset!=-1) Charset=get_name_charset(terminal_charset);
-      else Charset="iso-8859-1";
+      else Charset=Default_Charset;
 #endif
 
   /* First check to see if there are any 8-bit characters */
@@ -269,7 +270,7 @@ static int rfc2047_decode_word (char *d, const char *s, size_t len)
 
 #ifdef WITH_CHARACTER_SETS
   if (terminal_charset!=-1) Charset=get_name_charset(terminal_charset);
-      else Charset="iso-8859-1";
+      else Charset=Default_Charset;
 #endif
 
   while ((pp = strtok (pp, "?")) != NULL)
@@ -362,7 +363,9 @@ static int rfc2047_decode_word (char *d, const char *s, size_t len)
 #ifdef WITH_CHARACTER_SETS
     char *output;
     int res;
-    if ((res=Decode_ligne_with_charset(d, &output, crset))!=0)
+    int terminal_charset_old=terminal_charset;
+    if (terminal_charset==-1) Parse_charset_line(Charset);
+    if ((res=Decode_ligne_with_charset(d, &output, crset))!=1)
 #endif
     {
       pd = d;
@@ -373,9 +376,12 @@ static int rfc2047_decode_word (char *d, const char *s, size_t len)
         pd++;
       }
 #ifdef WITH_CHARACTER_SETS
-      if (res==1) free(output); /* TODO : voir si on peut mieux faire */
+      if (res==0) free(output); /* TODO : voir si on peut mieux faire */
 #endif
     }
+#ifdef WITH_CHARACTER_SETS
+    if (terminal_charset_old==-1) Parse_charset_line(NULL);
+#endif
   }
   return (0);
 }
