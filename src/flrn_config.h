@@ -50,7 +50,7 @@
 
 
 /* Touches de Commande */
-#define NB_FLCMD 64
+#define NB_FLCMD 65
 #define FLCMD_UNDEF -1
 #define FLCMD_RETURN FLCMD_SUIV
 #define FLCMD_MACRO 1024
@@ -92,6 +92,7 @@ extern int do_pipe_header(int);
 extern int do_select(int);
 extern int do_keybindings(int);
 extern int do_on_selected(int);
+extern int do_art_msgid(int);
 
 /* completions */
 #include "flrn_comp.h"
@@ -239,6 +240,8 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_PUT_FLAG 62
    { "on-selected", 0, 0, 15|CMD_NEED_GROUP, &do_on_selected, NULL },
 #define FLCMD_ON_SELECTED 63
+   { "art-msgid", 0, 0, 29, &do_art_msgid, NULL },
+#define FLCMD_ART_MSGID 64
 };
 
 #define CMD_DEF_PLUS (sizeof(Cmd_Def_Plus)/sizeof(Cmd_Def_Plus[0]))

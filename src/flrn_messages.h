@@ -45,8 +45,9 @@
 #define MES_INVAL_FLAG 40
 #define MES_FLAG_APPLIED 41
 #define MES_MACRO_FORBID 42
+#define MES_NO_MSGID 43
 
-#define NB_MESSAGES 43
+#define NB_MESSAGES 44
 extern const char *Messages[NB_MESSAGES];
 
 #endif

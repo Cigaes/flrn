@@ -45,6 +45,7 @@ const char *Messages[NB_MESSAGES] = {
     "Rien trouvé.",				/* 39 */ /* pager, menus */
     "Flag invalide.",				/* 40 */
     "Flag appliqué.",				/* 41 */ /* pager, menus */
-    "Macro interdite."				/* 42 */
+    "Macro interdite.",				/* 42 */
+    "Message-ID inconnu."			/* 43 */
 };
 

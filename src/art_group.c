@@ -496,6 +496,8 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others, in
    /* on décode tout ! */
    for (i=0; i<NB_KNOWN_HEADERS; i++) {
      creation->k_headers_checked[i]=1;
+     /* Enfin, pas references ou message-ID parce que ca ne sert à rien */
+     if ((i==REFERENCES_HEADER) || (i==MESSAGE_ID_HEADER)) continue;
      if(creation->k_headers[i]) {
       rfc2047_decode(creation->k_headers[i],creation->k_headers[i],
 	  strlen(creation->k_headers[i]));
@@ -522,7 +524,6 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others, in
   /* Parsing de la date */
    if (creation->k_headers[DATE_HEADER]) 
      creation->date_gmt=parse_date(creation->k_headers[DATE_HEADER]);
-   
    return creation;
 }
 

@@ -138,6 +138,7 @@ int do_opt_menu(int res);
 int do_neth(int res);
 int do_get_father(int res);
 int do_swap_grp(int res);
+int do_art_msgid(int res);
 int do_prem_grp(int res);
 int do_goto_tag(int res);
 int do_tag(int res);
@@ -286,10 +287,11 @@ static void Aff_message(int type, int num)
 /*    case -16 : Aff_error("Vous ne pouvez pas poster ici."); break; */
 /* ce message est idiot : rien n'empêche de faire un followup, sauf à */
 /* la rigueur si le serveur refuse tout...			      */
-    case -17 : Aff_error(Messages[MES_NO_HEADER]); break;
-    case -18 : Aff_error(Messages[MES_REFUSED_HEADER]); break;
-    case -19 : Aff_error(Messages[MES_INVAL_FLAG]); break;
-    case -20 : Aff_error(Messages[MES_MACRO_FORBID]); break;
+    case -17 : Aff_error_fin(Messages[MES_NO_HEADER],1,-1); break;
+    case -18 : Aff_error_fin(Messages[MES_REFUSED_HEADER],1,-1); break;
+    case -19 : Aff_error_fin(Messages[MES_INVAL_FLAG],1,-1); break;
+    case -20 : Aff_error_fin(Messages[MES_MACRO_FORBID],1,-1); break;
+    case -21 : Aff_error_fin(Messages[MES_NO_MSGID],1,-1); break;
     default : Aff_error(Messages[MES_FATAL]);
 	       break;
   }
@@ -2210,52 +2212,30 @@ typedef struct {
    long numero;
 } Flrn_Reference_swap;
 
-int do_swap_grp(int res) {
-  Article_List *article_considere;
-  char *newsgroup, *buf, *num, *tmp_name, *gpe;
-  long numero;
+static int art_swap_grp(char *xref, char *arg, Newsgroup_List *exclu) {
   int nostr=0;
+  long numero;
   regex_t reg;
+  char *newsgroup, *num, *tmp_name;
   Newsgroup_List *mygroup=NULL;
   int avec_un_menu=Options.use_menus;
   Liste_Menu *lemenu=NULL, *courant=NULL;
   Flrn_Reference_swap *objet;
 
-  gpe=Arg_str;
-  while ((*gpe) && (isblank(*gpe))) gpe++;
-  if (*gpe=='\0') nostr=1;
+  if ((arg==NULL) || (*arg=='\0')) nostr=1;
   if ((!nostr) && (Options.use_regexp)) {
-    if(regcomp(&reg,gpe,REG_EXTENDED|REG_NOSUB)) {etat_loop.etat=2;
+    if(regcomp(&reg,arg,REG_EXTENDED|REG_NOSUB)) {etat_loop.etat=2;
     	etat_loop.num_message=-10; return 0;} }
-  article_considere=Article_courant;
-  if (Arg_do_funcs.flags & 34) 
-    Recherche_article(Arg_do_funcs.elem1.num, &article_considere, 0); else
-  if (Arg_do_funcs.flags & 63) article_considere=Arg_do_funcs.elem1.article;
-  if (article_considere==NULL) {
-     etat_loop.etat=1; etat_loop.num_message=3; return 0;
-  }
-
-  if ((!article_considere->headers) ||
-      (article_considere->headers->k_headers_checked[XREF_HEADER] == 0)) {
-    cree_header(Article_courant,0,1,0);
-    if (!article_considere->headers) {
-      etat_loop.etat=1; etat_loop.num_message=3; return 0;
-    }
-  }
-  if (!article_considere->headers->k_headers[XREF_HEADER]) {
-    etat_loop.etat=1; etat_loop.num_message=13; return 0;
-  }
   /* Bon, faut que je parse le Xref... ça a déjà été fait dans article_read */
-  buf=safe_strdup(article_considere->headers->k_headers[XREF_HEADER]);
-  newsgroup=strtok(buf," ");
+  newsgroup=strtok(xref," ");
   while ((newsgroup=strtok(NULL," :"))) {
     num=strtok(NULL, ": ");
-    if (!num) { free(buf); etat_loop.etat=1; etat_loop.num_message=3; 
+    if (!num) { etat_loop.etat=1; etat_loop.num_message=3; 
     		if ((!nostr) && (Options.use_regexp))
 		  regfree(&reg);
 		return 0;}
     numero=atoi(num);
-    if ((!avec_un_menu) && (strcmp(Newsgroup_courant->name,newsgroup)==0))
+    if ((exclu) && (!avec_un_menu) && (strcmp(exclu->name,newsgroup)==0))
       continue;
     if (!avec_un_menu) tmp_name=truncate_group(newsgroup,0); else
        tmp_name=newsgroup;
@@ -2279,7 +2259,6 @@ int do_swap_grp(int res) {
       } else {
          etat_loop.Newsgroup_nouveau=mygroup;
          etat_loop.num_futur_article=numero;
-         free(buf);
 	 if ((!nostr) && (Options.use_regexp)) regfree(&reg);
          return 1;
       }
@@ -2288,7 +2267,6 @@ int do_swap_grp(int res) {
   if ((!nostr) && (Options.use_regexp)) regfree(&reg);
   if (lemenu) {
      if (lemenu->suiv==NULL) {
-         free(buf);
 	 objet=(Flrn_Reference_swap *)(lemenu->lobjet);
          mygroup=objet->gpe;
 	 numero=objet->numero;
@@ -2304,9 +2282,13 @@ int do_swap_grp(int res) {
      } else {
          objet=(Flrn_Reference_swap *)Menu_simple(lemenu,NULL,NULL,NULL,
 	     "Quel groupe ?");
-	 /* MAINTENANT on peut liberer buf */
-	 free(buf);
 	 if ((objet==NULL) || (objet->gpe==Newsgroup_courant)) {
+	     if ((objet) && (Article_courant) && 
+	         (objet->numero!=Article_courant->numero)) {
+		Article_List *nouveau=Article_courant;
+		Recherche_article(objet->numero,&nouveau,0);
+		if (nouveau) Article_courant=nouveau;
+	     }
 	     for (courant=lemenu;courant;courant=courant->suiv) 
 	        free(courant->lobjet);
              Libere_menu(lemenu);
@@ -2325,7 +2307,55 @@ int do_swap_grp(int res) {
      return 0;
   }
 }
-    
+
+int do_swap_grp(int res) {
+  int ret;
+  Article_List *article_considere;
+  char *gpe=Arg_str, *buf;
+
+  while ((*gpe) && (isblank(*gpe))) gpe++;
+  article_considere=Article_courant;
+  if (Arg_do_funcs.flags & 34) 
+    Recherche_article(Arg_do_funcs.elem1.num, &article_considere, 0); else
+  if (Arg_do_funcs.flags & 63) article_considere=Arg_do_funcs.elem1.article;
+  if (article_considere==NULL) {
+     etat_loop.etat=1; etat_loop.num_message=3; return 0;
+  }
+
+  if ((!article_considere->headers) ||
+      (article_considere->headers->k_headers_checked[XREF_HEADER] == 0)) {
+    cree_header(Article_courant,0,1,0);
+    if (!article_considere->headers) {
+      etat_loop.etat=1; etat_loop.num_message=3; return 0;
+    }
+  }
+  if (!article_considere->headers->k_headers[XREF_HEADER]) {
+    etat_loop.etat=1; etat_loop.num_message=13; return 0;
+  }
+  buf=safe_strdup(article_considere->headers->k_headers[XREF_HEADER]);
+  ret=art_swap_grp(buf,gpe,Newsgroup_courant);
+  free(buf);
+  return ret;
+}
+
+int do_art_msgid(int res) {
+   Article_List article_temp;
+   char *gpe=Arg_str;
+   int ret;
+
+   while ((*gpe) && (isblank(*gpe))) gpe++;
+   article_temp.numero=-1;
+   article_temp.msgid=gpe;
+   article_temp.headers=NULL;
+   cree_header(&article_temp,0,0,1);
+   if (article_temp.headers==NULL) { 
+      etat_loop.etat=2; etat_loop.num_message=-21;
+      return 0;
+   }
+   ret=art_swap_grp(article_temp.headers->k_headers[XREF_HEADER],NULL,NULL);
+   free_article_headers(article_temp.headers);
+   return ret;
+}
 
 /* zap thread */
 /* all >0 si l'on veut "tuer" aussi les cousins, et même =2 pour le BIG */
