@@ -33,13 +33,16 @@ typedef struct _flrn_filter {
 
 /* les kill-files */
 typedef struct _flrn_kill {
-  int newsgroup_regexp;  /* dit si l'on utilise une regexp ou une liste */
+  /* dit si l'on utilise une regexp ou une liste */
+  unsigned int newsgroup_regexp :1;
+  /* dit si le groupe correspondait au dernier check*/
+  unsigned int group_matched    :1;
   union {
     regex_t *regexp;
     Flrn_liste *liste;
   } newsgroup_cond;
   long Article_deb_key; /* on reprend ce moyen rapide de validation */
-  int  group_matched;
+  			/* associé ici à group_matched */
   flrn_filter * filter;
   struct _flrn_kill *next;
 } flrn_kill;

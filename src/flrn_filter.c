@@ -1,3 +1,6 @@
+/* flrn, gestion des kill files
+ * 		Jo.		*/
+
 #include "flrn.h"
 #include "flrn_filter.h"
 #include "art_group.h"
@@ -318,6 +321,7 @@ int parse_kill_file(FILE *fi) {
   return 1;
 }
 
+/* regarde si la règle kill s'applique au groupe courant */
 static int check_group(flrn_kill *kill) {
   if (kill->Article_deb_key &&
       (Newsgroup_courant->article_deb_key == kill->Article_deb_key))
