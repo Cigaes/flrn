@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. Assouplissement de la syntaxe des touches dans bind
 . Ajout du flag killed.
 . option parse_from
 . changement cosmétique, reparse du header followup-to

@@ -324,15 +324,20 @@ static const char *fl_key_names[] = {
   "c3","redo","undo"};
 #define FIRST_FN_OFFSET 0x200
 
+  /* Parse Ca, C-a, F10 */
 int parse_key_name(char *name) {
   int i;
   for (i=0;i<sizeof(fl_key_names)/sizeof(fl_key_names[0]);i++)
     if (strcmp(name,fl_key_names[i])==0) return i+FIRST_FL_KEY_OFFSET;
   if ((*name=='F') || (*name =='f'))
     return strtol(name,NULL,10) + FIRST_FN_OFFSET;
-  if ((*name=='M') || (*name =='m'))
+  if ((*name=='M') || (*name =='m')) {
+    if ((name[1] == '-') && name[2]) return name[2]|128;
     return name[1]|128;
-  if ((*name=='C') || (*name =='c') || (*name == '^'))
+  }
+  if ((*name=='C') || (*name =='c') || (*name == '^')) {
+    if ((name[1] == '-') && name[2]) return toupper(name[2])-'A'+1;
     return toupper(name[1])-'A'+1;
+  }
   return 0;
 }
