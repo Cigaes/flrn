@@ -100,6 +100,8 @@ static void relie_article(Article_List *pere, Article_List *fils) {
 
 /* on crée les liens à partir des headers References
  * on met des messages exterieurs pour les parents abscents */
+/* il faut noter que maintenant, cree_liens sera appelée plusieurs fois
+ * au fil des xovers... */
 int cree_liens() {
   int hash;
   Article_List *Hash_table[HASH_SIZE];

@@ -21,7 +21,8 @@ changement entre deux versions, et il n'est pas exempt de bugs.
 est un lecteur de news dont l'interface est largement inspirée de celles de
 forum, trn, mutt et slrn. Il est assez configurable, mais la configuration par
 défaut est assez proche de forum. On a la valeur par défaut de toutes les
-variables en utilisant '\fI flrn -s\fR'
+variables en utilisant '\fI flrn -s\fR' (cette option devrait disparaitre
+dans les prochaines versions).
 
 Il y a une aide accessible par la commande 'h' dans flrn. Elle est souvent
 plus à jour que cette page.
@@ -33,7 +34,7 @@ auxquels on est abonné.
 .SS Description des options de ligne de commande
 .TP 6
 .B \fB-d\fR
-L'option \fB-d\fR affiche sur la sortie d'erreur des message de mis au point.
+L'option \fB-d\fR affiche sur la sortie d'erreur des messages de mise au point.
 Elle ne devrait pas servir en usage normal.
 .IP \fB-c\fR
 L'option \fB-c\fR donne une estimation du nombre de messages à lire dans les
@@ -45,7 +46,7 @@ L'option \fB-h\fR affiche la liste des options reconnues.
 Affiche le numéro de version.
 .IP \fB-s\fR
 Donne un fichier de configuration contenant les valeurs par défaut de toutes
-les variables.
+les variables. Cette option devrait disparaitre.
 
 
 .SS Options de configuration
@@ -73,29 +74,36 @@ De même, "set no<variable>" est équivalent à "set <variable>=no" ou
 .IP "\fBcolor <types> <premier plan> <arriere plan> <attributs>\fR"
 .IP "\fBmono <types> <attributs>\fR"
 .IP "\fBregcolor <types> <flags> <p.p.> <a.p.> <attributs> <regexp>\fR"
-Permet de définir les couleurs.
+permettent de définir les couleurs.
 <Types> est un une suite de mots séparés par des virgules (sans espace)
-parmis : normnal, header, status, quoted, error, aff_fin et sig ou le mot all.
+parmis : normnal, header, status, quoted, error, aff_fin, sig,
+file, summary ou le mot all.
 <p.p.> et <a.p.> sont des couleurs. On a le droit à la couleur default, et
 aux couleurs std-normal, std-header ... et std. std-<type> représente la couleur
 du dernier color type fait (ou la couleur par défaut si c'est le premier).
-Std correspond a la couleur du dernier type utilisé dans cette commande.
+Std correspond à la couleur du dernier type utilisé dans cette commande.
 <Attributs> est une suite de mots clefs parmis : bold, blink, underline,
 normal, reverse, std et std-*.
 <flags> est une suite de flags, parmis : case, exclude, line, 1...9. On peut
 mettre 0 ou - si l'on en veut aucun.
+Case rend le match case sensitive, line dit de mettre en relief toute la ligne,
+exclude associé à line dit de ne pas faire d'autres choses sur la ligne.
+1..9 donne le numéro du block de la regexp à mettre en relief.
 <regexp> est une expression régulière.
 
 Par exemple :
-"color header std std bold" ne passe les headers en gras, sans rien changer
+"color header std std bold" passe les headers en gras, sans rien changer
 d'autre.
+
+"regcolor header 2 magenta std bold "^Sujet: (Re: )?(.*)"" ne modifie que le
+sujet dans la ligne, sans le Re: éventuel.
 
 .IP "\fBheader list|weak|hide <numero|nom> <numero|nom> ...\fR"
 Avec list donne la liste des headers à afficher (nom ou numero, cf l'aide
 interactive pour la correspondance numero-nom).
 Avec weak, on donne ceux à ne pas réafficher pour les pages d'un
 messages après la première.
-Avec hide on donne ceux a ne pas afficher quand on a utilise le mot réservé
+Avec hide on donne ceux à ne pas afficher quand on a utilise le mot réservé
 other.
 
 .IP "\fBbind <touche> <commande> [<arguments>]\fR"

@@ -460,6 +460,8 @@ void ecrit_attributs(FILE *file, FL_Char_Type att) {
   }
 }
 
+/* FIXME: virer ce code, et/ou relire le .flrn à ce moment pour essayer
+ * de faire quelque chose de plus astucieux */
 void dump_colors_in_flrnrc (FILE *file) {
   int i,comma,mask;
   struct Highlight *current=highlight_first;
