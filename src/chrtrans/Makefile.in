@@ -49,6 +49,7 @@ iso08_uni.h:            $(SRCDIR)/iso08_uni.tbl         makeuctb
 iso09_uni.h:            $(SRCDIR)/iso09_uni.tbl         makeuctb
 iso10_uni.h:            $(SRCDIR)/iso10_uni.tbl         makeuctb
 iso15_uni.h:            $(SRCDIR)/iso15_uni.tbl         makeuctb
+utf8_uni.h:             $(SRCDIR)/utf8_uni.tbl          makeuctb
 
 clean:
 	rm -f makeuctb *.o *uni.h *uni2.h
