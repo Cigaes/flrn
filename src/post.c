@@ -731,7 +731,7 @@ static int Post_article() {
     if (strstr(buf, "empty")) return -8;
     if (strstr(buf, "no body")) return -7;
     if (strstr(buf, "Subject")) return -6;
-    if (strstr(buf, "valid") || strstr(buf,"such")) return -3;
+    if ((strstr(buf, "valid")!=NULL) || (strstr(buf,"such")!=NULL)) return -3;
     if (strstr(buf, "Newsgroups")) return -5;
     if (strstr(buf, "From")) return -4;
     return -11;
@@ -1057,6 +1057,7 @@ int cancel_message (Article_List *origine) {
 /* Poste un message (fonction principale de ce fichier).		*/
 /* Renvoie : >0 en cas de message posté, 0 en cas d'annulation, <0 en   */
 /* en cas d'erreur.							*/
+/* renvoie positifs : & 1 : post envoyé... & 2 : mail envoyé...		*/
 /* flag est à 1 si demande de réponse par mail, a -1 si supersedes	*/
 int post_message (Article_List *origine, char *name_file,int flag) {
     int res=1, res_post=0, res_mail=0;
@@ -1112,18 +1113,20 @@ int post_message (Article_List *origine, char *name_file,int flag) {
     if (Header_post->k_header[TO_HEADER] ||
 	Header_post->k_header[CC_HEADER] ||
 	Header_post->k_header[BCC_HEADER]) res_mail=Mail_article();
-    if ((!par_mail) && (Header_post->k_header[NEWSGROUPS_HEADER])) res_post=Post_article(); /* Si on ne veut pas répondre par mail, on ne répond pas par mail...*/
+    if ((!par_mail) && (Header_post->k_header[NEWSGROUPS_HEADER])) 
+         res_post=Post_article(); 
+	 /* Si on ne veut pas répondre par mail, on ne répond pas par mail...*/
     if ((res_post<0) || (res_mail<0)) Save_failed_article();
     if (res_post<0) {
       /* on reecrit un Aff_error :( */
       Cursor_gotorc(1,0);
       Screen_erase_eos();
       Screen_set_color(FIELD_ERROR);
-      Cursor_gotorc(4,3); /* Valeurs au pif */
+      Cursor_gotorc(Screen_Rows/2-1,3); /* Valeurs au pif */
       Screen_write_string("Post refusé... L'article est sauvé dans ~/dead.article");
-      Cursor_gotorc(5,3);
+      Cursor_gotorc(Screen_Rows/2,3);
       Screen_write_string("Raison du refus : ");
-      switch (res) {
+      switch (res_post) {
 	case -1 : Screen_write_string("erreur GRAVE en lecture/ecriture."); 
 		  break;
 	case -2 : Screen_write_string("pas le droit de poster.");
@@ -1143,13 +1146,15 @@ int post_message (Article_List *origine, char *name_file,int flag) {
 	case -9 : Screen_write_string("une ligne est trop longue.");
 		  break;
         case -10: Screen_write_string("Un header contient une adresse invalide.");	break;
-	default : Screen_write_string("inconnu.");
+	default : Screen_write_string("inconnu : ");
 		  break;
       }
+      Cursor_gotorc(Screen_Rows/2+1,3);
+      Screen_write_nstring(tcp_line_read,strlen(tcp_line_read)-2);
       Screen_set_color(FIELD_NORMAL);
     } else if (res_mail<0) Aff_error("Mail refusé... L'article est sauvé dans dead.article");
     Free_post_headers();
     Libere_listes();
-    return res_post;
+    return ((res_post<0) || (res_mail<0) ? -1 : res_post+res_mail*2);
 /* Bon, la fin est un peu rapide. Mais on verra bien. */
 }

@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. option my_hdr
 . bugfix des kill-files
 . bugfix dans next_in_thread
 . début des zolis arbres de thread, option alpha_tree
