@@ -184,6 +184,7 @@ int cree_liens() {
   Hash_List *parcours_hash, *save_hash;
   Thread_List *thread_creation=NULL;
   char *buf2, *buf3=NULL, *buf=NULL;
+  char save_chr;
 
   if (Hash_table==NULL) {
      Hash_table=safe_calloc(1,sizeof(*Hash_table));
@@ -280,7 +281,8 @@ int cree_liens() {
 	  buf3=buf2;
 	  continue;
        }
-       *(++buf3)='\0';
+       save_chr=*(++buf3);
+       *buf3='\0';
        /* J'ai donc la référence dans *buf2 */
        hash = calcul_hash(buf2);
        for (parcours_hash=(*Hash_table)[hash]; parcours_hash;
@@ -333,7 +335,7 @@ int cree_liens() {
 	  } 
        }
        save_hash=parcours_hash;
-       *buf3='>';   
+       *buf3=save_chr;   
        buf3=buf2;
        *buf3='\0';
        if (arret) break;
