@@ -182,6 +182,45 @@ Liste_Menu *ajoute_menu(Liste_Menu *base, char *nom, void *lobjet) {
   return creation;
 }
 
+/* Ajoute un élément à un menu dans l'ordre alphabétique... menu est */
+/* le premier élément...					     */
+/* la comparaison se fait à partir d'un éventuel décalage du nom pour*/
+/* permettre de comparer sur des champs différents (oui je sais      */
+/* c'est crade...						)    */
+/* On renvoie l'élément créé...					     */
+Liste_Menu *ajoute_menu_ordre(Liste_Menu *menu, char *nom, void *lobjet, int
+				decalage) {
+  Liste_Menu *creation, *parcours=menu;
+  int previous=0;
+
+  while (parcours && parcours->suiv) {
+    if ((strlen(parcours->nom)<decalage) ||
+        (strcmp(parcours->nom+decalage,nom+decalage)<0)) 
+		parcours=parcours->suiv; else break;
+  }
+  if (parcours && ((strlen(parcours->nom)<decalage) ||
+        (strcmp(parcours->nom+decalage,nom+decalage)<0))) previous=1;
+  /* previous=1 : on s'est arrete parce que parcours->suiv n'existait pas */
+  /* mais on doit mettre nom après parcours */
+  creation=safe_malloc(sizeof(Liste_Menu));
+  if (previous) {
+    creation->prec=parcours; 
+    if (parcours) parcours->suiv=creation;
+  } else {
+     creation->prec=(parcours ? parcours->prec : NULL);
+     if (parcours && (parcours->prec)) parcours->prec->suiv=creation;
+  }
+  if (previous) creation->suiv=NULL; else
+  {
+     creation->suiv=parcours;
+     if (parcours) parcours->prec=creation;
+  }
+  creation->nom=nom;
+  creation->lobjet=lobjet;
+  return creation;
+}
+  
+
 /* -1 commande non trouvee */
 /* -2 touche invalide */
 /* -3 touche verrouillee */

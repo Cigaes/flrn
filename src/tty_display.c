@@ -1238,9 +1238,9 @@ int Gere_Scroll_Message (int *key_int, int row_act, int row_deb,
   if (scroll_headers==0) act_row=Aff_headers(1)+1; else
       act_row=1+Options.skip_line;
   Init_Scroll_window(num_elem,act_row,Screen_Rows-act_row-1);
-  key=Page_message(num_elem, 1, key, act_row, row_deb, NULL, NULL);
-  if (key!=-1) *key_int=key; 
-  return ((key==0) ? 0 : -1);
+  key=Page_message(num_elem, 1, key, act_row, row_deb, NULL, "A vous : ");
+  if (key!=-1) *key_int=key & (~MAX_FL_KEY); 
+  return (((key==0) || (key & MAX_FL_KEY)) ? 0 : -1);
 }
 
 /* Affichage du nom du newsgroup */

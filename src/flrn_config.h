@@ -90,7 +90,8 @@ extern int do_remove_kill(int);
 extern int do_pipe_header(int);
 
 
-#define MAX_FL_KEY 0x1000
+/* ATTENTION : MAX_FL_KEY DOIT ÊTRE UN BIT SEULEMENT */
+#define MAX_FL_KEY 0x1000 
 /* le tableau touche -> commande */
 extern int Flcmd_rev[MAX_FL_KEY];
 
@@ -103,13 +104,13 @@ extern int Flcmd_rev[MAX_FL_KEY];
 Flcmd Flcmds[NB_FLCMD] = {
    { "previous", 'p' , '-', 2, &do_deplace },
 #define FLCMD_PREC 0
-   { "next-article", '\r', '\n', 2, &do_deplace },
+   { "next-article", '\n', '\r', 2, &do_deplace },
 #define FLCMD_SUIV 1
    { "article", 'v', 0, 6, &do_deplace },
 #define FLCMD_VIEW 2
-   { "goto", 'g', 0, 15, &do_goto },
+   { "goto", 'g', 0, 31, &do_goto },
 #define FLCMD_GOTO 3
-   { "GOTO", 'G', 0, 15, &do_goto },
+   { "GOTO", 'G', 0, 31, &do_goto },
 #define FLCMD_GGTO 4
    { "unsubscribe", 'u', 0, 5|CMD_NEED_GROUP, &do_unsubscribe },
 #define FLCMD_UNSU 5

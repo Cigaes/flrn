@@ -577,7 +577,12 @@ static void Parse_nums_article(char *str, char **sortie, int flags) {
 
    while (ptr && reussi) {
      ptr2=strchr(ptr,',');
-     if (ptr2!=NULL) *ptr2='\0';
+     if (ptr2!=NULL) *ptr2='\0'; else
+        if (flags & 16) {
+	   courant->flags=0;
+	   *sortie=ptr;
+	   return;
+	}
      if (*ptr=='\0') {
 	courant->flags=0;
      } else {
@@ -634,7 +639,7 @@ int parse_arg_string(char *str,int command)
    int flag;
    if (str) while (*str==' ') str++;
    if ((str==NULL) || (str[0]=='\0')) return command;
-   flag=Flcmds[command].flags%4;
+   flag=Flcmds[command].flags & 19; /* C'est crade, mais bon... */
    if (flag==0) return command;
    Parse_nums_article(str, &str, flag);
    if (str) strncpy(Arg_str, str, MAX_CHAR_STRING-1);
@@ -777,7 +782,7 @@ static int get_str_arg(int res) {
    ret=getline(str, MAX_CHAR_STRING, Screen_Rows-1, col);
    if (ret<0) return -1;
    if (Flcmds[res].flags & 2) 
-     Parse_nums_article(str,&str,0);
+     Parse_nums_article(str,&str,Flcmds[res].flags & 19);
    if (str) strcpy(Arg_str, str); else Arg_str[0]='\0';
    return 0;
 }
@@ -1989,8 +1994,8 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 	   || (!Options.use_regexp && strstr(tmp_name,gpe))) &&
 	   ((flags & 1) || !(mygroup->flags & GROUP_UNSUBSCRIBED));
        if (correct && avec_un_menu) {
-         courant=ajoute_menu(courant,tmp_name,mygroup);
-         if (lemenu==NULL) lemenu=courant;
+         courant=ajoute_menu_ordre(lemenu,tmp_name,mygroup,0);
+         if ((lemenu==NULL) || (lemenu->prec)) lemenu=courant;
          correct=0;
        }
      } while (!correct); 
@@ -2004,8 +2009,8 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 	 || (!Options.use_regexp && strstr(tmp_name,gpe))) &&
 	 ((flags & 1) || !(mygroup->flags & GROUP_UNSUBSCRIBED));
        if (correct && avec_un_menu) {
-         courant=ajoute_menu(courant,tmp_name,mygroup);
-         if (lemenu==NULL) lemenu=courant;
+         courant=ajoute_menu_ordre(lemenu,tmp_name,mygroup,0);
+         if ((lemenu==NULL) || (lemenu->prec)) lemenu=courant;
          correct=0;
        }
        if (correct) break;

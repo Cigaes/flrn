@@ -172,6 +172,7 @@ extern void Libere_menu (Liste_Menu * /*debut*/);
 extern void Libere_menu_noms (Liste_Menu * /*debut*/);
 extern Liste_Menu *ajoute_menu(Liste_Menu * /*base*/, char * /*nom*/,
     void * /*lobjet*/);
+extern Liste_Menu *ajoute_menu_ordre(Liste_Menu *, char *, void *, int);
 extern int Bind_command_menu(char *, int, char *);
 
 /* rfc2047.c */

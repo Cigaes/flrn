@@ -1,8 +1,8 @@
-.TH FLRN 1 "Jan 1998"
+.TH FLRN 1 "Sep 1998"
 .SH NOM
-.I flrn
+flrn
 - Forum Like rn
-
+.SH 
 Attention, c'est encore un programme en développement. Il peut y avoir de gros
 changement entre deux versions, et il n'est pas exempt de bugs.
 .SH SYNTAXE
@@ -10,7 +10,6 @@ changement entre deux versions, et il n'est pas exempt de bugs.
 [\fB-v|--version\fR]
 [\fB-h|--help\fR]
 [\fB-d|--debug\fR]
-[\fB-n|--name\fR]
 [\fB-c|--co\fR]
 [\fB-n|--name <name>\fR]
 [\fB-s|--show-config\fR]
@@ -23,7 +22,7 @@ changement entre deux versions, et il n'est pas exempt de bugs.
 est un lecteur de news dont l'interface est largement inspirée de celles de
 forum, trn, mutt et slrn. Il est assez configurable, mais la configuration par
 défaut est assez proche de forum. On a la valeur par défaut de toutes les
-variables en utilisant '\fI flrn -s\fR' (cette option devrait disparaitre
+variables en utilisant '\fI flrn -s\fR' (cette option devrait disparaître
 dans les prochaines versions).
 
 Il y a une aide accessible par la commande 'h' dans flrn. Elle est souvent
@@ -44,7 +43,8 @@ groupes où l'on est abonné. Cela renvoie toujours un majorant du nombre de
 messages à lire.
 .IP \fB-n\fR
 L'option \fB-n\fR fixe le nom de lancement de flrn à \fI<name>\fR, ce qui
-permet de fixer des options spécifiques dans le .flrnrc.
+permet de fixer des options spécifiques dans le .flrnrc. \fI<name>\fR ne
+peut pas commencer par le caractère '-'.
 .IP \fB-h\fR
 L'option \fB-h\fR affiche la liste des options reconnues.
 .IP \fB-v\fR
@@ -53,16 +53,17 @@ Affiche le numéro de version.
 Donne le nom a utiliser pour la configuration.
 .IP \fB-s\fR
 Donne un fichier de configuration contenant les valeurs par défaut de toutes
-les variables. Cette option devrait disparaitre.
+les variables. Cette option devrait disparaître.
 
 
 .SS Options de configuration
-Se reporter à l'aide interne pour avoir une description à jour.
+Se reporter à l'aide interne pour avoir une description plus complète.
 On peut maintenant modifier les options pendant l'utilisation de flrn avec
 la commande '\config'.
 
-La forme générale des options est inspiree de \fBmutt\fR.
+La forme générale des options est inspirée de \fBmutt\fR.
 Il y a six commandes :
+.B include
 .B set
 .B color
 .B mono
@@ -72,7 +73,7 @@ Il y a six commandes :
 .B my_flags
 .B bind
 
-Les commandes peuvent maintenant etre prefixees par name <nom> pour n'etre
+Les commandes peuvent maintenant être préfixées par name <nom> pour n'être
 traitées que si flrn à été lancé sous le nom <nom> ou avec l'option
 -n <nom>.
 
@@ -80,47 +81,53 @@ traitées que si flrn à été lancé sous le nom <nom> ou avec l'option
 .TP 8
 .B set <variable_name>=<value>
 Permet de modifier la valeur d'une variable
-On a les racourcis suivants :
+On a les raccourcis suivants :
 "set <variable>" est équivalent à "set variable=1" ou "set variable=yes".
 De même, "set no<variable>" est équivalent à "set <variable>=no" ou
 "set <variable>=0".
 
-.IP "\fBcolor <types> <premier plan> <arriere plan> <attributs>\fR"
+.IP "\fBinclude <nom_de_fichier>\fR"
+Charge \fI<nom_de_fichier>\fR comme fichier de configuration. Si le
+nom commence par un '/', le chemin d'accès est absolu, sinon il est
+relatif au HOME/FLRNHOME. Il est interdit de faire plus de 10 inclusions
+imbriquées.
+
+.IP "\fBcolor <types> <premier plan> <arrière plan> <attributs>\fR"
 .IP "\fBmono <types> <attributs>\fR"
 .IP "\fBregcolor <types> <flags> <p.p.> <a.p.> <attributs> <regexp>\fR"
 permettent de définir les couleurs.
 <Types> est un une suite de mots séparés par des virgules (sans espace)
-parmis : normnal, header, status, quoted, error, aff_fin, sig,
+parmi : normal, header, status, quoted, error, aff_fin, sig,
 file, summary ou le mot all.
 <p.p.> et <a.p.> sont des couleurs. On a le droit à la couleur default, et
 aux couleurs std-normal, std-header ... et std. std-<type> représente la couleur
 du dernier color type fait (ou la couleur par défaut si c'est le premier).
 Std correspond à la couleur du dernier type utilisé dans cette commande.
-<Attributs> est une suite de mots clefs parmis : bold, blink, underline,
+<Attributs> est une suite de mots clefs parmi : bold, blink, underline,
 normal, reverse, std et std-*.
-<flags> est une suite de flags, parmis : case, exclude, line, 1...9. On peut
+<flags> est une suite de flags, parmi : case, exclude, line, 1...9. On peut
 mettre 0 ou - si l'on en veut aucun.
 Case rend le match case sensitive, line dit de mettre en relief toute la ligne,
 exclude associé à line dit de ne pas faire d'autres choses sur la ligne.
-1..9 donne le numéro du block de la regexp à mettre en relief.
+1..9 donne le numéro du bloc de la regexp à mettre en relief.
 <regexp> est une expression régulière.
 
 Par exemple :
-"color header std std bold" passe les headers en gras, sans rien changer
+"color header std std bold" passe les entêtes en gras, sans rien changer
 d'autre.
 
 "regcolor header 2 magenta std bold "^Sujet: (Re: )?(.*)"" ne modifie que le
 sujet dans la ligne, sans le Re: éventuel.
 
-.IP "\fBheader list|weak|hide <numero|nom> <numero|nom> ...\fR"
-Avec list donne la liste des headers à afficher (nom ou numero, cf l'aide
-interactive pour la correspondance numero-nom).
+.IP "\fBheader list|weak|hide <numéro|nom> <numéro|nom> ...\fR"
+Avec list donne la liste des entêtes à afficher (nom ou numéro, cf l'aide
+interactive pour la correspondance numéro-nom).
 Avec weak, on donne ceux à ne pas réafficher pour les pages d'un
 messages après la première.
 Avec hide on donne ceux à ne pas afficher quand on a utilise le mot réservé
 other.
 
-.IP "\fBmy_hdr <nom_du_header>: <chaine>\fR"
+.IP "\fBmy_hdr <nom_du_header>: <chaîne>\fR"
 Donne une ligne de header à rajouter dans tous les posts fait par flrn.
 
 .IP "\fBmy_flags <caractère> <filtre>\fR"
@@ -131,15 +138,15 @@ un drapeau (read, unread, killed, unkilled, ...), soit la combinaison
 d'un nom de header et d'une expression régulière.
 Dans le second cas, supprime tous les \fImy_flags\fR lus jusqu'à présent.
 
-.IP "\fBbind <touche> <commande> [<arguments>]\fR"
+.IP "\fBbind <mode> <touche> <commande> [<arguments>]\fR"
 Permet de changer la fonction d'une touche.
 Pour l'instant, on ne peut mettre pour touche un caractère n'étant pas un
 caractère spécial du .flrnrc comme '" :=^I' et correspondant à
 un caractère imprimable, ou utiliser la forme \0x20, \040 ou \32.
-On ne peut pas mettre la touche entre guillements pour l'instant.
+On ne peut pas mettre la touche entre guillemets pour l'instant.
 
 .SS Les variables :
-Voivi une liste partielle des variables. Une liste à jour completée
+Voici une liste partielle des variables. Une liste à jour complétée
 des valeurs par défaut est obtenue avec ./flrn -s.
 
 .TP 6
@@ -167,21 +174,21 @@ Choisis si l'on doit ignorer un groupe correspondant à la fois à
 .TP 4
 .I skip_line=<n>
 Donne le nombre de lignes blanches à laisser sous la barre de status.
-.IP \fIflags_group=<8 chars> \fR
-Drapeau à indiquer devant les groupes en fonction de leurs statuts.
+.IP \fIflags_group=<chaîne> \fR
+Drapeaux à indiquer devant les groupes en fonction de leurs statuts.
 .IP \fIalpha_tree \fR
 Demande d'afficher un arbre de thread plutôt que les petites flèches.
 .IP \fIparse_from \fR
-Affiche un champ From: et un champ Reponse à: plus forum-like.
+Affiche un champ From: et un champ Réponse à: plus forum-like.
 .IP \fIheaders_scroll \fR
 Demande à ce que les headers défilent avec les reste du message.
 .IP \fIscroll_after_end \fR
-Indique que, si un défilement d'un page atteint la fin d'un article,
+Indique que, si un défilement d'une page atteint la fin d'un article,
 alors on ne doit pas s'arrêter strictement à la fin.
 .IP \fIdate_in_summary \fR
 Affiche la date dans les résumés.
 .IP \fIordered_summary \fR
-Affiche les résumés dans l'ordre (c'est-à-dire sans tenir compre des
+Affiche les résumés dans l'ordre (c'est-à-dire sans tenir compte des
 discussions).
 .IP \fIduplicate_subject \fR
 Affiche je sujet à chaque ligne d'un résumé, même si c'est le même que la
@@ -194,18 +201,13 @@ Permet d'utiliser la couleur.
 .RE
 .TP 4
 .I space_is_return
-Empeche de changer de groupe en utilisant la touche espace.
-.I return_dont_scroll
-Passe au message suivant avec retrn au lieu de scroller.
+Empêche de changer de groupe en utilisant la touche espace.
 .IP \fIcbreak\fR
 Passe en mode cbreak. Sans cette option, on est en mode émulation d'un
 nocbreak.
 .IP \fIforum_mode\fR
 Mode de commande forum-like : certaines commandes demandent d'appuyer sur
-<entrée> pour les executer.
-.IP \fInew_mode\fR
-Sans cette option, on retrouve le mode de saisis des commandes des premières
-releases de flrn. Avec ses bugs et ses limitations.
+<entrée> pour les exécuter.
 .IP \fIthreaded_space\fR
 Permet de lire les message en suivant les discussions.
 .IP \fIcool_arrows\fR
@@ -214,8 +216,9 @@ correspondant à aucun message.
 .IP \fIsavepath\fR
 Donne un chemin par défaut pour la sauvegardes des articles.
 .IP \fIuse_regexp\fR
-Permet d'utiliser des expressions régulières en arguemnt des commandes L et G.
+Permet d'utiliser des expressions régulières en argument des commandes L et G.
 Les expressions utilisées sont les expressions régulières étendues de rx.
+(cf egrep(1)).
 .IP \fIuse_menus\fR
 Permet l'utilisation de menus pour certaines commandes (goto...).
 .IP \fIwith_cousins\fR
@@ -223,7 +226,6 @@ Permet les déplacements entre articles cousins.
 .IP \fIzap_change_group\fR
 Dit à flrn de changer de groupe quand on marque tous les messages d'un groupe
 comme lus.
-(cf egrep(1)).
 .IP \fIquit_if_nothing\fR
 Quitte flrn tout de suite s'il n'y a rien à lire.
 .TP 6
@@ -234,16 +236,16 @@ Quitte flrn tout de suite s'il n'y a rien à lire.
 .I include_in_edit
 Insère automatiquement le message auquel on répond dans l'éditeur.
 .IP \fIattribution=<string>\fR
-Donne la chaine ajoutée devant les citations.
+Donne la chaîne ajoutée devant les citations.
 .IP \fIauto_edit\fR
-Lance automatiquement l'éditeur lorsce que l'on poste un message.
+Lance automatiquement l'éditeur lorsque l'on poste un message.
 .IP \fIsimple_post\fR
 Avec cette option, flrn tente de modifier les messages pour qu'il soient
 acceptes par le serveur.
 .IP \fIpost_name=<nom>\fR
 Définit le nom réel à mettre dans le champ From.
 .IP \fIindex_string=<string>\fR
-Donne la chaine ajouté au début de chaque ligne du message auquel on répond.
+Donne la chaîne ajouté au début de chaque ligne du message auquel on répond.
 .IP \fIsmart_quote\fR
 Met ">" à la place de \fIindex_string\fR si la ligne commence par ">" et que
 index_string commence aussi par ">".
@@ -255,7 +257,7 @@ index_string commence aussi par ">".
 .I kill_file_name=<fichier>
 Nom du fichier de kill_file.
 .IP \fIauto_kill\fR
-Ajoute automtiquement les nouveaux newsgroups dans la liste principale
+Ajoute automatiquement les nouveaux groupes dans la liste principale
 du kill_file.
 .TP6
 .RS
@@ -274,27 +276,37 @@ compléter et/ou d'enlever ce préfixe dans les bonnes conditions.
 .IP \fIserver=<nom>\fR
 Utilise la machine correspondant à ce nom comme serveur.
 .IP \fIport=<n>\fR
-Utilise le port donné plutôt que le port nntp.
+Utilise le port donné plutôt que le port NNTP par défaut.
 
 
 .SH FICHIERS
-Flrn utilise deux fichiers dans le home dir de l'utilisateur:
+Flrn utilise de deux à quatre fichiers dans le homedir de l'utilisateur:
 .TP 10
-.B "\fB.flrn\fR"
+.B "\fB.flrnrc\fR"
 C'est le fichier de configuration.
-.IP "\fB.flnewsrc\fR"
+.IP "\fB.flnewsrc*\fR"
 C'est un fichier avec la même syntaxe qu'un .newsrc qui est utilisé par
-flrn pour marquer les messages lus.
+flrn pour marquer les messages lus. On peut le modifier avec l'option
+\fIflnews_ext\fR.
+.IP "\fB.flrnkill\fR"
+Ce fichier est le kill-file de flrn. Il contient différentes instructions
+à exécuter automatiquement sur un groupe. Voir l'aide intérieure pour
+Son nom est fixé dans le .flrnrc par l'option kill_file_name.
+plus de détails.
+.IP "\fB.flrnabo\fR"
+Ce fichier (ou son équivalent) contient les groupes de la liste principale
+de censure. Ce fichier est créé et modifié automatiquement par flrn. son
+nom est décrit dans le kill-file.
 
 .SH VOIR AUSSI
 Pour les expressions régulières, voir
 regex(7) ou regcomp(3) ou encore la doc de rx ou egrep(1).
 
 .SH BUGS
-Il y en a encore plein. Si vous en trouvez, dites-le nous.
+Il y en a encore plein. Si vous en trouvez, dîtes-le nous.
 
 .SH AUTEURS
-Damien (Damien.Masse@rezo.ens.fr)
+Damien (Damien.Masse@ens.fr)
 .br
-Jo (Joel-Yann.Fourre@rezo.ens.fr)
+Jo (Joel-Yann.Fourre@ens.fr)
 

@@ -12,8 +12,9 @@ typedef struct command_desc {
    		  2 : possibilites d'articles       
                   4 : demande une chaine dans le mode forum (numéros ou autre)
                   8 : demande une chaine dans le nouveau mode
-		  16: demande à avoir un groupe valide */
-#define CMD_NEED_GROUP 16
+		  16: si il y a des tokens, le dernier doit etre la chaine
+		  32: demande à avoir un groupe valide */
+#define CMD_NEED_GROUP 32
    int (*appel)(int);
 } Flcmd;
 

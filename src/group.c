@@ -463,8 +463,8 @@ Liste_Menu *menu_newsgroup_re (char *name, regex_t reg, int avec_reg)
       if ((!(avec_reg & 1)) || (!regexec(&reg,tcp_line_read,0,NULL,0))) {
 	*buf=' ';
 	creation=un_nouveau_newsgroup(tcp_line_read);
-	courant=ajoute_menu(courant,creation->name,creation);
-	if (lemenu==NULL) lemenu=courant;
+	courant=ajoute_menu_ordre(lemenu,creation->name,creation,0);
+	if ((lemenu==NULL) || (lemenu->prec)) lemenu=courant;
       }
     }
     return lemenu;

@@ -28,7 +28,8 @@ int Flcmd_num_macros_pager=0;
 /* 		Page_message						*/
 /* La fonction principale du pager */
 /* Init_Scroll_window a déjà été appelé. Si key!=0, c'est la première touche */
-/* frappée... Si short_exit=1, on sort en fin de scrolling, ou si un touche */
+/* frappée... Si short_exit=1, en fin de scrolling on donne priorité à une   */
+/* commande extérieure, et on sort si un touche */
 /* n'est pas reconnue... num_elem est le nombre de lignes à scroll...       */
 /* act_row est la première ligne du scroll à afficher, row_deb la première  */
 /* ligne dans le cas du premier affichage...				    */
@@ -37,7 +38,10 @@ int Flcmd_num_macros_pager=0;
 /* chaine provoque la sortie...	Si il est NULL, on sort toujours en fin de   */
 /* message...								     */
 /* On renvoie le code de la touche de sortie (-1 si ^C ou FLCMD_PAGER_QUIT). */
+/* éventuellement, on renvoie ce code avec MAX_FL_KEY 			     */
+/* pour dire qu'on était en fin.					     */
 /* On renvoie 0 si on est sorti par fin de l'ecran...			     */
+/* (ie short_exit=0 et exit_chars==NULL)				     */
 
 int Page_message (int num_elem, int short_exit, int key, int act_row,
     			int row_deb, char *exit_chars, char *end_mesg) {
@@ -46,6 +50,10 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
 
   at_end=(num_elem<Screen_Rows-row_deb);
   while (1) {
+    if ((at_end==1) && (key<MAX_FL_KEY) && (Flcmd_rev[key]!=FLCMD_PAGER_UNDEF))
+           return (key | MAX_FL_KEY); 
+	   	/* note : on ne teste pas '0-9,-<>.', qui ne doivent */
+	   	/* PAS être bindés				    */
     switch (((key<MAX_FL_KEY) && (key>0)) ? Flcmd_pager_rev[key] : FLCMD_PAGER_UNDEF) {
        case FLCMD_PAGER_PGUP : 
 	     le_scroll=Do_Scroll_Window(-Screen_Rows+act_row+1,deb); break;
@@ -77,7 +85,7 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
       nll=Number_current_line_scroll()+Screen_Rows-act_row-2;
       if (debug) fprintf(stderr, "%d / %d\n", nll, num_elem);
       if (nll>=num_elem) {
-	if (short_exit || (exit_chars==NULL)) return 0; 
+	if ((!short_exit) && (exit_chars==NULL)) return 0; 
 	else {
 	  if (end_mesg) Aff_fin(end_mesg); else Aff_fin("(100%%)-more-");
 	}
