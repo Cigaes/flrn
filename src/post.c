@@ -637,6 +637,7 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
 	} else groupe=NULL;
 	if (groupe) {
 	   strcpy(nom2,groupe->name);
+	   *copy_pre=0;
 	   return nom2;
 	}
 	strcpy(nom2,nom);
