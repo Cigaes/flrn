@@ -1545,6 +1545,105 @@ static int Do_menu_summary_line(Article_List *art, int *row,
   return 0;
 }
 
+static void flags_summ_article (void *letruc, char *lachaine, int taille) {
+   Article_List *larticle=letruc;
+   char *buf;
+   lachaine[0]='\0';
+   if (taille<7) return;
+   strcpy(lachaine,((larticle->flag & FLAG_READ) ? "  " : "un"));
+   strcat(lachaine,"read");
+   if (taille<19) return;
+   if (taille<29) {
+     strcat(lachaine,((larticle->flag & FLAG_IS_SELECTED) ? "   " : " un"));
+     strcat(lachaine,"selected");
+     return;
+   } else {
+     strcat(lachaine,((larticle->flag & FLAG_KILLED) ? "   " : " un"));
+     strcat(lachaine,"killed");
+     strcat(lachaine,((larticle->flag & FLAG_IS_SELECTED) ? "   " : " un"));
+     strcat(lachaine,"selected");
+   }
+   if (taille<43) return;
+   strcat(lachaine,((larticle->flag & FLAG_IMPORTANT) ? "   " : " un"));
+   strcat(lachaine,"interesting");
+   if (taille<65) return;
+   if (larticle->headers==NULL) return;
+   strcat(lachaine,"  Lignes : ");
+   buf=lachaine+strlen(lachaine);
+   if (larticle->headers->nb_lines) {
+     snprintf(buf,taille-strlen(lachaine),"%i",larticle->headers->nb_lines);
+   } else {
+      if (larticle->headers->k_headers[LINES_HEADER]) {
+        strncpy(buf,larticle->headers->k_headers[LINES_HEADER],taille-strlen(lachaine));
+      } else strcpy(buf,"?");
+   }
+   lachaine[taille-1]='\0';
+}
+
+static int tag_article_summ (Liste_Menu *courant, char *arg) {
+   Article_List *larticle=courant->lobjet;
+   int ret, toset, flag;
+   char flag_int=*(courant->nom);
+
+   ret=parse_flags(arg,&toset,&flag);
+   if (ret<0) return 0;
+   if (toset==0) ret=~flag;
+   switch (flag) {
+   	case FLAG_READ :
+	    if (toset) 
+	    	mark_article_read(larticle, &flag);
+	    else omet_article(larticle, &ret);
+	    break;
+	case FLAG_KILLED :
+	    if (toset) 
+	        mark_article_read(larticle, &flag);
+	    else untag_article(larticle, &ret);
+	    break;
+	case FLAG_IMPORTANT :
+	    if (toset) 
+	        mark_article_important(larticle,&flag);
+	    else mark_article_unimportant(larticle,&ret);
+	    break;
+	default :
+	    if (toset) tag_article(larticle,&flag);
+	       else untag_article(larticle,&ret);
+	    break;
+   }
+   *(courant->nom)=(larticle->flag & FLAG_READ ? ' ' : '*');
+   if (*(courant->nom)!=flag_int) courant->changed=1;
+   return courant->changed;
+}
+
+static int summary_menu (Liste_Menu *debut_menu, Liste_Menu **courant,
+	char *name, int len, Cmd_return *la_commande, int *affiche) {
+   int ret,cmd;
+   Action_on_menu action=tag_article_summ;
+   char *cst_char=la_commande->after;
+
+   *affiche=0;
+   if (la_commande->cmd[CONTEXT_MENU]!=FLCMD_UNDEF) return -1; else
+   cmd=la_commande->cmd[CONTEXT_COMMAND];
+   switch (cmd) {
+      case FLCMD_KILL :
+      case FLCMD_GKIL :
+      case FLCMD_PKIL : cst_char="read";
+      			break;
+      case FLCMD_OMET :
+      case FLCMD_GOMT : cst_char="unread";
+      			break;
+      case FLCMD_PUT_FLAG : break;
+      default : strncpy(name,Messages[MES_UNKNOWN_CMD],len);
+      		name[len-1]='\0';
+		*affiche=1;
+		return 0;
+   }
+   ret=distribue_action_in_menu(la_commande->before, cst_char,
+   		debut_menu, courant, action);
+   if (la_commande->before) free(la_commande->before);
+   if (la_commande->after) free(la_commande->after);
+   return ret;
+}
+
 static Article_List * raw_Do_summary (int deb, int fin, int thread,
     int action(Article_List *, int *, char *, int, Liste_Menu **)) {
   Article_List *parcours;
@@ -1597,7 +1696,7 @@ static Article_List * raw_Do_summary (int deb, int fin, int thread,
   }
   /* on jouait avec un menu */
   if(menu) {
-    parcours=Menu_simple(menu, start, NULL, NULL, "<entrée> pour choisir, q pour quitter.");
+    parcours=Menu_simple(menu, start, flags_summ_article, summary_menu, "Résumé (q pour quitter).");
     Libere_menu_noms(menu);
     return parcours;
   }
