@@ -24,6 +24,8 @@
 #include "flrn.h"
 #include "flrn_regexp.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 /* renvoie une chaine qui doit être matchée pour que la regexp donnée
  * matche 
  * flag=1 => possibilite de mettre des * dans la chaine

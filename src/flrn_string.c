@@ -17,6 +17,8 @@
 #include "flrn.h"
 #include "flrn_string.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 /* On fait ici toute la gestion des Lecture_List    */
 /* Toutes les fonction renvoient 0 en cas de succes */
 /* <0 en cas d'erreur.				    */

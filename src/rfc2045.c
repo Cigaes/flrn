@@ -25,6 +25,8 @@
 
 #include "flrn.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 #ifdef WITH_CHARACTER_SETS
 
 #include <stdio.h>

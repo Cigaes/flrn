@@ -21,6 +21,8 @@
 #include "flrn_slang.h"
 #include "flrn_messages.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 /* le tableau touche -> commande */
 int *Flcmd_menu_rev = &Flcmd_rev[CONTEXT_MENU][0];
 /* pour les macros */

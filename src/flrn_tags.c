@@ -20,6 +20,8 @@
 #include "options.h"
 #include "flrn_files.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 Flrn_Tag tags[MAX_TAGS];
 int max_tags_ptr=-1,tags_ptr=-1;
 

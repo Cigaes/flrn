@@ -29,6 +29,7 @@
 #include <slang.h>
 #endif
 
+static UNUSED char rcsid[]="$Id$";
 
 /* On ne parse plus la date ici, on utilise getdate.y (cf GNU date) */
 #if 0

@@ -13,6 +13,10 @@
 /* FLRN : les messages */
 
 #include "flrn_messages.h"
+#include "config.h"
+#include "compatibility.h"
+
+static UNUSED char rcsid[]="$Id$";
 
 const char *Messages[NB_MESSAGES] = {
     "Commande inconnue ou hors contexte !",     /* 0 */

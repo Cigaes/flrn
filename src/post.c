@@ -34,6 +34,8 @@
 #include "rfc2047.h"
 #include "flrn_regexp.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 #define DEFAULT_SIZE_LINE 72
 
 extern char short_version_string[];

@@ -21,6 +21,8 @@
 #include "flrn_slang.h"
 #include "flrn_color.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 int KeyBoard_Quit;
 int Screen_Rows, Screen_Cols, Screen_Rows2;
 int Screen_Tab_Width;

@@ -27,6 +27,8 @@
 #include "flrn_files.h"
 #include "flrn_filter.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 /* La socket avec le serveur  pour la fermer apres un fork */
 extern int tcp_fd;
 

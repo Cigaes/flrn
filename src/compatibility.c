@@ -17,6 +17,8 @@
 #include "config.h"
 #include "compatibility.h"
 
+static char UNUSED rcsid[]="$Id$";
+
 #ifndef HAVE_SNPRINTF
 int snprintf(char *out, int len, char *fmt, ...) {
    va_list ap;

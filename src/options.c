@@ -34,6 +34,8 @@
 #include "rfc2045.h"
 #endif
 
+static UNUSED char rcsid[]="$Id$";
+
 static char *delim = "=: \t\n";
 
 Known_Headers unknown_Headers[MAX_HEADER_LIST];

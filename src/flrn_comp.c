@@ -21,6 +21,8 @@ void Aff_ligne_comp_cmd (char *str, int len, int col) {
   Screen_write_nstring(str,len);
 }
 
+static UNUSED char rcsid[]="$Id$";
+
 /* prefix : la chaine de départ sur laquelle on doit construire */
 /* str : la chaine a étendre */
 /* len : la taille totale, doit prendre en compte le prefixe */

@@ -13,6 +13,14 @@
 #ifndef FLRN_COMPATIBILITY_H
 #define FLRN_COMPATIBILITY_H
 
+/* juste pour les rcsid, on le met ici car ce fichier est appelé partout */
+#ifdef __GNUC__
+#define UNUSED \
+  __attribute__((__unused__))
+#else
+#define UNUSED
+#endif
+
 /* On definit ce qui pourait nous manquer */
 
 #include <stdio.h>

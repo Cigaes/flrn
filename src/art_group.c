@@ -10,6 +10,7 @@
 
 /* $Id$ */
 
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,6 +27,9 @@
 #include "tty_display.h"
 #include "rfc2047.h"
 #include "flrn_filter.h"
+#include "post.h"
+
+static UNUSED char rcsid[] = "$Id$";
 
 const Known_Headers Headers[NB_KNOWN_HEADERS] = {
    { "From:", 5 },

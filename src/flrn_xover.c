@@ -21,6 +21,8 @@
 #include "flrn_xover.h"
 #include "rfc2047.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 /* On définit ici la structure des XOVER qu'on va avoir */
 #define OVERVIEW_SIZE_MAX 15
 #define FULL_HEADER_OVER 256   /* doit être > NB_KNOWN_HEADERS */

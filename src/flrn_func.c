@@ -33,6 +33,7 @@
 #include "flrn_regexp.h"
 #include "flrn_func.h"
 
+static UNUSED char rcsid[]="$Id$";
 
 /* Gestion des tags */
 /* ================ */

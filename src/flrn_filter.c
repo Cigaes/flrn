@@ -24,6 +24,8 @@
 
 #include "getdate.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 /* on met ici le contenu du kill_file */
 static flrn_kill *flrn_kill_deb=NULL;
 static Flrn_liste *main_kill_list=NULL; /* la liste pour l'abonnement */

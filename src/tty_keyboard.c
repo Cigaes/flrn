@@ -20,6 +20,8 @@
 #include "tty_display.h"
 #include "tty_keyboard.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 /* Gestion élémentaire des signaux */
 /* Je me base sur ce que fait slrn, parce que je comprend pas grand chose */
 void sigtstp_handler(int sig) {

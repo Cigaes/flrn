@@ -1,7 +1,20 @@
-/* Version de flrn */
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *      version.h : headers de version.c
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
 
-char version_string[]=
-"Flrn version 0.5.0pre0 par Damien et Jo, 10/2000.";
+/* $Id$ */
 
-char short_version_string[]=
-"Flrn (0.5.0pre0 - 10/00)";
+#ifndef FLRN_VERSION_H
+#define FLRN_VERSION_H
+
+extern char version_string[];
+extern char short_version_string[];
+extern void print_version_info(FILE *out, char *program_name);
+
+#endif

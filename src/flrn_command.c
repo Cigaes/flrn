@@ -30,6 +30,8 @@
 #include "flrn_pager.h"
 #include "flrn_menus.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 /* I)  Bindings de commandes */
 #define DENIED_CHARS "0123456789<>.,_*-"
 

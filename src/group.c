@@ -31,6 +31,8 @@
 #include "tty_display.h"
 #include "flrn_filter.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 Newsgroup_List *Newsgroup_courant;
 Newsgroup_List *Newsgroup_deb;
 Newsgroup_List *Newsgroup_deleted=NULL;

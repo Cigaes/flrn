@@ -40,6 +40,7 @@
 /* les langages. Les #iddef sont directement dans les fichiers inclus */
 #include "slang_flrn.h"
 
+static UNUSED char rcsid[]="$Id$";
 
 extern int with_direc;
 int debug;
@@ -98,7 +99,7 @@ int main(int argc, char *argv[])
       continue;
     }
     if ((strncmp(argv[i],"-v",2)==0)||(strcmp(argv[i],"--version")==0))
-    {printf("%s\n",version_string); exit(0);}
+    {print_version_info(stdout, "flrn"); exit(0);}
     if ((strncmp(argv[i],"-c",2)==0)||(strcmp(argv[i],"--co")==0))
     {opt_c=1; continue;}
     if (strcmp(argv[i],"--stupid-term")==0) { stupid_terminal=1; continue; }

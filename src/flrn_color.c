@@ -23,6 +23,8 @@
 #include "options.h"
 #include "flrn_color.h"
 
+static char UNUSED rcsid[]="$Id$";
+
 /* I want to use this code and the old one together */
 #define START_COLOR_NUM 11
 #if START_COLOR_NUM <= NROF_FIELDS

@@ -30,6 +30,8 @@
 #include "flrn_tcp.h"
 #include "tty_display.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 int Date_offset;
 
 /* Commandes au serveur */

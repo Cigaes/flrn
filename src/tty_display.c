@@ -47,6 +47,7 @@
 #include "slang_flrn.h"
 #endif
 
+static UNUSED char rcsid[]="$Id$";
 
 /* place des objets de la barre */
 int screen_inited;

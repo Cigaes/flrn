@@ -17,6 +17,8 @@
 #include "config.h"
 #include "flrn.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 #ifndef WITH_CHARACTER_SETS
   static char Charset[]="iso-8859-1";
 #else

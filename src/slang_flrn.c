@@ -12,6 +12,8 @@
 
 #include "flrn.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 #ifdef USE_SLANG_LANGUAGE
 
 #include <stdio.h>

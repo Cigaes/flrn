@@ -41,6 +41,8 @@
 #include "flrn_xover.h"
 #include "flrn_func.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 /* On va définir ici des structures et des variables qui seront utilisées */
 /* pour loop, et les fonctions qui y sont associés. Il faudrait en fait   */
 /* que flrn_inter se limite à ses fonctions...				  */

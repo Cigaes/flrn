@@ -18,6 +18,8 @@
 #include "flrn_config.h"
 #include "flrn_lists.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 Flrn_liste *alloue_liste() {
   return (Flrn_liste *) safe_calloc(1,sizeof(Flrn_liste));
 }

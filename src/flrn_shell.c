@@ -33,6 +33,8 @@
 #include "tty_display.h"
 #include "tty_keyboard.h"
 
+static UNUSED char rcsid[]="$Id$";
+
 /* Lancement de l'éditeur sur le fichier à éditer..                    */
 /* flag est pour l'instant inutilisé. 				       */
 static volatile int sigwinchcatch;
