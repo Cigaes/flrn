@@ -1,6 +1,11 @@
 ChangeLog Flrn
 
-. option default_domain
+---------------------------
+Version 0.5.0pre0
+---------------------------
+
+. des Id
+. option default_domain, réécriture du configure
 . début du script slang
 . début des patchs GNKSA
 . meilleure gestion de la signature
