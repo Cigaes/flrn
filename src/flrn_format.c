@@ -460,12 +460,14 @@ static int translate_escape_seq(char *dst, char *src) {
 /* Et ca va marcher, parce qu'on y croit...  */
 /* Mais si on veut copier dans une chaine ? */
 /* Je passe aussi une chaine avec la taille limite... */
+/* On suppose chaine non NULL */
 void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
                   char *result, int len) {
-   char *att=safe_strdup(chaine), *ptr_att;
+   char *att, *ptr_att;
    char *buf;
    int len2=len;
 
+   att=safe_strdup(chaine);
    if (article) if (article->headers==NULL) return; /* Beurk ! */
    if (tmp_file) copy_bout(NULL,NULL); else result[0]=0;
    ptr_att=att;

@@ -122,7 +122,7 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
    }
    putc('\n', tmp_file);
    if (Pere_post && ((incl==1) || ((incl==-1) && (Options.include_in_edit)))) { 
-       if (!supersedes) Copy_format (tmp_file,Options.attribution,Pere_post,NULL,0);
+       if ((!supersedes) && (Options.attribution)) Copy_format (tmp_file,Options.attribution,Pere_post,NULL,0);
        Copy_article(tmp_file,Pere_post, Options.quote_all, (supersedes ? NULL : Options.index_string), (supersedes) || (Options.quote_all) || (Options.quote_sig));
        putc('\n', tmp_file);
    }
