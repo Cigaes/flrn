@@ -284,7 +284,7 @@ int opt_do_include(char *buf, int flag)
   if (*buf) {
     deep_inclusion++;
     if (deep_inclusion<10)
-      found=parse_option_file(buf,0,flag);
+      found=parse_option_file(buf,0,flag); /* Attention, on change ici option_ligne */
     else found=-1;
     deep_inclusion--;
     if ((found==-1) && (!flag)) {
@@ -643,11 +643,15 @@ static void raw_parse_options_line (char *ligne, int flag)
 }
 
 /* pour afficher des messages plus clairs */
+/* seul "truc" : avec des includes, il ne faut pas oublier le free AVANT
+   un nouveau strdup, pour éviter deux free sur le meme pointeur */
 void parse_options_line (char *ligne, int flag)
 {
+  if (option_ligne) free(option_ligne);
   option_ligne = safe_strdup(ligne);
   raw_parse_options_line (ligne, flag);
   free(option_ligne);
+  option_ligne=NULL;
   return;
 }
 
