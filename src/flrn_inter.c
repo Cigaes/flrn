@@ -142,7 +142,7 @@ void aff_opt_c() {
       if (res==-2) 
 	 fprintf(stdout, "Mauvais newsgroup : %s\n", Newsgroup_courant->name);
       if (res>0) {
-       fprintf(stdout, "%s : %d article%s non lu%s\n", Newsgroup_courant->name,res, (res==1 ? "" : "s"), (res==1 ? "" : "s"));
+       fprintf(stdout, "%s : %d article%s non lu%s\n", truncate_group(Newsgroup_courant->name,0),res, (res==1 ? "" : "s"), (res==1 ? "" : "s"));
        nb_non_lus+=res;
       }
       Newsgroup_courant=Newsgroup_courant->next;
@@ -222,11 +222,21 @@ int loop(char *opt) {
    Newsgroup_courant=NULL;
    Last_head_cmd.Article_vu=NULL;
    if (opt) {
-      Newsgroup_courant=Newsgroup_deb;
-      while (Newsgroup_courant) {
-	 if (strstr(Newsgroup_courant->name, opt) &&
-	       !(Newsgroup_courant->flags & GROUP_UNSUBSCRIBED)) break;
-	 Newsgroup_courant=Newsgroup_courant->next;
+      if (Options.prefixe_groupe) { /* avant-premiere passe */
+        Newsgroup_courant=Newsgroup_deb;
+        while (Newsgroup_courant) {
+	   if (strstr(truncate_group(Newsgroup_courant->name,0), opt) &&
+	         !(Newsgroup_courant->flags & GROUP_UNSUBSCRIBED)) break;
+	   Newsgroup_courant=Newsgroup_courant->next;
+        }
+      }
+      if (Newsgroup_courant==NULL) { /* Premiere passe */
+        Newsgroup_courant=Newsgroup_deb;
+        while (Newsgroup_courant) {
+	   if (strstr(Newsgroup_courant->name, opt) &&
+	     !(Newsgroup_courant->flags & GROUP_UNSUBSCRIBED)) break;
+ 	   Newsgroup_courant=Newsgroup_courant->next;
+        }
       }
       if (Newsgroup_courant==NULL) { /* Deuxieme passe */
         Newsgroup_courant=Newsgroup_deb;
@@ -236,7 +246,7 @@ int loop(char *opt) {
         }
       }
       if (Newsgroup_courant==NULL) /* Troisieme passe */
-	Newsgroup_courant=cherche_newsgroup(opt,0);
+	Newsgroup_courant=cherche_newsgroup(opt,0,0);
       if (Newsgroup_courant==NULL) {
 	Aff_error("Newsgroup non trouvé");
 	Screen_refresh();
@@ -921,7 +931,7 @@ static int my_goto_tag (int tag) {
     } else {
        /* faut changer de groupe */
       etat_loop.Newsgroup_nouveau =
-	cherche_newsgroup(tags[tag].newsgroup_name,1);
+	cherche_newsgroup(tags[tag].newsgroup_name,1,0);
       if(etat_loop.Newsgroup_nouveau == NULL) {
 	etat_loop.etat=2; etat_loop.num_message=-8;
         etat_loop.hors_struct|=1;
@@ -1011,7 +1021,7 @@ static int validate_tag_ptr(Flrn_Tag *tag) {
   Newsgroup_List *tmp=NULL;
   if (Newsgroup_courant && (Newsgroup_courant->article_deb_key == tag->article_deb_key))
     return 1;
-  tmp = cherche_newsgroup(tag->newsgroup_name,1);
+  tmp = cherche_newsgroup(tag->newsgroup_name,1,0);
   if (tmp && (tmp->article_deb_key == tag->article_deb_key))
     return 1;
   return 0;
@@ -1069,11 +1079,17 @@ int do_hist_menu(int res) {
 
 /* Aller dans un autre groupe */
 int do_goto (int res) {
-   int ret;
+   int ret=-2;
  
    etat_loop.num_futur_article=0;
-   ret=change_group(&(etat_loop.Newsgroup_nouveau), (res==FLCMD_GGTO),
+   if (Options.prefixe_groupe) {
+      ret=change_group(&(etat_loop.Newsgroup_nouveau), (res==FLCMD_GGTO)|2,
                     Arg_str);
+   }
+   if (ret==-2) {
+       ret=change_group(&(etat_loop.Newsgroup_nouveau), (res==FLCMD_GGTO),
+                           Arg_str);
+   }
    if ((ret==0) && (Arg_do_funcs.flags!=0))
    	etat_loop.num_futur_article= Arg_do_funcs.num1;
    if (ret>=0) return 1; else 
@@ -1091,7 +1107,8 @@ int do_unsubscribe(int res) {
    int ret;
    Newsgroup_List *newsgroup=Newsgroup_courant;
 
-   ret=change_group(&newsgroup,0,str);
+   ret=change_group(&newsgroup,2,str);
+   if (ret==-2) ret=change_group(&newsgroup,0,str);
    if (ret==-2) 
    { etat_loop.etat=2; etat_loop.num_message=-8;
      etat_loop.hors_struct|=1; return 0; }
@@ -1106,7 +1123,8 @@ int do_abonne(int res) {
    int ret;
    Newsgroup_List *newsgroup=Newsgroup_courant;
 
-   ret=change_group(&newsgroup,1,str);
+   ret=change_group(&newsgroup,3,str);
+   if (ret==-2) ret=change_group(&newsgroup,1,str);
    if (ret==-2) 
    { etat_loop.etat=2; etat_loop.num_message=-8;
      etat_loop.hors_struct|=1; return 0; }
@@ -1693,8 +1711,8 @@ static int Sauve_article(Article_List *a_sauver, void *vfichier) {
 /* pour l'instant, on ne gère pas une regexp */
 int do_swap_grp(int res) {
   Article_List *article_considere;
-  char *newsgroup, *buf, *num;
-  int numero;
+  char *newsgroup, *buf, *num, *nom_temp=NULL;
+  int numero, num_temp=0;
   Newsgroup_List *mygroup;
 
   article_considere=Article_courant;
@@ -1719,10 +1737,12 @@ int do_swap_grp(int res) {
   newsgroup=strtok(buf," ");
   while ((newsgroup=strtok(NULL," :"))) {
     num=strtok(NULL, ": ");
-    if (!num) {free(buf); etat_loop.etat=1; etat_loop.num_message=3; return 0;}
+    if (!num) {free(buf); etat_loop.etat=1; etat_loop.num_message=3; 
+    		if (nom_temp) free(nom_temp); return 0;}
     numero=atoi(num);
     if (strcmp(Newsgroup_courant->name,newsgroup)==0) continue;
-    if (strstr(newsgroup, Arg_str)) {   /* et si Arg_str=="" ? */
+    if (strstr(truncate_group(newsgroup,0), Arg_str)) {   
+    				/* et si Arg_str=="" ? */
       mygroup=Newsgroup_deb;
       while (mygroup && (strcmp(mygroup->name, newsgroup))) 
 	mygroup=mygroup->next;
@@ -1730,8 +1750,26 @@ int do_swap_grp(int res) {
       etat_loop.Newsgroup_nouveau=mygroup;
       etat_loop.num_futur_article=numero;
       free(buf);
+      if (nom_temp) free(nom_temp);
       return 1;
+    } else if ((nom_temp==NULL) && (strstr(newsgroup,Arg_str))) {
+            nom_temp=safe_strdup(newsgroup);
+	    num_temp=numero;
     }
+  }
+  if (nom_temp) {
+    mygroup=Newsgroup_deb;
+    while (mygroup && (strcmp(mygroup->name, newsgroup))) 
+      mygroup=mygroup->next;
+    if (mygroup==NULL) {
+      etat_loop.etat=1; etat_loop.num_message=12; free(buf); 
+      free(nom_temp); return 0;
+    }
+    etat_loop.Newsgroup_nouveau=mygroup;
+    etat_loop.num_futur_article=num_temp;
+    free(nom_temp);
+    free(buf);
+    return 1;
   }
   etat_loop.etat=1; etat_loop.num_message=12; free(buf); return 0;
 }
@@ -1830,7 +1868,8 @@ void Ligne_carac_du_groupe (void *letruc, char *lachaine,
 }
 
 /* change de groupe */
-/* les flags correspondent à abonné / tout */
+/* les flags correspondent à abonné / tout (0/1) et */
+/* avec prefixe_groupe/sans (2/0) */
 /* Retourne 0 en cas de succes, -1 si aucun changement */
 /* et -2 si on demande un groupe inexistant */
 /* On retourne exceptionnelement 1 dans le cas ou la chaine demandee */
@@ -1842,6 +1881,7 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
    regex_t reg;
    int avec_un_menu=Options.use_menus, correct;
    Liste_Menu *lemenu=NULL, *courant=NULL;
+   char *tmp_name=NULL;
 
    while (*gpe==' ') gpe++;
    if (debug) fprintf(stderr,"\nG : %s\n",gpe);
@@ -1852,18 +1892,18 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 
    /* Si on a GGTO et qu'en plus on utilise les menus, on fait tout de suite */
    /* une requete...							     */
-   if (flags && avec_un_menu) {
+   if ((flags & 1) && avec_un_menu) {
      if (Options.use_regexp) {
         char *mustmatch;
 	mustmatch=reg_string(gpe,1);
-	if (mustmatch!=NULL) lemenu=menu_newsgroup_re(mustmatch, reg,1);
+	if (mustmatch!=NULL) lemenu=menu_newsgroup_re(mustmatch, reg,1+(flags & 2));
 	else {
 	   regfree(&reg);
 	   free(mustmatch);
 	   return -2;
 	}
 	free(mustmatch);
-     } else lemenu=menu_newsgroup_re(gpe,reg, 0); 
+     } else lemenu=menu_newsgroup_re(gpe,reg,(flags & 2)); 
      	/* On copie n'importe quoi pour reg et c'est pas bo */
    } else {
      /* premiere passe pour voir si on trouve ca apres */
@@ -1872,11 +1912,13 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
        mygroup=mygroup->next;
        /* On sépare les tests du while pour éviter une ligne trop longue */
        if (mygroup==NULL) break;
-       correct=((Options.use_regexp && !regexec(&reg,mygroup->name,0,NULL,0))
-	   || (!Options.use_regexp && strstr(mygroup->name,gpe))) &&
-	   (flags || !(mygroup->flags & GROUP_UNSUBSCRIBED));
+       if (flags & 2) tmp_name=truncate_group(mygroup->name,0); else
+         tmp_name=mygroup->name;
+       correct=((Options.use_regexp && !regexec(&reg,tmp_name,0,NULL,0))
+	   || (!Options.use_regexp && strstr(tmp_name,gpe))) &&
+	   ((flags & 1) || !(mygroup->flags & GROUP_UNSUBSCRIBED));
        if (correct && avec_un_menu) {
-         courant=ajoute_menu(courant,mygroup->name,mygroup);
+         courant=ajoute_menu(courant,tmp_name,mygroup);
          if (lemenu==NULL) lemenu=courant;
          correct=0;
        }
@@ -1885,23 +1927,29 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
      if (mygroup==NULL) mygroup=Newsgroup_deb;
      /* deuxieme passe en repartant du debut si on n'a pas trouve */
      while (mygroup!=Newsgroup_courant) {
-       correct=((Options.use_regexp && !regexec(&reg,mygroup->name,0,NULL,0))
-	 || (!Options.use_regexp && strstr(mygroup->name,gpe))) &&
-	 (flags || !(mygroup->flags & GROUP_UNSUBSCRIBED));
+       if (flags & 2) tmp_name=truncate_group(mygroup->name,0); else
+         tmp_name=mygroup->name;
+       correct=((Options.use_regexp && !regexec(&reg,tmp_name,0,NULL,0))
+	 || (!Options.use_regexp && strstr(tmp_name,gpe))) &&
+	 ((flags & 1) || !(mygroup->flags & GROUP_UNSUBSCRIBED));
        if (correct && avec_un_menu) {
-         courant=ajoute_menu(courant,mygroup->name,mygroup);
+         courant=ajoute_menu(courant,tmp_name,mygroup);
          if (lemenu==NULL) lemenu=courant;
          correct=0;
        }
        if (correct) break;
        mygroup=mygroup->next;
      }
+     if (mygroup) {
+       if (flags & 2) tmp_name=truncate_group(mygroup->name,0); else
+         tmp_name=mygroup->name;
+     }
 
      if ((mygroup==Newsgroup_courant) && (!avec_un_menu) &&
             ((mygroup==NULL) ||
-	    ((!Options.use_regexp || regexec(&reg,mygroup->name,0,NULL,0))
-	    && (Options.use_regexp || !strstr(mygroup->name,gpe))))) {
-       if (flags) { 
+	    ((!Options.use_regexp || regexec(&reg,tmp_name,0,NULL,0))
+	    && (Options.use_regexp || !strstr(tmp_name,gpe))))) {
+       if (flags & 1) { 
          if (debug) fprintf(stderr, "On va appeler cherche_newsgroup\n");
          /* on recupere la chaine minimale de la regexp */
 
@@ -1909,7 +1957,7 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 	   char *mustmatch;
 	   mustmatch=reg_string(gpe,1);
 	   if (mustmatch!=NULL) {
-	     if ((mygroup=cherche_newsgroup_re(mustmatch,reg))==NULL) {
+	     if ((mygroup=cherche_newsgroup_re(mustmatch,reg,(flags & 2)?1:0))==NULL) {
 	       if (debug) fprintf (stderr,"Le motif %s ne correspond a aucun groupe\n",gpe);
 	       free(mustmatch);
 	       regfree(&reg);
@@ -1923,7 +1971,7 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 	   }
 	   free(mustmatch);
          } else {
-	   if ((mygroup=cherche_newsgroup(gpe,0))==NULL) {
+	   if ((mygroup=cherche_newsgroup(gpe,0,(flags & 2)?1:0))==NULL) {
 	     if (debug) fprintf (stderr,"Le motif %s ne correspond a aucun groupe\n",gpe);
 	     return -2;
 	   } else {

@@ -94,6 +94,7 @@ struct Option_struct {
   char *kill_file_name;
   int auto_kill;
   char *savepath;
+  char *prefixe_groupe;
 };
 
 extern struct Option_struct Options;
@@ -170,6 +171,7 @@ static struct {
   MAKE_OPT(ordered_summary,"Ordonne les résumés suivant leur numéro."),
   MAKE_INTEGER_OPT_L(port,"Port d'accès au serveur (119 en général)."),
   MAKE_STRING_OPT(post_name,"Nom de posts des messages."),
+  MAKE_STRING_OPT(prefixe_groupe,"Préfixe par défaut de noms de groupes."),
   MAKE_OPT(quit_if_nothing,"Quitte si il n'y a rien de nouveau au lancement."),
   MAKE_STRING_OPT(savepath,"Répertoire ou sauver les articles."),
   MAKE_OPT(scroll_after_end,"Modifie le comportement final du scrolling."),

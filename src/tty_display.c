@@ -1070,7 +1070,7 @@ int Gere_Scroll_Message (int *key_int, int row_act, int row_deb,
 
 /* Affichage du nom du newsgroup */
 void Aff_newsgroup_name() {
-   char *buf=NULL;
+   char *buf=NULL, *tmp_name;
    int buf_to_free=0, aff_D=0;
 
    Screen_set_color(FIELD_STATUS);
@@ -1078,10 +1078,11 @@ void Aff_newsgroup_name() {
    if (name_fin_col-name_news_col>0) {
      if (Newsgroup_courant) {
        if ((Newsgroup_courant->flags) & GROUP_UNSUBSCRIBED) aff_D=1;
-       if (strlen(Newsgroup_courant->name)<name_fin_col-name_news_col-(aff_D*3))
-          buf=Newsgroup_courant->name;
+       tmp_name=truncate_group(Newsgroup_courant->name,0);
+       if (strlen(tmp_name)<name_fin_col-name_news_col-(aff_D*3))
+          buf=tmp_name;
        else 
-          buf=Newsgroup_courant->name+(strlen(Newsgroup_courant->name)-name_fin_col+name_news_col+(aff_D*3));
+          buf=tmp_name+(strlen(tmp_name)-name_fin_col+name_news_col+(aff_D*3));
 	 if (aff_D) Screen_write_string("[D]");
      } else {
        buf=safe_malloc((name_fin_col-name_news_col+1)*sizeof(char));

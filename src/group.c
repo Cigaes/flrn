@@ -355,12 +355,14 @@ void free_groups(int save_flnewsrc) {
 /* Demande au serveur l'existence d'un newsgroup         */
 /* L'ajoute à la liste des newsgroup existants (en fin)  */
 /* name contient deja s'il y a lieu les *... */
-Newsgroup_List *cherche_newsgroup_re (char *name, regex_t reg)
+/* flag=1 : avec prefixe_groupe */
+Newsgroup_List *cherche_newsgroup_re (char *name, regex_t reg, int flag)
 {
     int res, code;
     char *buf;
     buf=safe_malloc((MAX_NEWSGROUP_LEN+12)*sizeof(char));
     strcpy(buf, "active ");
+    if (flag) strcat(buf, Options.prefixe_groupe);
     strcat(buf, name);
     res=write_command(CMD_LIST, 1, &buf);
     free(buf);
@@ -372,7 +374,8 @@ Newsgroup_List *cherche_newsgroup_re (char *name, regex_t reg)
       if (tcp_line_read[1]=='\r') return NULL; /* Existe pas... */
       buf=strchr(tcp_line_read,' ');
       *buf='\0';
-      if (!regexec(&reg,tcp_line_read,0,NULL,0)) {
+      buf=tcp_line_read+ (flag ? strlen(Options.prefixe_groupe) : 0);
+      if (!regexec(&reg,buf,0,NULL,0)) {
 	*buf=' ';
 	buf=safe_strdup(tcp_line_read);
         discard_server();
@@ -383,13 +386,14 @@ Newsgroup_List *cherche_newsgroup_re (char *name, regex_t reg)
     return NULL;
 }
 
-Newsgroup_List *cherche_newsgroup (char *name, int exact) {
+Newsgroup_List *cherche_newsgroup (char *name, int exact, int flag) {
     int res, code;
     Newsgroup_List *creation;
     char *buf;
 
     buf=safe_malloc((MAX_NEWSGROUP_LEN+12)*sizeof(char));
     strcpy(buf, "active ");
+    if (flag) strcat(buf,Options.prefixe_groupe);
     if (!exact) strcat(buf, "*");
     strcat(buf, name);
     if (!exact) strcat(buf, "*");
@@ -412,6 +416,7 @@ Newsgroup_List *cherche_newsgroup (char *name, int exact) {
 
 /*  La fonction est semblable à cherche_newsgroup_re, mais elle créée un */
 /* menu au lieu de renvoyer le premier newsgroup obtenu */
+/* si avec_reg & 2, on utilise options.prefixe_groupe */
 Liste_Menu *menu_newsgroup_re (char *name, regex_t reg, int avec_reg)
 {
     Liste_Menu *lemenu=NULL, *courant=NULL;
@@ -420,9 +425,10 @@ Liste_Menu *menu_newsgroup_re (char *name, regex_t reg, int avec_reg)
     char *buf;
     buf=safe_malloc((MAX_NEWSGROUP_LEN+12)*sizeof(char));
     strcpy(buf, "active ");
-    if (!avec_reg) strcat(buf,"*");
+    if (avec_reg & 2) strcat(buf,Options.prefixe_groupe);
+    if (!(avec_reg & 1)) strcat(buf,"*");
     strcat(buf, name);
-    if (!avec_reg) strcat(buf,"*");
+    if (!(avec_reg & 1)) strcat(buf,"*");
     res=write_command(CMD_LIST, 1, &buf);
     free(buf);
     if (res<1) return NULL;
@@ -433,7 +439,7 @@ Liste_Menu *menu_newsgroup_re (char *name, regex_t reg, int avec_reg)
       if (tcp_line_read[1]=='\r') return lemenu; /* On peut repartir */
       buf=strchr(tcp_line_read,' ');
       *buf='\0';
-      if ((!avec_reg) || (!regexec(&reg,tcp_line_read,0,NULL,0))) {
+      if ((!(avec_reg & 1)) || (!regexec(&reg,tcp_line_read,0,NULL,0))) {
 	*buf=' ';
 	creation=un_nouveau_newsgroup(tcp_line_read);
 	courant=ajoute_menu(courant,creation->name,creation);
@@ -732,4 +738,15 @@ void add_read_article(Newsgroup_List *mygroup, int article)
      free(range1);
    }
    return;
+}
+
+/* Renvoie un pointeur sur ce qu'il faut aficher du nom du groupe */
+/* flag=1 :  si l'option est NULL, afficher juste la fin */
+char *truncate_group (char *str, int flag) {
+  char *tmp;
+
+  if ((Options.prefixe_groupe) && (strncmp(str,Options.prefixe_groupe,strlen(Options.prefixe_groupe))==0))
+       return str+strlen(Options.prefixe_groupe);
+  if (flag) return ((tmp=strrchr(str,'.')) ? tmp+1 : str);
+  return str;
 }

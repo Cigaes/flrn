@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. option prefixe_groupe
 . suppression d'un grand nombre de warnings avec gcc-2.8.1
 . ajout d'un fichier de config par défaut, suppression des fichiers de config
 	pipo

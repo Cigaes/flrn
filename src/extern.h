@@ -55,14 +55,15 @@ extern void menu_config_variables(void);
 extern void init_groups(void);
 extern void free_groups(int /*save_flnewsrc*/);
 extern void new_groups(int /*opt_c*/);
-extern Newsgroup_List *cherche_newsgroup(char * /*name*/, int /*exact*/);
-extern Newsgroup_List *cherche_newsgroup_re (char * /*name*/, regex_t /*reg*/);
+extern Newsgroup_List *cherche_newsgroup(char * /*name*/, int /*exact*/, int);
+extern Newsgroup_List *cherche_newsgroup_re (char * /*name*/, regex_t /*reg*/, int );
 extern Liste_Menu *menu_newsgroup_re (char * /*name*/, regex_t /*reg*/,
     int /*avec_reg*/);
 extern void zap_newsgroup(Newsgroup_List * /*group*/);
 extern int NoArt_non_lus(Newsgroup_List * /*group*/);
 extern int cherche_newnews(void);
 extern void add_read_article(Newsgroup_List * /*group*/, int /*numero*/);
+extern char *truncate_group (char *, int);
     
 /*  art_group.c  */
 extern int va_dans_groupe(void);

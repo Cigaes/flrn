@@ -452,8 +452,7 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article) {
                       break;
 		    }
          case 'g' : { char *str=safe_strdup(Newsgroup_courant->name);
-		      copy_bout(tmp_file, (tmp=strrchr(str,'.'))?tmp+1:
-			str);
+		      copy_bout(tmp_file, truncate_group(str,1)); 
 		      free(str);
                       ptr_att++;
                       break;
