@@ -18,7 +18,14 @@ int flrn_SLang_inited=0;
 
 /* initialisation des fonctions de SLang. retour : -1 si erreur */
 int flrn_init_SLang(void) {
-   if (-1 == SLang_init_all ())
+/* la ligne qui suit peut avantageusement remplacer les suivantes sur les
+ * version récentes (>1.3) de slang */
+/*   if (-1 == SLang_init_all ()) */
+   if ((-1 == SLang_init_slang ())
+     || (-1 == SLang_init_slmath ())
+     || (-1 == SLang_init_posix_dir ())
+     || (-1 == SLang_init_posix_process ())
+     )
      return -1;
    flrn_SLang_inited=1;
    return 0;
