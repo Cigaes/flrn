@@ -262,13 +262,15 @@ void parse_options_line (char *ligne, int flag)
       switch(res) {
         case -1:  err = "Echec de *color. Pas assez de champs";
 		  break;
-        case -2:  err = "Echec de *color. Field invalides";
+        case -2:  err = "Echec de *color. Fields invalides";
 		  break;
-        case -3:  err = "Echec de *color. Flag invalides";
+        case -3:  err = "Echec de *color. Flags invalides";
 		  break;
         case -4:  err = "Echec de *color. Regexp invalide";
 		  break;
         case -5:  err = "Echec de *color. Attribut bugué";
+		  break;
+        case -6:  err = "Echec de *color. Pas assez de sous-expressions";
 		  break;
       }
       if (flag)

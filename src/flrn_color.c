@@ -102,6 +102,7 @@ static int parse_std(char *buf, int field) {
  * -3, le champ flag est bidon
  * -4, la regexp compile pas
  * -5, attributs bidon...
+ * -6, pas assez de sous-patterns
  * */
 /* clear tout seul efface tout */
 /* func 1 = regcolor, 2=color, 3=mono */
@@ -154,7 +155,7 @@ int parse_option_color(int func, char *line)
     if ((buf2=strpbrk(buf,"0123456789"))) {
       new_pat->pat_num = strtol(buf2,NULL,0);
       if (new_pat->pat_num >= REG_MAX_SUB) { free(new_pat); return -3; }
-    }
+    } else new_pat->pat_num=0;
     buf = strtok(NULL,delim);
   }
   if (func !=3) {
@@ -223,6 +224,11 @@ int parse_option_color(int func, char *line)
       ((new_pat->flags&HIGH_FLAGS_CASE)?0:REG_ICASE));
     if (res !=0) {
       free(new_pat); return -4;
+    }
+    /* On n'est presque arrivé... Juste le cas des sous-exp a traiter... */
+    if (!(new_pat->flags&HIGH_FLAGS_LINE) && 
+    		(new_pat->pat_num>(new_pat->regexp).re_nsub)) {
+      regfree(&new_pat->regexp); free(new_pat); return -6;
     }
     /*
     new_pat->colors.attributs_mono=new_pat->colors.attributs;
