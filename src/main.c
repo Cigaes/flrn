@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
   quit_server();
   /* On fait la fin séparément */
   save_and_free_all(res);
-  if (!opt_c) fprintf(stdout,"That's all folks !\n");
+  if (!opt_c) fprintf(stdout,_("That's all folks !\n"));
   free(name_program);
   return 0;
 }

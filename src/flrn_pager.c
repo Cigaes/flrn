@@ -38,10 +38,11 @@ flrn_char pattern_search[SIZE_PATTERN_SEARCH]=fl_static("");
 /* retour 0 : bon -1 ou -2 : annulé */
 int get_new_pattern() {
    int col, ret;
+   const char *special;
    flrn_char line[SIZE_PATTERN_SEARCH];
    char affline[SIZE_PATTERN_SEARCH];
-   /* FIXME : anglais */
-   col=Aff_fin(fl_static("Search : "));
+   special=_("Motif recherchÃ© : ");
+   col=Aff_fin_utf8(special);
    line[0]=fl_static('\0');
    affline[0]='\0';
    ret=flrn_getline(line,SIZE_PATTERN_SEARCH-1,
@@ -84,7 +85,7 @@ int get_command_pager(struct key_entry *une_touche,
    if (res==-1) {
       if (une_commande.flags & 2) save_command(&une_commande);
       /* FIXME  : conversion ? */
-      Aff_error_fin(_(Messages[MES_UNKNOWN_CMD]),1,1);
+      Aff_error_fin_utf8(_(Messages[MES_UNKNOWN_CMD]),1,1);
    }
    if (res<0) {
      if (une_commande.before) free(une_commande.before);
@@ -206,8 +207,7 @@ int Page_message (int num_elem, int short_exit, struct key_entry *key,
       				 ret=New_regexp_scroll (pattern_search);
 				 deb=1;
 				 if (ret) {
-				     /* FIXME : conversion ? */
-				      Aff_error_fin(_(Messages[MES_REGEXP_BUG]),1,1);
+				      Aff_error_fin_utf8(_(Messages[MES_REGEXP_BUG]),1,1);
 				      break;
 				  }
 				}  /* On continue */
@@ -218,11 +218,9 @@ int Page_message (int num_elem, int short_exit, struct key_entry *key,
 				      number--;
 				   }
 				   if (ret==-1) 
-				       /* FIXME : conversion ? */
-				       Aff_error_fin(_(Messages[MES_NO_SEARCH]),1,1);
+				       Aff_error_fin_utf8(_(Messages[MES_NO_SEARCH]),1,1);
 				   else if (ret==-2)
-				       /* FIXME : conversion ? */
-				       Aff_error_fin(_(Messages[MES_NO_FOUND]),1,1);
+				       Aff_error_fin_utf8(_(Messages[MES_NO_FOUND]),1,1);
 				   else if (deb || le_scroll) 
 				       le_scroll=Do_Scroll_Window(le_scroll,deb);
 				   break;
@@ -289,6 +287,7 @@ void init_Flcmd_pager_rev() {
    return;
 }
 
+/* FIXME : Cette fonction ne semble pas utilisée */
 int ajoute_pager(flrn_char *ligne, int row) {
    int rc;
    char *affligne;
@@ -298,8 +297,9 @@ int ajoute_pager(flrn_char *ligne, int row) {
      Screen_write_string(affligne);
      Screen_erase_eol();
    } else if (row==Screen_Rows-1) {
-       /* FIXME : francais */
-      Aff_fin(fl_static("Patientez..."));
+      const char *special;
+      special=_("Patientez....");
+      Aff_fin_utf8(special);
       Screen_refresh();
    }
    Ajoute_formated_line(ligne,affligne,0,0,0,0,0,-1,NULL);

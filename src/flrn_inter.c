@@ -263,7 +263,6 @@ static void Aff_message(int type, int num)
 {
   switch (num) {
  /* Message d'information */
- /* FIXME : traduction des messages */
     case 1 : Aff_error(_(Messages[MES_NOTHING_NEW])); break;
     case 2 : Aff_error(_(Messages[MES_EOG])); break;
     case 3 : Aff_error(_(Messages[MES_NO_MES])); break;
@@ -935,8 +934,7 @@ int get_command_command(int get_com
    if (get_com==-1) {
      num_help_line=thread_view;
      Aff_help_line(Screen_Rows-1);
-     /* FIXME : français */
-     Aff_fin(fl_static("A vous : "));
+     Aff_fin_utf8(_("Ã€ vous : "));
      Attend_touche(&key);
      if (KeyBoard_Quit) return -1;
      res=get_command(&key,CONTEXT_COMMAND,-1,&une_commande);
@@ -1272,6 +1270,9 @@ int do_hist_menu(int res) {
   Liste_Menu *menu=NULL, *courant=NULL, *start=NULL;
   int valeur;
   int j, dup, bla;
+  const char *special;
+  flrn_char *trad;
+  int rc;
 
   if (max_tags_ptr==-1) {
     etat_loop.etat=2; etat_loop.num_message=-15; 
@@ -1312,10 +1313,12 @@ int do_hist_menu(int res) {
     return 0;
   }
   num_help_line=5;
+  special=_("Historique. <entrÃ©e> pour choisir, q pour quitter...");
+  rc=conversion_from_utf8(special,&trad,0,(size_t)(-1));
   valeur = (int)(long) 
       Menu_simple(menu, start, hist_menu_summary, NULL, 
-      fl_static("Historique. <entrée> pour choisir, q pour quitter..."));
-  /* FIXME : français */
+	      trad);
+  if (rc==0) free(trad);
   if (!valeur) {
     etat_loop.etat=3;
     return 0;
@@ -1570,8 +1573,7 @@ int do_omet(int res) {
        use_argstr=1;
        name=safe_malloc(40*sizeof(flrn_char));
        affchar=safe_malloc(40*sizeof(flrn_char));
-       /* FIXME : français */
-       col=Aff_fin(fl_static("Flag : "));
+       col=Aff_fin(fl_static("Flag: "));
        /* FIXME : complétion de flags ? */
        ret=flrn_getline(name, 39, affchar, 39,Screen_Rows2-1,col);
        free(affchar);
@@ -1905,9 +1907,14 @@ static Article_List * raw_Do_summary (int deb, int fin, int thread,
   }
   /* on jouait avec un menu */
   if(menu) {
+    int rc;
+    const char *special;
+    flrn_char *trad;
+    special=_("RÃ©sumÃ© (q pour quitter).");
+    rc=conversion_from_utf8(special,&trad,0,(size_t)(-1));
     parcours=Menu_simple(menu, start, flags_summ_article, summary_menu, 
-	    /* FIXME : français */
-	    fl_static("Résumé (q pour quitter)."));
+	    trad);
+    if (rc==0) free(trad);
     Libere_menu(menu);
     return parcours;
   }
@@ -2062,10 +2069,15 @@ static int Menu_selector (Thread_List **retour) {
    }
     
    if (menu) {
+      int rc;
+      flrn_char *trad;
+      const char *special;
+      special=_("<total> <non lus>. q pour quitter.");
+      rc=conversion_from_utf8(special, &trad, 0, (size_t)(-1));
       num_help_line=7;
       (*retour)=(Thread_List *)Menu_simple(menu,start,NULL,thread_menu,
-		/* FIXME :  francais */
-	   fl_static("<total> <non lus>. q pour quitter."));
+					   trad);
+      if (rc==0) free(trad);
       Libere_menu(menu);
    } else return -1;
    parcours=Thread_deb;
@@ -2309,8 +2321,7 @@ int do_save(int res) {
     fl_strcpy(name, Newsgroup_courant->name);
     name[0]=fl_toupper(name[0]);
     conversion_to_terminal(name,&affname,MAX_PATH_LEN,(size_t)(-1));
-    /* FIXME : français */
-    col=Aff_fin(fl_static("Sauver dans : "));
+    col=Aff_fin_utf8(_("Sauver dans : "));
     Screen_write_string(affname);
     if ((ret=flrn_getline(name, MAX_PATH_LEN, affname,
 		    MAX_PATH_LEN,Screen_Rows2-1,col)<0)) {
@@ -2331,24 +2342,23 @@ int do_save(int res) {
     fl_strcat(fullname,"/");
     fl_strcat(fullname,name);
     if (use_argstr) free(name);
+    use_argstr=1;
     name=fullname;
   }
   rc=conversion_to_file(name,&filenom,0,(size_t)(-1));
-  if (use_argstr) free(name);
   if (stat(filenom,&status)==0) {
       struct key_entry key;
       int k;
+      const char *special;
       key.entry=ENTRY_ERROR_KEY;
-      /* FIXME : francais */
-      if (res==FLCMD_SAVE_OPT)
-        Aff_fin(fl_static("Ecraser le fichier ? "));
-      /* FIXME : francais */
-      else Aff_fin(fl_static("Ajouter au folder ? ")); 
+      if (res==FLCMD_SAVE_OPT) 
+	  special=_("Ã‰craser le fichier ? ");
+      else special=_("Ajouter au folder ? ");
+      Aff_fin_utf8(special);
       Attend_touche(&key);
       if (key.entry==ENTRY_SLANG_KEY) k=key.value.slang_key;
       else k=(int)'n';
-      /* FIXME : francais */
-      if ((KeyBoard_Quit) || (strchr("yYoO", k)==NULL))  {
+      if ((KeyBoard_Quit) || (strchr(_("yYoO"), k)==NULL))  {
 	if (rc==0) free(filenom);
         etat_loop.etat=3;
         return 0;
@@ -2357,15 +2367,15 @@ int do_save(int res) {
   if (res==FLCMD_SAVE_OPT)
     fichier=fopen(filenom,"w");
   else fichier=fopen(filenom,"a");
+  if (rc==0) free(filenom);
+  if (use_argstr) free(name);
   if (fichier==NULL) {
-    if (rc==0) free(filenom);
     etat_loop.etat=2; etat_loop.num_message=-6;
     return 0;
   }
   if (res==FLCMD_SAVE_OPT) {
     dump_flrnrc(fichier);
     fclose(fichier);
-    if (rc==0) free(filenom);
     etat_loop.etat=1; etat_loop.num_message=14; /* la flemme */
     return 0;
   }
@@ -2381,7 +2391,6 @@ int do_save(int res) {
   }
   fclose(fichier);
   etat_loop.etat=1; etat_loop.num_message=8;
-  if (rc==0) free(filenom);
   return 0;
 }
 
@@ -2486,13 +2495,14 @@ int do_pipe(int res) {
 
   if (name[0]==fl_static('\0')) {
     char *affname;
+    const char *special;
     use_argstr=1;
     name=safe_malloc(MAX_PATH_LEN*sizeof(flrn_char));
     affname=safe_malloc(MAX_PATH_LEN);
     name[0]=fl_static('\0');
     affname[0]='\0';
-    /* FIXME : français */
-    col=Aff_fin(fl_static("Piper dans : "));
+    special=_("Piper dans : ");
+    col=Aff_fin_utf8(special);
     if ((ret=flrn_getline(name, MAX_PATH_LEN, affname, MAX_PATH_LEN,
 		    Screen_Rows2-1,col)<0)) {
       free(name);
@@ -2832,10 +2842,15 @@ static int art_swap_grp(flrn_char *xref,
 	    return 1;
 	 }
      } else {
+	 int rc;
+	 const char *special;
+	 flrn_char *trad;
          num_help_line=8;
+	 special=_("Quel groupe ?");
+	 rc=conversion_from_utf8(special, &trad, 0 ,(size_t)(-1));
          objet=(Flrn_Reference_swap *)Menu_simple
-	     /* FIXME : francais */
-	     (lemenu,NULL,NULL,NULL, fl_static("Quel groupe ?"));
+	     (lemenu,NULL,NULL,NULL, trad);
+	 if (rc==0) free(trad);
 	 if ((objet==NULL) || (objet->gpe==Newsgroup_courant)) {
 	     if ((objet) && (Article_courant) && 
 	         (objet->numero!=Article_courant->numero)) {
@@ -2959,13 +2974,15 @@ int do_art_msgid(int res) {
 }
 
 int do_keybindings(int res) {
-   int i, ret, key=-1;
+   int i, ret, key=-1, rc;
    int context=-1;
    flrn_char *buf=Arg_str, *buf2;
    Liste_Menu *menu=NULL, *courant=NULL;
    struct format_menu *fmtm=NULL;
    flrn_assoc_key_cmd *pc;
    flrn_char **ligne;
+   const char *special;
+   flrn_char *trad;
 
    if (*buf) {
       while (fl_isblank(*buf)) buf++;
@@ -2986,10 +3003,16 @@ int do_keybindings(int res) {
        }
    }
    num_help_line=9;
+   if (context==-1) {
+     special=_("Bindings de touche...");
+     rc=conversion_from_utf8(special, &trad, 0, (size_t)(-1));
+   } else {
+     trad=Noms_contextes[context];
+     rc=1;
+   }
    Menu_simple(menu,menu,NULL,NULL,
-	   (context==-1 ? 
-	    fl_static("Bindings de touche...") : Noms_contextes[context]));
-          /* FIXME : français */
+	   trad);
+   if (rc==0) free(trad);
    Libere_menu(menu);
    etat_loop.hors_struct|=1;
    etat_loop.etat=3+(key>=0);
@@ -3010,8 +3033,9 @@ int do_on_selected (int res) {
 
   while ((*name) && (fl_isblank(*name))) name++;
   if (name[0]==fl_static('\0')) {
-      /* FIXME : francais */
-    Aff_fin(fl_static("Commande : "));
+    const char *special;
+    special=_("Commande : ");
+    Aff_fin_utf8(special);
     Attend_touche(&key);
     if (KeyBoard_Quit) {
        etat_loop.etat=3;
@@ -3094,6 +3118,8 @@ void Get_option_line(flrn_char *argument)
   if (*buf==fl_static('\0')) {
     char *affbuf,*ptr;
     struct key_entry key, *k;
+    const char *special;
+
     use_arg=0;
     key.entry=ENTRY_ERROR_KEY;
     k=NULL;
@@ -3101,8 +3127,8 @@ void Get_option_line(flrn_char *argument)
     affbuf = safe_malloc(MAX_READ_SIZE);
     ptr=affbuf;
     *buf=fl_static('\0'); *affbuf='\0';
-    /* FIXME : francais */
-    col=Aff_fin(fl_static("Option: "));
+    special=_("Option : ");
+    col=Aff_fin_utf8(special);
     do {
       if (res>0) Aff_ligne_comp_cmd(buf,strlen(buf),col);
       conversion_to_terminal(buf,&ptr,MAX_READ_SIZE,(size_t)(-1));

@@ -385,13 +385,20 @@ int discard_server() {
 /* fonction coupe la connexion.					*/
 int connect_server (flrn_char *host, int port) {
     int ret, code;
-    int rc;
+    int rc,rc2;
     char *trad;
+    const char *special;
+    flrn_char *tmptrad;
+
    
     init_connection=1;
     if (host==NULL) {
-	/* FIXME : français */
-       fprintf(stderr,"Pas de serveur où se connecter.\n");
+       special=_("Pas de serveur oÃ¹ se connecter.\n");
+       rc=conversion_from_utf8(special, &tmptrad, 0, (size_t)(-1));
+       rc2=conversion_to_terminal(tmptrad,&trad,0,(size_t)(-1));
+       fputs(trad,stderr);
+       if (rc2==0) free(trad);
+       if (rc==0) free(tmptrad);
        return -1; 
     }
     if (port==0) port=Options.port;
@@ -399,8 +406,12 @@ int connect_server (flrn_char *host, int port) {
     ret=contact_server(host, port);
     if (rc==0) free(trad);
     if (ret<0) {
-	/* FIXME : français */
-       fprintf(stderr, "Echec de la connexion au serveur : %s\n", host);
+       special=_("Ã‰chec de la connexion au serveur : %s\n");
+       rc=conversion_from_utf8(special, &tmptrad, 0, (size_t)(-1));
+       rc2=conversion_to_terminal(tmptrad,&trad,0,(size_t)(-1));
+       fprintf(stderr,trad,host);
+       if (rc2==0) free(trad);
+       if (rc==0) free(tmptrad);
        return -1;
     }
      
@@ -409,7 +420,6 @@ int connect_server (flrn_char *host, int port) {
 
     if ((code!=200) && (code!=201))
     {
-       if (debug) fprintf (stderr,"Accès refusé. On va donc quitter :-( \n"); 
        close (tcp_fd);
        return code;
     }
@@ -447,9 +457,18 @@ int connect_server (flrn_char *host, int port) {
 	   } else {
 	     char *strpipo;
 	     /* on peut supposer que ça n'arrive que la première fois */
-	     /* FIXME : français */
-	     fprintf(stdout,"Le serveur demande un mot de passe.\n");
-	     strpipo=getpass("Mot de passe : ");
+             special=_("Le serveur demande un mot de passe.\n");
+             rc=conversion_from_utf8(special, &tmptrad, 0, (size_t)(-1));
+             rc2=conversion_to_terminal(tmptrad,&trad,0,(size_t)(-1));
+	     fputs(trad,stderr);
+             if (rc2==0) free(trad);
+             if (rc==0) free(tmptrad);
+             special=_("Mot de passe : ");
+             rc=conversion_from_utf8(special, &tmptrad, 0, (size_t)(-1));
+             rc2=conversion_to_terminal(tmptrad,&trad,0,(size_t)(-1));
+	     strpipo=getpass(trad);
+             if (rc2==0) free(trad);
+             if (rc==0) free(tmptrad);
 	     if (strpipo!=NULL) {
 		 rc=conversion_from_terminal(strpipo,&(Options.auth_pass),
 			 0,(size_t)(-1));

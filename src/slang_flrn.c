@@ -293,8 +293,7 @@ void vmessage_SLang_Hook (char *fmt, va_list ap)
    rc=conversion_from_file(buf,&trad,0,(size_t)(-1));
    Aff_error(trad);
    if (rc==0) free(trad);
-   /* FIXME : français */
-   Aff_fin(fl_static("Appuyez sur une touche..."));
+   Aff_fin_utf8(_("Appuyez sur une touche..."));
    Attend_touche(NULL);
 }
 
@@ -320,8 +319,7 @@ void error_SLang_Hook (char *str)
    rc=conversion_from_file(str,&trad,0,(size_t)(-1));
    Aff_error(trad);
    if (rc==0) free(trad);
-   /* FIXME : français */
-   Aff_fin(fl_static("Appuyez sur une touche..."));
+   Aff_fin_utf8(_("Appuyez sur une touche..."));
    Attend_touche(NULL);
 }
 

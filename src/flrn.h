@@ -19,7 +19,19 @@
 #include "enc/enc_base.h"   /* fonctions chaînes de base */
 #include "flrn_glob.h"      /* Variables externes */
 
+/* #define I18N_GETTEXT 1 */
+#undef I18N_GETTEXT
+#ifdef I18N_GETTEXT
+#include <libintl.h>
+
+#define _(String) gettext(String)
+#define N_(String) (String)
+#else
 #define _(String) (String)
 #define N_(String) (String)
+#define textdomain(Domain)
+#define bindtextdomain(Package,Directory)
+#endif
+
 
 #endif

@@ -32,6 +32,7 @@
 #include "flrn_tags.h"
 #include "flrn_regexp.h"
 #include "flrn_func.h"
+#include "enc/enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 
@@ -234,10 +235,15 @@ int get_group (Newsgroup_List **group, int flags, flrn_char *name) {
   if (lemenu) {
      if (lemenu->suiv==NULL) my_group=lemenu->lobjet;
      else {
+	const char *special;
+	flrn_char *trad;
+	int rc;
+	special=_("Quel groupe ?");
+	rc=conversion_from_utf8(special,&trad,0,(size_t)(-1));
         num_help_line=10;
 	my_group=Menu_simple(lemenu,NULL,Ligne_carac_du_groupe,NULL,
-		/* FIXME : français */
-	                      fl_static("Quel groupe ?"));
+	                      trad);
+	if (rc==0) free(trad);
      }
      Libere_menu(lemenu); /* on est bien d'accord qu'on ne libere PAS les noms*/
                           /* CAR action_select vaut NULL */

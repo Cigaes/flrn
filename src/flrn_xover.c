@@ -115,8 +115,7 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin, 
     int out=0, progress=0, progress_step;
     char *hdr=NULL;
 
-    /* FIXME : francais */
-    Manage_progress_bar(fl_static("Lecture de l'overview, patientez..."),1);
+    Manage_progress_bar(_("Lecture de l'overview, patientez..."),1);
     progress_step=(n2-n1)/10;
     if (progress_step==0) progress_step=1;
     *newmin=*newmax=-1;
@@ -334,7 +333,7 @@ int cree_liste_noxover(int min, int max, Article_List *start_article, int *newmi
    int lus_index=0;
    int progress=0, progress_step;
    
-   Manage_progress_bar(fl_static("Lecture des References, patientez..."),1);
+   Manage_progress_bar(_("Lecture des References, patientez..."),1);
    progress_step=((max-min)*2)/9;
    if (progress_step==0) progress_step=1;
    *newmin=min;

@@ -27,6 +27,7 @@
 #include "flrn_color.h"
 #include "flrn_slang.h"
 #include "flrn_command.h"
+#include "flrn_format.h"
 #include "options.h"
 #include "site_config.h"
 #include "slang_flrn.h"
@@ -370,10 +371,13 @@ int test_charset_modified(int i, flrn_char **error) {
 	   ret_charset=Parse_editorcharset_line(Options.editor_charset);
 	}
 	if (ret_charset==-1) {
-	    flrn_char *msg=safe_malloc(/* FIXME */ 60+
-		    fl_strlen(*All_options[i].value.string));
-	    /* FIXME : francais */
-	    strcpy(msg,fl_static("Jeu de caractere non reconnu : "));
+	    flrn_char *msg;
+	    const char *special;
+	    special=_("Jeu de caractÃ¨res non reconnu : ");
+	    msg=safe_malloc((strlen(special)+
+			fl_strlen(*All_options[i].value.string))*
+		    sizeof(flrn_char));
+	    conversion_from_utf8(special,&msg,strlen(special)+1,(size_t)(-1));
 	    strcat(msg,*All_options[i].value.string);
 	    *error=msg;
 	    return -1;
@@ -506,33 +510,36 @@ int opt_do_set(flrn_char *str, int flag)
 
 static int opt_aff_color_error(int res, int flag) {
   if (res <0) {
-      /* FIXME : français */
-    flrn_char *err=fl_static("Echec de *color : erreur inconnue");
+    const char *special;
     switch(res) {
-      case -1:  err = fl_static("Echec de *color. Pas assez de champs");
+      case -1:  special = fl_static("Ã‰chec de *color. Pas assez de champs");
 		break;
-      case -2:  err = fl_static("Echec de *color. Fields invalides");
+      case -2:  special = fl_static("Ã‰chec de *color. Fields invalides");
 		break;
-      case -3:  err = fl_static("Echec de *color. Flags invalides");
+      case -3:  special = fl_static("Ã‰chec de *color. Flags invalides");
 		break;
-      case -4:  err = fl_static("Echec de *color. Regexp invalide");
+      case -4:  special = fl_static("Ã‰chec de *color. Regexp invalide");
 		break;
-      case -5:  err = fl_static("Echec de *color. Attribut bugué");
+      case -5:  special=_("Ã‰chec de *color. Attribut buguÃ©");
 		break;
-      case -6:  err = 
-		   fl_static("Echec de *color. Pas assez de sous-expressions");
+      case -6:  special=_("Ã‰chec de *color. Pas assez de sous-expressions");
 		break;
+      default: special=_("Ã‰chec de (reg)color : erreur inconnue");
+	       break;
     }
     if (flag)
-	Aff_error_fin(err,1,-1);
+	Aff_error_fin_utf8(special,1,-1);
     else {
+      flrn_char *err;
       char *trad1,*trad2;
-      int resc1, resc2;
+      int rc,resc1, resc2;
+      rc=conversion_from_utf8(special, &err, 0, (size_t)(-1));
       resc1=conversion_to_terminal(option_ligne,&trad1,0,(size_t)(-1));
       resc2=conversion_to_terminal(err,&trad2,0,(size_t)(-1));
       fprintf(stderr,"%s: %s\n",trad1,trad2);
       if (resc1==0) free(trad1);
       if (resc2==0) free(trad2);
+      if (rc==0) free(err);
       sleep(1);
     }
   }
@@ -733,15 +740,19 @@ int opt_do_bind(flrn_char *str, int flag)
 		  Bind_command_explicite(buf2,&key,buf3,add));
   Free_key_entry(&key);
   if (res <0) {
-      /* FIXME: français */
-    if (flag) Aff_error_fin(fl_static("Echec de la commande bind."),1,-1); else
+    if (flag) Aff_error_fin_utf8
+	(_("Ã‰chec de la commande bind."),1,-1); else
     {
-      char *trad1;
-      int resc1;
+      flrn_char *err;
+      char *trad1,*trad2;
+      int rc,resc1,resc2;
+      rc=conversion_from_utf8(_("Echec du bind : %s"),&err,0,(size_t)(-1));
+      resc2=conversion_to_terminal(err,&trad2,0,(size_t)(-1));
       resc1=conversion_to_terminal(option_ligne,&trad1,0,(size_t)(-1));
-      /* FIXME: français */
-      fprintf(stderr,"Echec du bind : %s\n",trad1);
+      fprintf(stderr,trad2,trad1);
       if (resc1==0) free(trad1);
+      if (resc2==0) free(trad2);
+      if (rc==0) free(err);
       sleep(1);
     }
   }
@@ -941,11 +952,16 @@ void print_header_name(FILE *file, int i) {
 
 /* affiche les options */
 void dump_variables(FILE *file) {
-  int i,resc;
+  int i,resc,r0;
   flrn_char buf[80];
   char *trad;
-  /* FIXME : francais */
-  fprintf(file,"# Variables, modifiables avec set :\n\n");
+  flrn_char *t0;
+  r0=conversion_from_utf8(_("# Variables, modifiables avec set :\n\n"),
+	  &t0,0,(size_t)(-1));
+  resc=conversion_to_file(t0,&trad,0,(size_t)(-1));
+  fputs(trad,file);
+  if (resc==0) free(trad);
+  if (r0==0) free(t0);
   for (i=0; i< NUM_OPTIONS; i++) {
     if (!All_options[i].flags.obsolete) {
 	resc=conversion_to_file(
@@ -954,8 +970,12 @@ void dump_variables(FILE *file) {
 	if (resc==0) free(trad);
     }
   }
-  /* FIXME : français */
-  fprintf(file,"\n\n# Affichage des headers");
+  r0=conversion_from_utf8(_("\n\n# Affichage des headers"),
+	  &t0,0,(size_t)(-1));
+  resc=conversion_to_file(t0,&trad,0,(size_t)(-1));
+  fputs(trad,file);
+  if (resc==0) free(trad);
+  if (r0==0) free(t0);
   fprintf(file,"\nheader list: ");
   for (i=0; i<MAX_HEADER_LIST; i++) {
     if (Options.header_list[i]==-1) break;
@@ -980,12 +1000,17 @@ void dump_variables(FILE *file) {
 /* Affiche le nom d'un header */
 /* Affiche les options modifiées, comme un beau .flrn(rc) */
 void dump_flrnrc(FILE *file) {
-  int rc;
+  int rc,r0;
   char *trad;
+  flrn_char *t0;
   string_list_type *parcours;
   dump_variables(file);
-  /* FIXME : français */
-  fprintf(file,"\n\n# Headers ajoutés dans les posts");
+  r0=conversion_from_utf8(_("\n\n# Headers ajoutÃ©s dans les posts"),
+	  &t0,0,(size_t)(-1));
+  rc=conversion_to_file(t0,&trad,0,(size_t)(-1));
+  fputs(trad,file);
+  if (rc==0) free(trad);
+  if (r0==0) free(t0);
   parcours=Options.user_header;
   while (parcours) {
     rc=conversion_to_file(parcours->str,&trad,0,(size_t)(-1));
@@ -993,8 +1018,12 @@ void dump_flrnrc(FILE *file) {
     if (rc==0) free(trad);
     parcours=parcours->next;
   }
-  /* FIXME : français */
-  fprintf(file,"\n\n# Flags ajoutés pour voir les messages");
+  r0=conversion_from_utf8(_("\n\n# Flags ajoutÃ©s dans les messages"),
+	  &t0,0,(size_t)(-1));
+  rc=conversion_to_file(t0,&trad,0,(size_t)(-1));
+  fputs(trad,file);
+  if (rc==0) free(trad);
+  if (r0==0) free(t0);
   parcours=Options.user_flags;
   while (parcours) {
     rc=conversion_to_file(parcours->str,&trad,0,(size_t)(-1));
@@ -1002,12 +1031,21 @@ void dump_flrnrc(FILE *file) {
     if (rc==0) free(trad);
     parcours=parcours->next;
   }
-  /* FIXME : français */
-  fprintf(file,"\n\n# Il reste les couleurs...\n");
+  r0=conversion_from_utf8(_("\n\n# Il reste les couleurs...\n"),
+	  &t0,0,(size_t)(-1));
+  rc=conversion_to_file(t0,&trad,0,(size_t)(-1));
+  fputs(trad,file);
+  if (rc==0) free(trad);
+  if (r0==0) free(t0);
   dump_colors_in_flrnrc(file);
-  if (Options.user_autocmd)
-  /* FIXME : français */
-    fprintf(file,"\n\n# Il reste les autocmd aussi, qui peuvent changer les options par défaut :-(\n");
+  if (Options.user_autocmd) {
+      r0=conversion_from_utf8(_("\n\n# Il reste les autocmd aussi, Ã  faire.\n"),
+	      &t0,0,(size_t)(-1));
+      rc=conversion_to_file(t0,&trad,0,(size_t)(-1));
+      fputs(trad,file);
+      if (rc==0) free(trad);
+      if (r0==0) free(t0);
+  }
   return;
 }
 
@@ -1026,8 +1064,16 @@ int change_value(Liste_Menu *debut_menu, Liste_Menu **courant,
      return -2;
   }
   if (All_options[num].flags.lock) {
-    *name=fl_static("   L'option %s ne peut pas être changée");
-    /* FIXME : français */
+    int rc;
+    flrn_char *bla;
+    size_t l;
+    rc=conversion_from_utf8(_("L'option %s ne peut pas Ãªtre changÃ©e"),
+	    &bla,0,(size_t)(-1));
+    l=fl_strlen(bla)+strlen(All_options[num].name)+2;
+    *name=safe_malloc(l*sizeof(flrn_char));
+    fl_snprintf(*name,l,bla,All_options[num].name);
+    if (rc==0) free(bla);
+    *tofree=1;
     return 0;
   }
   switch (All_options[num].type) {
@@ -1036,14 +1082,21 @@ int change_value(Liste_Menu *debut_menu, Liste_Menu **courant,
     	changed=1;
 	break;
     case OPT_TYPE_INTEGER : {
-	int new_value, ret;
+	int new_value, ret, rc, rc2, col;
+	flrn_char *t0;
+	char *bla;
+
 	buf[0]='\0';
 	Cursor_gotorc(Screen_Rows-2,0);
 	Screen_erase_eol();
-	/* FIXME : français, et conversion vers terminal */
-	Screen_write_string("Nouvelle valeur: ");
-	/* FIXME : colonne initiale (le 17) */
-	ret=flrn_getline(flbuf,80,buf,60,Screen_Rows-2,/* FIXME */ 17 /* */);
+	rc=conversion_from_utf8(_("Nouvelle valeur: "),
+		&t0,0,(size_t)(-1));
+	rc2=conversion_to_terminal(t0,&bla,0,(size_t)(-1));
+	col=str_estime_width(bla,0,(size_t)(-1));
+	Screen_write_string(bla);
+	if (rc2==0) free(bla);
+	if (rc==0) free(t0);
+	ret=flrn_getline(flbuf,80,buf,60,Screen_Rows-2,col);
 	if (ret!=0) break;
 	new_value=fl_strtol(flbuf,NULL,10);
 	changed=(new_value!=*All_options[num].value.integer);
@@ -1051,13 +1104,20 @@ int change_value(Liste_Menu *debut_menu, Liste_Menu **courant,
 	break;
 	}
     case OPT_TYPE_STRING : {
-	int ret;
+	int ret, rc, rc2, col;
+	flrn_char *t0;
+	char *bla;
 	buf[0]='\0';
 	Cursor_gotorc(Screen_Rows-2,0);
 	Screen_erase_eol();
-	/* FIXME : français, et conversion vers terminal */
-	Screen_write_string("Nouvelle valeur: ");
-	ret=flrn_getline(flbuf,80,buf,60,Screen_Rows-2,/* FIXME */ 17);
+	rc=conversion_from_utf8(_("Nouvelle valeur: "),
+		 &t0,0,(size_t)(-1));
+	rc2=conversion_to_terminal(t0,&bla,0,(size_t)(-1));
+	col=str_estime_width(bla,0,(size_t)(-1));
+	Screen_write_string(bla);
+	if (rc2==0) free(bla);
+	if (rc==0) free(t0);
+	ret=flrn_getline(flbuf,80,buf,60,Screen_Rows-2,col);
 	if (ret!=0) break;
 	if (*All_options[num].value.string) 
 	  changed=(fl_strcmp(flbuf,*All_options[num].value.string)!=0);
@@ -1083,9 +1143,11 @@ int change_value(Liste_Menu *debut_menu, Liste_Menu **courant,
 	break;
 	}
     default : {
-		  /* FIXME : francais */
-	  *name=fl_static
-	      ("   Impossible de changer cette option. Non implémenté.");
+	  int rc;
+          rc=conversion_from_utf8(_("   Impossible de changer cette option. Non implÃ©mentÃ©."),
+	       name,0,(size_t)(-1));
+          if (rc==0) *tofree=1;
+	  return 0;
     }
   }
   if (changed) {
@@ -1098,7 +1160,7 @@ int change_value(Liste_Menu *debut_menu, Liste_Menu **courant,
 int aff_desc_option (void *value, flrn_char **ligne) {
   int num=(int)(long) value;
   int res;
-  res=conversion_from_utf8(All_options[num].desc,ligne,0,(size_t)(-1));
+  res=conversion_from_utf8(_(All_options[num].desc),ligne,0,(size_t)(-1));
   return (res==0);
 }
 
@@ -1106,8 +1168,8 @@ static struct format_elem_menu fmt_option_menu_e [] =
     { { 80, 80, -1, 2, 0, 7 } };
 struct format_menu fmt_option_menu = { 1, &(fmt_option_menu_e[0]) };
 void menu_config_variables() {
-  int i;
-  flrn_char buf[80], *ptr;
+  int i, rc;
+  flrn_char buf[80], *ptr, *trad;
   Liste_Menu *menu=NULL, *courant=NULL;
   int *valeur;
 
@@ -1119,9 +1181,12 @@ void menu_config_variables() {
     if (!menu) menu=courant;
   }
   num_help_line=13;
+  rc=conversion_from_utf8(
+	  _("<entrÃ©e> pour changer une option, q pour quitter."), &trad,
+	  0, (size_t)(-1));
   valeur = (int *) Menu_simple(menu, NULL, aff_desc_option, change_value, 
-	  /* FIXME : francais */
-	  fl_static("<entrée> pour changer une option, q pour quitter."));
+	  trad);
+  if (rc==0) free(trad);
   Libere_menu(menu);
   return;
 }
@@ -1149,30 +1214,41 @@ static int parse_option_file (char *name, int flags, int flag_option) {
   return 0;
 }
 
-/* TODO TODO TODO TODO : changer ça */
-/* FIXME: français */
-const char *Help_Lines[17];
-const char *menu_default_help_line=" Menu: \\quit : quitter le menu     \\select : selectionner un element";
+const flrn_char *Help_Lines[17];
+const char *menu_default_help_line=N_(" Menu: \\quit : quitter le menu     \\select : selectionner un element");
 
 void load_help_line_file() {
-  int i;
+  int i, rc;
   FILE *flrnfile;
   char buf1[83];
+  flrn_char *trad;
 
-  for (i=0;i<14;i++) Help_Lines[i]=menu_default_help_line;
-  Help_Lines[0]=Help_Lines[3]=" ? : aide   \\quit : quitter flrn   \\next-unread : article suivant";
-  Help_Lines[1]=" ? : aide   \\quit : quitter flrn   \\show-tree pour revenir à l'affichage normal";
-  Help_Lines[2]=" ? : aide   ^C : quitter le pager   \\pgdown : descend d'une page";
-  Help_Lines[4]=" ^C ou \\quit : quitter le pager     \\pgdown : descend d'une page";
-  Help_Lines[14]=" ^C : sortir du défilement       autre touche : page suivante ";
-  Help_Lines[15]=" Appuyez sur une touche pour continuer ... ";
-  Help_Lines[16]="   q : quitter l'aide         m : menu      0-9 : rubriques de l'aide ";
+  /* TODO : memory leak */
+  conversion_from_utf8(_(menu_default_help_line),&trad,0,(size_t)(-1));
+  for (i=0;i<14;i++) Help_Lines[i]=trad;
+  conversion_from_utf8(_(" ? : aide   \\quit : quitter flrn   \\next-unread : article suivant"),&trad,0,(size_t)(-1));
+  Help_Lines[0]=Help_Lines[3]=trad;
+  conversion_from_utf8(_(" ? : aide   \\quit : quitter flrn   \\show-tree pour revenir à l'affichage normal"),&trad,0,(size_t)(-1));
+  Help_Lines[1]=trad;
+  conversion_from_utf8(_(" ? : aide   ^C : quitter le pager   \\pgdown : descend d'une page"),&trad,0,(size_t)(-1));
+  Help_Lines[2]=trad;
+  conversion_from_utf8(_(" ^C ou \\quit : quitter le pager     \\pgdown : descend d'une page"),&trad,0,(size_t)(-1));
+  Help_Lines[4]=trad;
+  conversion_from_utf8(_(" ^C : sortir du défilement       autre touche : page suivante "),&trad,0,(size_t)(-1));
+  Help_Lines[14]=trad;
+  conversion_from_utf8(_(" Appuyez sur une touche pour continuer ... "),&trad,
+	  0,(size_t)(-1));
+  Help_Lines[15]=trad;
+  conversion_from_utf8(_("   q : quitter l'aide         m : menu      0-9 : rubriques de l'aide "),&trad,0,(size_t)(-1));
+  Help_Lines[16]=trad;
   if (Options.help_lines_file==NULL) return;
   flrnfile=open_flrnfile(Options.help_lines_file,"r",0,NULL);
   if (flrnfile==NULL) return;
   for (i=0;i<17;i++) {
       if (fgets(buf1,83,flrnfile)==NULL) break;
-      Help_Lines[i]=safe_strdup(buf1);
+      rc=conversion_from_file(buf1,&trad,0,(size_t)(-1));
+      if (rc>0) trad=safe_flstrdup(trad);
+      Help_Lines[i]=trad;
       /* TODO : corriger le memory leak */
   }
   fclose(flrnfile);

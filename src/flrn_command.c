@@ -304,9 +304,10 @@ struct format_menu fmt_keybind_menu2 = { 4, &(fmt_keybind_menu2_e[0]) };
 int aff_ligne_binding(struct key_entry *key, int contexte, 
 	flrn_char ***ligne, struct format_menu **fmt_menu) {
    int i=0, taille, j;
-   int ch;
+   int ch,rc;
    int *cmd=NULL;
-   const flrn_char *special=NULL;
+   const char *special=NULL;
+   flrn_char *trad;
 
    if (Screen_Cols<20) return -2;
    if (*fmt_menu==NULL) {
@@ -328,17 +329,12 @@ int aff_ligne_binding(struct key_entry *key, int contexte,
        /* cas des spécials */
        ch=key->value.slang_key;
        switch (ch) {
-	   case '\\' : special=
-			   fl_static("touche de commande explicite");
-			  /* FIXME : francais */
+	   case '\\' : special=_("touche de commande explicite");
 		       break;
-	   case '@' : special=
-		         fl_static("touche de commande nocbreak");
-			  /* FIXME : francais */
+	   case '@' : special=_("touche de commande nocbreak");
 		      break;
            default : if ((ch<256) && (strchr(DENIED_CHARS,ch)) && (ch!='-'))
-			 special=fl_static("touche de prefixe de commande");
-			  /* FIXME : francais */
+			 special=_("touche de prÃ©fixe de commande");
        }
    }
    if (special==NULL) {
@@ -350,7 +346,8 @@ int aff_ligne_binding(struct key_entry *key, int contexte,
    *ligne=safe_calloc((*fmt_menu)->nbelem,sizeof(flrn_char *));
    (*ligne)[0]=safe_flstrdup(get_name_key(key,0));
    if (special) {
-       (*ligne)[1]=safe_flstrdup(special);
+       rc=conversion_from_utf8(special,&((*ligne)[1]),0,(size_t)(-1));
+       if (rc!=0) (*ligne)[1]=safe_flstrdup((*ligne)[1]);
        return -3;
    }
    j=1;
@@ -389,7 +386,9 @@ int aff_ligne_binding(struct key_entry *key, int contexte,
 #ifdef USE_SLANG_LANGUAGE
               if (Flcmd_macro[(*cmd) ^ FLCMD_MACRO].fun_slang==NULL) {
 #endif
-		  fl_strcat((*ligne)[j],fl_static_tran(special));
+		  rc=conversion_from_utf8(special,&trad,0,(size_t)(-1));
+		  fl_strcat((*ligne)[j],trad);
+		  if (rc==0) free(trad);
 #ifdef USE_SLANG_LANGUAGE
               } else {
 		  fl_strcat((*ligne)[j],fl_static("["));

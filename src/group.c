@@ -99,9 +99,10 @@ void init_groups() {
    char *buf, *deb, *ptr;
    char name[MAX_PATH_LEN];
    int size_buf=1024;
-   int rc;
+   int rc,rc2;
    char *trad;
-   flrn_char *name2;
+   const char *special;
+   flrn_char *name2, *trad2;
    
    Newsgroup_courant=Newsgroup_deb=NULL;
    strcpy(name,DEFAULT_FLNEWS_FILE);
@@ -142,14 +143,23 @@ void init_groups() {
       deb=strchr(ptr,(int) ' ');
       if (deb) *(deb++)='\0';
       if (strlen(ptr)>MAX_NEWSGROUP_LEN)
-            { fprintf(stderr,"Nom du newsgroup %s dans le .flnewsrc trop long !!! \n",ptr);
-		/* FIXME : francais */
+            { special=_("Nom du newsgroup %s dans le .flnewsrc trop long !!! \n");
+	      rc=conversion_from_utf8(special, &trad2, 0, (size_t)(-1));
+	      rc2=conversion_to_terminal(trad2, &trad, 0, (size_t)(-1));
+	      fprintf(stderr,trad,ptr);
+	      if (rc2==0) free(trad);
+	      if (rc==0) free(trad2);
 	      deb=buf;
 	      sleep(1);
 	      continue; }
       /* ce qui gène dans un nom de groupe : on met "\t,", ca devrait suffire */
       if (strpbrk(ptr,"\t,")) {
-          fprintf(stderr,"Nom du newsgroup %s invalide dans le .flnewsrc !!! \n",ptr);
+	  special=_("Nom du newsgroup %s invalide dans le .flnewsrc !!! \n");
+	  rc=conversion_from_utf8(special, &trad2, 0, (size_t)(-1));
+	  rc2=conversion_to_terminal(trad2, &trad, 0, (size_t)(-1));
+          fprintf(stderr,trad,ptr);
+	  if (rc2==0) free(trad);
+	  if (rc==0) free(trad2);
 	  sleep(1);
 	  deb=buf;
 	  continue;
@@ -359,18 +369,30 @@ void new_groups(int opt_c) {
 	creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
       }
       if ((opt_c) || (Options.warn_if_new && (wait_for_key!=-1))) {
-	  /* FIXME : francais, et conversion vers terminal */
-          fprintf(stdout, "Nouveau groupe : %s ", creation->name); 
+	  int rc,rc2,rc3;
+	  const char *special;
+	  char *trad2, *trad3;
+	  flrn_char *trad;
+	  special=_("Nouveau groupe : %s ");
+	  rc=conversion_from_utf8(special,&trad,0,(size_t)(-1));
+	  rc2=conversion_to_terminal(trad,&trad2,0,(size_t)(-1));
+	  rc3=conversion_to_terminal(creation->name,&trad3,0,(size_t)(-1));
+          fprintf(stdout, trad2, trad3); 
+	  if (rc3==0) free(trad3);
+	  if (rc2==0) free(trad2);
+	  if (rc==0) free(trad);
 	  if (opt_c==0) {
 	     if (creation->flags & GROUP_UNSUBSCRIBED) 
-	  /* FIXME : francais */
-	        fputs("Non abonné",stdout);
+		special=_("Non abonnÃ©");
 	     else
 	     if (creation->flags & GROUP_IN_MAIN_LIST_FLAG) 
-	  /* FIXME : francais */
-	        fputs("Abonné, dans le kill-file",stdout);
-	  /* FIXME : francais */
-	     else fputs("Abonné",stdout);
+		special=_("AbonnÃ©, dans le kill-file");
+	     else special=_("AbonnÃ©");
+	     rc=conversion_from_utf8(special,&trad,0,(size_t)(-1));
+	     rc2=conversion_to_terminal(trad,&trad2,0,(size_t)(-1));
+	     fputs(trad2,stdout);
+	     if (rc2==0) free(trad2);
+	     if (rc==0) free(trad);
 	     wait_for_key=1;
 	  }
 	  putc('\n',stdout);
@@ -380,9 +402,17 @@ void new_groups(int opt_c) {
    if (Options.auto_subscribe) regfree(&goodreg);
    if (Options.auto_ignore) regfree(&badreg);
    if (wait_for_key==1) {
-	  /* FIXME : francais */
-      fputs("Appuyez sur entree pour continuer...\n",stdout);
-      getc(stdin); /* A priori, ça pose pas de problèmes */
+       int rc,rc2;
+       const char *special;
+       flrn_char *trad;
+       char *trad2;
+       special=_("Appuyez sur entree pour continuer...\n");
+       rc=conversion_from_utf8(special,&trad,0,(size_t)(-1));
+       rc2=conversion_to_terminal(trad,&trad2,0,(size_t)(-1));
+       fputs(trad2,stdout);
+       if (rc2==0) free(trad2);
+       if (rc==0) free(trad);
+       getc(stdin); /* A priori, ça pose pas de problèmes */
    }
 }
 
@@ -461,13 +491,20 @@ void free_groups(int save_flnewsrc) {
    Newsgroup_List *tmpgroup=NULL;
    Range_List *msg_lus,*tmprange;
    int write_flnewsrc;
+   int rc, rc2;
+   const char *special;
+   flrn_char *trad;
+   char *trad2;
    
    if (save_flnewsrc) {
       write_flnewsrc=save_groups();
       if (write_flnewsrc) {
-	  /* FIXME : francais */
-        fprintf(stderr,"Erreur dans la sauvegarde du .flnewsrc\n");
-	fprintf(stderr,"On garde l'ancien .flnewsrc.\n");
+	special=_("Erreur dans la sauvegarde du .flnewsrc\nOn garde l'ancien .flnewsrc.\n");
+	rc=conversion_from_utf8(special, &trad, 0, (size_t)(-1));
+	rc2=conversion_to_terminal(trad, &trad2, 0, (size_t)(-1));
+	fputs(trad2,stderr);
+	if (rc2==0) free(trad2);
+	if (rc==0) free(trad);
       }
    }
    for (Newsgroup_courant=Newsgroup_deb;Newsgroup_courant;
@@ -1187,13 +1224,12 @@ void get_group_description (Newsgroup_List *legroupe) {
 	  rc=conversion_from_utf8(ptr,&(legroupe->description),0,(size_t)(-1));
 	  if (rc>0) legroupe->description=safe_flstrdup(legroupe->description);
           discard_server();
-      } else legroupe->description=
-	  /* FIXME : francais */
-	       safe_flstrdup(fl_static("  (pas de description)  "));
-  } else
-     legroupe->description=
-	  /* FIXME : francais */
-	 safe_flstrdup(fl_static("  (pas de description)  "));
+	  return;
+      }
+  }
+  rc=conversion_from_utf8(_("  (pas de description)  "),
+	  &(legroupe->description),0,(size_t)(-1));
+  if (rc>0) legroupe->description=safe_flstrdup(legroupe->description);
 }
 
 

@@ -76,8 +76,9 @@ static int Size_Window(int flag, int col_num) {
    num_art_col=num_rest_col-10-2*col_num;
 
    if (num_art_col<name_news_col+5) {
-       /* FIXME : français */
-      if (debug || flag) fprintf(stderr, "Nombre de colonnes insuffisant.\n");
+       /* FIXME : conversion */
+      if (debug || flag) fprintf(stderr, 
+	      _("Nombre de colonnes insuffisant.\n"));
       return 0;
    } else if (num_art_col<name_news_col+20) aff_mess=0; else
      if (num_art_col>name_news_col+28) aff_help=1;
@@ -85,8 +86,9 @@ static int Size_Window(int flag, int col_num) {
    if (aff_mess==0) num_art_col+=7;
    if (Screen_Rows<3+2*Options.skip_line) {
       row_erreur=(Screen_Rows ? 1 : 0);
-      /* FIXME : français */
-      if (debug || flag) fprintf(stderr, "Nombre de lignes insuffisant.\n");
+      /* FIXME : conversion */
+      if (debug || flag) fprintf(stderr, 
+	      _("Nombre de lignes insuffisant.\n"));
       return 0;
    } else 
       row_erreur=Screen_Rows/2;
@@ -99,15 +101,14 @@ static int Size_Window(int flag, int col_num) {
    name_program2[to_make_width(name_program2, 8, &colc, 0)]='\0';
    Screen_write_string(name_program2);
    free(name_program2);
-   /* FIXME : français */
-   if (aff_help) Screen_write_string(" (?:Aide)");
+   if (aff_help) put_string_utf8(_(" (?:Aide)"));
    Screen_write_string(": ");
    name_fin_col=num_art_col-1;
    Cursor_gotorc (0,num_art_col);
-   /* FIXME : français */
-   if (aff_mess) Screen_write_string("Message");
+   /* FIXME : colonne */
+   if (aff_mess) put_string_utf8(_("Message"));
    Screen_write_char(' ');
-   num_art_col+=(aff_mess ? 8 : 1);
+   num_art_col+=(aff_mess ? /* FIXME */ 8 : 1);
    Cursor_gotorc (0,num_art_col+col_num);
    Screen_write_char('/');
    Cursor_gotorc (0,num_rest_col);
@@ -128,10 +129,8 @@ void sig_winch(int sig) {
    Screen_init_smg ();
    if (Size_Window(0,0)) {
      if (Newsgroup_courant) { Aff_newsgroup_name(0); Aff_newsgroup_courant(); }
-   /* FIXME : français */
-     Aff_error (fl_static("Changement de taille de la fenetre"));
-   /* FIXME : français */
-   } else Aff_error (fl_static("Fenetre trop petite !!!"));
+     Aff_error_utf8 (_("Changement de taille de la fenÃªtre"));
+   } else Aff_error (_("FenÃªtre trop petite !!!"));
    Screen_refresh();
    sigwinch_received=1;
    /*SL*/signal(SIGWINCH, sig_winch);
@@ -153,10 +152,8 @@ int screen_changed_size() {
        if (Size_Window(0,0)) {
           if (Newsgroup_courant)
 	      { Aff_newsgroup_name(0); Aff_newsgroup_courant(); }
-   /* FIXME : français */
-          Aff_error (fl_static("Changement de taille de la fenetre"));
-   /* FIXME : français */
-       } else Aff_error (fl_static("Fenetre trop petite !!!"));
+          Aff_error_utf8 (_("Changement de taille de la fenÃªtre"));
+       } else Aff_error_utf8 (_("FenÃªtre trop petite !!!"));
        Screen_refresh();
        return 1;
    }
@@ -282,13 +279,52 @@ int Aff_error_fin(const flrn_char *str, int s_beep, int short_e) {
    return 0;
 }
 
-void Manage_progress_bar(flrn_char *msg, int reset) {
+#if 0
+int Aff_fin_utf8(const char *str) {
+    int rc,ret;
+    flrn_char *trad;
+    rc=conversion_from_utf8(str,&trad,0,(size_t)(-1));
+    ret=Aff_fin(trad);
+    if (rc==0) free(trad);
+    return ret;
+}
+int Aff_error_utf8(const char *str) {
+    int rc,ret;
+    flrn_char *trad;
+    rc=conversion_from_utf8(str,&trad,0,(size_t)(-1));
+    ret=Aff_error(trad);
+    if (rc==0) free(trad);
+    return ret;
+}
+int Aff_error_fin_utf8(const char *str,int s_beep, int short_e) {
+    int rc,ret;
+    flrn_char *trad;
+    rc=conversion_from_utf8(str,&trad,0,(size_t)(-1));
+    ret=Aff_error_fin(trad,s_beep,short_e);
+    if (rc==0) free(trad);
+    return ret;
+}
+#endif
+int put_string_utf8(char *str) {
+    int rc1,rc2,col;
+    flrn_char *trad1;
+    char *trad2;
+    rc1=conversion_from_utf8(
+      str,&trad1,0,(size_t)(-1));
+    rc2=conversion_to_terminal(trad1,&trad2,0,(size_t)(-1));
+    Screen_write_string(trad2);
+    col=str_estime_width(trad2,0,(size_t)(-1));
+    if (rc2==0) free(trad2);
+    if (rc1==0) free(trad1);
+    return col;
+}
+
+void Manage_progress_bar(char *msg, int reset) {
    static int col=0;
    if (screen_inited==0) return;
    Screen_set_color(FIELD_NORMAL);
    if (reset==1) {
-       /* FIXME : français */
-        Aff_fin((msg ? msg : fl_static("Patientez...")));
+        Aff_fin_utf8((msg ? msg : _("Patientez...")));
         Cursor_gotorc(Screen_Rows2-1, Screen_Cols-13);
 	Screen_write_string("[          ]");
 	col=Screen_Cols-12;
@@ -305,16 +341,14 @@ void Manage_progress_bar(flrn_char *msg, int reset) {
 
 void aff_try_reconnect() {
    if (screen_inited) 
-   /* FIXME : français */
-      Aff_error_fin(fl_static("Timeout ? J'essaie de me reconnecter..."),
+      Aff_error_fin_utf8(_("Timeout ? J'essaie de me reconnecter..."),
 	      1,0);
    error_fin_displayed=0;
 }
 
 void aff_end_reconnect() {
    if (screen_inited) 
-   /* FIXME : français */
-      Aff_error_fin(fl_static("Reconnexion au serveur effectuee..."),0,1);
+      Aff_error_fin_utf8(_("Reconnexion au serveur effectuÃ©e..."),0,1);
 }
 
 /* Affichage de la ligne résumé d'un article */
@@ -351,8 +385,7 @@ int Aff_summary_line(Article_List *art, int *row,
   key.entry=ENTRY_ERROR_KEY;
   if (*row==0) *row=1+Options.skip_line;
   if (*row>=Screen_Rows-1-Options.skip_line) {
-      /* FIXME : français */
-    Aff_fin(fl_static("-suite-"));
+    Aff_fin_utf8(_("-suite-"));
     Attend_touche(&key);
     if (KeyBoard_Quit) { Free_key_entry(&key); return 1; }
     Cursor_gotorc(1,0);
@@ -592,10 +625,9 @@ int chg_grp_not_in(Liste_Menu *debut_menu, Liste_Menu **courant, flrn_char **nam
 /* Fonctions pour Liste_groupe */
 /* en fonction du passage, et de Options.use_menus */
 /* un ajoute_elem, et un fin_passage -> 4 fonctions */
-/* FIXME : francais */
-static char *chaine0="Newsgroups auquels vous êtes abonnés.";
-static char *chaine1="Newsgroups présents dans le .flnewsrc.";
-static char *chaine2="Autres newsgroups.";
+static char *chaine0=N_("Newsgroups auquels vous êtes abonnÃ©s.");
+static char *chaine1=N_("Newsgroups prÃ©sents dans le .flnewsrc.");
+static char *chaine2=N_("Autres newsgroups.");
 int ajoute_elem_not_menu (void *element, int passage) {
    Newsgroup_List *groupe=NULL;
    flrn_char *trad=NULL;
@@ -612,8 +644,8 @@ int ajoute_elem_not_menu (void *element, int passage) {
       num_help_line=4;
       Aff_help_line(Screen_Rows-1);
       Cursor_gotorc(row++,0);
-      rc1=conversion_from_utf8(passage == 0 ? chaine0 :
-	      (passage==1 ? chaine1 : chaine2), &trad,0,(size_t)(-1));
+      rc1=conversion_from_utf8(passage == 0 ? _(chaine0) :
+	      (passage==1 ? _(chaine1) : _(chaine2)), &trad,0,(size_t)(-1));
       rc2=conversion_to_terminal(trad,&ligne,0,(size_t)(-1));
       Screen_write_string(ligne);
       if (rc2==0) free(ligne);
@@ -623,8 +655,7 @@ int ajoute_elem_not_menu (void *element, int passage) {
    if (passage<2) groupe=(Newsgroup_List *)element; else
    		  trad=(flrn_char *)element;
    if (row>Screen_Rows-2-Options.skip_line) {
-       /* FIXME: français */
-      Aff_fin(fl_static("-suite-"));
+      Aff_fin_utf8(_("-suite-"));
       Attend_touche(NULL);
       if (KeyBoard_Quit) return -1;
       Cursor_gotorc(1,0);
@@ -667,8 +698,7 @@ int ajoute_elem_not_menu (void *element, int passage) {
 }
 
 int fin_passage_not_menu (void **retour, int passage, int flags) {
-    /* FIXME: français */
-  Aff_fin(fl_static("-suite-"));
+  Aff_fin_utf8(_("-suite-"));
   Attend_touche(NULL);
   if (KeyBoard_Quit) return -1;
   return 0;
@@ -1745,8 +1775,14 @@ int Aff_headers (int flag) {
          case REFERENCES_HEADER+NB_DECODED_HEADERS: /* traitement special */
            if (Article_courant->headers->reponse_a) {
 	     une_ligne=safe_malloc((22+2*fl_strlen(Article_courant->headers->reponse_a))*sizeof(flrn_char));
-	     /* FIXME : français et conversion */
-             fl_strcpy(une_ligne,fl_static("Reponse a:Â "));
+	     {
+		 int rc;
+		 flrn_char *trad;
+		 rc=conversion_from_utf8(_("RÃ©ponse Ã :Â "),&trad,0,
+			 (size_t)(-1));
+                 fl_strcpy(une_ligne,trad);
+		 if (rc==0) free(trad);
+	     }
 	     if (!Options.parse_from) 
 	     	fl_strcat(une_ligne,Article_courant->headers->reponse_a);
 	     else ajoute_parsed_from(une_ligne,Article_courant->headers->reponse_a,NULL);
@@ -1769,16 +1805,26 @@ int Aff_headers (int flag) {
            } else if (Article_courant->parent!=0) {
    	      Screen_set_color(FIELD_HEADER);
               Cursor_gotorc(row,0);
-	      /* FIXME : français */
-	      une_ligne=safe_flstrdup(fl_static("Reponse à un message non disponible."));
+	      {
+		 int rc;
+		 flrn_char *trad;
+		 rc=conversion_from_utf8(_("RÃ©ponse Ã un message non disponible."),&trad,0, (size_t)(-1));
+	         une_ligne=safe_flstrdup(trad);
+		 if (rc==0) free(trad);
+	      }
 	      row=Aff_header(1, with_arbre, row, 0, une_ligne, !flag);
            } 
          break;
          case DATE_HEADER:
            Cursor_gotorc(row,0);
-	   une_ligne=safe_calloc(60,sizeof(flrn_char));
-	   /* FIXME : français */
-           fl_strcpy(une_ligne,fl_static("Date:Â "));
+	   une_ligne=safe_calloc(80,sizeof(flrn_char));
+	   {
+		 int rc;
+		 flrn_char *trad;
+		 rc=conversion_from_utf8(_("Date:Â "),&trad,0, (size_t)(-1));
+	         fl_strcpy(une_ligne,trad);
+		 if (rc==0) free(trad);
+	   }
 	   if (Article_courant->headers->date_gmt) {
 	     fl_strncat(une_ligne,
 		     fl_static_tran(ctime(&Article_courant->headers->date_gmt))
@@ -1797,8 +1843,13 @@ int Aff_headers (int flag) {
 	       szl+=fl_strlen(Article_courant->headers->
 		       k_headers[SENDER_HEADER]);
 	   une_ligne=safe_calloc(szl,sizeof(flrn_char));
-	   /* FIXME : français */ 
-           fl_strcpy(une_ligne,"Auteur:Â ");
+	   {
+		 int rc;
+		 flrn_char *trad;
+		 rc=conversion_from_utf8(_("Auteur:Â "),&trad,0, (size_t)(-1));
+	         fl_strcpy(une_ligne,trad);
+		 if (rc==0) free(trad);
+	   }
 	   if (!Options.parse_from) 
 	     	fl_strcat(une_ligne,
 			Article_courant->headers->k_headers[FROM_HEADER]);
@@ -1809,15 +1860,19 @@ int Aff_headers (int flag) {
    	   Screen_set_color(FIELD_HEADER);
            Cursor_gotorc(row,0);
 	   col=0;
-	   /* FIXME : français */
-	   if (flag) { Screen_write_string(fl_static("(suite) ")); col+=8; }
+	   if (flag) { put_string_utf8(_("(suite) ")); col+=8; }
 	      /* pas besoin d'allouer : add_to_scroll =0  dans Aff_header */
 	   flags_header=Recupere_user_flags(Article_courant);
-	   une_ligne=safe_malloc((9+fl_strlen(Article_courant->headers->k_headers[SUBJECT_HEADER])+(flags_header ? fl_strlen(flags_header) : 0))*sizeof(flrn_char));
+	   une_ligne=safe_malloc((30+fl_strlen(Article_courant->headers->k_headers[SUBJECT_HEADER])+(flags_header ? fl_strlen(flags_header) : 0))*sizeof(flrn_char));
 	   if (flags_header) fl_strcpy(une_ligne,flags_header); else 
 	       *une_ligne=fl_static('\0');
-	   /* FIXME: français */
-           fl_strcat(une_ligne,"Sujet:Â ");
+	   {
+		 int rc;
+		 flrn_char *trad;
+		 rc=conversion_from_utf8(_("Sujet:Â "),&trad,0, (size_t)(-1));
+	         fl_strcat(une_ligne,trad);
+		 if (rc==0) free(trad);
+	   }
 	   fl_strcat(une_ligne,Article_courant->headers->k_headers[SUBJECT_HEADER]);
 	   row=Aff_header(flag,with_arbre, row,col,une_ligne,!flag);
 	   if (flags_header) free(flags_header);
@@ -2118,8 +2173,7 @@ int Gere_Scroll_Message (int row_act, int row_deb,
   key.entry=ENTRY_ERROR_KEY;
 
   if (to_build) {
-      /* FIXME: français */
-     Aff_fin(fl_static("Patientez..."));
+     Aff_fin_utf8(_("Patientez..."));
      Screen_refresh();
      to_build=cree_liste_suite(0);
      percent=((Screen_Rows-row_deb-2)*100)/(num_elem+1);
@@ -2136,10 +2190,14 @@ int Gere_Scroll_Message (int row_act, int row_deb,
   if (scroll_headers==0) act_row=Aff_headers(1)+1; else
       act_row=1+Options.skip_line;
   Init_Scroll_window(num_elem,act_row,Screen_Rows-act_row-1);
-  ret=Page_message(num_elem, 1, &key, act_row, row_deb, NULL, 
-	  /* FIXME: français */
-	  fl_static("A vous : "),
-  		    (to_build ? cree_liste_suite : NULL),NULL);
+  {
+      flrn_char *trad;
+      int rc;
+      rc=conversion_from_utf8(_("Ã€ vous : "),&trad,0,(size_t)(-1));
+      ret=Page_message(num_elem, 1, &key, act_row, row_deb, NULL, 
+	      trad, (to_build ? cree_liste_suite : NULL),NULL);
+      if (rc==0) free(trad);
+  }
   if (ret==-1) return -1;
   if (ret==-2) return 0;
   if (ret==MAX_FL_KEY) return 1;
@@ -2258,16 +2316,16 @@ void Aff_not_read_newsgroup_courant() {
    Screen_set_color(FIELD_NORMAL);
 }
 
-/* TODO TODO TODO TODO : changer ça */
-/* FIXME : lignes d'aide */
 void Aff_help_line(int ligne) {
-/*   int rc;
-   char *trad; */
+   int rc;
+   char *trad; 
    if (Options.help_line==0) return;
    Cursor_gotorc(ligne,0);
    Screen_set_color(FIELD_STATUS);
    Screen_erase_eol();
-   Screen_write_string((char *)(Help_Lines[num_help_line]));
+   rc=conversion_to_terminal(Help_Lines[num_help_line],&trad,0,(size_t)(-1));
+   Screen_write_string(trad);
+   if (rc==0) free(trad);
    Screen_set_color(FIELD_NORMAL);
 }
 
@@ -2288,8 +2346,7 @@ static int base_Aff_article(int to_build) {
 
    Screen_set_color(FIELD_NORMAL);
    if (Article_courant->numero==-10) {
-       /* FIXME : françaus */
-        Aff_error(fl_static("Pas d'article disponible."));
+        Aff_error_utf8(_("Pas d'article disponible."));
         return -1;
    }
 
@@ -2341,9 +2398,8 @@ int Aff_article_courant(int to_build) {
 	    Screen_set_color(FIELD_ERROR);
 	    Cursor_gotorc(row_erreur,col_erreur); 
 	    if (Article_courant->headers==NULL) 
-		/* FIXME : français */
-	       Screen_write_string("Article indisponible."); else
-	       Screen_write_string("Article incompréhensible.");
+	       put_string_utf8(_("Article indisponible.")); else
+	       put_string_utf8(_("Article incomprÃ©hensible."));
 	    Screen_set_color(FIELD_NORMAL);
 	    if (!(Article_courant->flag & FLAG_READ) && (Article_courant->numero>0) &&
 	           (Newsgroup_courant->not_read>0)) {
@@ -2415,8 +2471,7 @@ int Aff_article_courant(int to_build) {
      Aff_place_article(1);
      Screen_set_color(FIELD_ERROR);
      Cursor_gotorc(row_erreur,col_erreur); 
-     /* FIXME : français */
-     Screen_write_string("Article indisponible.");
+     put_string_utf8(_("Article indisponible."));
      Screen_set_color(FIELD_NORMAL);
      if (!(Article_courant->flag & FLAG_READ) && (Article_courant->numero>0) &&
            (Newsgroup_courant->not_read>0)) {

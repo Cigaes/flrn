@@ -136,6 +136,11 @@ int read_terminal_charset () {
     char *locale;
     char *codeset;
     if ((locale=setlocale(LC_ALL,""))==NULL) return -2;
+#ifdef I18N_GETTEXT
+    bindtextdomain("flrn", "/home/masse/tmp/flrn/locale");
+    textdomain ("flrn");
+    bind_textdomain_codeset("flrn","utf-8");
+#endif
     if ((strcmp(locale,"C")==0) || (strcmp(locale,"POSIX")==0)) return 1;
     codeset=nl_langinfo(CODESET);
     if (codeset==NULL) return -2;
