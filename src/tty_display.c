@@ -1745,8 +1745,8 @@ int Aff_headers (int flag) {
          case REFERENCES_HEADER+NB_DECODED_HEADERS: /* traitement special */
            if (Article_courant->headers->reponse_a) {
 	     une_ligne=safe_malloc((22+2*fl_strlen(Article_courant->headers->reponse_a))*sizeof(flrn_char));
-	     /* FIXME : français */
-             fl_strcpy(une_ligne,fl_static("Reponse a: "));
+	     /* FIXME : français et conversion */
+             fl_strcpy(une_ligne,fl_static("Reponse a:Â "));
 	     if (!Options.parse_from) 
 	     	fl_strcat(une_ligne,Article_courant->headers->reponse_a);
 	     else ajoute_parsed_from(une_ligne,Article_courant->headers->reponse_a,NULL);
@@ -1778,7 +1778,7 @@ int Aff_headers (int flag) {
            Cursor_gotorc(row,0);
 	   une_ligne=safe_calloc(60,sizeof(flrn_char));
 	   /* FIXME : français */
-           fl_strcpy(une_ligne,fl_static("Date: "));
+           fl_strcpy(une_ligne,fl_static("Date:Â "));
 	   if (Article_courant->headers->date_gmt) {
 	     fl_strncat(une_ligne,
 		     fl_static_tran(ctime(&Article_courant->headers->date_gmt))
@@ -1798,7 +1798,7 @@ int Aff_headers (int flag) {
 		       k_headers[SENDER_HEADER]);
 	   une_ligne=safe_calloc(szl,sizeof(flrn_char));
 	   /* FIXME : français */ 
-           fl_strcpy(une_ligne,"Auteur: ");
+           fl_strcpy(une_ligne,"Auteur:Â ");
 	   if (!Options.parse_from) 
 	     	fl_strcat(une_ligne,
 			Article_courant->headers->k_headers[FROM_HEADER]);
@@ -1810,14 +1810,14 @@ int Aff_headers (int flag) {
            Cursor_gotorc(row,0);
 	   col=0;
 	   /* FIXME : français */
-	   if (flag) { Screen_write_string(fl_static("(suite) ")); col+=8; }
+	   if (flag) { Screen_write_string(fl_static("(suite)Â ")); col+=8; }
 	      /* pas besoin d'allouer : add_to_scroll =0  dans Aff_header */
 	   flags_header=Recupere_user_flags(Article_courant);
 	   une_ligne=safe_malloc((9+fl_strlen(Article_courant->headers->k_headers[SUBJECT_HEADER])+(flags_header ? fl_strlen(flags_header) : 0))*sizeof(flrn_char));
 	   if (flags_header) fl_strcpy(une_ligne,flags_header); else 
 	       *une_ligne=fl_static('\0');
 	   /* FIXME: français */
-           fl_strcat(une_ligne,"Sujet: ");
+           fl_strcat(une_ligne,"Sujet:Â ");
 	   fl_strcat(une_ligne,Article_courant->headers->k_headers[SUBJECT_HEADER]);
 	   row=Aff_header(flag,with_arbre, row,col,une_ligne,!flag);
 	   if (flags_header) free(flags_header);
@@ -1829,7 +1829,7 @@ int Aff_headers (int flag) {
 			une_ligne=safe_calloc(fl_strlen(tmp->header_head)+
 			   fl_strlen(tmp->header_body)+3,sizeof(flrn_char));
 			fl_strcpy(une_ligne,tmp->header_head);
-			fl_strcat(une_ligne,fl_static(" "));
+			fl_strcat(une_ligne,fl_static("Â "));
 			fl_strcat(une_ligne,tmp->header_body);
 	   		row=Aff_header(flag,with_arbre, row,0,une_ligne,
 					!flag);
@@ -1856,7 +1856,7 @@ int Aff_headers (int flag) {
 		    une_ligne=safe_calloc(fl_strlen(tmp->header_head)+
 		       fl_strlen(tmp->header_body)+3,sizeof(flrn_char));
 		    fl_strcpy(une_ligne,tmp->header_head);
-		    fl_strcat(une_ligne,fl_static(" "));
+		    fl_strcat(une_ligne,fl_static("Â "));
 		    fl_strcat(une_ligne,tmp->header_body);
 		  } else {
 		    if (i0<NB_DECODED_HEADERS)
@@ -1868,7 +1868,7 @@ int Aff_headers (int flag) {
 				k_raw_headers[i0-NB_DECODED_HEADERS]),
 			    sizeof(flrn_char));
            	    fl_strcpy(une_ligne,fl_static_tran(Headers[i0].header));
-		    fl_strcat(une_ligne," ");
+		    fl_strcat(une_ligne,fl_static("Â "));
 		    if (i0<NB_DECODED_HEADERS)
 	              fl_strcat(une_ligne,
 			    Article_courant->headers->k_headers[i0]);

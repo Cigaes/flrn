@@ -1193,8 +1193,8 @@ const char *parse_ContentType_header (flrn_char *contenttype_line) {
 		  if (*buf) {
 		      if (*buf==fl_static('"')) buf++;
 		      buf2=buf;
-		      while ((*buf2) && (!fl_isspace(*buf2)) &&
-			      (*buf2!=fl_static('"'))) buf2++;
+		      while ((*buf2) && ((fl_isalnum(*buf2)) || 
+			      (fl_strchr(fl_static("._-/()"),*buf2)))) buf2++;
 		      sc=*buf2;
 		      *buf2=fl_static('\0');
 		      message_charset=Parse_charset(fl_static_rev(buf));
