@@ -1456,7 +1456,8 @@ static void add_strings_bit (flrn_char *str, size_t len, int field,
 			  free(cf->reste); free(cf->flreste); cf->reste=NULL;
 			  cf->flreste=NULL; cf->rstlen=0;
 		      }
-		      bla=to_make_width_convert(ptr,cf->maxcol,&(cf->colcur),0);
+		      bla=to_make_width_convert(ptr,cf->maxcol,&(cf->colwr),0);
+		        /* on n'utilise pas colcur pour le garder */
 		      sve=ptr[bla];
 		      ptr[bla]=fl_static('\0');
 		      if (cf->afficher) {
@@ -1975,7 +1976,7 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
 	 cf.afficher=0;
 	 en_deca=0;
       }
-      return(Screen_Cols-1);
+      return Screen_Cols;
    }
 
    void add_line_aff_line (flrn_char *chaine, size_t len, int field) {
