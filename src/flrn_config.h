@@ -117,9 +117,9 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_GOTO 3
    { "GOTO", 'G', 0, 31, &do_goto, NULL },
 #define FLCMD_GGTO 4
-   { "unsubscribe", 'u', 0, 5|CMD_NEED_GROUP, &do_unsubscribe, NULL },
+   { "unsubscribe", 'u', 0, 5, &do_unsubscribe, NULL },
 #define FLCMD_UNSU 5
-   { "subscribe", 'a', 0, 5|CMD_NEED_GROUP, &do_abonne, NULL },
+   { "subscribe", 'a', 0, 5, &do_abonne, NULL },
 #define FLCMD_ABON 6
    { "omit", 'o', 0, 6|CMD_NEED_GROUP, &do_omet, NULL },
 #define FLCMD_OMET 7
@@ -219,9 +219,9 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_MENUSUMMS 54
    { "save-options", 0, 0, 1, &do_save, NULL },
 #define FLCMD_SAVE_OPT 55
-   { "add-kill", 0, 0, 5|CMD_NEED_GROUP, &do_add_kill, NULL },
+   { "add-kill", 0, 0, 5, &do_add_kill, NULL },
 #define FLCMD_ADD_KILL 56
-   { "remove-kill", 0, 0, 5|CMD_NEED_GROUP, &do_remove_kill, NULL },
+   { "remove-kill", 0, 0, 5, &do_remove_kill, NULL },
 #define FLCMD_REMOVE_KILL 57
    { "pipe-header", 0, 0, 15|CMD_NEED_GROUP, &do_pipe, NULL },
 #define FLCMD_PIPE_HEADER 58

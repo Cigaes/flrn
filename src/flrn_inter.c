@@ -1345,6 +1345,10 @@ int do_unsubscribe(int res) {
    if (ret==-2) 
    { etat_loop.etat=2; etat_loop.num_message=-8;
      etat_loop.hors_struct|=1; return 0; }
+   if (newsgroup==NULL) {
+      etat_loop.etat=2; etat_loop.num_message=-3;
+      return 0;
+   }
    newsgroup->flags |= GROUP_UNSUBSCRIBED;
    return (newsgroup==Newsgroup_courant);
 }
@@ -1361,6 +1365,10 @@ int do_abonne(int res) {
    if (ret==-2) 
    { etat_loop.etat=2; etat_loop.num_message=-8;
      etat_loop.hors_struct|=1; return 0; }
+   if (newsgroup==NULL) {
+      etat_loop.etat=2; etat_loop.num_message=-3;
+      return 0;
+   }
    newsgroup->flags &= ~GROUP_UNSUBSCRIBED;
    if (Options.auto_kill) {
      add_to_main_list(newsgroup->name);
@@ -1373,20 +1381,44 @@ int do_abonne(int res) {
 
 int do_add_kill(int res) {
   char *str=Arg_str;
-  add_to_main_list(str[0]?str:Newsgroup_courant->name);
-  Newsgroup_courant->flags|=GROUP_IN_MAIN_LIST_FLAG;
-  Aff_newsgroup_name(0);
+  int ret;
+  Newsgroup_List *newsgroup=Newsgroup_courant;
+
+  ret=change_group(&newsgroup,3,str);
+  if (ret==-2) ret=change_group(&newsgroup,1,str);
+  if (ret==-2) 
+  { etat_loop.etat=2; etat_loop.num_message=-8;
+    etat_loop.hors_struct|=1; return 0; }
+  if (newsgroup==NULL) {
+     etat_loop.etat=2; etat_loop.num_message=-3;
+     return 0;
+  }
+  add_to_main_list(newsgroup->name);
+  newsgroup->flags|=GROUP_IN_MAIN_LIST_FLAG;
+  if (newsgroup==Newsgroup_courant) Aff_newsgroup_name(0);
   etat_loop.etat=1; etat_loop.num_message=18;
   return 0;
 }
 
 int do_remove_kill(int res) {
-  char *str=Arg_str;
-  remove_from_main_list(str[0]?str:Newsgroup_courant->name);
-  Newsgroup_courant->flags&=~GROUP_IN_MAIN_LIST_FLAG;
-  Aff_newsgroup_name(0);
-  etat_loop.etat=1; etat_loop.num_message=19;
-  return 0;
+   char *str=Arg_str;
+   int ret;
+   Newsgroup_List *newsgroup=Newsgroup_courant;
+
+   ret=change_group(&newsgroup,3,str);
+   if (ret==-2) ret=change_group(&newsgroup,1,str);
+   if (ret==-2) 
+   { etat_loop.etat=2; etat_loop.num_message=-8;
+     etat_loop.hors_struct|=1; return 0; }
+   if (newsgroup==NULL) {
+      etat_loop.etat=2; etat_loop.num_message=-3;
+      return 0;
+   }
+   remove_from_main_list(newsgroup->name);
+   newsgroup->flags&=~GROUP_IN_MAIN_LIST_FLAG;
+   if (newsgroup==Newsgroup_courant) Aff_newsgroup_name(0);
+   etat_loop.etat=1; etat_loop.num_message=19;
+   return 0;
 }
 
 /* do_prem_grp : pour l'instant, place le groupe courant en première position */
