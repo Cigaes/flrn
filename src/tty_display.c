@@ -2102,7 +2102,7 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
    if (mustfree) free(mustfree);
 #endif
 #endif
-   return (act_row+1);
+   return (cf.row+1);
 }      
 
 
