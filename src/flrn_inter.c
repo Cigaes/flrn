@@ -398,7 +398,7 @@ int loop(char *opt) {
 	   }
 	   if (debug) fprintf(stderr, "etat %d num_message %d\n", etat_loop.etat, etat_loop.num_message);
 	   key=0;
-	   if (etat_loop.etat==0) { key=Aff_article_courant(); 
+	   if (etat_loop.etat==0) { key=Aff_article_courant(to_build); 
 			  push_tag();
 	     		  etat_loop.hors_struct&=8;
 			  if (etat_loop.hors_struct) etat_loop.hors_struct|=3;

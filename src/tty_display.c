@@ -30,6 +30,7 @@
 #include "flrn_filter.h"
 #include "flrn_color.h"
 #include "flrn_slang.h"
+#include "flrn_xover.h"
 
 /* place des objets de la barre */
 int name_news_col, num_art_col, num_rest_col, num_col_num, name_fin_col;
@@ -1282,10 +1283,20 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
 
 /* Gestion du scrolling... */
 int Gere_Scroll_Message (int *key_int, int row_act, int row_deb, 
-				int scroll_headers) {
+				int scroll_headers, int to_build) {
   int act_row, key;
-  int num_elem=-row_act-row_deb;
+  int num_elem=-row_act-row_deb, percent;
+  char buf3[15];
 
+  if (to_build) {
+     Aff_fin("Patientez...");
+     Screen_refresh();
+     to_build=cree_liste_suite(0);
+     percent=((Screen_Rows-row_deb-2)*100)/(num_elem+1);
+     sprintf(buf3,"(%d%%)",percent);
+     strcat(buf3,"-More-");
+     Aff_fin(buf3);
+  }
   key=Attend_touche();
   if (KeyBoard_Quit) return -1;
   Cursor_gotorc(1,0);
@@ -1294,7 +1305,8 @@ int Gere_Scroll_Message (int *key_int, int row_act, int row_deb,
   if (scroll_headers==0) act_row=Aff_headers(1)+1; else
       act_row=1+Options.skip_line;
   Init_Scroll_window(num_elem,act_row,Screen_Rows-act_row-1);
-  key=Page_message(num_elem, 1, key, act_row, row_deb, NULL, "A vous : ");
+  key=Page_message(num_elem, 1, key, act_row, row_deb, NULL, "A vous : ",
+  		    (to_build ? cree_liste_suite : NULL));
   if (key!=-1) *key_int=key & (~MAX_FL_KEY); else return -1;
   return (((key==0) || (key & MAX_FL_KEY)) ? 0 : -1);
 }
@@ -1386,7 +1398,7 @@ void Aff_not_read_newsgroup_courant() {
 /* interruption... et 0 sinon...			 */
 /* Note : les appels se font avec le numero de l'article */
 /* comme il semble que ça marche mieux...		 */
-int Aff_article_courant() {
+int Aff_article_courant(int to_build) {
    int res, actual_row, read_line=1;
    int key_interrupt, first_line, scroll_headers=0;
    char *num, buf[10];
@@ -1481,7 +1493,7 @@ int Aff_article_courant() {
    } while (actual_row>0);
    if (actual_row<0)  /* On entame un scrolling */
       actual_row=Gere_Scroll_Message(&key_interrupt,actual_row,
-   	(scroll_headers ? 1+Options.skip_line : first_line), scroll_headers);
+   	(scroll_headers ? 1+Options.skip_line : first_line), scroll_headers, to_build);
    free_text_scroll();
    if (actual_row==0)  
      article_read(Article_courant); /*Article_courant->flag |= FLAG_READ;*/
@@ -1509,7 +1521,7 @@ int Aff_file (FILE *file, char *exit_chars, char *end_mesg) {
       key=Attend_touche();
       if (KeyBoard_Quit) return 0;
       Init_Scroll_window(row-1, 1, Screen_Rows-2);
-      key=Page_message(row-1, 0, key, 1, 1, exit_chars, end_mesg); 
+      key=Page_message(row-1, 0, key, 1, 1, exit_chars, end_mesg, NULL); 
       if (key==-1) key=0;
    }
    free_text_scroll();

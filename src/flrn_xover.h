@@ -10,5 +10,6 @@ extern int cree_liste_noxover(int /*n1*/, int /*n2*/,
     Article_List * /*article*/);
 extern int cree_liste(int, int * );
 extern int cree_liste_end(void);
+extern int cree_liste_suite(int);
 
 #endif

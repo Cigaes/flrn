@@ -42,10 +42,12 @@ int *Flcmd_pager_rev = &Flcmd_rev[CONTEXT_PAGER][0];
 /* (ie short_exit=0 et exit_chars==NULL)				     */
 
 int Page_message (int num_elem, int short_exit, int key, int act_row,
-    			int row_deb, char *exit_chars, char *end_mesg) {
-  int percent, nll, deb=1, le_scroll, at_end;
+    			int row_deb, char *exit_chars, char *end_mesg,
+			int (in_wait)(int)) {
+  int percent, nll, deb=1, le_scroll, at_end, to_wait;
   char buf3[15];
 
+  to_wait=(in_wait==NULL ? 0 : 1);
   at_end=(num_elem<Screen_Rows-row_deb);
   while (1) {
     if ((short_exit) && 
@@ -87,12 +89,22 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
       if (nll>=num_elem) {
 	if ((!short_exit) && (exit_chars==NULL)) return 0; 
 	else {
+	  if (to_wait) {
+	     Aff_fin("Patientez...");
+	     Screen_refresh();
+	     to_wait=in_wait(1);
+	  }
 	  if (end_mesg) Aff_fin(end_mesg); else Aff_fin("(100%%)-more-");
 	}
 	at_end=1;
       } 
       else {
         at_end=0;
+	if (to_wait) {
+	   Aff_fin("Patientez...");
+	   Screen_refresh();
+	   to_wait=in_wait(0);
+	}
 	percent=(nll*100)/(num_elem+1);
         sprintf(buf3,"(%d%%)",percent);
         strcat(buf3,"-More-");

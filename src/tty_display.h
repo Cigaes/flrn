@@ -11,7 +11,7 @@ extern int error_fin_displayed;
 extern void Reset_screen(void);
 extern int Init_screen(int);
 extern void sig_winch(int );
-extern int Aff_article_courant(void);
+extern int Aff_article_courant(int);
 extern void Aff_newsgroup_name(int /* erase_scr */);
 extern void Aff_newsgroup_courant(void);
 extern void Aff_not_read_newsgroup_courant(void);

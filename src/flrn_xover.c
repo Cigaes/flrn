@@ -383,6 +383,7 @@ int cree_liste(int art_num, int *part) {
    strtol(buf, &buf, 10);
    min=strtol(buf, &buf, 10);
    max=strtol(buf, &buf, 10);
+   Newsgroup_courant->min=min;
 
    if (Newsgroup_courant->Article_deb) {
      Article_deb=Newsgroup_courant->Article_deb;
@@ -464,4 +465,19 @@ int cree_liste_end() {
     apply_kill_file();
   }
   return 0;
+}
+
+/* On retourne 0 si tout est créé, 1 sinon */
+int cree_liste_suite(int end) {
+  int res, num;
+  if (end) return cree_liste_end();
+  if (Article_deb->numero-301<Newsgroup_courant->min) return cree_liste_end();
+  if (!overview_usable) return 0;
+  if (Article_deb->numero-Newsgroup_courant->min>800) num=(Article_deb->numero-Newsgroup_courant->min)/4; else num=200;
+  res=cree_liste_xover(Article_deb->numero-num,Article_deb->numero-1,&Article_deb);
+  if (res) {
+    cree_liens();
+    apply_kill_file();
+  }
+  return 1;
 }
