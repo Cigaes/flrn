@@ -161,7 +161,7 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
 	     fputs(trad,tmp_file);
 	     if (rc==0) free(trad);
 	     putc(' ',tmp_file);
-	     rc=conversion_to_editor(liste->header_head,&trad,
+	     rc=conversion_to_editor(liste->header_body,&trad,
 		 0,(size_t)(-1));
 	     fputs(trad,tmp_file);
 	     if (rc==0) free(trad);
@@ -952,7 +952,7 @@ static flrn_char *check_group_in_header(flrn_char *nom, int *copy_pre,
 		 /* FIXME : francais et colonne */
 		 Screen_write_string("Nom du groupe : ");
 		 trad=safe_malloc(MAX_NEWSGROUP_LEN+1);
-		 rc=conversion_to_terminal(nom2,&trad,MAX_NEWSGROUP_LEN,
+		 conversion_to_terminal(nom2,&trad,MAX_NEWSGROUP_LEN,
 			 (size_t)(-1));
 		 Screen_write_string(trad);
 		 ret=flrn_getline(nom2,MAX_NEWSGROUP_LEN,
@@ -1185,7 +1185,7 @@ static int Format_article(char *to_cancel) {
    if (i<0) return i;
    for (i=0; i<NB_DECODED_HEADERS; i++) 
       if (Header_post->k_header[i]) {
-	  int crit, rc;
+	  int crit;
 	  char *trad;
 	  size_t len;
 	  if ((i==TO_HEADER) || (i==CC_HEADER) || (i==BCC_HEADER)) {
@@ -1209,7 +1209,7 @@ static int Format_article(char *to_cancel) {
 	      (ecriture_courant->cas_mail>2 ? 2 : 0);
 	  len-=Headers[i].header_len+1;
 	  if (i<NB_UTF8_HEADERS) {
-	      rc=conversion_to_utf8(Header_post->k_header[i],
+	      conversion_to_utf8(Header_post->k_header[i],
 		      &trad, len-3, (size_t)(-1));
 	  } else {
 	      crit=(i==FROM_HEADER) || (i==SENDER_HEADER) ||
@@ -1243,7 +1243,6 @@ static int Format_article(char *to_cancel) {
       }
    liste=Header_post->autres;
    while (liste) {
-	  int rc;
 	  char *trad;
 	  size_t len;
 #ifndef MODE_EXPERT
@@ -1271,7 +1270,7 @@ static int Format_article(char *to_cancel) {
 	      strcpy(ecriture_courant->ligne,"X-");
 	      trad=ecriture_courant->ligne+2;
 	  } else trad=ecriture_courant->ligne;
-	  rc=conversion_to_utf8(liste->header_head,
+	  conversion_to_utf8(liste->header_head,
 		  &trad, len-6, (size_t)(-1));
 	  {
 	      size_t l=strlen(trad);
@@ -1360,6 +1359,7 @@ static int Format_article(char *to_cancel) {
 		ecriture_courant->ligne=safe_malloc(elen+1);
 		strcpy(ecriture_courant->ligne, trad);
 	 }
+	 if (rc==0) free(trad);
 	 if (buf) {
 	    strcat(ecriture_courant->ligne,"\r\n");
 	    ecriture_courant->suivant=safe_calloc

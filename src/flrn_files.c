@@ -371,7 +371,11 @@ void Copy_article (FILE *dest, Article_List *article, int copie_head,
 	       resconv=conversion_to_file(trad2,&trad,0,(size_t)(-1));
 	     else
 	       resconv=conversion_to_editor(trad2,&trad,0,(size_t)(-1));
-	     if (resconv2==0) free(trad2);
+	     if (resconv2==0) { /* il faut libérer trad2 */
+		 if (resconv==0) free(trad2); /* aucun pb si trad!=trad2 */
+		 else resconv=0; /* sinon on dit juset qu'il faudra *
+				  * libérer trad */
+	     }
 	 } else {
 	     trad=buf;
 	     resconv=1;

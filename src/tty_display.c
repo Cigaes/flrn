@@ -68,7 +68,7 @@ static int Size_Window(int flag, int col_num) {
    char *name_program2;
 
    resconv=conversion_to_terminal(name_program,&name_program2,0,(size_t)(-1));
-   if (resconv>0) name_program2=safe_strdup(name_program);
+   if (resconv>0) name_program2=safe_strdup(name_program2);
    name_news_col=str_estime_width(name_program2,0,(size_t)-1)+1;
    if (name_news_col>9) name_news_col=9;
    if (col_num==0) col_num=num_col_num; else num_col_num=col_num;
@@ -640,9 +640,9 @@ int ajoute_elem_not_menu (void *element, int passage) {
 	   else free_flag=1;
      }
      rc1=conversion_to_terminal(flag,&ligne,0,(size_t)(-1));
-     if (free_flag) free(flag);
      Screen_write_string(ligne);
      if (rc1==0) free(ligne); ligne=NULL;
+     if (free_flag) free(flag);
      Cursor_gotorc(row,4);
      rc1=conversion_to_terminal(truncate_group(groupe->name,0),&ligne,0,(size_t)(-1));
      Screen_write_string(ligne);
@@ -1345,10 +1345,11 @@ static void add_strings_bit (flrn_char *str, size_t len, int field,
 				cf->maxcol,&(cf->colcur),0);
 		        sve=ptr[bla];
 		        ptr[bla]=fl_static('\0');
-		        rc=conversion_to_terminal(ptr,&trad,0,(size_t)(-1));
-		        if (cf->afficher)
+		        if (cf->afficher) {
+		            rc=conversion_to_terminal(ptr,&trad,0,(size_t)(-1));
 			    Screen_write_string(trad);
-		        if (rc==0) free(trad);
+		            if (rc==0) free(trad);
+			}
 		        if (add_to_scroll) {
 			    if (cf->colcur==0) Ajoute_line(ptr,0,field);
 			    else {
@@ -1424,9 +1425,11 @@ static void add_strings_bit (flrn_char *str, size_t len, int field,
 		      bla=to_make_width_convert(ptr,cf->maxcol,&(cf->colcur),0);
 		      sve=ptr[bla];
 		      ptr[bla]=fl_static('\0');
-		      rc=conversion_to_terminal(ptr,&trad,0,(size_t)(-1));
-		      if (cf->afficher) Screen_write_string(trad);
-		      if (rc==0) free(trad);
+		      if (cf->afficher) {
+		         rc=conversion_to_terminal(ptr,&trad,0,(size_t)(-1));
+		         Screen_write_string(trad);
+		         if (rc==0) free(trad);
+		      }
 		      if (add_to_scroll) {
 			  if (cf->colcur==0) Ajoute_line(ptr,0,field);
 			  else {
@@ -2171,6 +2174,7 @@ void Aff_newsgroup_name(int erase_scr) {
 	    Screen_write_char(']');
 	    ucol=2+str_estime_width(trad,name_news_col,(size_t)(-1));
 	    if (rc==0) free(trad);
+	    free(flag_aff);
 	 }
          tmp_name=truncate_group(Newsgroup_courant->name,0);
 	 trad=safe_calloc(fl_strlen(tmp_name)*6+1,sizeof(flrn_char));
@@ -2196,9 +2200,9 @@ void Aff_newsgroup_name(int erase_scr) {
 	   ucol+=name_news_col+str_estime_width(trad,name_news_col,
 	       (size_t)(-1));
 	   Screen_write_string(trad);
+           if (rc==0) free(trad);
        } else ucol+=name_news_col;
        Screen_write_nstring("",name_fin_col-ucol+1);
-       if (rc==0) free(trad);
    }
    if (erase_scr) {
      Screen_set_color(FIELD_NORMAL);

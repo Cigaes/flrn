@@ -311,7 +311,7 @@ int opt_do_include(flrn_char *buf, int flag)
       int resconv;
       resconv=conversion_to_file(buf,&traduction,0,(size_t)(-1));
       if (resconv>=0) {
-        found=parse_option_file(buf,0,flag);
+        found=parse_option_file(traduction,0,flag);
 	/* Attention, on change ici option_ligne */
 	if (resconv==0) free(traduction);
       } else found=-1;
@@ -322,7 +322,7 @@ int opt_do_include(flrn_char *buf, int flag)
       char *traduction;
       int resconv;
       resconv=conversion_to_terminal(buf,&traduction,0,(size_t)(-1));
-      fprintf(stderr,"Erreur : include %s impossible !\n",buf);
+      fprintf(stderr,"Erreur : include %s impossible !\n",traduction);
       if (deep_inclusion>=10) fprintf(stderr,"Trop d'inclusions imbriquées.\n");
       if (resconv==0) free(traduction);
       sleep(1);
