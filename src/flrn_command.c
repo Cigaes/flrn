@@ -718,7 +718,7 @@ int Lit_cmd_key(struct key_entry *key, int princip, int second,
 /* Lit le nom explicite d'une commande */
 int Lit_cmd_explicite(flrn_char *str, int princip, int second,
 	Cmd_return *la_commande) {
-   int i, j, res=-1, ini, final;
+   int i, j, res=-1, ini, final, context;
    flrn_char *flncmd;
      
    la_commande->flags|=2;
@@ -776,7 +776,9 @@ int Lit_cmd_explicite(flrn_char *str, int princip, int second,
 #endif      
    for (j=0;j<2;j++) {
       ini=0; final=NB_FLCMD;
-      switch (j==0 ? princip : second) {
+      context=(j==0 ? princip : second);
+      if (context==-1) break;
+      switch (context) {
 	  case CONTEXT_MENU  : ini=NB_FLCMD_PAGER;
 			       final+=NB_FLCMD_MENU;  /* fall */
 	  case CONTEXT_PAGER : ini+=NB_FLCMD;
