@@ -125,10 +125,13 @@ void init_groups() {
       creation->name[strlen(ptr)-1]='\0';
       creation->min=1;
       creation->max=0;
+      creation->not_read=-1;
       creation->read=init_range(deb,&(creation->max));
       deb=buf;
    }
-   if (Newsgroup_courant) Newsgroup_courant->next=NULL;
+   if (Newsgroup_courant) Newsgroup_courant->next=NULL; else
+     /* le fichier était vide, on refait un list normal */
+     Last_check=0;
    free(buf);
    fclose (flnews_file);
 }
@@ -158,6 +161,7 @@ static Newsgroup_List *un_nouveau_newsgroup (char *la_ligne)
     creation->max = strtol(buf, &buf, 10); /* Beuh !!!!, parfois ça commence */
     					   /* par 0 !!!!!		     */
     creation->min = strtol(buf, &buf, 10); 
+    creation->not_read=-1;
     creation->read= NULL;
     creation->description= NULL;
     creation->flags=GROUP_UNSUBSCRIBED | GROUP_NEW_GROUP_FLAG;
@@ -310,7 +314,10 @@ void free_groups(int save_flnewsrc) {
      if (Options.flnews_ext) strcat(name,Options.flnews_ext);
      strcat(name,".new");
      flnews_file = open_flrnfile(name,"w+",1,NULL);
-     if (flnews_file==NULL) write_flnewsrc=0;;
+     if (flnews_file==NULL) {
+        fprintf(stderr,"Erreur : On ne sauve pas le .flnewsrc\n");
+        write_flnewsrc=0;
+     }
    }
    for (Newsgroup_courant=Newsgroup_deb;Newsgroup_courant;
        Newsgroup_courant=tmpgroup) {
@@ -344,7 +351,7 @@ void free_groups(int save_flnewsrc) {
 	  }
 	  msg_lus=msg_lus->next;
        }
-       if (name_written) fprintf(flnews_file,"\n");
+       if (name_written) putc('\n',flnews_file);
      }
      /* on libere la liste des messages lus */
      tmprange=msg_lus=Newsgroup_courant->read;
@@ -545,6 +552,7 @@ int NoArt_non_lus(Newsgroup_List *group) {
    Range_List *actuel;
    char *buf;
 
+   if (group->not_read!=-1) return group->not_read;
    /* On envoie un list active au serveur */
    buf=safe_malloc((MAX_NEWSGROUP_LEN+10)*sizeof(char));
    strcpy(buf, "active ");
@@ -596,6 +604,7 @@ int NoArt_non_lus(Newsgroup_List *group) {
       actuel=actuel->next;
    }
    if (non_lus<0) non_lus=0;
+   group->not_read=non_lus;
 
    return non_lus;
 }
@@ -740,20 +749,22 @@ void add_read_article(Newsgroup_List *mygroup, int article)
      pere=range1;
      range1=range1->next;
    }
+   if (mygroup->not_read>0) mygroup->not_read--;
    if (range1) {
      if (range1->min[lu_index]==article+1) { range1->min[lu_index]=article;
       borne=1;}
      if (lu_index==0)  {
        if (pere) { range1=pere; lu_index=RANGE_TABLE_SIZE-1; }
-       first=1;
+       else first=1;
      } else lu_index--;
-     if (range1->max[lu_index] == article-1) {
+     if ((!first) && (range1->max[lu_index] == article-1)) {
        range1->max[lu_index]=article;
        borne++;
      }
    } else first=1;
    if (borne==1) return;
-   if (borne==2) {
+   if (borne==2) { /* Fusion de deux ranges */
+   		   /* Je ne comprend pas : pourquoi faire des allocations */
      range2=safe_calloc(1,sizeof(Range_List));
      for (i=0;i<=lu_index;i++) {
        range2->min[i]=range1->min[i];
@@ -786,6 +797,10 @@ void add_read_article(Newsgroup_List *mygroup, int article)
 
    range2=safe_calloc(1,sizeof(Range_List));
    if (!first) lu_index++;
+   if (lu_index==RANGE_TABLE_SIZE) {
+     range1=range1->next;
+     lu_index=0;
+   }
    range2->min[lu_index]=article;
    range2->max[lu_index]=article;
    if (!range1) { mygroup->read=range2; return;}
@@ -881,6 +896,7 @@ void zap_group_non_courant (Newsgroup_List *group) {
    /* si de nouveaux messages étaient apparus, on ne les a pas marqué lus */
    /* Tant pis... Ça devrait pas changer beaucoup de choses... qui irait  */
    /* zapper un groupe après coup...					  */
+   group->not_read=0;
 }
    
 

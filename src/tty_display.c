@@ -18,7 +18,7 @@
 #include "flrn_menus.h"
 
 /* place des objets de la barre */
-int name_news_col, num_art_col, num_max_col, num_col_num, name_fin_col;
+int name_news_col, num_art_col, num_rest_col, num_col_num, name_fin_col;
 /* place des messages d'erreur */
 int row_erreur, col_erreur;
 /* pour l'arbre */
@@ -36,10 +36,9 @@ static int Size_Window(int flag, int col_num) {
 
    name_news_col=strlen(name_program)+1;
    if (name_news_col>9) name_news_col=9;
-   if (col_num==0) col_num=num_col_num;
-   num_col_num=col_num;
-   num_max_col=Screen_Cols-5-col_num;
-   num_art_col=num_max_col-13-col_num;
+   if (col_num==0) col_num=num_col_num; else num_col_num=col_num;
+   num_rest_col=Screen_Cols-2-5;
+   num_art_col=num_rest_col-10-2*col_num;
 
    if (num_art_col<name_news_col+5) {
       if (debug || flag) fprintf(stderr, "Nombre de colonnes insuffisant.\n");
@@ -47,7 +46,7 @@ static int Size_Window(int flag, int col_num) {
    } else if (num_art_col<name_news_col+20) aff_mess=0; else
      if (num_art_col>name_news_col+28) aff_help=1;
    if (aff_help) name_news_col+=9;
-   if (aff_mess==0) num_art_col+=8;
+   if (aff_mess==0) num_art_col+=7;
    if (Screen_Rows<3+2*Options.skip_line) {
       row_erreur=(Screen_Rows ? 1 : 0);
       if (debug || flag) fprintf(stderr, "Nombre de lignes insuffisant.\n");
@@ -67,12 +66,16 @@ static int Size_Window(int flag, int col_num) {
    Screen_write_string(": ");
    name_fin_col=num_art_col-1;
    Cursor_gotorc (0,num_art_col);
-   if (aff_mess) Screen_write_string("Message ");
-   Screen_write_string("No: ");
-   num_art_col+=(aff_mess ? 12 : 4);
-   Cursor_gotorc (0,num_max_col);
-   Screen_write_string("Max: ");
-   num_max_col+=5;
+   if (aff_mess) Screen_write_string("Message");
+   Screen_write_char(' ');
+   num_art_col+=(aff_mess ? 8 : 1);
+   Cursor_gotorc (0,num_art_col+col_num);
+   Screen_write_char('/');
+   Cursor_gotorc (0,num_rest_col);
+   Screen_write_char('(');
+   Cursor_gotorc (0,Screen_Cols-1);
+   Screen_write_char(')');
+   num_rest_col++;
    Screen_set_color(FIELD_NORMAL);
 
    return 1;
@@ -511,7 +514,6 @@ int Aff_arbre (int row, int col, Article_List *init,
   while (parcours->pere) {
       left++;
       if (left>to_left) break;
-      if (parcours->pere->numero<0) break;
       parcours=parcours->pere;
   }
   if (left>to_left) 
@@ -1293,14 +1295,32 @@ void Aff_newsgroup_courant() {
    }
    Screen_set_color(FIELD_STATUS);
    Cursor_gotorc(0,num_art_col);
-   Screen_write_nstring("         ",num_col_num+1);
-   Cursor_gotorc(0,num_max_col);
+   Screen_write_nstring("         ",num_col_num);
+   Screen_write_char('/');
    if (Newsgroup_courant) {
      sprintf(buf,(num_col_num==5 ? "%5d " : "%8d "), Newsgroup_courant->max);
-     Screen_write_string(buf); } else
+     Screen_write_string(buf); 
+   } else
    Screen_write_nstring("         ",num_col_num+1);
+   Cursor_gotorc(0,num_rest_col);
+   Screen_write_string("     )");
    Screen_set_color(FIELD_NORMAL);
    Screen_refresh(); /* Cas particulier aussi */
+}
+
+
+/* Affichage du reste à lire... */
+void Aff_not_read_newsgroup_courant() {
+   char buf[10];
+
+   Screen_set_color(FIELD_STATUS);
+   Cursor_gotorc(0,num_rest_col);
+   if (Newsgroup_courant->not_read>=0) {
+     sprintf(buf,  "%5d)", Newsgroup_courant->not_read); 
+     Screen_write_string(buf);
+   } else
+     Screen_write_string("  ?  )");
+   Screen_set_color(FIELD_NORMAL);
 }
 
 
@@ -1321,13 +1341,13 @@ int Aff_article_courant() {
    Screen_set_color(FIELD_STATUS);
    Cursor_gotorc(0,num_art_col);
    if (Article_courant->numero>=0) {
-     sprintf(buf,(num_col_num==8 ? "%8d " : "%5d "), Article_courant->numero);
-     Screen_write_string(buf); } else 
-     Screen_write_string(num_col_num==8 ? "    ?   " : "  ?  ");
-   Cursor_gotorc(0,num_max_col);
-   sprintf(buf, (num_col_num==8 ? "%8d " : "%5d "), Newsgroup_courant->max);
+     sprintf(buf,(num_col_num==8 ? "%8d/" : "%5d/"), Article_courant->numero);
+     Screen_write_string(buf); 
+   } else 
+     Screen_write_string(num_col_num==8 ? "   ?    /" : "  ?  /");
+   sprintf(buf, (num_col_num==8 ? "%8d " : "%5d "), Newsgroup_courant->max); 
    Screen_write_string(buf);
-   Cursor_gotorc(0,num_art_col);
+   Aff_not_read_newsgroup_courant();
 
    Screen_set_color(FIELD_NORMAL);
    if (Article_courant->numero==-10) 
@@ -1400,6 +1420,7 @@ int Aff_article_courant() {
    free_text_scroll();
    if (actual_row==0)  
      article_read(Article_courant); /*Article_courant->flag |= FLAG_READ;*/
+   Aff_not_read_newsgroup_courant();
    if (debug) fprintf(stderr,"Fin d'affichage \n");
    return key_interrupt;
 }

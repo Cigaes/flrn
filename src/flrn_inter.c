@@ -870,11 +870,6 @@ int do_deplace(int res) {
         etat_loop.etat=1; etat_loop.num_message=3; return 0;
      }
    }
-   /* Si parc_eq_cour=1 et Article_courant est extérieur, on revient à son */
-   /* fils A MOINS que la commande ne soit FLCMD_RIGHT ou FLCMD_VIEW */
-   if (parc_eq_cour && (parcours->numero==-1) && (res!=FLCMD_RIGHT) &&
-       (res!=FLCMD_VIEW)) 
-      parcours=parcours->prem_fils;
    
    /* Je vois pas comment on peut éviter un case */
    parcours2=NULL;
@@ -1201,23 +1196,33 @@ int do_prem_grp (int res) {
 
 
 /* des hack crades :-( */
-int thread_distribue(Article_List *article, void * beurk) {
-  Numeros_List blah;
-  Action_with_args *le_machin = (Action_with_args *) beurk;
-  blah.next=NULL; blah.flags=8; blah.num1=root_of_thread(article,0)->numero;
-  distribue_action(&blah,le_machin->action,NULL,le_machin->flag);
-  return 0;
-}
 int grand_distribue(Article_List *article, void * beurk) {
   Numeros_List blah;
+  Article_List *parcours;
   Action_with_args *le_machin = (Action_with_args *) beurk;
-  blah.next=NULL; blah.flags=8; blah.num1=article->numero;
-  distribue_action(&blah,le_machin->action,NULL,le_machin->flag);
+  blah.next=NULL; blah.flags=8;
+  if (article->numero!=-1) {
+    blah.num1=article->numero; 
+    distribue_action(&blah,le_machin->action,NULL,le_machin->flag);
+  } else {
+    parcours=article->prem_fils;
+    while (parcours->frere_prev) parcours=parcours->frere_prev;
+    while (parcours) {
+      blah.num1=parcours->numero;
+      distribue_action(&blah,le_machin->action,NULL,le_machin->flag);
+      parcours=parcours->frere_suiv;
+    }
+  }
   return 0;
+}
+int thread_distribue(Article_List *article, void * beurk) {
+  return grand_distribue(root_of_thread(article,1),beurk);
 }
 
 static int omet_article(Article_List *article, void * toto)
-{ article->flag &= ~FLAG_READ; return 0; }
+{ if ((article->numero>0) && (article->flag & FLAG_READ) &&
+      (Newsgroup_courant->not_read!=-1)) Newsgroup_courant->not_read++;
+       article->flag &= ~FLAG_READ; return 0; }
 int do_omet(int res) { 
   Numeros_List *courant=&Arg_do_funcs;
   Action_with_args beurk;
@@ -1228,6 +1233,7 @@ int do_omet(int res) {
       distribue_action(courant,grand_distribue,NULL,&beurk);
   else
       distribue_action(courant,omet_article,NULL,NULL);
+  Aff_not_read_newsgroup_courant();
   etat_loop.etat=1; etat_loop.num_message=(res==FLCMD_GOMT ? 5 : 4);
   return 0;
 }
@@ -1251,6 +1257,7 @@ int do_kill(int res) {
   etat_loop.etat=0;
   /* Est-ce un hack trop crade ? */
   courant->flags=0;
+  Aff_not_read_newsgroup_courant();
   do_deplace(FLCMD_SPACE);
   return 0;
 }
@@ -1270,6 +1277,8 @@ int do_zap_group(int res) {
     etat_loop.hors_struct|=3; /* Fin du conti */
     etat_loop.etat=1; etat_loop.num_message=11;
   }
+  Newsgroup_courant->not_read=0;
+  Aff_not_read_newsgroup_courant();
   return (Options.zap_change_group)?1:0;
 }
 
@@ -1859,17 +1868,17 @@ void zap_thread(Article_List *article,int all, int flag,int zap)
   Article_List *racine=article;
   int level=0;
   if (all) 
-    racine = root_of_thread(racine,0);
+    racine = root_of_thread(racine,1);
   if (zap) {
     if (flag == FLAG_READ) article_read(racine); else
       racine->flag |= flag;
-    while((racine=next_in_thread(racine,flag,&level,0,0,0)))
+    while((racine=next_in_thread(racine,flag,&level,-1,0,0)))
       if (flag == FLAG_READ) article_read(racine); else
 	racine->flag |= flag;
   }
   else {
     racine->flag &= ~flag;
-    while((racine=next_in_thread(racine,flag,&level,0,0,flag)))
+    while((racine=next_in_thread(racine,flag,&level,-1,0,flag)))
       racine->flag &= ~flag;
   }
   return;
@@ -2217,6 +2226,7 @@ int parents_action(Article_List *article,int all, Action action, void *param) {
  * On utilise en interne FLAG_DISPLAYED
  * Attention a ne pas interferer
  * all indique qu'il faut d'abord remonter a la racine */
+/* on applique a tous les articles non extérieurs */
 int thread_action(Article_List *article,int all, Action action, void *param) {
   Article_List *racine=article;
   Article_List *racine2=article;
@@ -2225,21 +2235,21 @@ int thread_action(Article_List *article,int all, Action action, void *param) {
   int level=0;
   /* On remonte a la racine si besoin */
   if (all) 
-    racine = root_of_thread(racine,0);
+    racine = root_of_thread(racine,1);
   racine2=racine;
   /* On retire le FLAG_DISPLAYED a tout ceux qui l'ont dans le thread
    * C'est oblige car l'etat par defaut n'est pas defini
    * On le change dans la boucle pour que next_in_thread ne cycle pas */
   racine->flag &= ~FLAG_DISPLAYED;
-  while((racine=next_in_thread(racine,FLAG_DISPLAYED,&level,0,0,
+  while((racine=next_in_thread(racine,FLAG_DISPLAYED,&level,-1,0,
       FLAG_DISPLAYED)))
     racine->flag &= ~FLAG_DISPLAYED;
   racine=racine2;
   /* Et la on peut faire ce qu'il faut */
-  do { res2=action(racine,param);
+  do { if (racine->numero!=-1) res2=action(racine,param);
     if (res2<res) res=res2;
     racine->flag |= FLAG_DISPLAYED;
-  } while ((racine=next_in_thread(racine,FLAG_DISPLAYED,&level,0,0,
+  } while ((racine=next_in_thread(racine,FLAG_DISPLAYED,&level,-1,0,
             0)));
   return res; 
 }

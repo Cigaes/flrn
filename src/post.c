@@ -1177,6 +1177,7 @@ int cancel_message (Article_List *origine) {
    int res,key;
    char line[80];
 
+   if (origine->numero==-1) return -1;
    supersedes=0;
    Pere_post=NULL; /* Pas besoin de References */
    res=Est_proprietaire(origine);

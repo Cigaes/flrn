@@ -120,6 +120,7 @@ extern void sig_winch(int );
 extern int Aff_article_courant(void);
 extern void Aff_newsgroup_name(void);
 extern void Aff_newsgroup_courant(void);
+extern void Aff_not_read_newsgroup_courant(void);
 extern char * Prepare_summary_line(Article_List * /*article*/,
     char * /*prev_subject*/, int /*level*/, char * /*buf*/, int /*buflen*/);
 extern int Aff_summary_line(Article_List * /*article*/,int * /*row*/,

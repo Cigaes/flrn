@@ -72,11 +72,15 @@ int check_article(Article_List *article, flrn_filter *filtre, int flag) {
 /* Fait l'action correspondant au filtre */
 void filter_do_action(flrn_filter *filt) {
   flrn_action *act;
+  int read=(Article_courant->flag & FLAG_READ);
   if (filt->flag ==0) { /* il s'agit de mettre un flag */
     Article_courant->flag |= filt->action.flag;
     /* FIXME ? FLAG_KILLED => FLAG_READ */
-    if (Article_courant->flag & FLAG_KILLED)
+    if (Article_courant->flag & FLAG_KILLED) 
       Article_courant->flag |= FLAG_READ;
+    if ((!read) && (Article_courant->flag & FLAG_READ) && 
+        (Article_courant->numero>0) && (Newsgroup_courant->not_read>0)) 
+	   Newsgroup_courant->not_read--;
     return;
   }
   act=filt->action.action;

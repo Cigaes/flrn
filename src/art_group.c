@@ -100,6 +100,27 @@ static void relie_article(Article_List *pere, Article_List *fils) {
     return;
 }
 
+/* recherche dans une table de hash. Appelée par la fonction qui suit */
+static Article_List *recherche_in_hash_table (char *buf,
+		Article_List **big_table, Article_List **small_table) {
+  int hash;
+  Article_List *parcours;
+  char *bufptr;
+
+  hash=0; for(bufptr=buf; *bufptr; bufptr++) hash += *bufptr;
+  hash %= HASH_SIZE;
+  /* maintenant, on recherche le message avant par small_table */
+  for (parcours=small_table[hash]; parcours;
+        parcours=parcours->prev_hash)
+    if (strcmp(buf, parcours->msgid)==0) return parcours;
+  /* on n'a pas trouvé, on cherche après */
+  for (parcours=big_table[hash]; parcours!=small_table[hash];
+        parcours=parcours->prev_hash)
+    if (strcmp(buf, parcours->msgid)==0) return parcours;
+  return NULL;
+}
+
+
 /* on crée les liens à partir des headers References
  * on met des messages exterieurs pour les parents abscents */
 /* il faut noter que maintenant, cree_liens sera appelée plusieurs fois
@@ -109,7 +130,7 @@ int cree_liens() {
   Article_List *Hash_table[HASH_SIZE];
   Article_List *Hash_table_small[HASH_SIZE];
   /* pour du debug */
-  int good=0, bad=0, vbad=0;
+  int good=0, vbad=0;
   Article_List *creation;
   Article_List *creation2;
   char *bufptr, *buf2, *buf=NULL;
@@ -160,57 +181,60 @@ int cree_liens() {
     /* on peut eventuellement remplacer un lien vers un article
      * exterieur bidon */
     buf2=strrchr(bufptr, '<');
-    if (!buf2) continue;
     if (buf2) {   
+      char *buf3;
+
       buf = safe_strdup(buf2);
-      buf2=strchr(buf, '>');
-      if (buf2) buf2[1]='\0';
+      buf3=strchr(buf, '>');
+      if (buf3) buf3[1]='\0';
       else { if (debug) fprintf(stderr,"J'ai un header bugue...\n");
 	free(buf);
 	continue;
       }
-      hash=0; for(bufptr=buf; *bufptr; bufptr++) hash += *bufptr;
-      hash %= HASH_SIZE;
-      /* maintenant, on recherche le pere
-       * en premier lieu avant grace a Hash_table_small */
-      for (creation=Hash_table_small[hash]; creation;
-	creation=creation->prev_hash)
-	if (strcmp(buf, creation->msgid)==0) {
-	  relie_article(creation, creation2);
-	  good++; /* pour des stats -- ca m'a deja permis de trouver un bug */
-	  break;
-	}
-      /* on n'a pas trouvé, on cherche après */
-      if(!creation2->parent)
-	for (creation=Hash_table[hash]; creation!=Hash_table_small[hash];
-	    creation=creation->prev_hash)
-	  if (strcmp(buf, creation->msgid)==0) {
-	    relie_article(creation, creation2);
-	    bad++;
-	    break;
+      creation=recherche_in_hash_table(buf,Hash_table,Hash_table_small);
+      if (creation) {
+	  relie_article(creation,creation2);
+	  good++; /* pour des stats */
+      } else {
+	  /* on crée un père bidon */
+          vbad++;
+	  /* on crée un article bidon exterieur */
+	  creation = safe_calloc (1,sizeof(Article_List));
+	  creation->numero=-1; /* c'est un article bidon ou ext */
+	  if (Article_exte_deb) {
+	    creation->next=Article_exte_deb;
 	  }
-      /* on n'a pas trouvé, ben on crée un père bidon */
-      if (!creation2->parent) {
-	/* on crée un article bidon exterieur */
-	creation = safe_calloc (1,sizeof(Article_List));
-	creation->numero=-1; /* c'est un article bidon ou ext */
-	if (Article_exte_deb) {
-	  creation->next=Article_exte_deb;
-	}
-	Article_exte_deb=creation;
-	creation->msgid = safe_strdup(buf);
-	/* on le met dans la table de hash, a la fin */
-	creation->prev_hash = Hash_table[hash];
-	Hash_table[hash] = creation;
-	relie_article(creation, creation2);
-	vbad++;
+	  Article_exte_deb=creation;
+	  creation->msgid = safe_strdup(buf);
+	  /* on le met dans la table de hash, a la fin */
+          hash=0; for(bufptr=buf; *bufptr; bufptr++) hash += *bufptr;
+          hash %= HASH_SIZE;
+	  creation->prev_hash = Hash_table[hash];
+	  Hash_table[hash] = creation;
+	  relie_article(creation, creation2);
+	  /* on a gardé buf2, afin éventuellement de relier cet article */
+	  /* bidon */
+	  *buf2='\0';
+	  buf3=strrchr(bufptr,'<');
+	  if (buf3) {
+	      Article_List *creation3;
+	      free(buf);
+	      buf=safe_strdup(buf3);
+	      buf3=strchr(buf,'>');
+	      if (buf3) buf3[1]='\0';
+	      else { free(buf); *buf2='<'; continue; }
+	      creation3=recherche_in_hash_table(buf,Hash_table,
+		      		Hash_table_small);
+	      if (creation3) relie_article(creation3,creation);
+	  }
+	  *buf2='<';
       }
       free(buf);
     } /* if(buf2) */
   }
   if(debug) {
-    fprintf(stderr,"\n %d %d %d\n",
-       good,bad,vbad);
+    fprintf(stderr,"\n %d %d\n",
+       good,vbad);
   }
   return 0;
 }
@@ -476,6 +500,7 @@ Article_List *ajoute_message (char *msgid, int exte, int *should_retry) {
    }
    if (exte) return creation; 
    	/* On s'occupera a cote de l'ajout de l'exterieur */
+   Newsgroup_courant->not_read++;
    if (creation->headers->k_headers[REFERENCES_HEADER]) {
       buf=strrchr(creation->headers->k_headers[REFERENCES_HEADER], '<');
       buf2=strchr(buf, '>');
@@ -595,6 +620,7 @@ Article_List *ajoute_message_par_num (int min, int max) {
       if (parcours!=NULL) relie_article(parcours, creation);
    }
    creation->flag |= FLAG_NEW;
+   Newsgroup_courant->not_read++;
    check_kill_article(creation,0);
    return creation;
 }
@@ -859,21 +885,24 @@ Article_List *cousin_next(Article_List *debut) {
 
 
 /* Trouve l'ancetre de la thread */
-/* si flag=1, on admet d'aller hors de la liste principale */
+/* si flag=1, on admet d'arriver hors de la liste principale */
 Article_List * root_of_thread(Article_List *article, int flag) {
   Article_List *racine=article;
   Article_List *racine2=article;
+  Article_List *racine3=article;
 
-  if(racine->pere && (flag || (racine->pere->numero!=-1))) 
+  if(racine->pere) 
     racine2=racine->pere;
-  while((racine2->pere && (flag || (racine2->pere->numero!=-1)))
-      &&(racine2!=racine)) {
+  while(racine2->pere && (racine2!=racine)) {
     racine=racine->pere;
+    racine3=racine2;
     racine2=racine2->pere;
-    if(racine2->pere && (flag || (racine2->pere->numero!=-1))) 
+    if(racine2->pere) {
+      racine3=racine2;
       racine2=racine2->pere;
+    }
   }
-  return racine2;
+  return ((flag || (racine2->numero!=-1)) ? racine2 : racine3);
 }
 
 /* Parse le champ Xref, et marque les copies comme lues */
@@ -887,6 +916,9 @@ void article_read(Article_List *article)
   if ((article->headers==NULL) ||
       (article->headers->k_headers_checked[XREF_HEADER]==0))
     cree_header(article,0,0); 
+  if (!(article->flag & FLAG_READ) && (article->numero>0) &&
+  	(Newsgroup_courant->not_read>0)) 
+  		Newsgroup_courant->not_read--;
   article->flag |= FLAG_READ;
   if (article->headers->k_headers[XREF_HEADER]==NULL) return;
     /* Eviter un segfault quand le serveur est Bipesque */

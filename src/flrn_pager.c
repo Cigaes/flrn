@@ -50,7 +50,8 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
 
   at_end=(num_elem<Screen_Rows-row_deb);
   while (1) {
-    if ((at_end==1) && (key<MAX_FL_KEY) && (Flcmd_rev[key]!=FLCMD_PAGER_UNDEF))
+    if ((short_exit) && 
+        (at_end==1) && (key<MAX_FL_KEY) && (Flcmd_rev[key]!=FLCMD_PAGER_UNDEF))
            return (key | MAX_FL_KEY); 
 	   	/* note : on ne teste pas '0-9,-<>.', qui ne doivent */
 	   	/* PAS être bindés				    */
@@ -79,7 +80,8 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
 			      return (short_exit ? -1 : 0);
       default : le_scroll=Do_Scroll_Window(0,deb);
 		if (short_exit || (exit_chars && strchr(exit_chars,key))) 
-		  		return key; 
+		  		return (key | ((short_exit && at_end) ? 
+							MAX_FL_KEY : 0)); 
     }
     if (deb || le_scroll) {
       nll=Number_current_line_scroll()+Screen_Rows-act_row-2;
