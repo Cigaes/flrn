@@ -21,9 +21,9 @@ changement entre deux versions, et il n'est pas exempt de bugs.
 .B Flrn
 est un lecteur de news dont l'interface est largement inspirée de celles de
 forum, trn, mutt et slrn. Il est assez configurable, mais la configuration par
-défaut est assez proche de forum. On a la valeur par défaut de toutes les
+défaut est proche de forum. On a la valeur par défaut de toutes les
 variables en utilisant '\fI flrn -s\fR' (cette option devrait disparaître
-dans les prochaines versions).
+dans les prochaines versions) ou en utilisant la commande '\config'.
 
 Il y a une aide accessible par la commande 'h' dans flrn. Elle est souvent
 plus à jour que cette page.
@@ -49,8 +49,6 @@ peut pas commencer par le caractère '-'.
 L'option \fB-h\fR affiche la liste des options reconnues.
 .IP \fB-v\fR
 Affiche le numéro de version.
-.IP \fB-n\fR
-Donne le nom a utiliser pour la configuration.
 .IP \fB-s\fR
 Donne un fichier de configuration contenant les valeurs par défaut de toutes
 les variables. Cette option devrait disparaître.
@@ -59,7 +57,7 @@ les variables. Cette option devrait disparaître.
 .SS Options de configuration
 Se reporter à l'aide interne pour avoir une description plus complète.
 On peut maintenant modifier les options pendant l'utilisation de flrn avec
-la commande '\config'.
+la commande '\config'. Cependant, ces changement ne sont pas sauvés.
 
 La forme générale des options est inspirée de \fBmutt\fR.
 Il y a six commandes :
@@ -295,7 +293,7 @@ Son nom est fixé dans le .flrnrc par l'option kill_file_name.
 plus de détails.
 .IP "\fB.flrnabo\fR"
 Ce fichier (ou son équivalent) contient les groupes de la liste principale
-de censure. Ce fichier est créé et modifié automatiquement par flrn. son
+de censure. Ce fichier est créé et modifié automatiquement par flrn. Son
 nom est décrit dans le kill-file.
 
 .SH VOIR AUSSI
