@@ -170,13 +170,14 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
 	       Newsgroup_courant->virtual_in_not_read--; else 
 	       Newsgroup_courant->not_read++;
 	 }
-       }
+       } else buf=tcp_line_read;
        buf2=strchr(buf,'\t');
-       out=0;
+       if (buf2==NULL) buf2=strchr(buf,'\r');
+       out=(*buf=='\n');
        /* en fait, y'a toujours au moins le message-id et references */
        while (!out) {
 	  if (buf2) *buf2='\0';
-	  if (buf!=buf2) {
+	  if (*buf) {
 	    if (new_article && (overview_list[num]==-1)) {
 	      /* article->msgid est == NULL ssi suite_ligne==0, non ? */
 	      article->msgid=safe_strappend(article->msgid,buf);
@@ -207,13 +208,19 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
 	    }
 	  if (buf2) {
 	    buf=buf2+1;
-	    suite_ligne=1;
-	    buf2=strchr(buf,'\t');
-	    if (buf2==NULL) buf2=strchr(buf,'\r');
-	    num++;
+	    if (*buf=='\n') /* finissons-en */ {
+	       out=1; suite_ligne=0;
+	    } else {
+	      suite_ligne=1;
+	      buf2=strchr(buf,'\t');
+	      if (buf2==NULL) buf2=strchr(buf,'\r');
+	      num++;
+	    }
 	  } else {
 	    out=1;
 	    if ((!buf) || (*buf != '\n')) {
+	       /* buf==NULL : un champ plein a echoue, mais comme on n'a */
+	       /* jamais rencontré le \n, on continue */
 	      suite_ligne=1;
 	    } else suite_ligne=0;
 	  }
@@ -229,7 +236,11 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
 	 if (article->headers->k_headers[DATE_HEADER])
 	    article->headers->date_gmt=
 	      parse_date(article->headers->k_headers[DATE_HEADER]);
-	 if (article->msgid==NULL) { /* y'a eu une erreur grave */
+	 if ((article->msgid==NULL) || (strlen(article->msgid)==0)) { 
+	          /* y'a eu une erreur grave */
+            if (article->prev) article->prev->next=article->next; else
+	         Article_deb=Article_courant=article->next;
+	    if (article->next) article->next->prev=article->prev;
 	    free_one_article(article,1);
 	    article=Article_deb;
 	    crees-=new_article;

@@ -16,6 +16,7 @@
 #include "group.h"
 #include "flrn_format.h"
 #include "flrn_slang.h"
+#include "flrn_shell.h"
 #include "getdate.h"
 
 
@@ -279,7 +280,9 @@ time_t parse_date (char *s)
 
 
 time_t parse_date (char *s) {
-    return get_date(s,NULL);
+    time_t bla=0;
+    /* c'est une date absolue, donc on se fiche du tmeps courant */
+    return get_date(s,&bla);
 }
 
 /* Détermination du real name a partir d'une chaine type From */
@@ -514,6 +517,8 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
                       break;
 		    }
 	 case '{' : /* un header du message */
+	 case '`' : /* une commande à insérer */
+	            if (*buf=='{')
 	            { buf++;
 		      ptr_att=strchr(buf,'}'); 
 		      if (ptr_att) {
@@ -543,7 +548,41 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 			 }
 		         break;
 	  	      } else ptr_att=buf; /* -> default */
-		    }
+		   } else
+	 	   { buf++;
+		      ptr_att=strchr(buf,'`');
+		      if (ptr_att) {
+		        /* TODO : deplacer ca et unifier */
+			/* avec display_filter_file */
+			FILE *file;
+			int fd;
+			char name[MAX_PATH_LEN];
+			char *home;
+		        *ptr_att='\0';
+			fd=Pipe_Msg_Start(0,1,buf);
+			*ptr_att='`';
+			ptr_att++;
+			if (fd<0) break;
+			Pipe_Msg_Stop(fd);
+			if (NULL == (home = getenv ("FLRNHOME")))
+			    home = getenv ("HOME");
+			if (home==NULL) break;
+			strncpy(name,home,MAX_PATH_LEN-2-strlen(TMP_PIPE_FILE));
+			strcat(name,"/"); strcat(name,TMP_PIPE_FILE);
+			file=fopen(name,"r");
+			if (file == NULL) break;
+			while (fgets(tcp_line_read, MAX_READ_SIZE-1, file)) {
+			   if (tmp_file) copy_bout(tmp_file,tcp_line_read);
+			    else {
+			      strncat(result,tcp_line_read,len2);
+			      len2-=strlen(tcp_line_read);
+			      if (len2<=0) { result[len]=0; return; }
+			      else result[len-len2]=0; }
+			}
+			break;
+		      } 
+		      ptr_att=buf; /* -> default */
+		   }
          default : { char *str=safe_malloc(3);
 		     sprintf(str,"%%%c",*buf);
 		     if (debug) fprintf(stderr, "Mauvaise formatage : %%%s\n",

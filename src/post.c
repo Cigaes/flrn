@@ -1119,7 +1119,7 @@ static char *extract_post_references (char *str, int len_id) {
 /* Flag : 0 : normal 1 : mail -1 : cancel ou supersedes */
 static int Get_base_headers(int flag, Article_List *article) {
    int res, len1, len2=0, len3, key, i, from_perso=0;
-   char *real_name, *buf;
+   char *real_name, *buf, *buf2;
    string_list_type *parcours;
 
    Header_post=safe_calloc(1,sizeof(Post_Headers));
@@ -1141,6 +1141,9 @@ static int Get_base_headers(int flag, Article_List *article) {
 	{
 	   Header_post->k_header[i]=safe_malloc(513);
 	   Copy_format (NULL, buf+2, article, Header_post->k_header[i], 512);
+	   /* on reformate */
+	   buf2=Header_post->k_header[i];
+	   while ((buf2=strchr(buf2,'\n'))) *buf2=' ';
 	   if (i==FROM_HEADER) from_perso=1;
 	}
 	else if (i==NB_KNOWN_HEADERS) {
@@ -1156,6 +1159,9 @@ static int Get_base_headers(int flag, Article_List *article) {
 	   parcours2->header=safe_malloc(513);
 	   Copy_format (NULL, parcours->str, article, 
 	                   parcours2->header, 512);
+	   /* on reformate */
+	   buf2=parcours2->header;
+	   while ((buf2=strchr(buf2,'\n'))) *buf2=' ';
 	   parcours2->num_af=0;
 	}
 	parcours=parcours->next;

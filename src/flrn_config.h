@@ -10,6 +10,7 @@
 #define DEFAULT_CONFIG_SYS_FILE "flrnrc" /* si pas de .flrnrc, on ouvre celui-la */
 #define DEFAULT_FLNEWS_FILE	".flnewsrc"
 #define TMP_POST_FILE           ".article"
+#define TMP_PIPE_FILE		".pipe_flrn"
   /* en fait fichier temporaire utilisé partout */
 #define TMP_REJECT_POST_FILE    "dead.article"
 #define DEFAULT_HELP_DIRECTORY	PATH_HELP_DIRECTORY /* defined in pathdef.h */

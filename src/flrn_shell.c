@@ -91,8 +91,8 @@ int Pipe_Msg_Start (int flagin ,int flagout, char *cmdline) {
       if (NULL == (home = getenv ("FLRNHOME")))
               home = getenv ("HOME");
       if (home==NULL) return -1;  /* TRES improbable :-) */
-      strncpy(name,home,MAX_PATH_LEN-2-strlen(TMP_POST_FILE));
-      strcat(name,"/"); strcat(name,TMP_POST_FILE);
+      strncpy(name,home,MAX_PATH_LEN-2-strlen(TMP_PIPE_FILE));
+      strcat(name,"/"); strcat(name,TMP_PIPE_FILE);
     }
 
     sigwinchcatch=0;

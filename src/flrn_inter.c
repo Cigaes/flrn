@@ -2110,8 +2110,8 @@ int display_filter_file(char *cmd, int flag) {
   if (NULL == (home = getenv ("FLRNHOME")))
        home = getenv ("HOME");
   if (home==NULL) return -1;  /* TRES improbable :-) */
-  strncpy(name,home,MAX_PATH_LEN-2-strlen(TMP_POST_FILE));
-  strcat(name,"/"); strcat(name,TMP_POST_FILE);
+  strncpy(name,home,MAX_PATH_LEN-2-strlen(TMP_PIPE_FILE));
+  strcat(name,"/"); strcat(name,TMP_PIPE_FILE);
   file=fopen(name,"r");
   if (file == NULL) {
     etat_loop.etat=2; etat_loop.num_message=-11;
