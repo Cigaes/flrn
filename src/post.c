@@ -807,8 +807,9 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
 /* Prepare les headers pour le post */
 /* Pour l'instant, on s'occupe juste de sender et de X-newsreader */
 /* On pourrait aussi supprimer Control */
-static void Format_headers() {
-   int len1, len2, copy_pre, i,j;
+/* 0 : bon, -1 : annuler */
+static int Format_headers() {
+   int len1, len2, copy_pre, i,j, nb_groups;
    char *real_name=safe_strdup(flrn_user->pw_gecos), *buf, *buf2;
    static char *delim2=" ,;\t";
 
@@ -870,6 +871,49 @@ static void Format_headers() {
        Header_post->k_header[j]=real_name;
     }
   }
+  /* Test du newsgroups */
+  buf=Header_post->k_header[NEWSGROUPS_HEADER];
+  nb_groups=0;
+  while (buf) {
+     buf=strchr(buf,',');
+     if (buf) buf++;
+     nb_groups++;
+  }
+  if (nb_groups>1) {
+     int key;
+     Liste_Menu *lemenu,*courant;
+     char *buf3;
+     while (Header_post->k_header[FOLLOWUP_TO_HEADER]==NULL) {
+       Cursor_gotorc(Screen_Rows2-2,0);
+       Screen_erase_eol();
+       Screen_write_string("Attention : crosspost sans suivi-à.");
+       Cursor_gotorc(Screen_Rows2-1,0);
+       Screen_erase_eol();
+       Screen_write_string("(L)aisser, (A)nnuler, (C)hoisir un suivi-à ? ");
+       key=Attend_touche();
+       key=toupper(key);
+       if (key=='L') return 0;
+       if (key=='A') return -1;
+       {
+         lemenu=NULL; courant=NULL;
+	 buf2=Header_post->k_header[NEWSGROUPS_HEADER];
+	 while (buf2) {
+	    buf=buf2;
+	    buf2=strchr(buf2,',');
+	    if (buf2) *buf2='\0';
+	    buf3=safe_strdup(buf);
+            courant=ajoute_menu(courant,buf3,buf3);
+	    if (lemenu==NULL) lemenu=courant;
+	    if (buf2) *(buf2++)=',';
+	 }
+	 num_help_line=11;
+	 buf3=(char *)Menu_simple(lemenu,lemenu,NULL,NULL,"Choix du groupe. <entrée> pour choisir, q pour quitter...");
+	 if (buf3) Header_post->k_header[FOLLOWUP_TO_HEADER]=safe_strdup(buf3);
+	 Libere_menu_noms(lemenu);
+       }
+     }
+  } 
+  return 0;
 }
 
 
@@ -889,7 +933,8 @@ static int Format_article(char *to_cancel) {
   /* Ecriture des headers */
   /* Attention : ici les headers sont plutôt buggués : il faudrait */
   /* formater, et remplacer les \n par des \r\n... Mais bon...     */
-   Format_headers();
+   i=Format_headers();
+   if (i<0) return i;
    for (i=0; i<NB_KNOWN_HEADERS; i++) 
       if (Header_post->k_header[i]) {
 	str_cat(&ecriture_courant, Headers[i].header);
@@ -1443,6 +1488,7 @@ int post_message (Article_List *origine, char *name_file,int flag) {
     if (Header_post->k_header[SUBJECT_HEADER])
        encode_headers(&(Header_post->k_header[SUBJECT_HEADER]));
     res=Format_article((supersedes ? origine->msgid : NULL));
+    if (res<0) { Free_post_headers(); Libere_listes(); return 0; }
     if (Header_post->k_header[TO_HEADER] ||
 	Header_post->k_header[CC_HEADER] ||
 	Header_post->k_header[BCC_HEADER]) res_mail=Mail_article();

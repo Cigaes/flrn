@@ -285,7 +285,7 @@ time_t parse_date (char *s)
 
 
 time_t parse_date (char *s) {
-    time_t bla=0;
+    time_t bla=1;
     /* c'est une date absolue, donc on se fiche du tmeps courant */
     return get_date(s,&bla);
 }

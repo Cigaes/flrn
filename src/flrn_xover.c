@@ -80,6 +80,18 @@ int get_overview_fmt() {
    return (good>=2)?0:-1;
 }
 
+int check_in_xover(int number) {
+   int num;
+   if (overview_usable==0) return 0;
+   for (num=0;num<OVERVIEW_SIZE_MAX;num++) {
+      if (overview_list[num]==-10) break;
+      if (overview_list[num]==-1) continue;
+      if ((overview_list[num] & ~FULL_HEADER_OVER)==number) return 1;
+   }
+   return 0;
+}
+
+
 /* On obtient maintenant un résumé des articles n1-n2 du groupe par XOVER.  */
 /* on crée les articles à chaque fois, en partant de article                */
 /* si celui-ci est non NULL, et de Article_deb sinon...			    */
@@ -88,7 +100,7 @@ int get_overview_fmt() {
 /* On suppose qu'on est déjà dans le groupe courant (cette fonction peut    */
 /* par exemple se faire appeler par un truc avant cree_liste...		    */
 /* retour : >=0 si succès... -1 si échec				    */
-int cree_liste_xover(int n1, int n2, Article_List **input_article) {
+int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin,                        int *newmax) {
     int res, code, suite_ligne=0, num=0, crees=0;
     char *buf, *buf2;
     Article_List *creation, *article=input_article?*input_article:NULL;
@@ -97,6 +109,7 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
     int new_article=0; /* s'il y a du neuf, pour cree_liens */
     int out=0;
 
+    *newmin=*newmax=-1;
     buf=safe_malloc(50*sizeof(char)); /* De toute façon, on devra */
     	/* gérer des lignes TRES longues cette fois :-( */
  /* On envoie la commande Xover */   
@@ -155,7 +168,12 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
 	     article=creation;
 	   }
 	 }
-	 crees+= new_article;
+	 if (new_article) {
+	   if (creation->numero>*newmax) *newmax=creation->numero;
+	   if ((creation->numero<*newmin) || 
+	       (*newmin==-1)) *newmin=creation->numero;
+	   crees++;
+	 }
 	 buf=buf2+1;
 	 article->headers=new_header();
 	 /* on regarde si le message est lu */
@@ -278,13 +296,15 @@ int va_dans_groupe() {
 /* Cette fonction cree la liste des articles du newsgroup courant
  * On suppose provisoirement que la commande XHDR fonctionne.
  * Le retour est -2 pour un newsgroup invalide. */
-int cree_liste_noxover(int min, int max, Article_List *start_article) {
+int cree_liste_noxover(int min, int max, Article_List *start_article, int *newmin, int *newmax) {
    int res, code, crees=0;
    char *buf, *buf2;
    Article_List *creation,*article=start_article;
    Range_List *msg_lus=Newsgroup_courant->read;
    int lus_index=0;
    
+   *newmin=min;
+   *newmax=max;
    /* Envoie de la commande XHDR
     * 270 comme taille max d'un message-ID ? */
    buf=safe_malloc(270*sizeof(char));
@@ -316,7 +336,7 @@ int cree_liste_noxover(int min, int max, Article_List *start_article) {
       }
 
 
-      creation->flag =0;
+      creation->flag = FLAG_NEW;
       /* on regarde si le message est lu */
       /* on recherche dans la table un max >= au numero de message */
       while ((msg_lus) && (msg_lus->max[lus_index] < creation->numero))
@@ -383,7 +403,7 @@ int cree_liste_noxover(int min, int max, Article_List *start_article) {
 }
 
 int cree_liste(int art_num, int *part) {
-   int min,max,res,code;
+   int min,max,res,code,newmin,newmax;
    char *buf;
    /* On change le newsgroup courant pour le serveur */
    *part=0;
@@ -418,10 +438,10 @@ int cree_liste(int art_num, int *part) {
      if (Newsgroup_courant->max<max) /* Ca peut etre > si list active et */
      {
      /* on essaie un cree_liste_xover moins couteux qu'un cherche newnews */
-       if (cree_liste_xover(Newsgroup_courant->max+1,max,&Article_deb)) {
+       if (cree_liste_xover(Newsgroup_courant->max+1,max,&Article_deb,&newmin,&newmax)>0) {
 	 Date_groupe = time(NULL)+Date_offset;
 	 cree_liens();
-	 apply_kill_file();
+	 apply_kill_file(newmin,newmax);
        }
        else
 	 cherche_newnews();
@@ -455,9 +475,9 @@ int cree_liste(int art_num, int *part) {
    }
    Date_groupe = time(NULL)+Date_offset;
    if (overview_usable)
-     res=cree_liste_xover(min,max,NULL);
+     res=cree_liste_xover(min,max,NULL,&newmin,&newmax);
    else
-     res=cree_liste_noxover(min,max,NULL);
+     res=cree_liste_noxover(min,max,NULL,&newmin,&newmax);
 
    if (res<=0) return res;
    Article_exte_deb=NULL;
@@ -469,7 +489,7 @@ int cree_liste(int art_num, int *part) {
    /* donc on ne les utilise pas, et on les remplacera a la fin... */
    Newsgroup_courant->article_deb_key=Article_deb_key;
    /* on a besoin de article_deb_key pour le kill_file... */
-   apply_kill_file();
+   apply_kill_file(newmin,newmax);
    Newsgroup_courant->Article_deb=Article_deb;
    Newsgroup_courant->Article_exte_deb=Article_exte_deb;
    Newsgroup_courant->Hash_table=Hash_table;
@@ -478,30 +498,93 @@ int cree_liste(int art_num, int *part) {
 }
 
 int cree_liste_end() {
-  int res;
+  int res,newmin,newmax;
   /* fixme */
   if (!overview_usable) return 0;
   /* ca ne veut pas dire gd chose comme test, mais bon... */
   if (Article_deb->numero <2) return 0;
-  res=cree_liste_xover(1,Article_deb->numero-1,&Article_deb);
-  if (res) {
+  res=cree_liste_xover(1,Article_deb->numero-1,&Article_deb,&newmin,&newmax);
+  if (res>0) {
     cree_liens();
-    apply_kill_file();
+    apply_kill_file(newmin,newmax);
   }
   return 0;
 }
 
 /* On retourne 0 si tout est créé, 1 sinon */
 int cree_liste_suite(int end) {
-  int res, num;
+  int res, num,newmin,newmax;
   if (end) return cree_liste_end();
   if (Article_deb->numero-301<Newsgroup_courant->min) return cree_liste_end();
   if (!overview_usable) return 0;
   if (Article_deb->numero-Newsgroup_courant->min>800) num=(Article_deb->numero-Newsgroup_courant->min)/4; else num=200;
-  res=cree_liste_xover(Article_deb->numero-num,Article_deb->numero-1,&Article_deb);
-  if (res) {
+  res=cree_liste_xover(Article_deb->numero-num,Article_deb->numero-1,&Article_deb,&newmin,&newmax);
+  if (res>0) {
     cree_liens();
-    apply_kill_file();
+    apply_kill_file(newmin,newmax);
   }
   return 1;
+}
+
+int launch_xhdr(int min, int max, char *header_name) {
+   int res,code;
+   char *buf, *buf2;
+
+   buf=safe_malloc((30+strlen(header_name))*sizeof(char));
+   sprintf(buf,"%s %d-%d", header_name, min, max);
+   buf2=strchr(buf,':');
+   if (buf2) *buf2=' ';
+   res=write_command(CMD_XHDR, 1, &buf);
+   free(buf);
+   if (res<0) return -1; 
+   code=return_code();
+   if ((code<0) || (code>300)) return -1;
+   return 0;
+}
+
+int get_xhdr_line(int num, char **ligne, int num_hdr, Article_List *art) {
+   int res, number;
+   *ligne=NULL;
+   while (1) {
+      res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+      if (res<4) return -1;
+      tcp_line_read[res-2]='\0';
+      number=strtol(tcp_line_read,ligne,10);
+      if (*ligne) while (**ligne==' ') (*ligne)++;
+      if ((*ligne) && (strcmp(*ligne,"(none)")==0)) *ligne="";
+      if ((number==num) && (num_hdr!=-1)) {
+         if (art->headers==NULL) {
+	   art->headers=new_header();
+	   art->headers->k_headers[MESSAGE_ID_HEADER]=art->msgid;
+	   art->headers->k_headers_checked[MESSAGE_ID_HEADER]=1;
+	 }
+	 if (art->headers->k_headers_checked[num_hdr]==1) {
+	    *ligne=art->headers->k_headers[num_hdr];
+	    break;
+	 } else {
+	    art->headers->k_headers_checked[num_hdr]=1;
+	    art->headers->k_headers[num_hdr]=safe_strdup(*ligne);
+	    if (num_hdr==SUBJECT_HEADER) {
+	        rfc2047_decode(art->headers->k_headers[SUBJECT_HEADER],
+		   art->headers->k_headers[SUBJECT_HEADER],
+		   strlen(art->headers->k_headers[SUBJECT_HEADER]));
+		*ligne=art->headers->k_headers[SUBJECT_HEADER];
+	    }
+	    if (num_hdr==DATE_HEADER) {
+	        art->headers->date_gmt=
+		   parse_date(art->headers->k_headers[DATE_HEADER]);
+	    }
+	 }
+      }
+      if (number>=num) {
+         if (number>num) *ligne=NULL;
+	 else if (*ligne==NULL) *ligne="";
+	 break;
+      }
+   }
+   return 0;
+}
+
+int end_xhdr_line() {
+   return discard_server();
 }

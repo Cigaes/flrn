@@ -976,7 +976,6 @@ static int Aff_header (int flag, int with_arbre, int row, int col, char *str,
 }
 
 /* Utilise Options.user_flags pour faire des flags immonde */
-/* Pour l'instant, on fait seulement les Known_headers */
 static char *Recupere_user_flags (Article_List *article) {
    char *str, flag, *buf;
    int size=0;
@@ -1001,7 +1000,7 @@ static char *Recupere_user_flags (Article_List *article) {
      while ((*buf) && (isblank(*buf))) buf++;
      if (parse_filter_flags(buf,filt)) 
        parse_filter(buf,filt);
-     if (!check_article(article,filt,0)) str[size++]=flag;
+     if (!check_article(article,filt,1)) str[size++]=flag;
    }
    free_filter(filt);
    if (size==0) free(str); else str[size]='\0';

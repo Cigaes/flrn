@@ -362,11 +362,12 @@ int cree_liens() {
   return 0;
 }
 
-void apply_kill_file() {
+void apply_kill_file(int min, int max) {
   Article_List *creation;
   /* 3eme passe, on regarde le kill-file */
   for(creation=Article_deb; creation; creation=creation->next)
-    check_kill_article(creation,0);
+     if (creation->numero>=min) break;
+  if (creation) check_kill_article_in_list(creation,min,max,1);
 }
 
 Article_Header *new_header() {
@@ -628,7 +629,7 @@ Article_List *ajoute_message (char *msgid, int *should_retry) {
       Newsgroup_courant->virtual_in_not_read--; else 
       Newsgroup_courant->not_read++;
    creation->flag |= FLAG_NEW;
-   check_kill_article(creation,0);
+   check_kill_article(creation,1);
    return creation;
 }
 
@@ -703,7 +704,7 @@ Article_List *ajoute_message_par_num (int min, int max) {
    if (Newsgroup_courant->virtual_in_not_read) 
       Newsgroup_courant->virtual_in_not_read--; else 
       Newsgroup_courant->not_read++;
-   check_kill_article(creation,0);
+   check_kill_article(creation,1);
    return creation;
 }
 

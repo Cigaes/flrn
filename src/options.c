@@ -899,7 +899,7 @@ const char *menu_default_help_line=" Menu: \\quit : quitter le menu     \\select
 void load_help_line_file() {
   int i;
   FILE *flrnfile;
-  char buf1[80];
+  char buf1[83];
 
   for (i=0;i<14;i++) Help_Lines[i]=menu_default_help_line;
   Help_Lines[0]=Help_Lines[3]=" ? : aide   \\quit : quitter flrn   \\next-unread : article suivant";
@@ -913,7 +913,7 @@ void load_help_line_file() {
   flrnfile=open_flrnfile(Options.help_lines_file,"r",0,NULL);
   if (flrnfile==NULL) return;
   for (i=0;i<17;i++) {
-      if (fgets(buf1,80,flrnfile)==NULL) break;
+      if (fgets(buf1,83,flrnfile)==NULL) break;
       Help_Lines[i]=safe_strdup(buf1);
       /* TODO : corriger le memory leak */
   }

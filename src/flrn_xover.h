@@ -14,11 +14,16 @@
 
 extern int va_dans_groupe(void);
 extern int get_overview_fmt(void);
-extern int cree_liste_xover(int /*n1*/, int /*n2*/, Article_List **);
+extern int cree_liste_xover(int /*n1*/, int /*n2*/, Article_List **,
+    int *, int *);
 extern int cree_liste_noxover(int /*n1*/, int /*n2*/,
-    Article_List * /*article*/);
+    Article_List * /*article*/, int *, int *);
 extern int cree_liste(int, int * );
 extern int cree_liste_end(void);
 extern int cree_liste_suite(int);
+extern int launch_xhdr(int, int, char *);
+extern int get_xhdr_line(int, char **, int, Article_List *);
+extern int end_xhdr_line(void);
+extern int check_in_xover(int);
 
 #endif

@@ -600,7 +600,7 @@ int write_command (int num_com, int num_param, char **param) {
    char **param2=param;
    char *buf;
    
-   filter_cmd_list[0]='\0';
+   if (num_com==CMD_LIST) filter_cmd_list[0]='\0';
    renvoie_direct=0;
    if ((server_command_status[num_com] & CMD_FLAG_MAXIMAL)==CMD_FLAG_MAXIMAL) 
      return raw_write_command(num_com, num_param, param2);

@@ -27,6 +27,163 @@ static flrn_kill *flrn_kill_deb=NULL;
 static Flrn_liste *main_kill_list=NULL; /* la liste pour l'abonnement */
 static char *main_list_file_name=NULL;
 
+/* regarde si la liste d'article correspond au filtre
+ * flag & 1 : appelle XHDR en cas de besoin
+ * flag & 2 : appelle XOVER en cas de besoin
+ */
+int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
+   int min, int max) {
+  int with_xhdr,std_hdr,ret,reste=0;
+  char *ligne;
+  flrn_condition *cond=filtre->condition;
+  Article_List *parcours=debut;
+  int newmin=max,newmax,deja_test[NB_KNOWN_HEADERS],i;
+
+  for (i=0;i<NB_KNOWN_HEADERS;i++) deja_test[i]=0;
+  if (parcours==NULL) return -1;
+  if ((debut->headers==NULL) && (flag & 2)) {
+     if (overview_usable) 
+       cree_liste_xover(min,max,&Article_deb,&newmin,&newmax);
+       /* Si on a de nouveaux articles, tant mieux, de toute façon       */
+       /* newmin et newmax sont compris logiquement entre min et max     */
+       /* si l'overview n'est pas utilisable, on va tout faire à la main */
+  }
+  while (parcours->numero<=max) {
+     if (parcours->flag & FLAG_TMP_KILL) {
+         if ((parcours->flag & filtre->cond_mask)!=filtre->cond_res) 
+	     parcours->flag &= ~FLAG_TMP_KILL;
+	 else {
+	   if (reste==0) newmin=parcours->numero;
+	   reste=1;
+	 }
+     }
+     parcours=parcours->next;
+     if (parcours==NULL) break;
+  }
+  if (reste==0) return 0;
+  min=newmin;
+  if ((filtre->date_after>0) || (filtre->date_before>0)) {
+     with_xhdr=((flag & 1) && (!check_in_xover(DATE_HEADER)));
+     if (with_xhdr) {
+        ret=launch_xhdr(min,max,Headers[DATE_HEADER].header);
+	deja_test[DATE_HEADER]=1;
+	if (ret==-1) with_xhdr=0;
+     }
+     reste=0;
+     parcours=debut;
+     while (parcours->numero<=max) {
+        if (parcours->flag & FLAG_TMP_KILL) {
+	   if (with_xhdr) {
+	      ret=get_xhdr_line(parcours->numero,&ligne,DATE_HEADER,parcours);
+	      if (ret==-1) with_xhdr=0;
+	      if (ligne==NULL) {
+	         if (reste==0) newmin=parcours->numero;
+	         parcours=parcours->next;
+		 reste=1;
+                 if (parcours==NULL) break;
+		 continue;
+	      }
+	   }
+	   if ((parcours->headers) && (parcours->headers->date_gmt>0)) {
+	      if ((filtre->date_after>0) && 
+	        (parcours->headers->date_gmt<filtre->date_after))
+	           parcours->flag &= ~FLAG_TMP_KILL;
+	      else
+	      if ((filtre->date_before>0) && 
+	        (parcours->headers->date_gmt>filtre->date_after))
+		   parcours->flag &= ~FLAG_TMP_KILL;
+	      else {
+	        if (reste==0) newmin=parcours->numero;
+	        reste=1;
+	      }
+	   } else {
+	        if (reste==0) newmin=parcours->numero;
+	        reste=1;
+	   }
+	}
+	parcours=parcours->next;
+        if (parcours==NULL) break;
+     }
+     if (with_xhdr) end_xhdr_line();
+  }
+  min=newmin;
+  while ((reste) && (cond)) {
+     reste=0;
+     if (cond->flags & FLRN_COND_U_HEAD) {
+         with_xhdr=(flag & 1);
+	 std_hdr=-1;
+     } else {
+         std_hdr=cond->header_ns.header_num;
+         with_xhdr=((flag & 1) && (!check_in_xover(std_hdr)));
+	 if ((with_xhdr) && (deja_test[std_hdr])) with_xhdr=0;
+     }
+     if (with_xhdr) {
+        ret=launch_xhdr(min,max,(std_hdr==-1 ? cond->header_ns.header_str : 
+						Headers[std_hdr].header));
+	if (std_hdr!=-1) deja_test[std_hdr]=1;
+	if (ret==-1) with_xhdr=0;
+     }
+     parcours=debut;
+     while (parcours->numero<=max) {
+        if (parcours->flag & FLAG_TMP_KILL) {
+	   if (with_xhdr) {
+	       ret=get_xhdr_line(parcours->numero,&ligne,std_hdr,parcours);
+	       if (ret==-1) {
+	          with_xhdr=0;
+		  if (std_hdr==-1) {
+	             if (reste==0) newmin=parcours->numero;
+		     reste=1;
+		     break;
+		  }
+	       }
+	       if (ligne==NULL) ligne="";
+	   } else if (std_hdr!=-1) {
+	       ligne=((parcours->headers) &&
+	       (parcours->headers->k_headers[cond->header_ns.header_num]) ?
+	       parcours->headers->k_headers[cond->header_ns.header_num] : "");
+	   } else {
+	       parcours=parcours->next;
+	       reste=1;
+               if (parcours==NULL) break;
+	       continue;
+	   }
+	   if (!(cond->flags & FLRN_COND_STRING)) {
+	      if (regexec(cond->condition.regex,ligne,0,NULL,0)
+	             !=(cond->flags & FLRN_COND_REV)?REG_NOMATCH:0)
+		  parcours->flag &= ~FLAG_TMP_KILL;
+	      else {
+	        if (reste==0) newmin=parcours->numero;
+	        reste=1;
+	      }
+	   } else {
+	      if (strstr(ligne,cond->condition.string)!=NULL) {
+	         if ((cond->flags & FLRN_COND_REV)!=0)
+		     parcours->flag &= ~FLAG_TMP_KILL; else {
+	                if (reste==0) newmin=parcours->numero;
+		        reste=1;
+	 	     }
+	      } else {
+	         if ((cond->flags & FLRN_COND_REV)==0)
+		     parcours->flag &= ~FLAG_TMP_KILL; else {
+	                if (reste==0) newmin=parcours->numero;
+			reste=1;
+		     }
+	      }
+	   }
+	}
+	parcours=parcours->next;
+        if (parcours==NULL) break;
+     }
+     if (with_xhdr) end_xhdr_line();
+     cond=cond->next;
+     min=newmin;
+  }
+  /* On est au bout... FLAG_TMP_KILL donne la liste des matchs... */
+  return reste;
+}
+      
+
+
 /* regarde si l'article correspond au filtre */
 /* renvoie -1, s'il manque des headers
  * 0 si ça matche
@@ -34,26 +191,21 @@ static char *main_list_file_name=NULL;
  * flag=1 dit d'appeler cree_header au besoin */
 int check_article(Article_List *article, flrn_filter *filtre, int flag) {
   flrn_condition *regexp=filtre->condition;
+  int cree_header_done=0;
+  char *ligne;
+  Header_List *tmp;
 
   /* en premier, on regarde si les flags de l'article sont bons */
   if ((article->flag & filtre->cond_mask) != filtre->cond_res)
     return 1;
-  /* regarde s'il y a lieu de faire un xover */
-  if (article->headers==NULL) {
-    int first, last;
-    first=last=article->numero;
-    if (article->prev && article->prev->headers==NULL) {
-      first -=50;
-      if (first <1) first=1;
-    }
-    if (article->next && article->next->headers==NULL) {
-      last +=50;
-    }
-    if (overview_usable) if(cree_liste_xover(first, last, &Article_deb)) {
-      /* en fait, on a trouvé de nouveaux articles !!! */
-      cree_liens();
-      apply_kill_file();
-    }
+  if (((filtre->date_after>0) || (filtre->date_before>0)) &&
+      (article->headers->k_headers_checked[DATE_HEADER]==0)) {
+     if (flag) {
+        if (Last_head_cmd.Article_vu!=article) 
+          cree_header(article,0,1,0);
+	cree_header_done=1;
+     }
+      else return -1;
   }
   if (filtre->date_after>0) {
      if ((article->headers) && (article->headers->date_gmt>0)) 
@@ -64,23 +216,40 @@ int check_article(Article_List *article, flrn_filter *filtre, int flag) {
         if (article->headers->date_gmt>filtre->date_before) return 1;
   }
   while(regexp) {
-    if ((article->headers == NULL) ||
-	(article->headers->k_headers_checked[regexp->header_num]==0)) {
-      if (flag) cree_header(article,0,0,0);
+    if (((article->headers == NULL) ||
+	(regexp->flags & FLRN_COND_U_HEAD) ||
+	(article->headers->k_headers_checked[regexp->header_ns.header_num]==0))
+	 && (cree_header_done==0))
+    {
+      if (flag) {
+        if (Last_head_cmd.Article_vu!=article) 
+          cree_header(article,0,1,0);
+	cree_header_done=1;
+      }
       else return -1;
     }
+    if (regexp->flags & FLRN_COND_U_HEAD) {
+       tmp=Last_head_cmd.headers;
+       while (tmp) {
+          if (strncasecmp(tmp->header,regexp->header_ns.header_str,
+	  			strlen(regexp->header_ns.header_str))==0) break;
+	   tmp=tmp->next;
+       }
+       if (tmp==NULL) ligne=""; else {
+          ligne=tmp->header+strlen(regexp->header_ns.header_str);
+	  while (*ligne==' ') ligne++;
+       }
+    } else 
+      ligne=article->headers->k_headers[regexp->header_ns.header_num]?
+            article->headers->k_headers[regexp->header_ns.header_num]:"";
     if (!(regexp->flags & FLRN_COND_STRING)) {
       /* c'est une regexp */
-      if(regexec(regexp->condition.regex,
-	article->headers->k_headers[regexp->header_num]?
-	article->headers->k_headers[regexp->header_num]:"",
+      if(regexec(regexp->condition.regex,ligne,
 	0,NULL,0)!=(regexp->flags & FLRN_COND_REV)?REG_NOMATCH:0)
 	return 1;
     } else {
       /* c'est une chaine... FIXME: case-sensitive ou pas */
-      if(strstr(article->headers->k_headers[regexp->header_num]?
-	article->headers->k_headers[regexp->header_num]:"",
-	regexp->condition.string)!=NULL) {
+      if(strstr(ligne,regexp->condition.string)!=NULL) {
 	  if ((regexp->flags & FLRN_COND_REV) != 0) return 1;
       } else {
 	  if ((regexp->flags & FLRN_COND_REV) == 0) return 1;
@@ -218,21 +387,31 @@ int parse_filter(char * istr, flrn_filter *start) {
   /* on cherche le header correspondant */
   for (i=0;i<NB_KNOWN_HEADERS;i++) {
     if (strncasecmp(str,Headers[i].header,Headers[i].header_len)==0) {
-      cond->header_num=i; break;
+      cond->header_ns.header_num=i; break;
     }
   }
-  /* FIXME: pour l'instant, on se limite aux known headers... */
   if (i == NB_KNOWN_HEADERS) { 
-     free(cond) ; 
      /* cas d'une date */
      if (strncasecmp(str,"date ",5)==0) {
         buf=str+5;
 	if (*buf=='>') start->date_after=get_date(buf+1,NULL);
 	  else if (*buf=='<') start->date_before=get_date(buf+1,NULL);
+	return 0;
+     } else {
+       char saf_chr;
+       cond->flags |= FLRN_COND_U_HEAD;
+       buf=strchr(str,':');
+       if ((buf==NULL) || (buf==str)) {
+         free(cond);
+	 return -1;
+       }
+       saf_chr=*(++buf);
+       *buf='\0';
+       cond->header_ns.header_str=safe_strdup(str);
+       *buf=saf_chr;
      }
-     return -1; 
-  }
-  buf = str + Headers[cond->header_num].header_len;
+  } else
+    buf = str + Headers[cond->header_ns.header_num].header_len;
   while(*buf==' ') buf++;
   /* on parse la regexp */
   if (cond->flags & FLRN_COND_STRING) {
@@ -240,7 +419,8 @@ int parse_filter(char * istr, flrn_filter *start) {
   } else {
     cond->condition.regex = safe_malloc(sizeof(regex_t));
     if (regcomp(cond->condition.regex,buf,REG_EXTENDED|REG_NOSUB|REG_ICASE))
-    {free(cond->condition.regex); free(cond) ; return -2;}
+    {  if (cond->flags & FLRN_COND_U_HEAD) free(cond->header_ns.header_str);
+       free(cond->condition.regex); free(cond) ; return -2;}
   }
   /* on l'ajoute au filtre */
   if (start->condition==NULL)
@@ -264,6 +444,7 @@ static void free_condition( flrn_condition *cond) {
       free(cond->condition.string);
       cond->condition.string=NULL;
   }
+  if (cond->flags & FLRN_COND_U_HEAD) free(cond->header_ns.header_str);
   free(cond);
 }
 
@@ -495,6 +676,47 @@ void check_kill_article(Article_List *article, int flag) {
   save=Article_courant;
   Article_courant=article;
   apply_kill(flag);
+  Article_courant=save;
+  restore_etat_loop();
+}
+
+void check_kill_article_in_list(Article_List *debut, int min, int max, int flag) {
+  Article_List *save;
+  int res,vide;
+  flrn_kill *kill=flrn_kill_deb;
+  save_etat_loop();
+  save=Article_courant;
+  while (kill) {
+    if (check_group(kill)) {
+      vide=1;
+      Article_courant=debut;
+      while ((Article_courant) && (Article_courant->numero<=max)) {
+        if (Article_courant->flag & FLAG_NEW) {
+	  vide=0;
+          Article_courant->flag |= FLAG_TMP_KILL;
+	}
+        Article_courant=Article_courant->next;
+      }
+      res=(vide ? 0 : check_article_list(debut,kill->filter,flag,min,max));
+      if (res) {
+         Article_courant=debut;
+	 while ((Article_courant) && (Article_courant->numero<=max)) {
+	    if (Article_courant->flag & FLAG_TMP_KILL) {
+	       Article_courant->flag &= ~(FLAG_NEW | FLAG_TMP_KILL);
+	       filter_do_action(kill->filter);
+	    }
+	    Article_courant=Article_courant->next;
+	 }
+      }
+      if (vide) break;
+    }
+    kill=kill->next;
+  }
+  Article_courant=debut;
+  while ((Article_courant) && (Article_courant->numero<=max)) {
+      Article_courant->flag &= ~(FLAG_NEW | FLAG_TMP_KILL);
+      Article_courant=Article_courant->next;
+  }
   Article_courant=save;
   restore_etat_loop();
 }

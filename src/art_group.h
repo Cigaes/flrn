@@ -89,6 +89,9 @@ typedef struct Flrn_art_list
     * Il doit en etat normal etre a 0 */
    /* Ce flag est aussi utilise pour la selection */
 #define FLAG_SUMMARY		0x0400
+   /* flag utilisé en kill-file */
+   /* en état normal à 0 	*/
+#define FLAG_TMP_KILL		0x0800
    int flag;  
 
    char *msgid;
@@ -163,7 +166,7 @@ extern int Recherche_article (int /*num*/, Article_List ** /*retour*/,
     int /*flags*/);
 extern Article_Header *new_header(void);
 extern int Est_proprietaire(Article_List * /*article*/);
-extern void apply_kill_file(void );
+extern void apply_kill_file(int, int);
 extern Article_List *cousin_prev(Article_List *article);
 extern Article_List *cousin_next(Article_List *article);
 extern void free_one_article(Article_List *, int);

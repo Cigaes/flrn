@@ -21,7 +21,11 @@ typedef struct _flrn_condition {
   int flags;
 #define FLRN_COND_REV 1
 #define FLRN_COND_STRING 2
-  int header_num;
+#define FLRN_COND_U_HEAD 4
+  union {
+    int header_num;
+    char *header_str;
+  } header_ns;
   union {
     regex_t *regex;
     char *string;
@@ -69,6 +73,7 @@ typedef struct _flrn_kill {
 /* Les fonctions */
 
 extern int check_article(Article_List *, flrn_filter *, int);
+extern int check_article_list(Article_List *, flrn_filter *, int ,int, int);
 extern flrn_filter *new_filter(void);
 extern int parse_filter(char *, flrn_filter *);
 extern int parse_filter_flags(char *, flrn_filter *);
@@ -77,6 +82,7 @@ extern void free_filter(flrn_filter *);
 extern int parse_kill_file(FILE *);
 extern void apply_kill(int);
 extern void check_kill_article(Article_List *, int );
+extern void check_kill_article_in_list(Article_List *, int, int, int );
 extern int add_to_main_list(char *);
 extern int remove_from_main_list(char *);
 extern void free_kill();

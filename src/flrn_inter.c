@@ -119,6 +119,9 @@ struct file_and_int {
    int num;
 };
 
+/* ces deux trucs servent pour do_summary, et do_select */
+static long min_kill_l, max_kill_l;
+
 int parse_arg_string(char *str,int command, int annu16);
 /* On prédéfinit ici les fonctions appelés par loop... A l'exception de */
 /* get_command, elles DOIVENT être de la forme int do_* (int res)       */ 
@@ -1512,21 +1515,23 @@ int do_quit(int res) {
   return 0; 
 }
 
+static int tag_and_minmax_article(Article_List *article, void *blah)
+{
+   article->flag|=FLAG_TMP_KILL;
+   if ((article->numero<min_kill_l) || (min_kill_l==-1))
+     min_kill_l=article->numero;
+   if (article->numero>max_kill_l) max_kill_l=article->numero;
+   return 0;
+}
+
 static int check_and_tag_article(Article_List *article, void *blah)
 {
   flrn_filter *arg = (flrn_filter *) blah;
-  if (check_article(article,arg,0)<=0)
+  if (check_article(article,arg,1)<=0)
   { tag_article(article,& arg->action.flag); return 1; }
   else return 0;
 }
 
-static int tag_thread_article(Article_List *article, void *blah)
-{
-  flrn_filter *arg = (flrn_filter *) blah;
-  if ((article->thread) && (check_article(article,arg,0)<=0))
-  { article->thread->flags|=FLAG_THREAD_SELECTED; return 1; }
-  else return 0;
-}
 
 /* do_summary Il faut toujours appeler Aff_summary
  * car Aff_summary retire le FLAG_SUMMARY
@@ -1867,8 +1872,8 @@ static int default_thread(Article_List *article, void *flag)
   blah.next=NULL;
   blah.flags=8;
   blah.elem1.article=article;
-  distribue_action(&blah,(Action) check_and_tag_article,NULL,flag);
-  return 0;
+  distribue_action(&blah,(Action) tag_and_minmax_article,NULL,flag);
+  return 1;
 }
 static int default_gthread(Article_List *article, void *flag)
 { return default_thread(root_of_thread(article,1), flag);
@@ -1903,12 +1908,13 @@ int do_summary(int res) {
   Action defact=NULL;
   Action act=NULL;
   flrn_filter *filt;
-  Article_List *ret=NULL;
+  Article_List *ret;
   char *buf=Arg_str;
 
+  min_kill_l=max_kill_l=-1;
   filt=new_filter();
   filt->action.flag=FLAG_SUMMARY;
-  act=check_and_tag_article;
+  act=tag_and_minmax_article;
   if (Arg_str && *Arg_str) {
     while(*buf==' ') buf++;
     if (parse_filter_flags(Arg_str,filt))
@@ -1924,7 +1930,22 @@ int do_summary(int res) {
     default : defact=default_summary;
   }
   result = distribue_action(courant, act, defact, (void *)filt);
+  if (filt) 
+     result=check_article_list(Article_deb,filt,3,min_kill_l,max_kill_l);
+  else result=1;
+  /* La suite n'est pas necessaire en cas de default_summary, mais tant pis */
+  if (result) {
+     ret=Article_deb;
+     while ((ret) && (ret->numero<=max_kill_l)) {
+       if (ret->flag & FLAG_TMP_KILL) {
+          ret->flag |= FLAG_SUMMARY;
+          ret->flag &= ~FLAG_TMP_KILL;
+       }
+       ret=ret->next;
+     }
+  }
   free_filter(filt);
+  ret=NULL;
   switch(res) {
     case FLCMD_MENUTHRE:
     case FLCMD_MENUSUMM:
@@ -1951,17 +1972,32 @@ int do_select(int res) {
   flrn_filter *filt;
   char *buf=Arg_str;
   Thread_List *parcours=Thread_deb, *retour=NULL;
-  Article_List *art_ret=NULL;
+  Article_List *art_ret;
 
+  min_kill_l=max_kill_l=-1;
   filt=new_filter();
-  act=tag_thread_article;
+  act=tag_and_minmax_article;
   if (Arg_str && *Arg_str) {
     while(*buf==' ') buf++;
     if (parse_filter_flags(Arg_str,filt))
       parse_filter(Arg_str,filt);
   }
-  result = distribue_action(courant, act, NULL, (void *)filt);
+  result = distribue_action(courant, act, NULL, NULL);
+  if (filt)
+     result=check_article_list(Article_deb,filt,3,min_kill_l,max_kill_l);
+  else result=1;
+  if (result) {
+     art_ret=Article_deb;
+     while ((art_ret) && (art_ret->numero<=max_kill_l)) {
+       if (art_ret->flag & FLAG_TMP_KILL) {
+          art_ret->thread->flags|=FLAG_THREAD_SELECTED;
+          art_ret->flag &= ~FLAG_TMP_KILL;
+       }
+       art_ret=art_ret->next;
+     }
+  }
   free_filter(filt);
+  art_ret=NULL;
   result=Menu_selector(&retour);
   if (result==-1) {
      etat_loop.hors_struct|=1;
