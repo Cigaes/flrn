@@ -2405,14 +2405,17 @@ static int Sauve_article(Article_List *a_sauver, void *vfichier) {
       } else {
          buf=a_sauver->headers->k_headers[FROM_HEADER];
 	 buf2=strchr(buf,'@');
-	 *buf2='\0'; buf=strrchr(buf,' '); 
+	 if (buf2) *buf2='\0'; buf=strrchr(buf,' '); 
 	 if (buf==NULL) buf=a_sauver->headers->k_headers[FROM_HEADER];
-	 *buf2='@';
-	 buf2=strchr(buf2,' ');
-	 if (buf2) {
-	    saved_char=*buf2;
-	    *buf2='\0';
-	 } else saved_char='\0';
+	 saved_char='\0';
+	 if (buf2) { 
+	   *buf2='@';
+	   buf2=strchr(buf2,' ');
+	   if (buf2) {
+	      saved_char=*buf2;
+	      *buf2='\0';
+	   }
+	 }
       }
       fprintf(fichier, "From %s %s", buf, ctime(&(a_sauver->headers->date_gmt)));
       if (saved_char) *buf2=saved_char;
