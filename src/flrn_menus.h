@@ -69,6 +69,8 @@ struct cmd_predef_menu {
 
 #include "flrn_command.h"
 
+typedef int (*Action_on_menu)(Liste_Menu *courant, char *arg);
+
 extern void *Menu_simple (Liste_Menu * /*debut_menu*/, Liste_Menu * /*actuel*/,
     void action(void *,char *,int),
     int action_select(Liste_Menu *, Liste_Menu **, char *, int, Cmd_return *, int *), char * /*titre*/);
@@ -80,5 +82,7 @@ extern Liste_Menu *ajoute_menu_ordre(Liste_Menu **, char *, void *, int);
 extern int Bind_command_menu(char *, int, char *, int);
 extern void init_Flcmd_menu_rev(void);
 extern int get_menu_signification (char *);
+extern int distribue_action_in_menu(char *, char *,
+			Liste_Menu *, Liste_Menu **, Action_on_menu);
 
 #endif

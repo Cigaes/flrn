@@ -1,5 +1,10 @@
 ChangeLog Flrn
 
+----------------------------
+Version 0.4pre2
+----------------------------
+
+. debut de toggle et des menus. ca marche pas trop mal, mais c'est pas fini
 . re-commande 'N'
 . macros pour le pager et les menus. quelques petits mieux
 . macros, commande toggle... ca foire bien...

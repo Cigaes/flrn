@@ -97,6 +97,7 @@ typedef struct Flrn_thread_list {
 #define FLAG_THREAD_READ 2
 #define FLAG_THREAD_UNREAD 4
 #define FLAG_THREAD_IMPORTANT 8
+#define FLAG_THREAD_BESELECTED 16
 /* doit être remis à 0 en FIN d'opération */
    struct Flrn_hash_list *premier_hash;
    struct Flrn_thread_list *next_thread;

@@ -258,60 +258,121 @@ static char calcul_flag (Newsgroup_List *groupe) {
    return 0;
 }
 
+/* pour chg_grp_in */
+static int abon_group_in (Liste_Menu *courant, char *arg) {
+   Newsgroup_List *choisi=(Newsgroup_List *)(courant->lobjet);
+   char flag,flag_int;
+   char *nom=courant->nom;
+
+   flag_int=*nom;
+   choisi->flags&=~GROUP_UNSUBSCRIBED;
+   flag=calcul_flag(choisi);
+   if (choisi!=Newsgroup_courant) *nom=(flag!=0 ? flag : ' ');
+   if (*nom!=flag_int) courant->changed=1;
+   return courant->changed;
+}
+static int unsu_group_in (Liste_Menu *courant, char *arg) {
+   Newsgroup_List *choisi=(Newsgroup_List *)(courant->lobjet);
+   char flag,flag_int;
+   char *nom=courant->nom;
+
+   flag_int=*nom;
+   choisi->flags|=GROUP_UNSUBSCRIBED;
+   flag=calcul_flag(choisi);
+   if (choisi!=Newsgroup_courant) *nom=(flag!=0 ? flag : ' ');
+   if (*nom!=flag_int) courant->changed=1;
+   return courant->changed;
+}
+static int goto_group_in (Liste_Menu *courant, char *arg) {
+   return -1;
+}
+static int remov_group_in (Liste_Menu *courant, char *arg) {
+   Newsgroup_List *choisi=(Newsgroup_List *)(courant->lobjet);
+   char flag,flag_int;
+   char *nom=courant->nom;
+
+   flag_int=*nom;
+   choisi->flags&=~GROUP_IN_MAIN_LIST_FLAG;
+   remove_from_main_list(choisi->name);
+   flag=calcul_flag(choisi);
+   if (choisi!=Newsgroup_courant) *nom=(flag!=0 ? flag : ' ');
+   if (*nom!=flag_int) courant->changed=1;
+   return courant->changed;
+}
+static int add_group_in (Liste_Menu *courant, char *arg) {
+   Newsgroup_List *choisi=(Newsgroup_List *)(courant->lobjet);
+   char flag,flag_int;
+   char *nom=courant->nom;
+
+   flag_int=*nom;
+   choisi->flags|=GROUP_IN_MAIN_LIST_FLAG;
+   add_to_main_list(choisi->name);
+   flag=calcul_flag(choisi);
+   if (choisi!=Newsgroup_courant) *nom=(flag!=0 ? flag : ' ');
+   if (*nom!=flag_int) courant->changed=1;
+   return courant->changed;
+}
+static int zap_group_in (Liste_Menu *courant, char *arg) {
+   Newsgroup_List *choisi=(Newsgroup_List *)(courant->lobjet);
+   char flag,flag_int;
+   char *nom=courant->nom;
+
+   flag_int=*nom;
+   if  (choisi==Newsgroup_courant) {
+      do_zap_group(FLCMD_ZAP);
+   } else {
+      zap_group_non_courant(choisi);
+      if (*nom=='+') *nom=' ';
+   }
+   flag=calcul_flag(choisi);
+   if (choisi!=Newsgroup_courant) *nom=(flag!=0 ? flag : ' ');
+   if (*nom!=flag_int) courant->changed=1;
+   return courant->changed;
+}
 
 /* Fonctions utilisées pour Liste_groupe... On devrait tout déplacer */
 /* dans group.c à mon avis. Tout ça n'a plus rien à faire là.        */
 /* Quoique... meme ici il y a de l'affichage...			     */
 int chg_grp_in(Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int len, Cmd_return *la_commande, int *affiche) {
-   Newsgroup_List *choisi=(Newsgroup_List *)((*courant)->lobjet);
-   char flag, flag_int;
-   char **nom=&((*courant)->nom);
-   int cmd;
-
-   flag_int=**nom;
-   *name='\0'; /* ça on en est sur */
-   *affiche=0;
+   int ret,cmd;
+   Action_on_menu action;
+   
    if (la_commande->cmd[CONTEXT_MENU]!=FLCMD_UNDEF) return -1;
    cmd=la_commande->cmd[CONTEXT_COMMAND];
-   if (la_commande->before) free(la_commande->before);
-   if (la_commande->after) free(la_commande->after);
 
    switch (cmd) {
-     case FLCMD_ABON : choisi->flags&=~GROUP_UNSUBSCRIBED;
-     		       *affiche=1;
-		       strncpy(name,Messages[MES_ABON],len);
-                break;
-     case FLCMD_UNSU : choisi->flags|=GROUP_UNSUBSCRIBED;
-     		       *affiche=1;
-		       strncpy(name,Messages[MES_DESABON],len);
-                break;
-     case FLCMD_GOTO : 
-     case FLCMD_GGTO : return -1;
-     case FLCMD_REMOVE_KILL : choisi->flags&=~GROUP_IN_MAIN_LIST_FLAG;
-         	       remove_from_main_list(choisi->name);
-     		       *affiche=1;
-		       strncpy(name,Messages[MES_OP_DONE],len);
-                break;
-     case FLCMD_ADD_KILL : choisi->flags|=GROUP_IN_MAIN_LIST_FLAG;
-	      		   add_to_main_list(choisi->name);
-     		           *affiche=1;
-		           strncpy(name,Messages[MES_OP_DONE],len);
-                break;
-     case FLCMD_ZAP : if (choisi==Newsgroup_courant) {
-     			 do_zap_group(FLCMD_ZAP);
-     		      } else {
-                         zap_group_non_courant(choisi);
-     		         if (**nom=='+') **nom=' ';
-		      }
-     		      *affiche=1;
-		      strncpy(name,Messages[MES_ZAP],len);
-       		break;
+      case FLCMD_ABON : action=abon_group_in; 
+      			*affiche=1;
+			strncpy(name,Messages[MES_ABON],len);
+      			break;
+      case FLCMD_UNSU : action=unsu_group_in; 
+      			*affiche=1;
+			strncpy(name,Messages[MES_DESABON],len);
+      			break;
+      case FLCMD_GOTO : case FLCMD_GGTO : action=goto_group_in; break;
+      case FLCMD_REMOVE_KILL : action=remov_group_in;
+      			       *affiche=1;
+			       strncpy(name,Messages[MES_OP_DONE],len);
+			       break;
+      case FLCMD_ADD_KILL : action=add_group_in;
+      			    *affiche=1;
+			    strncpy(name,Messages[MES_OP_DONE],len);
+			    break;
+      case FLCMD_ZAP : action=zap_group_in;
+      		       *affiche=1;
+		       strncpy(name,Messages[MES_ZAP],len);
+		       break;
+      default : strncpy(name,Messages[MES_UNKNOWN_CMD],len);
+      		name[len-1]='\0';
+		*affiche=1;
+		return 0;
    }
-   flag=calcul_flag(choisi);
-   if (choisi!=Newsgroup_courant) **nom=(flag!=0 ? flag : ' ');
-   if (**nom!=flag_int) (*courant)->changed=1;
+   ret=distribue_action_in_menu(la_commande->before, la_commande->after,
+   		debut_menu, courant, action);
+   if (la_commande->before) free(la_commande->before);
+   if (la_commande->after) free(la_commande->after);
    name[len-1]='\0';
-   return (*courant)->changed;
+   return ret;
 }
 
 /* Cette fonction NE DOIT PAS renvoyer -1 si on veut éviter une horreur de 

@@ -435,6 +435,54 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
   return (courant ? courant->lobjet : NULL);
 }
 
+int distribue_action_in_menu(char *arg_prev, char *arg_suiv,
+	Liste_Menu *debut, Liste_Menu **actuel, Action_on_menu action) {
+   int number=0, r=0, res=0, res2=0;
+   char *arg=arg_suiv;
+   Liste_Menu *parcours;
+
+   if (arg_prev) number=get_menu_signification(arg_prev);
+   else if (arg_suiv) {
+     number=get_menu_signification(arg_suiv);
+     arg=strrchr(arg_suiv,',');
+     if (arg==NULL) arg=arg_suiv;
+   } else number=1;
+   if (arg) {
+      while ((*arg) && (isblank(*arg))) arg++;
+      if (*arg=='\0') arg=NULL;
+   }
+   parcours=((number>0) || (number==-5) ? *actuel : debut);
+   if (number==-3) r=Parcours_du_menu(0);
+   for (;parcours; parcours=parcours->suiv) {
+      if (res2==-1) return -1;
+      if (res2>res) res=res2;
+      if (number==-2) {
+          if (parcours->toggled) 
+	     res2=action(parcours, arg);
+          continue;
+      }
+      if (number==-3) {
+         if (r) 
+	   res2=action(parcours,arg);
+	 r=Parcours_du_menu(1);
+	 continue;
+      }
+      res2=action(parcours,arg);
+      if (number>0) {
+	  if (parcours->suiv==NULL) break;
+	  number--;
+	  if (number==0) {
+	    parcours=parcours->suiv;
+	    break;
+	  }
+      } else 
+      if ((number==-4) && (parcours==*actuel)) break;
+   }
+   if (res2==-1) return -1;
+   if (res2>res) res=res2;
+   if (number>=0) *actuel=parcours;
+   return res;
+}
 
 /* Ici, on libere un menu alloue... c'est assez facile normalement */
 /* ON NE LIBERE QUE LA STRUCTURE EXTERNE DU MENU... SI LES OBJETS */

@@ -1615,33 +1615,75 @@ Article_List * Menu_summary (int deb, int fin, int thread) {
   return raw_Do_summary(deb,fin,thread,Do_menu_summary_line);
 }
 
+/* pour thread_menu */
+static int tag_thread_in (Liste_Menu *courant, char *arg) {
+   Thread_List *thr=(Thread_List *)(courant->lobjet);
+   int ret, toset, flag;
+   char flag_int=*(courant->nom);
+   
+   ret=parse_flags(arg,&toset,&flag);
+   if (ret<0) return 0;
+   switch (flag) {
+      case FLAG_KILLED :
+      case FLAG_READ : if (toset) {
+       			  if (thr->flags & FLAG_THREAD_UNREAD) 
+      				thr->flags&=~FLAG_THREAD_UNREAD;
+			  else thr->flags|=FLAG_THREAD_READ;
+		       } else {
+       			  if (thr->flags & FLAG_THREAD_READ) 
+      				thr->flags&=~FLAG_THREAD_READ;
+			  else thr->flags|=FLAG_THREAD_UNREAD;
+		       }
+		       break;
+      case FLAG_IMPORTANT : 
+      		       if (toset) 
+			  thr->flags|=FLAG_THREAD_IMPORTANT;
+		       else
+      			  thr->flags&=~FLAG_THREAD_IMPORTANT;
+		       break;
+       case FLAG_IS_SELECTED :
+      		       if (toset) 
+			  thr->flags|=FLAG_THREAD_BESELECTED;
+		       else
+      			  thr->flags&=~FLAG_THREAD_BESELECTED;
+		       break;
+   }
+   *(courant->nom)=(thr->flags & FLAG_THREAD_READ ? '-' :
+              (thr->flags & FLAG_THREAD_UNREAD ? '+' : 
+	      (thr->flags & FLAG_THREAD_IMPORTANT ? 'I' :
+	      (thr->flags & FLAG_THREAD_BESELECTED ? 's' : ' '))));
+   if (*(courant->nom)!=flag_int) courant->changed=1;
+   return courant->changed;
+}
+
 static int thread_menu (Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int len, Cmd_return *la_commande, int *affiche) {
-   Thread_List *thr=(Thread_List *)((*courant)->lobjet);
-   int cmd;
+   int ret,cmd;
+   Action_on_menu action=tag_thread_in;
+   char *cst_char=la_commande->after;
 
    *affiche=0;
    if (la_commande->cmd[CONTEXT_MENU]!=FLCMD_UNDEF) return -1; else
    cmd=la_commande->cmd[CONTEXT_COMMAND];
 
-   if (la_commande->before) free(la_commande->before);
-   if (la_commande->after) free(la_commande->after);
    switch (cmd) {
       case FLCMD_KILL :
       case FLCMD_GKIL :
-      case FLCMD_PKIL : if (thr->flags & FLAG_THREAD_UNREAD) 
-      				thr->flags&=~FLAG_THREAD_UNREAD;
-			   else thr->flags|=FLAG_THREAD_READ;
+      case FLCMD_PKIL : cst_char="read";
       			break;
       case FLCMD_OMET :
-      case FLCMD_GOMT : if (thr->flags & FLAG_THREAD_READ)
-      				thr->flags&=~FLAG_THREAD_READ;
-			   else thr->flags|=FLAG_THREAD_UNREAD;
+      case FLCMD_GOMT : cst_char="unread";
 			break;
+      case FLCMD_PUT_FLAG : break;
+      default : strncpy(name,Messages[MES_UNKNOWN_CMD],len);
+      		name[len-1]='\0';
+		*affiche=1;
+		return 0;
    }
-   *((*courant)->nom)=(thr->flags & FLAG_THREAD_READ ? '-' :
-   	  (thr->flags & FLAG_THREAD_UNREAD ? '+' : ' '));
-   (*courant)->changed=1;
-   return 1;
+   ret=distribue_action_in_menu(la_commande->before, cst_char,
+   		debut_menu, courant, action);
+   if (la_commande->before) free(la_commande->before);
+   if (la_commande->after) free(la_commande->after);
+   return ret;
 }
 
 static int Menu_selector (Thread_List **retour) {
@@ -1650,12 +1692,13 @@ static int Menu_selector (Thread_List **retour) {
    Article_List *art;
    Liste_Menu *courant=NULL, *menu=NULL, *start=NULL;
    char *buf, *buf2;
-   int place, non_lu, lu, impor, flag=FLAG_IMPORTANT;
+   int place, non_lu, lu, impor, selec, flag=FLAG_IMPORTANT;
 
    for (;parcours;parcours=parcours->next_thread) {
       parcours->flags&=~FLAG_THREAD_READ;
       parcours->flags&=~FLAG_THREAD_UNREAD;
       parcours->flags&=~FLAG_THREAD_IMPORTANT;
+      parcours->flags&=~FLAG_THREAD_BESELECTED;
       if (!(parcours->flags & FLAG_THREAD_SELECTED)) continue;
       hash_parc=parcours->premier_hash;
       while ((hash_parc) && ((hash_parc->article==NULL) 
@@ -1690,10 +1733,11 @@ static int Menu_selector (Thread_List **retour) {
    } else return -1;
    parcours=Thread_deb;
    for (;parcours;parcours=parcours->next_thread) {
-       if (parcours->flags & (FLAG_THREAD_UNREAD | FLAG_THREAD_READ | FLAG_THREAD_IMPORTANT)) {
+       if (parcours->flags & (FLAG_THREAD_UNREAD | FLAG_THREAD_READ | FLAG_THREAD_IMPORTANT | FLAG_THREAD_BESELECTED)) {
          non_lu=parcours->flags & FLAG_THREAD_UNREAD;
          lu=parcours->flags & FLAG_THREAD_READ;
 	 impor=parcours->flags & FLAG_THREAD_IMPORTANT;
+	 selec=parcours->flags & FLAG_THREAD_BESELECTED;
          for (hash_parc=parcours->premier_hash;hash_parc;
 	      hash_parc=hash_parc->next_in_thread) 
 	    if (hash_parc->article) {
@@ -1704,6 +1748,8 @@ static int Menu_selector (Thread_List **retour) {
 	/* On évite de faire des requetes superflues et lourdes */
 	       if (impor)
 	          mark_article_important(hash_parc->article,(void *)(&flag));
+	       if (selec)
+	          hash_parc->article->flag|=FLAG_IS_SELECTED;
 	    }
        }
    }
