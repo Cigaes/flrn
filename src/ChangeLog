@@ -1,5 +1,9 @@
 ChangeLog Flrn
 
+---------------------------
+Version 0.4.0
+---------------------------
+
 . bugfix pour les serveurs grotesques à la Quisar
 . préparation d'un zolie distrib
 . authentification
