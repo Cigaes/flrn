@@ -1055,9 +1055,11 @@ int do_hist_menu(int res) {
 int do_goto (int res) {
    int ret;
  
-   etat_loop.num_futur_article=(Arg_do_funcs.flags==0 ? 0 : Arg_do_funcs.num1);
+   etat_loop.num_futur_article=0;
    ret=change_group(&(etat_loop.Newsgroup_nouveau), (res==FLCMD_GGTO),
                     Arg_str);
+   if ((ret==0) && (Arg_do_funcs.flags!=0))
+   	etat_loop.num_futur_article= Arg_do_funcs.num1;
    if (ret>=0) return 1; else 
      if (ret==-1)  etat_loop.etat=3; else
    { etat_loop.etat=2; etat_loop.num_message=-8; 

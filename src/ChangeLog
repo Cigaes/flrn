@@ -1,5 +1,11 @@
 ChangeLog Flrn
 
+. bugfix dans do_goto
+
+----------------------------
+Version 0.2.4
+----------------------------
+
 . bugfixes dans l'arbre, centrage de l'affichage, scrolling des headers...
     ... et ajout probable de plein de bugs
 . bugfixes dans post.c
