@@ -49,8 +49,8 @@ void Help(char *argv[])
 " -d|--debug  : affiche plein d'informations sur la sortie d'erreur\n"
 " -c|--co     : donne les nouveaux newsgroups, et le nombre d'articles non lus\n"
 " -s|--server : impose le nom du serveur (et éventuellement le port)\n"
-" --stupid-term : cette option activee, le terminal ne defile jamais\n"
 " -n|--name   : change le nom d'appel\n"
+" --stupid-term : cette option activee, le terminal ne defile jamais\n"
 " --show-config : donne un .flrn avec les valeurs par defaut.\n"
 " -v|--version: donne la version et quitte\n"
 " -h|--help   : affiche ce message\n\n%s\n",version_string);
@@ -129,7 +129,6 @@ int main(int argc, char *argv[])
      }
      fprintf(stdout,"Serveur : %s    port : %i\n",Options.serveur_name,
         Options.port);
-     sleep(1);
   }
   init_kill_file();
   if (debug) fprintf(stderr,"Serveur : %s\n",Options.serveur_name);
