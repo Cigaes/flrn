@@ -48,12 +48,14 @@ int check_article(Article_List *article, flrn_filter *filtre, int flag) {
       else return -1;
     }
     if (!(regexp->flags & FLRN_COND_STRING)) {
+      /* c'est une regexp */
       if(regexec(regexp->condition.regex,
 	article->headers->k_headers[regexp->header_num]?
 	article->headers->k_headers[regexp->header_num]:"",
 	0,NULL,0)!=(regexp->flags & FLRN_COND_REV)?REG_NOMATCH:0)
 	return 1;
     } else {
+      /* c'est une chaine... FIXME: case-sensitive ou pas */
       if(strstr(article->headers->k_headers[regexp->header_num]?
 	article->headers->k_headers[regexp->header_num]:"",
 	regexp->condition.string)!=NULL) {
