@@ -114,6 +114,7 @@ static int Size_Window(int flag, int col_num) {
 void sig_winch(int sig) {
    
    Screen_get_size(Options.help_line);
+   Screen_reset();
    Screen_init_smg ();
    if (Size_Window(0,0)) {
      if (Newsgroup_courant) { Aff_newsgroup_name(0); Aff_newsgroup_courant(); }
@@ -125,7 +126,28 @@ void sig_winch(int sig) {
 
    return;
 }
-  
+
+int screen_changed_size() {
+   int saved_Screen_Rows=Screen_Rows,
+       saved_Screen_Rows2=Screen_Rows2,
+       saved_Screen_Cols=Screen_Cols;
+
+   Screen_get_size(Options.help_line);
+   if ((Screen_Rows!=saved_Screen_Rows) ||
+       (Screen_Rows2!=saved_Screen_Rows2) ||
+       (Screen_Cols!=saved_Screen_Cols)) {
+       Screen_reset(); 
+       Screen_init_smg ();
+       if (Size_Window(0,0)) {
+          if (Newsgroup_courant)
+	      { Aff_newsgroup_name(0); Aff_newsgroup_courant(); }
+          Aff_error ("Changement de taille de la fenêtre");
+       } else Aff_error ("Fenetre trop petite !!!");
+       Screen_refresh();
+       return 1;
+   }
+   return 0;
+}
 
 /* Initialise l'écran, crée la barre */
 int Init_screen(int stupid_term) {

@@ -40,5 +40,6 @@ extern int Aff_file(FILE * /*file*/, char *, char *);
 extern int Liste_groupe(int /*n*/, char * /*mat*/, Newsgroup_List **);
 extern int Aff_arbre(int,int,Article_List *, int, int, int, unsigned char **, int);
 extern void Aff_help_line(int);
+extern int screen_changed_size(void);
 
 #endif

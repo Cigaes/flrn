@@ -150,7 +150,9 @@ int Pipe_Msg_Stop(int fd) {
    Screen_resume();
    Init_keyboard(0); /* Ca remet SIGTSTP correct */
    signal(SIGWINCH, sig_winch);
-   if (sigwinchcatch) sig_winch(0);
+   /* system ne renvoie pas les sigwinch, on va plutôt tester directement */
+   /* si la taille de l'écran a changé */
+   screen_changed_size(); 
    sigwinch_received=0; /* On n'en a rien a faire... */
    return 0;
 }

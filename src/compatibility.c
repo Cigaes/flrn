@@ -125,13 +125,13 @@ void *__safe_strappend(char *s,const char *a, char *f, char *fi, int l) {
   char blah[1024]="*safe_strappend* ";
   strcat(blah,f);
   if(s) { 
-    char *new=__safe_realloc(s,strlen(s)+strlen(a),blah,fi,l);
+    char *new=__safe_realloc(s,strlen(s)+strlen(a)+1,blah,fi,l);
     strcat(new,a);
     return new;
   } else return __safe_strdup(a,blah,fi,l);
 #else
   if(s) { 
-    char *new=safe_realloc(s,strlen(s)+strlen(a));
+    char *new=safe_realloc(s,strlen(s)+strlen(a)+1);
     strcat(new,a);
     return new;
   } else return safe_strdup(a);

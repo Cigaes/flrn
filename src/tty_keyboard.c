@@ -38,6 +38,7 @@ void sigtstp_handler(int sig) {
     Put_tty_single_input(-1,0,1);
     /*SL*/signal(SIGTSTP, sigtstp_handler);
     React_suspend_char(1);
+    screen_changed_size();
     return;
 }
 

@@ -2023,8 +2023,9 @@ int do_select(int res) {
       for (hash_parc=retour->premier_hash; hash_parc;
               hash_parc=hash_parc->next_in_thread) {
 	 if (!hash_parc->article) continue;
-	 if ((art_ret==NULL) || (!(Article_courant->flag & FLAG_READ))) 
-	     art_ret=hash_parc->article;
+	 if ((art_ret==NULL) || (!(hash_parc->article->flag & FLAG_READ))) 
+	     art_ret=hash_parc->article; else continue;
+	 if ((art_ret) && (!(art_ret->flag & FLAG_READ))) break;
       }
       if (art_ret) {
          Article_courant=root_of_thread(art_ret,1);
@@ -2032,7 +2033,7 @@ int do_select(int res) {
 	       ((Article_courant->flag & FLAG_READ) || (Article_courant->numero<0))) {
 	    Article_List *myarticle=Article_courant;
 	    while (myarticle && (myarticle->numero<0)) {
-	       myarticle=Article_courant->prem_fils;
+	       myarticle=myarticle->prem_fils;
 	       while (myarticle && (myarticle->frere_prev))
 	           myarticle=myarticle->frere_prev;
 	    }

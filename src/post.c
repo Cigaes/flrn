@@ -1412,7 +1412,7 @@ static int Get_base_headers(int flag, Article_List *article) {
 	    len2=4; else len2=0;
 	  Header_post->k_header[SUBJECT_HEADER]=
 		       safe_malloc((len1+len2+1)*sizeof(char));
-	  if (strncasecmp(Pere_post->headers->k_headers[SUBJECT_HEADER],"re: ",4)!=0)
+	  if (len2==4)
 	    strcpy(Header_post->k_header[SUBJECT_HEADER], "Re: "); else
 	      Header_post->k_header[SUBJECT_HEADER][0]='\0';
 	  strcat(Header_post->k_header[SUBJECT_HEADER],
