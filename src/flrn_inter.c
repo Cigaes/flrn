@@ -824,6 +824,7 @@ int get_command_command(int get_com) {
    Arg_str[0]='\0';
 
    if (get_com==-1) {
+     Aff_help_line(Screen_Rows-1);
      Aff_fin("A vous : ");
      key=Attend_touche();
      if (KeyBoard_Quit) return -1;
@@ -1705,6 +1706,8 @@ static Article_List * raw_Do_summary (int deb, int fin, int thread,
     Libere_menu_noms(menu);
     return parcours;
   }
+  num_help_line=thread_view;
+  Aff_help_line(Screen_Rows-1);
   return NULL;
 }
 

@@ -90,7 +90,7 @@ int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
 	           parcours->flag &= ~FLAG_TMP_KILL;
 	      else
 	      if ((filtre->date_before>0) && 
-	        (parcours->headers->date_gmt>filtre->date_after))
+	        (parcours->headers->date_gmt>filtre->date_before))
 		   parcours->flag &= ~FLAG_TMP_KILL;
 	      else {
 	        if (reste==0) newmin=parcours->numero;
