@@ -497,7 +497,7 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others, in
       }
    } while (!(flag & 1) || (tcp_line_read[0]!='.'));
 
-   if (others) (*actuel)->next=NULL;
+   if ((others) && (actuel)) (*actuel)->next=NULL;
 
    /* tous les headers sont valides */
    /* on décode tout ! */
@@ -513,13 +513,15 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others, in
      }
    }
    creation->all_headers=1;
-   actuel=&(Last_head_cmd.headers);
-   while(actuel && (*actuel)) {
-      rfc2047_decode((*actuel)->header,(*actuel)->header,
+   if (others) {
+     actuel=&(Last_head_cmd.headers);
+     while(actuel && (*actuel)) {
+        rfc2047_decode((*actuel)->header,(*actuel)->header,
 	  strlen((*actuel)->header));
-     (*actuel)->header=
+       (*actuel)->header=
 	 safe_realloc((*actuel)->header,strlen((*actuel)->header)+1);
-     actuel=&(*actuel)->next;
+       actuel=&(*actuel)->next;
+     }
    }
 
    if (creation->k_headers[LINES_HEADER]) 
