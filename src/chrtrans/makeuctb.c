@@ -25,7 +25,7 @@
 #define TOLOWER(c) (isupper((unsigned char)c) ? tolower((unsigned char)c) : (c))
 #endif /* !TOLOWER */
 
-#include <UCkd.h>
+#include "UCkd.h"
 
 #define MAX_FONTLEN 256
 #define UC_MAXLEN_FLRNCSNAME 256
