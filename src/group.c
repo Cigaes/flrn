@@ -812,7 +812,7 @@ void add_read_article(Newsgroup_List *mygroup, int article)
    if (mygroup->not_read>0) {
       if ((virtuel) && (mygroup->virtual_in_not_read>0)) {
          mygroup->not_read--;
-	 mygroup->virtuel_in_not_read--;
+	 mygroup->virtual_in_not_read--;
       } else if (!virtuel) mygroup->not_read--;
    }
    if (range1) {

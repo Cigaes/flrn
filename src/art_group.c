@@ -602,9 +602,9 @@ Article_List *ajoute_message (char *msgid, int *should_retry) {
       Aff_newsgroup_courant();
    }
    cree_liens(); /* On va s'occuper de cet article sans thread associé */
-   if (newsgroup_courant->virtual_in_not_read) 
-      newsgroup_courant->virtual_in_not_read--; else 
-      newsgroup_courant->not_read++;
+   if (Newsgroup_courant->virtual_in_not_read) 
+      Newsgroup_courant->virtual_in_not_read--; else 
+      Newsgroup_courant->not_read++;
    creation->flag |= FLAG_NEW;
    check_kill_article(creation,0);
    return creation;
@@ -671,9 +671,9 @@ Article_List *ajoute_message_par_num (int min, int max) {
    }
    cree_liens();
    creation->flag |= FLAG_NEW;
-   if (newsgroup_courant->virtual_in_not_read) 
-      newsgroup_courant->virtual_in_not_read--; else 
-      newsgroup_courant->not_read++;
+   if (Newsgroup_courant->virtual_in_not_read) 
+      Newsgroup_courant->virtual_in_not_read--; else 
+      Newsgroup_courant->not_read++;
    check_kill_article(creation,0);
    return creation;
 }
