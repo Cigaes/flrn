@@ -1016,6 +1016,7 @@ void zap_group_non_courant (Newsgroup_List *group) {
       free(range1);
       range1=range2;
    }
+   group->read->next=NULL;
    art=group->Article_deb;
    while (art) {
      art->flag|=FLAG_READ;
