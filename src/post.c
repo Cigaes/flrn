@@ -568,13 +568,15 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
      Screen_write_string(nom2);
      Cursor_gotorc(Screen_Rows-1,0);
      Screen_erase_eol();
-     Screen_write_string("(S)upprimer,(R)emplacer,(M)enu ? ");
+     Screen_write_string("(L)aisser,(S)upprimer,(R)emplacer,(M)enu ? ");
      key=Attend_touche();
      key=toupper(key);
      if (KeyBoard_Quit || (key=='S')) {
         if (alloue) free(nom2);
         return NULL;
      }
+     if (key=='L') 
+        return nom2;
      if ((key=='R') || (key=='M')) {
         Cursor_gotorc(Screen_Rows-1,0);
 	if (!alloue) {
@@ -686,7 +688,7 @@ static void Format_headers() {
        len1=0;
        while (buf) {
          copy_pre=((Options.prefixe_groupe) && (strncmp(buf,Options.prefixe_groupe,strlen(Options.prefixe_groupe))!=0));
-	 buf2=check_group_in_header(buf,&copy_pre,Headers[i].header);
+	 buf2=check_group_in_header(buf,&copy_pre,Headers[j].header);
 	 if (buf2==NULL) {
 	   buf=strtok(NULL,delim2);
 	   continue;
