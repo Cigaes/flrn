@@ -1,5 +1,9 @@
 ChangeLog Flrn
 
+----------------------------
+Version 0.2.5
+----------------------------
+
 . ajout de X-Censorship aux headers 'connus'.
 . ajout de la gestion de liste de groupes dans un fichier.
 . ajout de l'option auto-kill
