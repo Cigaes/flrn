@@ -183,8 +183,9 @@ void Copy_article (FILE *dest, Article_List *article, int copie_head, char *avan
    int flag=2; /* flag & 1 : debut de ligne     */
                /*      & 2 : fin de ligne       */
 
-   num=safe_malloc(12*sizeof(char));
-   sprintf(num, "%d", article->numero);
+   num=safe_malloc(260*sizeof(char));
+   if (article->numero>0) sprintf(num, "%d", article->numero); else
+      strcpy(num,article->msgid);
    res=write_command(copie_head ? CMD_ARTICLE : CMD_BODY, 1, &num);
    free(num);
    if (res<0) return;

@@ -257,7 +257,10 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others) {
    num=safe_malloc(260*sizeof(char)); /* ca peut aussi etre une reference */
    /* on utilise en fait toujours le message id puisqu'on peut être
     * appelé sur des artciles extérieurs de numéro > 0 au groupe... */
-   if (!article->msgid) sprintf(num,"%d",article->numero); else
+   /* Quoiqu'en fait il est peut-etre préférable de faire l'inverse :  *
+    * utiliser en priorité le numéro... C'est probablement plus rapide *
+    * et parfois plus efficace...				       */
+   if (article->numero>0) sprintf(num,"%d",article->numero); else
        strcpy(num,article->msgid);
    res=write_command(CMD_HEAD, 1, &num);
    free(num);
