@@ -136,6 +136,7 @@ void init_groups() {
       creation->min=1;
       creation->max=0;
       creation->not_read=-1;
+      creation->virtual_in_not_read=0;
       creation->read=init_range(deb,&(creation->max));
       deb=buf;
    }
@@ -172,6 +173,7 @@ static Newsgroup_List *un_nouveau_newsgroup (char *la_ligne)
     					   /* par 0 !!!!!		     */
     creation->min = strtol(buf, &buf, 10); 
     creation->not_read=-1;
+    creation->virtual_in_not_read=0;
     creation->read= NULL;
     creation->description= NULL;
     creation->flags=GROUP_UNSUBSCRIBED | GROUP_NEW_GROUP_FLAG;
@@ -641,6 +643,9 @@ int NoArt_non_lus(Newsgroup_List *group, int force_check) {
       actuel=actuel->next;
    }
    if (non_lus<0) non_lus=0;
+   if (group->not_read<=non_lus) 
+        group->virtual_in_not_read=non_lus-(group->not_read > 0 ? group->not_read : 0);
+	else group->virtual_in_not_read=0;
    group->not_read=non_lus;
 
    return non_lus;
@@ -771,7 +776,7 @@ void add_read_article(Newsgroup_List *mygroup, int article)
    Range_List *range1, *range2, *pere;
    int lu_index;
    int first=0;
-   int borne=0;
+   int borne=0,virtuel=1;
    int i;
    pere=NULL;
    range1=mygroup->read;
@@ -787,6 +792,7 @@ void add_read_article(Newsgroup_List *mygroup, int article)
 	   mygroup->important--;
 	   parcours->flag &= ~FLAG_IMPORTANT;
 	 }
+	 virtuel=0;
       }
    }
    
@@ -803,7 +809,12 @@ void add_read_article(Newsgroup_List *mygroup, int article)
      pere=range1;
      range1=range1->next;
    }
-   if (mygroup->not_read>0) mygroup->not_read--;
+   if (mygroup->not_read>0) {
+      if ((virtuel) && (mygroup->virtual_in_not_read>0)) {
+         mygroup->not_read--;
+	 mygroup->virtuel_in_not_read--;
+      } else if (!virtuel) mygroup->not_read--;
+   }
    if (range1) {
      if (range1->min[lu_index]==article+1) { range1->min[lu_index]=article;
       borne=1;}

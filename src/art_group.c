@@ -602,7 +602,9 @@ Article_List *ajoute_message (char *msgid, int *should_retry) {
       Aff_newsgroup_courant();
    }
    cree_liens(); /* On va s'occuper de cet article sans thread associé */
-   Newsgroup_courant->not_read++;
+   if (newsgroup_courant->virtual_in_not_read) 
+      newsgroup_courant->virtual_in_not_read--; else 
+      newsgroup_courant->not_read++;
    creation->flag |= FLAG_NEW;
    check_kill_article(creation,0);
    return creation;
@@ -669,7 +671,9 @@ Article_List *ajoute_message_par_num (int min, int max) {
    }
    cree_liens();
    creation->flag |= FLAG_NEW;
-   Newsgroup_courant->not_read++;
+   if (newsgroup_courant->virtual_in_not_read) 
+      newsgroup_courant->virtual_in_not_read--; else 
+      newsgroup_courant->not_read++;
    check_kill_article(creation,0);
    return creation;
 }
@@ -1066,7 +1070,12 @@ int Recherche_article (int num, Article_List **retour, int flags) {
     Article_List *parcours=*retour;
 
     if (parcours==NULL) parcours=Article_deb; else
-      if (parcours->numero==-1) parcours=parcours->prem_fils;
+      if (parcours->numero==-1) {
+          parcours=parcours->prem_fils;
+	  while (parcours && (parcours->numero==-1)) 
+	             parcours=parcours->frere_suiv;
+          if (parcours==NULL) parcours=Article_deb;
+      }
     /* On ne recherche que dans le newsgroup */
     if (parcours==NULL) return -2;
     if (parcours->numero==num) {

@@ -167,7 +167,9 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
 	/* on verifie que le min est <= au numero */
 	   if ((msg_lus) && (msg_lus->min[lus_index] <= creation->numero)) {
 	     creation->flag |= FLAG_READ;
-	   } else Newsgroup_courant->not_read++;
+	   } else if (Newsgroup_courant->virtual_in_not_read>0) 
+	       Newsgroup_courant->virtual_in_not_read--; else 
+	       Newsgroup_courant->not_read++;
 	 }
        }
        buf2=strchr(buf,'\t');
@@ -302,7 +304,9 @@ int cree_liste_noxover(int min, int max, Article_List *start_article) {
       /* on verifie que le min est <= au numero */
       if ((msg_lus) && (msg_lus->min[lus_index] <= creation->numero)) {
          creation->flag |= FLAG_READ;
-      } else Newsgroup_courant->not_read++;
+      } else if (Newsgroup_courant->virtual_in_not_read>0) 
+	       Newsgroup_courant->virtual_in_not_read--; else 
+	       Newsgroup_courant->not_read++;
 
       article=creation;
      
@@ -400,6 +404,7 @@ int cree_liste(int art_num, int *part) {
    }
    /* si on a deja ce qu'on veut, on n'en fait pas trop */
    Newsgroup_courant->not_read=0;
+   Newsgroup_courant->virtual_in_not_read=0;
    Newsgroup_courant->important=0;
    if ((max<min)||(max==0)) {
      if (debug) fprintf(stderr, "Pas d'article disponibles !\n"); return 0;
