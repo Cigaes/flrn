@@ -33,24 +33,28 @@ avec le langage de script.
 
 int flrn_SLang_inited=0;
 
-/****************** Les types ************************/
+/****************** I : Les types ************************/
 
+/********** Groupe *************/
+
+/**********************/
+/* Définition du type */
+/**********************/
 /* groupe : Newsgroup_Type : pointeur vers un groupe */
 static SLang_Class_Type *flrn_SLang_Newsgroup_Type;
 #define NEWSGROUP_TYPE_NUMBER 128
 
-/* article : Article_Type : structure MMT : pointeur vers article et groupe */
-typedef struct s_article_and_group {
-   Newsgroup_List *groupe;
-   Article_List *article;
-} Article_and_Group;
-static SLang_Class_Type *flrn_SLang_Article_Type;
-#define ARTICLE_TYPE_NUMBER 129
+/* louze : on ne peut pas pusher NULL comme pointeur de groupe à cause
+ * d'une craderie de SLang sur la façon dont il passe les paramètres
+ * aux fonctions intrinsèques. d'où la création d'un groupe dummy */
+Newsgroup_List dummy_group = { NULL, NULL, 0, "",  NULL, -1, -1, -1, 
+                               -1, -1, NULL, 0, NULL, NULL, NULL, NULL };
 
+/* Callback associés : -> string : donne le nom */
 static char *Newsgroup_Type_string_callback(unsigned char type, VOID_STAR addr)
 {
-   Newsgroup_List *legroupe = **((Newsgroup_List ***)addr);
-   if ((legroupe==NULL) || (legroupe->name==NULL)) return SLmake_string("");
+   Newsgroup_List *legroupe = *((Newsgroup_List **)addr);
+   if ((legroupe==NULL) || (legroupe->name==NULL)) return SLmake_string("bli");
    return SLmake_string(legroupe->name);
 }
 static void Newsgroup_Type_destroy_callback(unsigned char type, VOID_STAR addr)
@@ -60,12 +64,33 @@ static void Newsgroup_Type_destroy_callback(unsigned char type, VOID_STAR addr)
 }
 static int Newsgroup_Type_push_callback(unsigned char type, VOID_STAR addr)
 {
-   return SLclass_push_ptr_obj(type, addr);
+   Newsgroup_List *legroupe = *((Newsgroup_List **)addr);
+   return SLclass_push_ptr_obj(type, legroupe); 
 }
 static int Newsgroup_Type_pop_callback(unsigned char type, VOID_STAR addr)
 {
-   return SLclass_pop_ptr_obj(type, addr);
+   return SLclass_pop_ptr_obj(type, (VOID_STAR *)addr); 
 }
+
+/* méthodes intrinsèques */
+/* flags de la fonction */
+int intrin_get_flags_group (Newsgroup_List *group) {
+   /* group = (&dummy_group) ? */
+   return (int)(group->flags);
+}
+/* description */
+char *intrin_get_description_group (Newsgroup_List *group) {
+   /* group = (&dummy_group) ? */
+   return group->description;
+}
+
+/* article : Article_Type : structure MMT : pointeur vers article et groupe */
+typedef struct s_article_and_group {
+   Newsgroup_List *groupe;
+   Article_List *article;
+} Article_and_Group;
+static SLang_Class_Type *flrn_SLang_Article_Type;
+#define ARTICLE_TYPE_NUMBER 129
 
 static char *Article_Type_string_callback(unsigned char type, VOID_STAR addr)
 {
@@ -77,7 +102,9 @@ static char *Article_Type_string_callback(unsigned char type, VOID_STAR addr)
 }
 static void Article_Type_destroy_callback(unsigned char type, VOID_STAR addr)
 {
-   Article_and_Group *larticle = (Article_and_Group *)addr;
+   SLang_MMT_Type *bla = *((SLang_MMT_Type **)addr);
+   Article_and_Group *larticle = 
+             (Article_and_Group *)SLang_object_from_mmt(bla);
    if (larticle) free(larticle);
    return; 
 }
@@ -98,7 +125,10 @@ int Push_article_on_stack (Article_List *article, Newsgroup_List *groupe) {
 }
 
 int Push_newsgroup_on_stack (Newsgroup_List *groupe) {
-   return SLang_push_value (NEWSGROUP_TYPE_NUMBER, (VOID_STAR) groupe);
+   if (groupe)
+     return SLclass_push_ptr_obj (NEWSGROUP_TYPE_NUMBER, (VOID_STAR) groupe);
+   return SLclass_push_ptr_obj 
+        (NEWSGROUP_TYPE_NUMBER, (VOID_STAR) (&dummy_group));
 }
 
 /***************** Les variables *****************************/
@@ -128,6 +158,10 @@ SLang_Intrin_Fun_Type flrn_Intrin_Fun [] =
 {
    MAKE_INTRINSIC_2("get_header", intrin_get_header, SLANG_STRING_TYPE,
    				ARTICLE_TYPE_NUMBER, SLANG_STRING_TYPE),
+   MAKE_INTRINSIC_1("get_flags_group", intrin_get_flags_group, SLANG_INT_TYPE,
+	                        NEWSGROUP_TYPE_NUMBER),
+   MAKE_INTRINSIC_1("get_description_group", intrin_get_description_group,
+	        SLANG_STRING_TYPE, NEWSGROUP_TYPE_NUMBER),
    SLANG_END_TABLE
 };
 
@@ -146,12 +180,27 @@ void vmessage_SLang_Hook (char *fmt, va_list ap)
    Attend_touche();
 }
 
+void vmessage_SLang_Hook2 (char *fmt, va_list ap)
+{
+   char buf[200];
+   /* on "triche", en prenant des risques... avec vsprintf... */
+   vsprintf(buf, fmt, ap);
+   Aff_error_fin(buf,0,0);
+   Attend_touche();
+}
+
 /* cette fonction est aussi plus ou moins temporaire, mais elle */
 /* fait plus ou moins ce que je pense être le mieux...          */
 void error_SLang_Hook (char *str)
 {
    Aff_error(str);
    Aff_fin("Appuyez sur une touche...");
+   Attend_touche();
+}
+
+void error_SLang_Hook2 (char *str)
+{
+   Aff_error_fin(str,0,0);
    Attend_touche();
 }
     
@@ -196,7 +245,7 @@ int flrn_init_SLang(void) {
    /* les variables */
    flrn_SLang_article_courant.article=NULL;
    flrn_SLang_article_courant.groupe=NULL;
-   flrn_SLang_newsgroup_courant=NULL;
+   flrn_SLang_newsgroup_courant=&dummy_group;
    if (NULL == (flrn_SLang_article_courant_mmt = SLang_create_mmt
             (ARTICLE_TYPE_NUMBER, (VOID_STAR) &flrn_SLang_article_courant)))
    {
@@ -226,7 +275,8 @@ int source_SLang_string(char *str, char **result)
 {
    flrn_SLang_article_courant.article=Article_courant;
    flrn_SLang_article_courant.groupe=Newsgroup_courant;
-   flrn_SLang_newsgroup_courant=Newsgroup_courant;
+   flrn_SLang_newsgroup_courant=(Newsgroup_courant ?
+	                             Newsgroup_courant : &dummy_group);
    *result=NULL;
    if (flrn_SLang_inited==0) return -1;
    if ((-1 == SLang_load_string(str)) ||  (-1 == SLang_pop_slstring(result))) {
@@ -245,7 +295,7 @@ int source_SLang_file (char *str)
  * une véritable commande... */
    flrn_SLang_article_courant.article=NULL;
    flrn_SLang_article_courant.groupe=NULL;
-   flrn_SLang_newsgroup_courant=NULL;
+   flrn_SLang_newsgroup_courant=&dummy_group;
    if (-1 == SLang_load_file(str)) {
       SLang_restart(1);
       SLang_Error = 0;
@@ -258,16 +308,27 @@ int source_SLang_file (char *str)
  * en mode slang et le message d'erreur est proche d'un message d'erreur
  * de flrn. Si paramètre=0, on quitte le mode graphique, et SLang_Error_Hook
  * devient NULL, ce qui correspond à une écriture classique sur stderr.
- * Ce programme change aussi SLang_VMessage_Hook */
-void change_SLang_Error_Hook (int param)
+ * Ce programme change aussi SLang_VMessage_Hook.
+ * dernière option : param = 2 -> l'erreur est affichée en bas 
+ * retourne l'ancienne valeur */
+int change_SLang_Error_Hook (int param)
 {
-   if (param) {
-      SLang_Error_Hook = &error_SLang_Hook;
-      SLang_VMessage_Hook = &vmessage_SLang_Hook;
-   } else {
-      SLang_Error_Hook = NULL;
-      SLang_VMessage_Hook = NULL;
+   static int current_value;
+   int temp;
+   switch (param) {
+       case 1 : SLang_Error_Hook = &error_SLang_Hook;
+		SLang_VMessage_Hook = &vmessage_SLang_Hook;
+		break;
+       case 2 : SLang_Error_Hook = &error_SLang_Hook2;
+		SLang_VMessage_Hook = &vmessage_SLang_Hook2;
+		break;
+       default : SLang_Error_Hook = NULL;
+	  	 SLang_VMessage_Hook = NULL;
+	 	 break;
    }
+   temp = current_value;
+   current_value = param;
+   return temp;
 }
 
 int Parse_type_fun_slang(char *str_int) {
@@ -285,6 +346,35 @@ extern SLang_Name_Type *Parse_fun_slang (char *str, int *num) {
     result=SLang_get_function(str);
     if (comma) *comma=',';
     return result;
+}
+
+/**** Gestions des hooks ****/
+/* retour : 0 : non.  -1 : ok */
+
+/* classés en fonction du type */
+
+/*  Newsgroup -> string */
+extern int try_hook_newsgroup_string (char *name, Newsgroup_List *groupe,
+	                              char **res) {
+    SLang_Name_Type *fun;
+    int value_hook, ret=0;
+
+    if ((fun=SLang_get_function(name))==NULL) return ret;
+    SLang_start_arg_list ();
+    Push_newsgroup_on_stack(Newsgroup_courant);
+    SLang_end_arg_list ();
+    flrn_SLang_article_courant.article=Article_courant;
+    flrn_SLang_article_courant.groupe=Newsgroup_courant;
+    flrn_SLang_newsgroup_courant=(Newsgroup_courant ?
+	                             Newsgroup_courant : &dummy_group);
+    value_hook = change_SLang_Error_Hook(2);
+    if (SLexecute_function(fun)==-1) {
+         SLang_restart (1);
+         SLang_Error = 0;
+    } else 
+	 if (SLpop_string(res)>=0) ret=1;
+    (void) change_SLang_Error_Hook(value_hook);
+    return ret;
 }
 
 #endif

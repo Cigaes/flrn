@@ -1246,7 +1246,10 @@ static char *get_unbroken_id (char *buf, char **end) {
    while ((buf=strchr(buf,'<'))) {
      buf2=strpbrk(buf+1,">< \t\r\n");
      if (buf2==NULL) return NULL; /* Broken MID */
-     if (*buf2!='>') continue; /* Broken MID */
+     if (*buf2!='>') {  /* Broken MID */
+         buf=buf2;      /* we try a new one */
+	 continue; 
+     }
      *end=buf2;
      return buf;
    }
