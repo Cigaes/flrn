@@ -20,6 +20,7 @@
 /* et  puis on ajoute aussi l'affichage d'un binding */
 
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "flrn.h"
 #include "options.h"

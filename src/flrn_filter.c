@@ -13,6 +13,8 @@
 #include <sys/types.h>
 #include <time.h>
 #include <stdlib.h>
+#include <ctype.h>
+
 #include "flrn.h"
 #include "flrn_filter.h"
 #include "art_group.h"
