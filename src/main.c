@@ -66,12 +66,9 @@ int main(int argc, char *argv[])
     if ((strncmp(argv[i],"-d",2)==0)||(strcmp(argv[i],"--debug")==0))
     {debug=1; continue;}
     if ((strncmp(argv[i],"-n",2)==0)||(strcmp(argv[i],"--name")==0)) {
-      if (i+1==argc) {
-        fprintf(stderr,"Option %s invalide",argv[i]);
-	Help(argv);
-	exit(1);
-      }
-      name_program=argv[++i]; continue;
+      if ((i+1!=argc) && (*(argv[i+1])!='-'))
+        name_program=argv[++i];  
+      continue;
     }
     if ((strncmp(argv[i],"-v",2)==0)||(strcmp(argv[i],"--version")==0))
     {printf("%s\n",version_string); exit(0);}

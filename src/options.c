@@ -614,10 +614,11 @@ void dump_flrnrc(FILE *file) {
   return;
 }
 
-int change_value(void *value, char **nom, int i, char *name, int len) {
+int change_value(void *value, char **nom, int i, char *name, int len, int key) {
   int num=(int)(long) value;
   char buf[80];
   int changed =0;
+  if (key!=13) return 0;
   if (All_options[num].flags.lock) {
     snprintf(name,len,"   L'option %s ne peut pas être changée",
 	All_options[num].name);
@@ -694,7 +695,7 @@ void menu_config_variables() {
     courant=ajoute_menu(courant,safe_strdup(buf),(void *)i);
     if (!menu) menu=courant;
   }
-  valeur = (int *) Menu_simple(menu, NULL, aff_desc_option, change_value);
+  valeur = (int *) Menu_simple(menu, NULL, aff_desc_option, change_value, "<entrée> pour changer une option, q pour quitter.");
   Libere_menu_noms(menu);
   return;
 }

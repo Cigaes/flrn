@@ -15,6 +15,7 @@
 #include "flrn.h"
 #include "options.h"
 #include "group.h"
+#include "flrn_menus.h"
 
 /* place des objets de la barre */
 int name_news_col, num_art_col, num_max_col, num_col_num, name_fin_col;
@@ -182,19 +183,110 @@ int Aff_summary_line(Article_List *art, int *row,
   return 0;
 }
 
+/* Calcul le flag d'un groupe */
+static char calcul_flag (Newsgroup_List *groupe) {
+   int num_flag;
+
+   num_flag=(groupe->flags & GROUP_READONLY_FLAG ? 4 : 0)+
+   		(groupe->flags & GROUP_UNSUBSCRIBED ? 2 : 0)+
+		(groupe->flags & GROUP_IN_MAIN_LIST_FLAG ? 0 : 1);
+   if (Options.flags_group && (strlen(Options.flags_group)>num_flag) 
+       	     && (Options.flags_group[num_flag]!=' ')) 
+	     	 return Options.flags_group[num_flag];
+   return 0;
+}
+
+
+/* Fonctions utilisées pour Liste_groupe... On devrait tout déplacer */
+/* dans group.c à mon avis. Tout ça n'a plus rien à faire là.        */
+/* Quoique... meme ici il y a de l'affichage...			     */
+int chg_grp_in(void *value, char **nom, int i, char *name, int len, int key) {
+   Newsgroup_List *choisi=(Newsgroup_List *)value;
+   char flag;
+   int zapped=(choisi==Newsgroup_courant);
+      /* On ne peut pas zapper le groupe courant */
+
+   if (key==' ') return 1;
+   *name='\0'; /* ça on en est sur */
+   if (key==13) {
+     Cursor_gotorc(Screen_Rows-2,0);
+     Screen_erase_eol();
+     if (choisi->flags & GROUP_UNSUBSCRIBED) 
+        Screen_write_string(" désabonné     ");
+     else Screen_write_string(" abonné   ");
+     if (choisi->flags & GROUP_IN_MAIN_LIST_FLAG)
+        Screen_write_string(" mode censuré  ");
+     else Screen_write_string(" mode tout  ");
+     if (!zapped) Screen_write_string("  (zap possible) ");
+     key=Attend_touche();
+   }
+   if (KeyBoard_Quit) key=0;
+   switch (key<MAX_FL_KEY ? Flcmd_rev[key] : FLCMD_UNDEF) {
+     case FLCMD_ABON : choisi->flags&=~GROUP_UNSUBSCRIBED;
+                break;
+     case FLCMD_UNSU : choisi->flags|=GROUP_UNSUBSCRIBED;
+                break;
+     case FLCMD_REMOVE_KILL : choisi->flags&=~GROUP_IN_MAIN_LIST_FLAG;
+         	remove_from_main_list(choisi->name);
+                break;
+     case FLCMD_ADD_KILL : choisi->flags|=GROUP_IN_MAIN_LIST_FLAG;
+     		add_to_main_list(choisi->name);
+                break;
+     case FLCMD_ZAP : zap_group_non_courant(choisi);
+     		if (**nom=='+') **nom=' ';
+		zapped=1;
+       		break;
+   }
+   flag=calcul_flag(choisi);
+   if (choisi!=Newsgroup_courant) **nom=(flag!=0 ? flag : ' ');
+   return 0;
+}
+
+int chg_grp_not_in(void *value, char **nom, int i, char *name, int len, int key) {
+   char *nom_groupe=(char *)value;
+   Newsgroup_List *creation;
+
+   if (key==' ') return 1; 
+   if (**nom=='A') return 0; 
+   	/* Tant pis... on ne peut se désabonner aussi sec */
+   creation=cherche_newsgroup(nom_groupe, 1, 0);
+   Cursor_gotorc(Screen_Rows-2,0);
+   Screen_erase_eol();
+   Screen_write_string(" S'(a)bonner à ce groupe  ? ");
+   if (key==13) key=Attend_touche();
+   key=tolower(key);
+   if (KeyBoard_Quit) key=0;
+   if ((key=='o') || (key=='a')) {
+      creation->flags&=~GROUP_UNSUBSCRIBED;
+      if ((Options.auto_kill) && (!in_main_list(creation->name))) {
+        creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
+ 	add_to_main_list(creation->name);
+      }
+      **nom='A';
+      strncpy(name," Vous êtes abonnés à ce groupe.",len);
+      name[len-1]='\0';
+   } else *name=0;
+   return 0;
+}
+      
+
+
 /* Affichage d'une liste de groupes */
 /* flags=1 -> on affiche tout le .flnewsrc */
 /* flags=2 -> on affiche tout */
 /* On essaie une manip a coup de regexp... */
 /* renvoie -1 en cas de pb avec les regexp */
+/* TODO : remplacer l'affichage brut (sans menu) par un scrolling, et */
+/* tout mettre dans group.c */
 
 int Liste_groupe (int flags, char *mat) {
    int row=0;
    int res, code, key;
-   char *buf[2], *ptr;
+   char *buf[2], *ptr, *nom=NULL, une_ligne[80], flag;
    int passage=-1;
    Newsgroup_List *parcours;
    regex_t reg;
+   Liste_Menu *menu=NULL, *courant=NULL, *start=NULL;
    
    if (Options.use_regexp) {
      if (regcomp(&reg,mat,REG_EXTENDED|REG_NOSUB))
@@ -207,25 +299,39 @@ int Liste_groupe (int flags, char *mat) {
    while (parcours || (passage<flags)) {
       if (parcours==NULL) {
 	 if (passage>=0) {
-           Aff_fin("-suite-");
-           key=Attend_touche();
-           if (KeyBoard_Quit) {
-	     free(buf[0]);
-	     if (Options.use_regexp) regfree(&reg);
-	     return 0;
-	   }
+	    if (!Options.use_menus) {
+              Aff_fin("-suite-");
+              key=Attend_touche();
+              if (KeyBoard_Quit) {
+	        free(buf[0]);
+	        if (Options.use_regexp) regfree(&reg);
+	        return 0;
+	      }
+	    } else if ((menu) && (passage!=0)) {
+	      Menu_simple(menu,start,NULL,
+	     		            (passage<2 ? chg_grp_in :
+	     					 chg_grp_not_in),
+			  nom);
+	      Libere_menu_noms(menu);
+	      menu=start=courant=NULL;
+	    }
 	 }
-         row=1+Options.skip_line;
-         Cursor_gotorc(1,0);
-         Screen_erase_eos();
-         Cursor_gotorc(row,0);
+	 if (!Options.use_menus) {
+           row=1+Options.skip_line;
+           Cursor_gotorc(1,0);
+           Screen_erase_eos();
+           Cursor_gotorc(row,0);
+	 }
 	 passage++;
 	 switch (passage) {
-	   case 0 : Screen_write_string("Newsgroups auquels vous êtes abonnés : ");
+	   case 0 : nom="Newsgroups auquels vous êtes abonnés.";
+	   	    if (!Options.use_menus) Screen_write_string(nom);
 		    break;
-	   case 1 : Screen_write_string("Newsgroups présents dans le .flnewsrc : ");
+	   case 1 : nom="Newsgroups présents dans le .flnewsrc.";
+	   	    if (!Options.use_menus) Screen_write_string(nom);
 		    break;
-	   case 2 : Screen_write_string("Autres newsgroups : ");
+	   case 2 : nom="Autres newsgroups.";
+	   	    if (!Options.use_menus) Screen_write_string(nom);
 		    strcpy (*buf, "active");
 		    {
 		       char *buf2;
@@ -318,7 +424,7 @@ int Liste_groupe (int flags, char *mat) {
 	  continue;
       }  /* On se sert directement de tcp_line_read */
 	 
-      if (row>Screen_Rows-2-Options.skip_line) {
+      if ((row>Screen_Rows-2-Options.skip_line) && (!Options.use_menus)) {
          Aff_fin("-suite-");
          key=Attend_touche();
          if (KeyBoard_Quit) { 
@@ -330,20 +436,39 @@ int Liste_groupe (int flags, char *mat) {
          row=1+Options.skip_line;
       } 
        
+      strcpy(une_ligne,"  ");
       if (passage<2) {
         Cursor_gotorc(row,0);
-        if (parcours->flags & GROUP_UNSUBSCRIBED)
-          Screen_write_string("U ");
-        else if (parcours==Newsgroup_courant) Screen_write_char('>'); else
-	  if (NoArt_non_lus(parcours)>0) Screen_write_string("* ");
+	if (parcours==Newsgroup_courant)
+	  *une_ligne='>';
+	else
+        if ((flag=calcul_flag(parcours)))
+          *une_ligne=flag;
+	else
+	  if (NoArt_non_lus(parcours)>0) *une_ligne='+';
       }
       Cursor_gotorc(row,2);
       if (passage<2) {
-        Screen_write_string(parcours->name);
-        Screen_write_string(parcours->description);
-        parcours=parcours->next;
-      } else Screen_write_string(tcp_line_read);
+        strncat(une_ligne,truncate_group(parcours->name,0),77);
+	une_ligne[79]='\0';
+        strncat(une_ligne,parcours->description,79-strlen(une_ligne));
+	une_ligne[79]='\0';
+      } else strncat(une_ligne,tcp_line_read,77);
+      if (Options.use_menus) {
+          ptr=safe_strdup(une_ligne);
+          courant=ajoute_menu(courant,ptr,(passage < 2 ? (void *)parcours : ptr+2));
+	  if ((passage<2) && (parcours==Newsgroup_courant)) start=courant;
+	  if (!menu) menu=courant;
+      } else Screen_write_string(une_ligne);
+      if (passage<2) parcours=parcours->next;
       row++;
+   }
+   if ((menu) && (Options.use_menus)) {
+      Menu_simple(menu,start,NULL,
+   		            (passage<2 ? chg_grp_in :
+    					 chg_grp_not_in),
+		  nom);
+      Libere_menu_noms(menu);
    }
    free(buf[0]);
    if (Options.use_regexp) regfree(&reg);
@@ -1121,7 +1246,7 @@ int Gere_Scroll_Message (int *key_int, int row_act, int row_deb,
 /* Affichage du nom du newsgroup */
 void Aff_newsgroup_name() {
    char *buf=NULL, *tmp_name;
-   int buf_to_free=0, num_flag;
+   int buf_to_free=0;
    char flag_aff=0;
 
    Screen_set_color(FIELD_STATUS);
@@ -1130,12 +1255,7 @@ void Aff_newsgroup_name() {
      if (Newsgroup_courant) {
        if (!(Newsgroup_courant->flags & GROUP_READONLY_TESTED))
           test_readonly(Newsgroup_courant);
-       num_flag=(Newsgroup_courant->flags & GROUP_READONLY_FLAG ? 4 : 0)+
-       		(Newsgroup_courant->flags & GROUP_UNSUBSCRIBED ? 2 : 0)+
-		(Newsgroup_courant->flags & GROUP_IN_MAIN_LIST_FLAG ? 0 : 1);
-       if (Options.flags_group && (strlen(Options.flags_group)>num_flag) 
-       	     && (Options.flags_group[num_flag]!=' ')) 
-	     	flag_aff=Options.flags_group[num_flag];
+       flag_aff=calcul_flag(Newsgroup_courant);
        tmp_name=truncate_group(Newsgroup_courant->name,0);
        if (strlen(tmp_name)<name_fin_col-name_news_col-((flag_aff ? 1 : 0)*3))
           buf=tmp_name;

@@ -21,7 +21,7 @@
  * */
 void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
 	      void (action)(void *,char *,int),
-	      int (action_select)(void *,char **, int,char *,int)) {
+	      int (action_select)(void *,char **, int,char *,int,int), char *chaine) {
 
   int act_row=1+Options.skip_line, num_elem=0, num_courant=0;
   int correct=0; /* Pour savoir si on s'arrete ou pas... */
@@ -71,7 +71,7 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
   }
 
 /* Maintenant on peut faire des affichages et des choix.		*/
-  Aff_fin("Menu simple... (q pour quitter)");
+  Aff_fin(chaine);
   {
     int key,p;
     int no_change_last_line=0;
@@ -97,6 +97,9 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
       Screen_write_char('>');
       no_change_last_line=0;
       key=Attend_touche();
+      if (KeyBoard_Quit) {
+         courant=NULL; correct=1; key=0;
+      }
       Cursor_gotorc(act_row,0);
       Screen_write_char(' ');
       switch (key<MAX_FL_KEY ? Flcmd_rev[key] : FLCMD_UNDEF) {
@@ -109,11 +112,12 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
 			   break;
 	 case FLCMD_QUIT : courant=NULL;
 			   correct=1; break;
+	 default : if ((action_select==NULL) || (courant==NULL)) break;
 	 case FLCMD_SUIV : if(action_select && courant) {
 			  /* on appelle l'action */
 	              *Une_Ligne='\0';
 		      if (!(correct=action_select(courant->lobjet,
-			  &courant->nom,num_courant,Une_Ligne,Une_Ligne_len))) {
+			  &courant->nom,num_courant,Une_Ligne,Une_Ligne_len,key))) {
 			  /* on met a jour la ligne */
 			Cursor_gotorc(Screen_Rows-2,0);
 			Screen_write_string(Une_Ligne);

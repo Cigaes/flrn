@@ -210,7 +210,9 @@ static void Aff_message(int type, int num)
     case -13 : Aff_error("Tag invalide."); break;
     case -14 : Aff_error("Cancel refusé."); break;
     case -15 : Aff_error("Historique vide."); break;
-    case -16 : Aff_error("Vous ne pouvez pas poster ici."); break;
+/*    case -16 : Aff_error("Vous ne pouvez pas poster ici."); break; */
+/* ce message est idiot : rien n'empêche de faire un followup, sauf à */
+/* la rigueur si le serveur refuse tout...			      */
     case -17 : Aff_error("Pas de header."); break;
     case -18 : Aff_error("Header refusé."); break;
     default : Aff_error("Erreur non reconnue !!!");
@@ -1090,7 +1092,7 @@ int do_hist_menu(int res) {
     etat_loop.etat=2; etat_loop.num_message=-15; 
     return 0;
   }
-  valeur = (int)(long) Menu_simple(menu, start, hist_menu_summary, NULL);
+  valeur = (int)(long) Menu_simple(menu, start, hist_menu_summary, NULL, "Historique. <entrée> pour choisir, q pour quitter...");
   if (!valeur) {
     etat_loop.etat=3; etat_loop.num_message=-15; 
     return 0;
@@ -1355,7 +1357,7 @@ static Article_List * raw_Do_summary (int deb, int fin, int thread,
   }
   /* on jouait avec un menu */
   if(menu) {
-    parcours=Menu_simple(menu, start, NULL, NULL);
+    parcours=Menu_simple(menu, start, NULL, NULL, "<entrée> pour choisir, q pour quitter.");
     Libere_menu_noms(menu);
     return parcours;
   }
@@ -1662,9 +1664,6 @@ int do_post(int res) {
   Article_List *origine;
   char *str=Arg_str;
   int ret;
-
-  if ((res!=FLCMD_MAIL) && (Newsgroup_courant->flags & GROUP_READONLY_FLAG))
-  { etat_loop.etat=2; etat_loop.num_message=-16; return 0; }
 
   if ((res==FLCMD_ANSW) || (res==FLCMD_MAIL) || (res==FLCMD_SUPERSEDES)) {
      origine=Article_courant;
@@ -2061,7 +2060,7 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
    if (lemenu) {
      if (lemenu->suiv==NULL) mygroup=lemenu->lobjet;
      else
-       mygroup=Menu_simple(lemenu,NULL,Ligne_carac_du_groupe,NULL);
+       mygroup=Menu_simple(lemenu,NULL,Ligne_carac_du_groupe,NULL,"Quel groupe ?");
      if (mygroup==NULL) mygroup=Newsgroup_courant;
      Libere_menu(lemenu);
    } else if (avec_un_menu) {

@@ -247,6 +247,12 @@ extern Flcmd Flcmds[NB_FLCMD];
 #define FLCMD_QUIT 11
 #define FLCMD_UP 27
 #define FLCMD_DOWN 28
+/* et ceci pour la commande List... si ca continue on va tout définir... */
+#define FLCMD_ADD_KILL 56
+#define FLCMD_REMOVE_KILL 57
+#define FLCMD_UNSU 5
+#define FLCMD_ABON 6
+#define FLCMD_ZAP  9
 
 #endif
 

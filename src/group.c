@@ -823,3 +823,63 @@ char *truncate_group (char *str, int flag) {
   if (flag) return ((tmp=strrchr(str,'.')) ? tmp+1 : str);
   return str;
 }
+
+
+/* Cette fonction marque lu tous les articles d'un groupe, si ce n'est pas */
+/* le groupe courant...							   */
+/* je me base sur NoArtNonLus... C'est méchant, mais au moins c'est zappé  */
+/* jusqu'au bout...							   */
+void zap_group_non_courant (Newsgroup_List *group) {
+   int i, res, code;
+   Range_List *range1, *range2;
+   char *buf;
+   Article_List *art;
+
+   if (group==Newsgroup_courant) return;
+   /* On envoie un list active au serveur */
+   buf=safe_malloc((MAX_NEWSGROUP_LEN+10)*sizeof(char));
+   strcpy(buf, "active ");
+   strcat(buf, group->name);
+   res=write_command(CMD_LIST, 1, &buf);
+   free(buf);
+   if (res<3) return;
+
+   code=return_code();
+   if ((code<0) || (code>400)) return;
+
+   res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+   if (res<0) return;
+   if (tcp_line_read[1]=='\r') {
+      return; /* Pas glop, tout ca */
+   }
+   /* Normalement, une ligne de lecture suffit amplement */
+   buf=strchr(tcp_line_read,' ');
+   group->max=strtol(buf,&buf,10);
+   group->min=strtol(buf,&buf,10);
+   discard_server(); /* Si il y a plusieurs newsgroups, BEURK */
+   
+   if (group->max==0)  return; /* le groupe est vide */
+   if (group->read==NULL) {
+     group->read=safe_malloc(sizeof(Range_List));
+     group->read->next=NULL;
+   }
+   group->read->min[0]=1;
+   group->read->max[0]=group->max;
+   for (i=1; i<RANGE_TABLE_SIZE; i++) group->read->max[i]=group->read->min[i]=0;
+
+   range1=group->read->next;
+   while (range1) { 
+      range2=range1->next;
+      free(range1);
+      range1=range2;
+   }
+   art=group->Article_deb;
+   while (art) {
+     art->flag|=FLAG_READ;
+     art=art->next;
+   }
+   /* si de nouveaux messages étaient apparus, on ne les a pas marqué lus */
+   /* Tant pis... Ça devrait pas changer beaucoup de choses... qui irait  */
+   /* zapper un groupe après coup...					  */
+}
+   

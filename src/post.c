@@ -567,15 +567,18 @@ static void Format_headers() {
       free(Header_post->k_header[SENDER_HEADER]);
       Header_post->k_header[SENDER_HEADER]=NULL;
    }
+
    /* X-NEWSREADER */
    Header_post->k_header[X_NEWSREADER_HEADER]=
         safe_realloc(Header_post->k_header[X_NEWSREADER_HEADER], (strlen(short_version_string)+1)*sizeof(char));
    strcpy(Header_post->k_header[X_NEWSREADER_HEADER], short_version_string);
    free(real_name);
+
    /* Newsgroups , Followup-To*/
    for (i=0; i<2; i++) {
      j=(i==0 ? NEWSGROUPS_HEADER : FOLLOWUP_TO_HEADER);
      if (Header_post->k_header[j]) {
+       if ((j==FOLLOWUP_TO_HEADER) && (strcasecmp(Header_post->k_header[j],"poster")==0)) continue;
        buf=strtok(Header_post->k_header[j],delim2);
        real_name=NULL;
        len1=0;
@@ -726,7 +729,8 @@ static int Mail_article() {
 /* -9 : ligne trop longue	       */
 /* -10 : adresse sous un format invalide */
 /* -11 : pas autorisé */
-/* -12 : erreur inconnue	       */
+/* -12 : post dans le futur */
+/* -13 : erreur inconnue	       */
 static int Post_article() {
     Lecture_List *a_ecrire=Deb_article;
     int res;
@@ -753,6 +757,7 @@ static int Post_article() {
     res=strtol(tcp_line_read, &buf, 10);
     if (res==240) return 1; 
     /* On suppose que res==441 */
+    if (strstr(buf, "future")) return -12;
     if (strstr(buf, "allowed")) return -11;
     if (strstr(buf, "Internet")) return -10;
     if (strstr(buf, "too long")) return -9;
@@ -762,7 +767,7 @@ static int Post_article() {
     if ((strstr(buf, "valid")!=NULL) || (strstr(buf,"such")!=NULL)) return -3;
     if (strstr(buf, "Newsgroups")) return -5;
     if (strstr(buf, "From")) return -4;
-    return -12;
+    return -13;
 }
 
 
@@ -897,7 +902,8 @@ static int Get_base_headers(int flag) {
 	    if (key=='N') break;
 	  }
 	  par_mail=flag; /* 0 ou 1 */
-        } else {
+        } else if (strcasecmp(Newsgroup_courant->name,Pere_post->headers->k_headers[FOLLOWUP_TO_HEADER])!=0) { 
+			/* On ne demande rien si on est dans le bon groupe */
 	  while (1) {
 	    Cursor_gotorc(Screen_Rows-1,0);
 	    Screen_write_string("Suivre le followup (O/N/A) ? ");
@@ -947,9 +953,13 @@ static int Get_base_headers(int flag) {
    }
    /* Newsgroups */
    if (Header_post->k_header[NEWSGROUPS_HEADER]==NULL) {
-	 if (!supersedes) Header_post->k_header[NEWSGROUPS_HEADER]=safe_strdup(Newsgroup_courant->name);
-           else
-	 Header_post->k_header[NEWSGROUPS_HEADER]=safe_strdup(Pere_post->headers->k_headers[NEWSGROUPS_HEADER]);
+	 if (!supersedes) {
+	    if (Newsgroup_courant->flags & GROUP_READONLY_FLAG) 
+	        Header_post->k_header[NEWSGROUPS_HEADER]=safe_strdup("junk");
+	    else
+	 	Header_post->k_header[NEWSGROUPS_HEADER]=safe_strdup(Newsgroup_courant->name);
+	 } else
+	    Header_post->k_header[NEWSGROUPS_HEADER]=safe_strdup(Pere_post->headers->k_headers[NEWSGROUPS_HEADER]);
    }
    /* Headers To: et In-Reply-To: */
    Cursor_gotorc(1,0);
@@ -1178,6 +1188,7 @@ int post_message (Article_List *origine, char *name_file,int flag) {
         case -10: Screen_write_string("Un header contient une adresse invalide.");	break;
         case -11: Screen_write_string("Post non autorisé.");	
 		  break;
+	case -12: Screen_write_string("problème de date avec le serveur");
 	default : Screen_write_string("inconnu : ");
 		  break;
       }

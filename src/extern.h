@@ -65,6 +65,7 @@ extern int cherche_newnews(void);
 extern void add_read_article(Newsgroup_List * /*group*/, int /*numero*/);
 extern char *truncate_group (char *, int);
 extern void test_readonly(Newsgroup_List *);
+extern void zap_group_non_courant (Newsgroup_List *);
     
 /*  art_group.c  */
 extern int va_dans_groupe(void);
@@ -166,7 +167,7 @@ extern int str_ch_cat(Lecture_List ** /*chaine1*/, Lecture_List * /*chaine2*/,
 /* flrn_menus.c */
 extern void *Menu_simple (Liste_Menu * /*debut_menu*/, Liste_Menu * /*actuel*/,
     void action(void *,char *,int),
-    int action_select(void *, char **, int, char *, int));
+    int action_select(void *, char **, int, char *, int,int), char * /*titre*/);
 extern void Libere_menu (Liste_Menu * /*debut*/);
 extern void Libere_menu_noms (Liste_Menu * /*debut*/);
 extern Liste_Menu *ajoute_menu(Liste_Menu * /*base*/, char * /*nom*/,
