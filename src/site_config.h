@@ -38,6 +38,7 @@ struct Option_struct Options = {
   0,			/* use_menus (très alpha) */
   0,			/* with_cousins */
   0,			/* quit_if_nothing */
+  0,			/* parse_from */
   NULL,			/* auto_subscribe */
   "^control|^[^.]+$",	/* auto_ignore */
   1,			/* subscribe_first */
@@ -51,6 +52,7 @@ struct Option_struct Options = {
   ".flrnkill",		/* kill_file_name */
   1,			/* auto_kill */
   "",			/* savepath */
+  "",			/* prefixe_groupe */
   };
 
 #endif

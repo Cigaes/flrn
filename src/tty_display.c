@@ -31,8 +31,10 @@ int saved_field, saved_space, en_deca;
 /* si col_num!=0, c'est la taille à réserver pour les numéros */
 static int Size_Window(int flag, int col_num) {
    int aff_help=0, aff_mess=1;
+   char *name_program2;
 
-   name_news_col=5;
+   name_news_col=strlen(name_program)+1;
+   if (name_news_col>9) name_news_col=9;
    if (col_num==0) col_num=num_col_num;
    num_col_num=col_num;
    num_max_col=Screen_Cols-5-col_num;
@@ -55,7 +57,11 @@ static int Size_Window(int flag, int col_num) {
 
    Screen_set_color(FIELD_STATUS);
    Screen_erase_eol(); /* Juste pour tout remplir */
-   Screen_write_string("Flrn");
+   name_program2=safe_strdup(name_program);
+   name_program2[0]=(char) toupper((int) name_program2[0]);
+   if (strlen(name_program2)>8) name_program2[8]='\0';
+   Screen_write_string(name_program2);
+   free(name_program2);
    if (aff_help) Screen_write_string(" (?:Aide)");
    Screen_write_string(": ");
    name_fin_col=num_art_col-1;
@@ -739,9 +745,11 @@ int Aff_headers (int flag) {
        switch (i0) {
          case REFERENCES_HEADER: /* traitement special */
            if (Article_courant->headers->reponse_a) {
-	     une_ligne=safe_malloc(18+strlen(Article_courant->headers->reponse_a));
+	     une_ligne=safe_malloc(22+2*strlen(Article_courant->headers->reponse_a));
              strcpy(une_ligne,"Réponse à: ");
-	     strcat(une_ligne,Article_courant->headers->reponse_a);
+	     if (!Options.parse_from) 
+	     	strcat(une_ligne,Article_courant->headers->reponse_a);
+	     else ajoute_parsed_from(une_ligne,Article_courant->headers->reponse_a);
 	     une_belle_ligne=safe_malloc((strlen(une_ligne)+1)*sizeof(short));
 	     Aff_color_line(0,une_belle_ligne, &length,
 		 FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);
@@ -783,9 +791,11 @@ int Aff_headers (int flag) {
 	   row=Aff_header(1, with_arbre, row, 0, une_ligne, une_belle_ligne,!flag);
            break;
          case FROM_HEADER:
-	   une_ligne=safe_malloc(10+strlen(Article_courant->headers->k_headers[FROM_HEADER]));
+	   une_ligne=safe_malloc(14+2*strlen(Article_courant->headers->k_headers[FROM_HEADER]));
            strcpy(une_ligne,"Auteur: ");
-	   strcat(une_ligne,Article_courant->headers->k_headers[FROM_HEADER]);
+	   if (!Options.parse_from) 
+	     	strcat(une_ligne,Article_courant->headers->k_headers[FROM_HEADER]);
+	   else ajoute_parsed_from(une_ligne,Article_courant->headers->k_headers[FROM_HEADER]);
 	   une_belle_ligne=safe_malloc((strlen(une_ligne)+1)*sizeof(short));
 	   Aff_color_line(0,une_belle_ligne, &length,
 		 FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);

@@ -1,5 +1,8 @@
 ChangeLog Flrn
 
+. option parse_from
+. changement cosmétique, reparse du header followup-to
+. modif de la sémantique d'espace, qui ne renvoie pas le message courant
 . reparse du header Newsgroups dans les posts
 . option prefixe_groupe
 . suppression d'un grand nombre de warnings avec gcc-2.8.1

@@ -541,7 +541,7 @@ static int get_Body_post() {
 /* Pour l'instant, on s'occupe juste de sender et de X-newsreader */
 /* On pourrait aussi supprimer Control */
 static void Format_headers() {
-   int len1, len2, copy_pre;
+   int len1, len2, copy_pre, i,j;
    char *real_name=safe_strdup(flrn_user->pw_gecos), *buf;
    static char *delim2=" ,;\t";
 
@@ -572,24 +572,28 @@ static void Format_headers() {
         safe_realloc(Header_post->k_header[X_NEWSREADER_HEADER], (strlen(short_version_string)+1)*sizeof(char));
    strcpy(Header_post->k_header[X_NEWSREADER_HEADER], short_version_string);
    free(real_name);
-   /* Newsgroups */
-   if (Header_post->k_header[NEWSGROUPS_HEADER]) {
-     buf=strtok(Header_post->k_header[NEWSGROUPS_HEADER],delim2);
-     real_name=NULL;
-     len1=0;
-     while (buf) {
-       copy_pre=((Options.prefixe_groupe) && (strncmp(buf,Options.prefixe_groupe,strlen(Options.prefixe_groupe))!=0));
-       real_name=safe_realloc(real_name,len1+(copy_pre?strlen(Options.prefixe_groupe):0)+strlen(buf)+2);
-       if (len1==0) real_name[0]='\0';
-       len1+=(copy_pre?strlen(Options.prefixe_groupe):0)+strlen(buf)+1;
-       if (copy_pre) strcat(real_name,Options.prefixe_groupe);
-       strcat(real_name,buf);
-       strcat(real_name,",");
-       buf=strtok(NULL,delim2);
-     }
-     if (len1>0) real_name[len1-1]='\0'; /* Enlevons la dernière , */
-     free(Header_post->k_header[NEWSGROUPS_HEADER]);
-     Header_post->k_header[NEWSGROUPS_HEADER]=real_name;
+   /* Newsgroups , Followup-To*/
+   for (i=0; i<2; i++) {
+     j=(i==0 ? NEWSGROUPS_HEADER : FOLLOWUP_TO_HEADER);
+     if (Header_post->k_header[j]) {
+       buf=strtok(Header_post->k_header[j],delim2);
+       real_name=NULL;
+       len1=0;
+       while (buf) {
+         copy_pre=((Options.prefixe_groupe) && (strncmp(buf,Options.prefixe_groupe,strlen(Options.prefixe_groupe))!=0));
+         real_name=safe_realloc(real_name,len1+(copy_pre?strlen(Options.prefixe_groupe):0)+strlen(buf)+2);
+         if (len1==0) real_name[0]='\0';
+         len1+=(copy_pre?strlen(Options.prefixe_groupe):0)+strlen(buf)+1;
+         if (copy_pre) strcat(real_name,Options.prefixe_groupe);
+         strcat(real_name,buf);
+         strcat(real_name,",");
+         buf=strtok(NULL,delim2);
+       }
+       if (len1>0) real_name[len1-1]='\0'; /* Enlevons la dernière , */
+       free(Header_post->k_header[j]);
+       Header_post->k_header[j]=(j==1 ? real_name : safe_strdup(real_name));
+       if (j==0) free(real_name);
+    }
   }
 }
 
@@ -967,7 +971,7 @@ static int Get_base_headers(int flag) {
      Screen_write_string("To : ");
      Screen_write_string(Header_post->k_header[TO_HEADER]);
    } else {
-     Screen_write_string("Newsgroups : ");
+     Screen_write_string("Groupe : ");
      Screen_write_string(Header_post->k_header[NEWSGROUPS_HEADER]);
    }
    /* Sujet */

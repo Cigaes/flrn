@@ -99,6 +99,7 @@ extern int str_estime_len (char *, int , int );
 extern int to_make_len (char *, int , int );
 extern void Copy_format (FILE * /*tmp_file*/, char * /*chaine*/,
     Article_List * /*article*/);
+extern void ajoute_parsed_from (char *, char *);
 
 /* flrn_xover */
 extern int get_overview_fmt(void);

@@ -81,6 +81,7 @@ struct Option_struct {
   int  use_menus;
   int  with_cousins;
   int  quit_if_nothing;
+  int  parse_from;
   char *auto_subscribe;
   char *auto_ignore;
   int  subscribe_first;
@@ -169,6 +170,7 @@ static struct {
   MAKE_STRING_OPT(index_string,"Caractères précédents un quote."),
   MAKE_STRING_OPT(kill_file_name,"Nom du fichier de kill utilisé."),
   MAKE_OPT(ordered_summary,"Ordonne les résumés suivant leur numéro."),
+  MAKE_OPT(parse_from,"Affiche le \"Auteur:\" et le \"Réponse à:\" plus forum-like."),
   MAKE_INTEGER_OPT_L(port,"Port d'accès au serveur (119 en général)."),
   MAKE_STRING_OPT(post_name,"Nom de posts des messages."),
   MAKE_STRING_OPT(prefixe_groupe,"Préfixe par défaut de noms de groupes."),

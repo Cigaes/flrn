@@ -543,3 +543,30 @@ char * Prepare_summary_line(Article_List *article, char *previous_subject,
          else sprintf(out_ptr,"%7.7s","");
     return out;
 }
+
+/* parse la ligne de From:... dans un format pour l'instant unique et */
+/* forum-like...						      */
+/* ajoute le resultat à str */
+/* on suppose qu'il y a de la place (2*strlen(from_line))+3 */
+
+void ajoute_parsed_from(char *str, char *from_line) {
+   char *buf,*buf2;
+   buf=vrai_nom(from_line);
+   strcat(str,buf);
+   strcat(str," (");
+   free(buf);
+   buf=strchr(from_line,'<');
+   if (buf) {
+      buf2=strchr(buf,'@');
+      if (buf2) 
+        strncat(str,buf+1,buf2-buf-1);
+      else strcat(str,buf+1);
+   } else {
+     buf2=strchr(from_line,'@');
+     if (buf2)
+       strncat(str,from_line,buf2-from_line);
+     else strcat(str,from_line);
+   }
+   strcat(str,")");
+}
+
