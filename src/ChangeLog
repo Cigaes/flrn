@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. utilisation de $HOME/.flrn de préférence à $HOME
 . bugfix du pager
 . affichage du nombre de messages non lus
 . un article cancelé n'interrompt plus la discussion

@@ -24,6 +24,8 @@
 /* La socket avec le serveur  pour la fermer apres un fork */
 extern int tcp_fd;
 
+int with_direc;
+
 /* Ouverture du fichier de config. Renvoie un FILE dessus. Dans le cas  */
 /* ou ce fichier n'existe pas, le crée et copie dedans un config	*/
 /* minimale (à condition de trouver le home directory).			*/
@@ -41,9 +43,19 @@ FILE *open_flrnfile (char *file,char *mode, int flag, time_t * date)
    struct stat buf;
 
    if ((file==NULL) || (*file!='/')) {
-     if (NULL == (home = getenv ("FLRNHOME")))
+     if (NULL == (home = getenv ("FLRNHOME"))) {
         home = getenv ("HOME");
-
+	/* On recherche un éventuel répertoire .flrn */
+	if (home && (with_direc==-1)) {
+	   strncpy(name,home,MAX_PATH_LEN-1);
+	   name[MAX_PATH_LEN-2]='\0';
+           strcat(name, "/");
+	   strncat(name,DEFAULT_DIR_FILE,MAX_PATH_LEN-strlen(name)-1);
+	   name[MAX_PATH_LEN-1]='\0';
+	   if ((stat(name,&buf)>=0) && ((buf.st_mode & S_IFMT)==S_IFDIR)) with_direc=1;
+	}
+     }
+     if (with_direc==-1) with_direc=0;
      if (home == NULL)
      {
         strcpy(name,"./");
@@ -54,6 +66,11 @@ FILE *open_flrnfile (char *file,char *mode, int flag, time_t * date)
         strncpy(name, home, MAX_PATH_LEN-1); 
         name[MAX_PATH_LEN-2]='\0';   /* oui, je sais, precaution ridicule */
         strcat(name, "/");
+	if (with_direc) {
+	   strncat(name,DEFAULT_DIR_FILE,MAX_PATH_LEN-strlen(name)-2);
+	   name[MAX_PATH_LEN-2]='\0';
+           strcat(name, "/");
+	}
      }
    } else {
      home_found=0;
@@ -111,9 +128,22 @@ void rename_flnewsfile (char *old_link,char *new_link)
 {
    char *home, name1[MAX_PATH_LEN], name2[MAX_PATH_LEN];
    int home_found = 1, res;
+   struct stat buf;
 
    if (NULL == (home = getenv ("FLRNHOME")))
+   {
       home = getenv ("HOME");
+      /* On recherche un éventuel répertoire .flrn */
+      if (home && (with_direc==-1)) {
+	   strncpy(name1,home,MAX_PATH_LEN-1);
+	   name1[MAX_PATH_LEN-2]='\0';
+           strcat(name1, "/");
+	   strncat(name1,DEFAULT_DIR_FILE,MAX_PATH_LEN-strlen(name1)-1);
+	   name1[MAX_PATH_LEN-1]='\0';
+	   if ((stat(name1,&buf)>=0) && (buf.st_mode & S_IFDIR)) with_direc=1;
+      }
+   }
+   if (with_direc==-1) with_direc=0;
 
    if (home == NULL)
    {
@@ -126,6 +156,12 @@ void rename_flnewsfile (char *old_link,char *new_link)
       strncpy(name1, home, MAX_PATH_LEN-1);
       name1[MAX_PATH_LEN-2]='\0';   /* oui, je sais, precaution ridicule */
       strcat(name1, "/");
+      if (with_direc)
+      {
+          strncat(name1,DEFAULT_DIR_FILE,MAX_PATH_LEN-strlen(name1)-2);
+          name1[MAX_PATH_LEN-2]='\0';
+	  strcat(name1, "/");
+      }
    }
    strcpy(name2, name1);
    if (old_link)

@@ -18,6 +18,7 @@
 #include "group.h"
 #include "version.h"
 
+extern int with_direc;
 int debug;
 struct passwd *flrn_user;
 char *mailbox;
@@ -47,7 +48,7 @@ int main(int argc, char *argv[])
   int i;
   char *newsgroup=NULL;
 
-  debug=0;
+  debug=0; with_direc=-1;
   name_program=strrchr(argv[0],'/');
   if (name_program) name_program++; else
   name_program=argv[0];

@@ -4,6 +4,8 @@
 #include "pathdef.h"
 
 #define MAX_PATH_LEN 	1024
+#define DEFAULT_DIR_FILE	".flrn"
+/* Répertoire où chercher les fichiers de config */
 #define DEFAULT_CONFIG_FILE	".flrnrc"
 #define DEFAULT_CONFIG_SYS_FILE "flrnrc" /* si pas de .flrnrc, on ouvre celui-la */
 #define DEFAULT_FLNEWS_FILE	".flnewsrc"
