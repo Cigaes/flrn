@@ -641,8 +641,10 @@ int parse_arg_string(char *str,int command)
    int flag;
    if (str) while (*str==' ') str++;
    if ((str==NULL) || (str[0]=='\0')) return command;
-   flag=Flcmds[command].flags & 19; /* C'est crade, mais bon... */
+   /* a quoi ca sert ? et ca casse les macros !
+   flag=Flcmds[command].flags & 19;
    if (flag==0) return command;
+   */
    Parse_nums_article(str, &str, flag);
    if (str) strncpy(Arg_str, str, MAX_CHAR_STRING-1);
    return command;

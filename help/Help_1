@@ -12,6 +12,9 @@ Les paragraphes en retrait sont des descriptions plus détaillées qui peuvent
 Les commandes sont utilisables soit en tapant leur nom :
 "\goto" ou en utilisant une touche sur laquelle elles sont bindées, comme 'g'.
 
+  Quand on tappe leur nom, il y a une completion automatique rudimentaire
+  obtenue avec Tab.
+
 Certaines commandes prennent une chaîne de caractères en argument. On peut la
 mettre directement si l'on utilise la première forme : "\goto flrn".
 
