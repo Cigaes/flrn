@@ -79,7 +79,7 @@ extern int Do_Search(int,int *,int);
 extern int Number_current_line_scroll(void);
 extern void Screen_write_color_chars(unsigned short * /*s*/,unsigned int /*n*/);
 extern int parse_key_name(char *);
-extern const char *get_name_char(int);
+extern const char *get_name_char(int,int);
 extern void Screen_beep(void);
 extern void Screen_set_screen_start(int * /*r*/, int * /*c*/);
 extern int Parcours_du_menu(int);

@@ -77,14 +77,20 @@ int get_command_pager(int une_touche, int endroit, int cmd, int *number) {
    }
    /* on autorise les macros pour le CONTEXT_COMMAND, ca ne pose aucun 
       probleme, contrairement a ce qui se passe dans le menu */
-   if (res==-1) 
+   if (res==-1) {
+      if (une_commande.flags & 2) save_command(&une_commande);
       Aff_error_fin(_(Messages[MES_UNKNOWN_CMD]),1,1);
+   }
    if (res<0) {
      if (une_commande.before) free(une_commande.before);
      if (une_commande.after) free(une_commande.after);
      return res;
    }
    if (res==endroit) return -4;
+   if (une_commande.len_desc>0) {
+       free(une_commande.description);
+       une_commande.len_desc=0;
+   }
    /* Le search */
    if (res2 & FLCMD_MACRO) {
       num_macro=res2 ^ FLCMD_MACRO;
@@ -301,6 +307,7 @@ int Bind_command_pager(char *nom, int key, char *arg, int add) {
       return 0;
     }
   }
+  commande.len_desc=0;
   res=Lit_cmd_explicite(nom, CONTEXT_PAGER, -1, &commande);
   if (res==-1) return -1;
   res=Bind_command_new(key, commande.cmd[CONTEXT_PAGER], arg,

@@ -698,7 +698,7 @@ int Liste_groupe (int flags, char *mat, Newsgroup_List **retour) {
                           ajoute_elem_not_menu (NULL,1);
    ret = cherche_newsgroups_in_list (
 	   (Options.use_regexp ? mustmatch : mat), reg,
-	   16+(Options.use_regexp ? 2 : 0),
+	   48+(Options.use_regexp ? 2 : 0),
 	   &lg1_ajoute_elem,
            &lg1_order,
            (void **)retour);

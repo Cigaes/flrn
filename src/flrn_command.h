@@ -52,11 +52,14 @@ typedef struct command_return {
 #endif
    char *before;
    char *after;
-   int maybe_after;
+   int flags;  /* 1 : maybe_after, 2 : keep description */
+   char *description;
+   int len_desc;
 } Cmd_return;
 extern Cmd_return une_commande;
 
 extern int get_command(int, int, int, Cmd_return *);
-extern int Lit_cmd_explicite(char *, int, int, Cmd_return *la_commande);
+extern int Lit_cmd_explicite(char *, int, int, Cmd_return *);
+extern int save_command (Cmd_return *);
 
 #endif

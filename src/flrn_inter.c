@@ -632,6 +632,7 @@ int Bind_command_explicite(char *nom, int key, char *arg, int add) {
       return 0;
     }
   }
+  commande.len_desc=0;
   res=Lit_cmd_explicite(nom, CONTEXT_COMMAND, -1, &commande);
   if (res==-1) return -1;
   res=Bind_command_new(key, commande.cmd[CONTEXT_COMMAND], arg,
@@ -819,10 +820,11 @@ int parse_arg_string(char *str,int command, int annu16)
 /* Prend la chaine argument pour les appels qui en ont besoin en mode cbreak */
 /* On ajoute key dans le cas ou isdigit(key) ou key=='<' */
 /* Renvoie -1 si annulation */
-static int get_str_arg(int res, char *beg) {
+static int get_str_arg(int res, Cmd_return *cmd, int tosave) {
    int col, ret;
    char cmd_line[MAX_CHAR_STRING];
    char *str=cmd_line;
+   char *beg=cmd->before;
 
    *(str++)='(';
    if (beg) {
@@ -852,6 +854,10 @@ static int get_str_arg(int res, char *beg) {
    } else {
      ret=flrn_getline(str, MAX_CHAR_STRING, Screen_Rows2-1, col);
      if (ret<0) return -1;
+   }
+   if ((tosave) && (*str)) {
+      cmd->after=str;
+      save_command(cmd);
    }
    if (Flcmds[res].flags & 2) 
      Parse_nums_article(str,&str,Flcmds[res].flags & 19);
@@ -887,6 +893,9 @@ int get_command_command(int get_com
      res=get_command(key,CONTEXT_COMMAND,-1,&une_commande);
    } else res=get_com;
    if (res<0) {
+      if ((res==-1) && (une_commande.flags & 2)) {
+	  save_command(&une_commande);
+      }
       if (une_commande.before) free(une_commande.before);
       if (une_commande.after) free(une_commande.after);
       return res;
@@ -899,19 +908,24 @@ int get_command_command(int get_com
       free(une_commande.fun_slang);
       une_commande.fun_slang=NULL;
       if (*slang_fun==NULL) {
+         if (une_commande.flags & 2) {
+	    save_command(&une_commande);
+         }
          if (une_commande.before) free(une_commande.before);
 	 if (une_commande.after) free(une_commande.after);
 	 return -1;
       }
       res2=NB_FLCMD+a; /* pour signifier une fonction slang ,
                     on pourra éventuellement penser à modifier ça, ensuite */
-      une_commande.maybe_after=0;
+      une_commande.flags &= ~1;
    } else
 #endif
    res2=une_commande.cmd[CONTEXT_COMMAND];
    if (une_commande.before) 
       Parse_nums_article(une_commande.before,NULL,0);
    if (une_commande.after) {
+      save_command(&une_commande);
+      une_commande.flags &= ~2;
       res2=parse_arg_string(une_commande.after,res2,1);
       free(une_commande.after);
    }
@@ -927,7 +941,7 @@ int get_command_command(int get_com
 		 (((res3-NB_FLCMD) & 1) 
 	      || ( ((!Options.forum_mode) && ((res3-NB_FLCMD) & 8))
               || ((Options.forum_mode) && ((res3-NB_FLCMD) & 4)) ))) {
-		res=get_str_arg(res2,une_commande.before);
+		res=get_str_arg(res2,&une_commande,1);
 		if (res==-1) res2=-2;
             }
        }
@@ -936,10 +950,10 @@ int get_command_command(int get_com
 #endif
    if ((res2!=FLCMD_UNDEF) && ((res2 & FLCMD_MACRO)==0)) {
    /* Testons si on a besoin d'un (ou plusieurs) parametres */
-     if ((une_commande.maybe_after) && 
+     if ((une_commande.flags & 1) && 
          ( ((!Options.forum_mode) && (Flcmds[res2].flags & 8))
          || ((Options.forum_mode) && (Flcmds[res2].flags & 4)) )) {
-       res=get_str_arg(res2,une_commande.before);
+       res=get_str_arg(res2,&une_commande,1);
        if (res==-1) res2=-2;
      }
    }
@@ -2865,13 +2879,16 @@ int do_on_selected (int res) {
     }
     ret=get_command(key,CONTEXT_COMMAND,-1,&une_commande);
   } else { 
-    une_commande.maybe_after=0;
+    une_commande.flags &= ~1;
     if ((name[1]=='\0') || (isblank(name[1]))) {
         une_commande.cmd[CONTEXT_COMMAND]=Flcmd_rev[CONTEXT_COMMAND][(int)(*name)];
 	ret=(une_commande.cmd[CONTEXT_COMMAND]==FLCMD_UNDEF ? -1 : CONTEXT_COMMAND);
 	une_commande.before=NULL;
 	une_commande.after=safe_strdup(name+2);
+	une_commande.len_desc=0;
+	une_commande.description=NULL;
     } else {
+	une_commande.len_desc=0;
 	ret=Lit_cmd_explicite(name,CONTEXT_COMMAND,-1,&une_commande);
 	buf=name;
 	while ((*buf) && (!isblank(*buf))) buf++;
@@ -2894,10 +2911,10 @@ int do_on_selected (int res) {
      free(une_commande.after);
   }
   if ((res2 & FLCMD_MACRO)==0) {
-     if ((une_commande.maybe_after) && 
+     if ((une_commande.flags & 1) && 
          ( ((!Options.forum_mode) && (Flcmds[res2].flags & 8))
 	 || ((Options.forum_mode) && (Flcmds[res2].flags & 4)) )) {
-       ret=get_str_arg(res2,une_commande.before);
+       ret=get_str_arg(res2,&une_commande,0);
        if (ret==-1) {
           if (une_commande.before) free(une_commande.before);
 	  etat_loop.etat=3;

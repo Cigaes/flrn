@@ -57,6 +57,10 @@ int get_command_menu(int with_command, int *number)  {
 
    if (nxt_menu_cmd==-1) {
      res=get_command(0,CONTEXT_MENU, (with_command ? CONTEXT_COMMAND : -1), &une_commande);
+     if (une_commande.len_desc>0) {
+	 free(une_commande.description);
+	 une_commande.len_desc=0;
+     }
      if ((res==0) && ((res2=une_commande.cmd[CONTEXT_MENU]) & FLCMD_MACRO)) {
          num_macro=res2 ^ FLCMD_MACRO;
 	 if (Flcmd_macro[num_macro].next_cmd!=-1) {
@@ -109,6 +113,7 @@ int get_command_menu(int with_command, int *number)  {
       if ((num_macro!=-1) && (Flcmd_macro[num_macro].arg)) {
          char *buf=Flcmd_macro[num_macro].arg;
 	 while ((*buf) && (isblank(*buf))) buf++;
+	 une_commande.len_desc=0;
          res=Lit_cmd_explicite(buf, CONTEXT_COMMAND,-1,&une_commande);
 	 buf=strchr(buf,' ');
 	 if (buf!=NULL) {
@@ -118,6 +123,7 @@ int get_command_menu(int with_command, int *number)  {
       } else if (une_commande.after) {
          char *buf=une_commande.after;
 	 while ((*buf) && (isblank(*buf))) buf++;
+	 une_commande.len_desc=0;
          res=Lit_cmd_explicite(buf,CONTEXT_COMMAND,-1,&une_commande);
 	 buf=strchr(buf,' ');
 	 if (buf==NULL) {
@@ -607,6 +613,7 @@ int Bind_command_menu(char *nom, int key, char *arg, int add) {
       return 0;
     }
   }
+  commande.len_desc=0;
   res=Lit_cmd_explicite(nom, CONTEXT_MENU, -1, &commande);
   if (res==-1) return -1;
     res=Bind_command_new(key, commande.cmd[CONTEXT_MENU], arg,

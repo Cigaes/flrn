@@ -137,18 +137,22 @@ int Attend_touche() {
 /* Prend une ligne. Renvoie -1 si ^C, -2 avec backspace en debut de ligne */
 /* 0 sinon.								*/
 /* buf DOIT etre initialise en le debut de la ligne...			*/
-/* renvoie qqchose >0 si on a appuye sur une des touches magiques et flag=0 */
-/* le code de la touche si ce n'est pas une touche magique et flag=1 */
+/* renvoie qqchose >0 si on a appuye sur une des touches magiques et */
+/*                                                           flag & 1=0 */
+/* le code de la touche si ce n'est pas une touche magique et flag & 1 */
+/* si non-ascii et flag=2, renvoie le code de la touche */
 int magic_flrn_getline(char *buf, int buffsize, int row, int col, char *magic, int flag, int key_pressed)
 {
-   int place;
+   int place,colact,placeact,i;
    int key=0;
    char *ptr;
 
-   place=strlen(buf);
+   place=placeact=strlen(buf);
    col+=place;
+   colact=col;
    do
    {
+     Cursor_gotorc(row,colact);
      if (key_pressed) {
        key=key_pressed;
        key_pressed=0;
@@ -156,32 +160,60 @@ int magic_flrn_getline(char *buf, int buffsize, int row, int col, char *magic, i
      /* if (key=='\r') key='\n'; */
      if (KeyBoard_Quit) return -1; /* on n'a rien fait... */
      if ((key==FL_KEY_BACKSPACE) || (key==21) || (key==23)) {
-        int mot_trouve=0;
+        int mot_trouve=0,retour=0;
         if (place==0) return -2;
+	if (placeact==0) continue;
 	do {
-          col--; place--;
-	  if (place==0) break;
+          colact--; col--; place--; placeact--;
+	  retour++;
+	  if (placeact==0) break;
 	  if (key==FL_KEY_BACKSPACE) break;
-	  if (!isblank(buf[place])) mot_trouve=1;
-	  if ((key==21) && (mot_trouve) && (isblank(buf[place-1]))) break;
+	  if (!isblank(buf[placeact])) mot_trouve=1;
+	  if ((key==21) && (mot_trouve) && (isblank(buf[placeact-1]))) break;
 	} while (1);
-        Cursor_gotorc(row,col);
+	for (i=placeact;i<place;i++) {
+            buf[i]=buf[i+retour];
+	}
+        Cursor_gotorc(row,colact);
+	if (placeact<place) Screen_write_nstring(buf+placeact,place-placeact);
         Screen_erase_eol();
         continue;
-      }
-     buf[place++]=key; col++;
-     if (!flag) {
+     }
+     if (key==FL_KEY_LEFT) {
+	 if (placeact>0) {
+	     colact--; placeact--;
+	 }
+	 continue;
+     }
+     if (key==FL_KEY_RIGHT) {
+	 if (placeact<place) {
+	     colact++; placeact++;
+	 }
+	 continue;
+     }
+     if ((flag & 2) && (key>255)) {
+	 buf[place]='\0';
+	 return key;
+     }
+     if (!(flag & 1)) {
         if ((ptr=index(magic,key))) {
-          buf[--place]='\0';           /* He oui... */
+          buf[place]='\0';           /* He oui... */
           return 1+ptr-magic;
         }
      } else if ((ptr=index(magic,key))==0) {
-          buf[--place]='\0';	       /* l'ai oublie ! (NdDamien) */
+          buf[place]='\0';	       /* l'ai oublie ! (NdDamien) */
           return key;
      }
-     if (key!='\r') Screen_write_char(key);
+     if (key!='\r') {
+	 for (i=place;i>placeact;i--) {
+	     buf[i]=buf[i-1];
+	 }
+	 Screen_write_char(key);
+	 buf[placeact++]=key; col++; colact++; place++;
+	 if (placeact<place) Screen_write_nstring(buf+placeact,place-placeact);
+     }
    } while ((key != '\r')&&(place < buffsize-1));
-   buf[--place]='\0';           /* He oui... */
+   buf[place]='\0';           /* He oui... */
    return 0;
 }
 

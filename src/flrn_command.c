@@ -46,6 +46,10 @@ Flcmd_macro_t *Flcmd_macro=NULL;
 int Flcmd_num_macros=0;
 static int Flcmd_num_macros_max=0;
 
+#define NUM_HIST_CMD 20
+char *cmd_historique[NUM_HIST_CMD];
+int cmd_hist_max=-1, cmd_hist_curr=-1;
+
 /* cree une macro
  * maintenant, on recherche une place libre avant d'ajouter a la fin...
  * donc plusieurs bind sur la meme touche ne doivent plus faire augmenter
@@ -211,7 +215,7 @@ int aff_ligne_binding(int ch, int contexte, char *ligne, int len) {
    if (len<20) return -2;
    taille=len-13;
    if (contexte==-1) taille=taille/NUMBER_OF_CONTEXTS;
-   strcpy(ligne,get_name_char(ch));
+   strcpy(ligne,get_name_char(ch,0));
    compte=strlen(ligne);
    strncat(ligne,"            ",12-compte);
    buf=ligne+12;
@@ -419,13 +423,81 @@ static int aff_context(int princip, int second) {
    strcat(chaine,") : ");
    return Aff_fin(chaine);
 }
+
+static void add_str_to_description (const char *str, Cmd_return *la_commande) {
+   if (la_commande->len_desc>0) {
+      strncat(la_commande->description, str, la_commande->len_desc);
+      la_commande->len_desc-=strlen(str);
+      if (la_commande->len_desc<=0) {
+         free(la_commande->description);
+         la_commande->description=NULL;
+      }
+   }
+}
+
+int save_command (Cmd_return *la_commande) {
+    int i=-1,len;
+    char *created,*tmp;
+    
+    if (la_commande->len_desc<=0) return -1;
+    len = (la_commande->after ? strlen(la_commande->after) : 0) +
+	  (la_commande->before ? strlen(la_commande->before) : 0) +
+	  strlen(la_commande->description) + 3;
+    created=safe_malloc(len);
+    if (la_commande->before) strcpy(created,la_commande->before);
+       else created[0]='\0';
+    strcat(created, la_commande->description);
+    if (la_commande->after) {
+	 if (la_commande->after[0]!=' ') strcat(created," ");
+	 strcat(created,la_commande->after);
+    }
+    for (i=0; i<=cmd_hist_max; i++) 
+	if (strcmp(created, cmd_historique[i])==0) break;
+    if (i<=cmd_hist_max) {
+	/* on l'a trouvé */
+	free(created);
+	tmp = cmd_historique[i];
+	if (i>cmd_hist_curr) {
+	    while (i<cmd_hist_max) {
+		cmd_historique[i] = cmd_historique[i+1];
+		i++;
+            }
+	    cmd_historique[cmd_hist_max]=cmd_historique[0];
+	    i=0;
+	}
+	if (i<cmd_hist_curr) {
+            while (i<cmd_hist_curr) {
+		cmd_historique[i] = cmd_historique[i+1];
+		i++;
+            }
+	} 
+	cmd_historique[cmd_hist_curr]=tmp;
+	la_commande->len_desc=0;
+	free (la_commande->description);
+	return 1;
+    }
+    if (cmd_hist_max<NUM_HIST_CMD-1) {
+         cmd_historique[++cmd_hist_max]=created;
+         cmd_hist_curr=cmd_hist_max;
+    } else {
+         cmd_hist_curr++;
+         if (cmd_hist_curr==NUM_HIST_CMD) cmd_hist_curr=0;
+         free(cmd_historique[cmd_hist_curr]);
+         cmd_historique[cmd_hist_curr]=created;
+   }
+   la_commande->len_desc=0;
+   free (la_commande->description);
+}
    
 int get_command(int key_depart, int princip, int second, 
 		Cmd_return *la_commande) {
    int key, col,i, res;
 
+   la_commande->description=safe_malloc(MAX_CHAR_STRING);
+   la_commande->len_desc=MAX_CHAR_STRING;
    la_commande->before=la_commande->after=NULL;
-   la_commande->maybe_after=0;
+   la_commande->flags=0;
+   la_commande->description[0]='\0';
    for (i=0; i<NUMBER_OF_CONTEXTS; i++) 
       la_commande->cmd[i]=FLCMD_UNDEF;
 #ifdef USE_SLANG_LANGUAGE
@@ -433,27 +505,28 @@ int get_command(int key_depart, int princip, int second,
 #endif
    if (!Options.cbreak) {
       col=aff_context(princip, second);
-      return get_command_nocbreak(key_depart,col,princip,second,
+      res=get_command_nocbreak(key_depart,col,princip,second,
                                         la_commande);
-   }
-   if (key_depart) key=key_depart; else key=Attend_touche();
-   if (key==fl_key_nocbreak) {
-      col=aff_context(princip, second);
-      return get_command_nocbreak(fl_key_nocbreak,col,princip,second,
-					la_commande);
-   }
-   if (key==fl_key_explicite) {
-      col=aff_context(princip, second);
-      return get_command_explicite(NULL,col,princip,second,la_commande);
    } else {
-      /* Beurk pour '-' */
-      if ((key=='-') || (strchr(DENIED_CHARS,key)==NULL)) {
+     if (key_depart) key=key_depart; else key=Attend_touche();
+     if (key==fl_key_nocbreak) {
+        col=aff_context(princip, second);
+        res= get_command_nocbreak(fl_key_nocbreak,col,princip,second,
+					la_commande);
+     } else
+     if (key==fl_key_explicite) {
+        col=aff_context(princip, second);
+        res=get_command_explicite(NULL,col,princip,second,la_commande);
+     } else {
+        /* Beurk pour '-' */
+        if ((key=='-') || (strchr(DENIED_CHARS,key)==NULL)) {
                    res=Lit_cmd_key(key,princip,second,la_commande);
-		   if ((res>=0) && (key!='\r')) la_commande->maybe_after=1;
-      } else {
-         col=aff_context(princip, second);
-         res=get_command_newmode(key,col,princip,second,la_commande);
-      }
+		   if ((res>=0) && (key!='\r')) la_commande->flags|=1;
+        } else {
+           col=aff_context(princip, second);
+           res=get_command_newmode(key,col,princip,second,la_commande);
+        }
+     }
    }
    return res;
 }
@@ -476,6 +549,7 @@ int Lit_cmd_key(int key, int princip, int second, Cmd_return *la_commande) {
       if ((la_commande->cmd[context]=Flcmd_rev[context][key])!=FLCMD_UNDEF)
           res=(res==-1 ? j : res);
    }
+   add_str_to_description(get_name_char(key,1),la_commande);
    return res;
 }
 
@@ -484,15 +558,17 @@ int Lit_cmd_key(int key, int princip, int second, Cmd_return *la_commande) {
 int Lit_cmd_explicite(char *str, int princip, int second, Cmd_return *la_commande) {
    int i, j, res=-1;
      
+   la_commande->flags|=2;
    /* Hack pour les touches fleches en no-cbreak */
-   if (strncmp(str, "key-up ",7)==0) 
-        return Lit_cmd_key(FL_KEY_UP, princip, second, la_commande);
-   if (strncmp(str, "key-down ",9)==0) 
-        return Lit_cmd_key(FL_KEY_DOWN, princip, second, la_commande);
-   if (strncmp(str, "key-left ",9)==0) 
-        return Lit_cmd_key(FL_KEY_LEFT, princip, second, la_commande);
-   if (strncmp(str, "key-right ",10)==0) 
-        return Lit_cmd_key(FL_KEY_RIGHT, princip, second, la_commande);
+   if (strncmp(str, "key-", 4)==0) {
+       char *buf;
+       int key;
+       buf=strchr(str,' ');
+       if (buf) *buf='\0';
+       key = parse_key_name(str+4);
+       if (buf) *buf=' ';
+       if (key) return Lit_cmd_key(key,princip,second,la_commande);
+   }
    /* cas "normal" */
    
 #ifdef USE_SLANG_LANGUAGE
@@ -502,6 +578,8 @@ int Lit_cmd_explicite(char *str, int princip, int second, Cmd_return *la_command
       str++;
       if ((end_str=strchr(str,']'))==NULL) return -1;
       *end_str='\0';
+      add_str_to_description(str,la_commande);
+      add_str_to_description("]",la_commande);
       comma=strchr(end_str,',');
       if (comma) {
 	 *comma='\0';     
@@ -537,6 +615,7 @@ int Lit_cmd_explicite(char *str, int princip, int second, Cmd_return *la_command
                 if ((strncmp(str, Flcmds[i].nom, strlen(Flcmds[i].nom))==0)
                     && ((str[strlen(Flcmds[i].nom)]=='\0') ||
                     (isblank(str[strlen(Flcmds[i].nom)])))) {
+                  add_str_to_description(Flcmds[i].nom,la_commande);
 		  la_commande->cmd[CONTEXT_COMMAND]=i;
 		  res=(res==-1 ? j : res);
 		  break;
@@ -546,6 +625,7 @@ int Lit_cmd_explicite(char *str, int princip, int second, Cmd_return *la_command
                 if ((strncmp(str, Flcmds_menu[i], strlen(Flcmds_menu[i]))==0)
                     && ((str[strlen(Flcmds_menu[i])]=='\0') ||
                     (isblank(str[strlen(Flcmds_menu[i])])))) {
+                  add_str_to_description(Flcmds_menu[i],la_commande);
 		  la_commande->cmd[CONTEXT_MENU]=i;
 		  res=(res==-1 ? j : res);
 		  break;
@@ -555,6 +635,7 @@ int Lit_cmd_explicite(char *str, int princip, int second, Cmd_return *la_command
                 if ((strncmp(str, Flcmds_pager[i], strlen(Flcmds_pager[i]))==0)
                     && ((str[strlen(Flcmds_pager[i])]=='\0') ||
                     (isblank(str[strlen(Flcmds_pager[i])])))) {
+                  add_str_to_description(Flcmds_pager[i],la_commande);
 		  la_commande->cmd[CONTEXT_PAGER]=i;
 		  res=(res==-1 ? j : res);
 		  break;
@@ -571,6 +652,7 @@ int get_command_explicite(char *start, int col, int princip, int second, Cmd_ret
    int res=0, ret=0;
    char cmd_line[MAX_CHAR_STRING], *str=cmd_line;
    int prefix_len=0;
+   la_commande->flags |= 2;
    cmd_line[0]='\0';
    if (start) {
      prefix_len = strlen(start);
@@ -589,15 +671,17 @@ int get_command_explicite(char *start, int col, int princip, int second, Cmd_ret
    } while (res!=0);
    res=Lit_cmd_explicite(str+prefix_len, princip, second, la_commande);
    str=strchr(str,' ');
-   if (str) la_commande->after=safe_strdup(str+1);
+   if (str) {
+       la_commande->after=safe_strdup(str+1);
+   }
    return res;
 }
 
 /* Prend une commande en nocbreak */
 int get_command_nocbreak(int asked,int col, int princip, int second, Cmd_return *la_commande) {
    char cmd_line[MAX_CHAR_STRING];
-   char *str=cmd_line,*buf;
-   int res, key;
+   char *str=cmd_line,*buf, *save_str=NULL;
+   int res, key, hist_chosen=-1, correct=0, chang;
 
    /* Dans le cas où asked='\r', et vient donc directement d'une interruption */
    /* on ne prend pas de ligne de commande : on l'a déjà...                   */
@@ -606,26 +690,80 @@ int get_command_nocbreak(int asked,int col, int princip, int second, Cmd_return 
    if (asked && (asked!=fl_key_nocbreak))  *(str++)=asked;
    *str='\0';
    str=cmd_line;
-   if ((res=flrn_getline(str,MAX_CHAR_STRING,Screen_Rows2-1,
-                      col+(asked && (asked==fl_key_nocbreak))))<0)
-     return -2;
+   res=0;
+   while (!correct) {
+     chang=0;
+     if ((res=magic_flrn_getline(str,MAX_CHAR_STRING,Screen_Rows2-1,
+                      col+(asked && (asked==fl_key_nocbreak)),"",2,0))<0) {
+       if (save_str) free(save_str);
+       return -2;
+     }
+     chang=0;
+     if (res==FL_KEY_UP) {
+	 if (cmd_hist_max>=0) {
+	     if (hist_chosen==-1) {
+		 hist_chosen=cmd_hist_curr;
+		 save_str=safe_strdup(str);
+		 strcpy(str,cmd_historique[hist_chosen]);
+             } else { 
+		 hist_chosen--;
+		 if (hist_chosen==-1) hist_chosen=cmd_hist_max;
+		 strcpy(str,cmd_historique[hist_chosen]);
+	     }
+	     chang=1;
+	 }
+     } else if (res==FL_KEY_DOWN) {
+	 if ((cmd_hist_max>=0) && (hist_chosen!=-1)) {
+	     if (hist_chosen==cmd_hist_curr) {
+		 strcpy(str,save_str);
+		 hist_chosen=-1;
+		 free(save_str);
+		 save_str=NULL;
+             } else {
+		 hist_chosen++;
+		 if (hist_chosen>cmd_hist_max) hist_chosen=0;
+		 strcpy(str,cmd_historique[hist_chosen]);
+             }
+	     chang=1;
+	 }
+     } else correct=(res==0);
+     if (chang) {
+	 Cursor_gotorc(Screen_Rows2-1,col+(asked && (asked==fl_key_nocbreak)));
+	 Screen_write_string(str);
+	 Screen_erase_eol();
+     }
+   }
    while(*str==fl_key_nocbreak) str++;
-   if (str[0]=='\0') return Lit_cmd_key('\r',princip,second,la_commande);
+   if (str[0]=='\0') {
+       if (save_str) free(save_str);
+       return Lit_cmd_key('\r',princip,second,la_commande);
+   }
    /* Beurk pour le '-' */
-   if ((str[0]=='-') && (str[1]=='\0'))
+   if ((str[0]=='-') && (str[1]=='\0')) {
+       if (save_str) free(save_str);
        return Lit_cmd_key('-',princip,second,la_commande);
+   }
    buf=str+strspn(str,DENIED_CHARS);
    key=(*buf ? *buf : '\r');
    if (*buf) *(buf++)='\0';
-   if (*str) la_commande->before=safe_strdup(str);
+   if (*str) {
+       la_commande->before=safe_strdup(str);
+   }
    if (key==fl_key_explicite) {
+       char bla[2];
+       bla[0]=fl_key_explicite;
+       bla[1]='\0';
+       add_str_to_description(bla,la_commande);
        res=Lit_cmd_explicite(buf, princip, second, la_commande);
        buf=strchr(buf,' '); if (buf) buf++;
    } else res=Lit_cmd_key(key,princip,second,la_commande);
    /* Ne pas oublier !!!!! */
    /* dans Lit_cmd_key le cas très particulier de \r qui devient 'v' pour un */
    /* contexte particulier...						     */
-   if (*buf) la_commande->after=safe_strdup(buf);
+   if ((buf) && (*buf)) {
+       la_commande->after=safe_strdup(buf);
+   }
+   if (save_str) free(save_str);
    return res;
 }
 
@@ -640,12 +778,21 @@ int get_command_newmode(int key,int col, int princip, int second, Cmd_return *la
    /* On appelle magic_flrn_getline avec flag=1 */
    if ((key=magic_flrn_getline(str,MAX_CHAR_STRING,Screen_Rows2-1,col,DENIED_CHARS,1,0))<0)
       return -2;
-   if (*str) la_commande->before=safe_strdup(str);
-   if (key==fl_key_explicite) 
-       return get_command_explicite(cmd_line,col,princip,second,la_commande); 
+   if (*str) { 
+       la_commande->before=safe_strdup(str);
+       la_commande->flags|=2;
+   }
+   if (key==fl_key_explicite) {
+       char bla[2];
+       bla[0]=fl_key_explicite;
+       bla[1]='\0';
+       add_str_to_description(bla,la_commande);
+       return get_command_explicite(cmd_line,col,princip,second,
+	       la_commande); 
+   }
    else 
        res=Lit_cmd_key(key,princip,second,la_commande);
-   if ((res>=0) && (key!='\r')) la_commande->maybe_after=1;
+   if ((res>=0) && (key!='\r')) la_commande->flags |=1;
    return res;
 }
 

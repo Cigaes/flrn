@@ -473,11 +473,14 @@ static const char *fl_key_names[] = {
   /* Parse Ca, C-a, F10 */
 int parse_key_name(char *name) {
   int i;
+  if (strcmp(name,"espace")==0) return 32;
+  if (strcmp(name,"enter")==0) return '\r';
   for (i=0;i<sizeof(fl_key_names)/sizeof(fl_key_names[0]);i++)
     if (strcmp(name,fl_key_names[i])==0) return i+FIRST_FL_KEY_OFFSET;
   if ((*name=='F') || (*name =='f'))
     return strtol(name+1,NULL,10) + FIRST_FN_OFFSET;
   if ((*name=='M') || (*name =='m')) {
+    if (strcmp(name,"M-esp")==0) return 160;
     if ((name[1] == '-') && name[2]) return name[2]|128;
     return name[1]|128;
   }
@@ -490,16 +493,17 @@ int parse_key_name(char *name) {
 
 /* Taille maximum de la chaine rendue : 9 */
 /* Tout est envoyé non alloué */
-const char *get_name_char(int ch) {
-  static char chaine[10];
+const char *get_name_char(int ch,int flag) {
+  static char chaine[16];
 
+  if (flag) strcpy(chaine,"\\key-"); else chaine[0]='\0';
   if ((ch<0) || (ch>=MAX_FL_KEY)) return NULL;
   if (ch<FIRST_FL_KEY_OFFSET) {
-     if (ch==32) return "espace";
-     if (ch=='\r') return "enter";
+     if (ch==32) { strcat(chaine,"espace"); return chaine; }
+     if (ch=='\r') { strcat(chaine,"enter"); return chaine; }
      if ((ch<32) || (ch==127)) {
-        strcpy(chaine,"C-?");
-	if (ch!=127) chaine[2]=(ch==127 ? '?' : (char)(ch+'@'));
+        strcat(chaine,"C-?");
+	if (ch!=127) chaine[2+flag*5]=(ch==127 ? '?' : (char)(ch+'@'));
         return chaine;
      }
      if (ch<127) {
@@ -509,18 +513,20 @@ const char *get_name_char(int ch) {
      }
      if (ch==160) return "M-esp";
      if ((ch>160) && (ch<255)) {
-        strcpy(chaine,"M- ");
-	chaine[2]=(char)(ch-128);
+        strcat(chaine,"M- ");
+	chaine[2+flag*5]=(char)(ch-128);
 	return chaine;
      }
   } else {
-     if (ch-FIRST_FL_KEY_OFFSET<sizeof(fl_key_names)/sizeof(fl_key_names[0])) 
-         return fl_key_names[ch-FIRST_FL_KEY_OFFSET];
+     if (ch-FIRST_FL_KEY_OFFSET<sizeof(fl_key_names)/sizeof(fl_key_names[0])) {
+	 strcat(chaine,fl_key_names[ch-FIRST_FL_KEY_OFFSET]);
+         return chaine;
+     }
      if ((ch>=FIRST_FN_OFFSET) && (ch<FIRST_FN_OFFSET+21)) {
-        sprintf(chaine,"F%i",ch-FIRST_FN_OFFSET);
+        sprintf(chaine,"%sF%i",(flag ? "\\key-" : ""),ch-FIRST_FN_OFFSET);
 	return chaine;
      }
   }
-  sprintf(chaine,"(%4i)",ch);
+  sprintf(chaine,"%s(%4i)",(flag ? "\\key-" : ""),ch);
   return chaine;
 }
