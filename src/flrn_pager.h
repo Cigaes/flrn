@@ -48,5 +48,6 @@ extern int Page_message (int /*num_elem*/, int /*short_exit*/, int /*key*/,
 	int in_wait (int));
 extern int Bind_command_pager(char *, int, char *, int);
 extern void init_Flcmd_pager_rev(void);
+extern int ajoute_pager(char *, int);
 
 #endif

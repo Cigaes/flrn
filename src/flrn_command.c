@@ -5,18 +5,21 @@
  * Ce qui fait de ce fichier un code extrêmement important qui reprend 
  * une partie du travail de flrn_inter.c . On y ajoute enfin la complétion
  * de commandes, de facon encore imparfaite. */
+/* et  puis on ajoute aussi l'affichage d'un binding */
 
 #include <stdlib.h>
 #include "flrn.h"
 #include "options.h"
 #include "flrn_macros.h"
 #include "flrn_command.h"
+#include "flrn_comp.h"
 #include "tty_display.h"
 #include "tty_keyboard.h"
 #include "flrn_pager.h"
 #include "flrn_menus.h"
 
 /* I)  Bindings de commandes */
+#define DENIED_CHARS "0123456789<>.,_*-"
 
 /* le tableau touche -> commande */
 int Flcmd_rev[NUMBER_OF_CONTEXTS][MAX_FL_KEY];
@@ -110,6 +113,111 @@ void free_Macros(void) {
    free(Flcmd_macro);
 }
 
+static char *get_context_name (void *ptr, int num)
+{
+   return ((char **)ptr)[num];
+}
+
+int keybindings_comp(char *str, int len, Liste_Chaine *debut) {
+   Liste_Chaine *courant;
+   int i, res;
+   int result[NUMBER_OF_CONTEXTS];
+
+   for (i=0;i<NUMBER_OF_CONTEXTS;i++) result[i]=0;
+   res = Comp_generic(debut, str,len,(void *)Noms_contextes,NUMBER_OF_CONTEXTS,
+         get_context_name," ",result);
+   if (res==-3) return 0;
+   if (res>= 0) {
+       if (str[0]) debut->complet=0;
+       strcat(debut->une_chaine,str);
+       return 0;
+   }
+   if (res==-1) {
+      courant=debut->suivant;
+      for (i=0;i<NUMBER_OF_CONTEXTS;i++) {
+        if (result[i]==0) continue;
+	strcat(courant->une_chaine,str);
+	if (str[0]) courant->complet=0;
+        courant=courant->suivant;
+      }
+      return -1;
+   }  
+   return -2;
+}
+
+/* 0 : un truc, -1 : rien -2 : trop court, -3 : spécial */
+int aff_ligne_binding(int ch, int contexte, char *ligne, int len) {
+   int i, taille, ret=-1;
+   int compte,cmd;
+   char *buf;
+
+   ligne[len-1]='\0';
+   if (len<20) return -2;
+   taille=len-13;
+   if (contexte==-1) taille=taille/NUMBER_OF_CONTEXTS;
+   strcpy(ligne,get_name_char(ch));
+   compte=strlen(ligne);
+   strncat(ligne,"            ",12-compte);
+   buf=ligne+12;
+   /* cas des spécials */
+   switch (ch) {
+      case '\\' : strncpy(buf,  "touche de commande explicite", len-13);
+      		  return -3;
+      case '@' : strncpy(buf, "touche de commande nocbreak", len-13);
+      		 return -3;
+   }
+   if ((ch<256) && (strchr(DENIED_CHARS,ch)) && (ch!='-')) {
+       strncpy(buf,"touche de préfixe de commande", len-13);
+       return -3;
+   }
+   i=(contexte==-1 ? 0 : contexte);
+   do {
+      if ((cmd=Flcmd_rev[i][ch])==-1) strncpy(buf,"undef",taille-1); else {
+        ret=0;
+        if (cmd & FLCMD_MACRO) {
+	   if (Flcmd_macro[cmd ^ FLCMD_MACRO].next_cmd!=-1) 
+	     strncpy(buf,"(mult.) ",taille-1);
+	   else if (contexte==-1) 
+	     strncpy(buf,"(macro)", taille-1); else *buf='\0';
+	   if (contexte!=-1) {
+	      int cmd2;
+	      cmd2=Flcmd_macro[cmd ^ FLCMD_MACRO].cmd;
+	      compte=strlen(buf);
+	      switch (i) {
+	        case CONTEXT_COMMAND : strncat(buf,Flcmds[cmd2].nom,taille-compte-1); 
+				break;
+                case CONTEXT_PAGER : strncat(buf,Flcmds_pager[cmd2],taille-compte-1); 
+				break;
+                case CONTEXT_MENU : strncat(buf,Flcmds_menu[cmd2],taille-compte-1); 
+				break;
+	      }
+	      compte=strlen(buf);
+	      if (compte<taille-2) {
+	         strcat(buf," ");
+		 if (Flcmd_macro[cmd ^ FLCMD_MACRO].arg) 
+		    strncat(buf,Flcmd_macro[cmd ^ FLCMD_MACRO].arg,
+		                taille-compte-1);
+	         else strncat(buf,"...",taille-compte-1);
+              }
+	   }
+	} else {
+          switch (i) {
+	    case CONTEXT_COMMAND : strncpy(buf,Flcmds[cmd].nom,taille-1); break;
+	    case CONTEXT_PAGER : strncpy(buf,Flcmds_pager[cmd],taille-1); break;
+	    case CONTEXT_MENU : strncpy(buf,Flcmds_menu[cmd],taille-1); break;
+	  }
+        }
+      }
+      compte=strlen(buf);
+      while (compte<taille) {
+         buf[compte++]=' ';
+      }
+      buf=buf+taille;
+      i++;
+   } while ((contexte==-1) && (i<NUMBER_OF_CONTEXTS));
+   *buf='\0';
+   return ret;
+}
 
 /* II) : complétion d'une commande quelconque */
 
@@ -218,9 +326,8 @@ int Comp_cmd_explicite(char *str, int len, Liste_Chaine *debut)
 /*         -3 si l'état est déjà défini...                               */
 
 char *Noms_contextes[NUMBER_OF_CONTEXTS] = {
-   "Command", "Pager", "Menu" };
+   "command", "pager", "menu" };
 #define MAX_CHAR_STRING 100
-#define DENIED_CHARS "0123456789<>.,_*-"
 /* on ne met pas le '-', hélas, pour des raisons classiques */
 
 int get_command_nocbreak(int, int, int, int, Cmd_return *);

@@ -10,6 +10,7 @@
 #include <strings.h>
 
 #include "flrn.h"
+#include "flrn_slang.h"
 #include "flrn_files.h"
 #include "tty_display.h"
 #include "tty_keyboard.h"

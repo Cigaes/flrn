@@ -20,7 +20,7 @@
 #include "version.h"
 #include "flrn_command.h"
 #include "flrn_tcp.h"
-#include "flrn_files.h"
+#include "flrn_files.h" 
 #include "flrn_xover.h"
 #include "tty_display.h"
 #include "tty_keyboard.h"
@@ -29,7 +29,6 @@
 #include "flrn_pager.h"
 #include "flrn_filter.h"
 #include "flrn_color.h"
-#include "flrn_slang.h"
 
 extern int with_direc;
 int debug;

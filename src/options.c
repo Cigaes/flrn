@@ -12,7 +12,6 @@
 
 #include "flrn.h"
 #define IN_OPTION_C
-#include "art_group.h"
 #include "flrn_files.h"
 #include "flrn_comp.h"
 #include "tty_display.h"

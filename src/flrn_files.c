@@ -17,8 +17,6 @@
 #include <signal.h>
 
 #include "flrn.h"
-#include "group.h"
-#include "art_group.h"
 #include "options.h"
 #include "flrn_tcp.h"
 #include "flrn_files.h"

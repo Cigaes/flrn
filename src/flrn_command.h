@@ -21,6 +21,7 @@ extern int Flcmd_num_macros;
 
 extern int Bind_command_new(int, int, char *, int, int);
 extern void free_Macros(void);
+extern int aff_ligne_binding(int, int, char *, int);
 
 /* Complétions */
 extern int Comp_cmd_explicite(char *, int , Liste_Chaine *);

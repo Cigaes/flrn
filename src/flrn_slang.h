@@ -67,6 +67,7 @@ extern int Do_Scroll_Window(int /*n*/, int /*ob_update*/);
 extern int Number_current_line_scroll(void);
 extern void Screen_write_color_chars(unsigned short * /*s*/,unsigned int /*n*/);
 extern int parse_key_name(char *);
+extern const char *get_name_char(int);
 extern void Screen_beep(void);
 extern void Screen_set_screen_start(int * /*r*/, int * /*c*/);
 

@@ -24,7 +24,6 @@
 #include "flrn_tcp.h"
 #include "flrn_files.h"
 #include "tty_display.h"
-#include "flrn_menus.h"
 #include "flrn_filter.h"
 
 Newsgroup_List *Newsgroup_courant;

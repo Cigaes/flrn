@@ -19,9 +19,8 @@
 #include <errno.h>
 
 #include "flrn.h"
-#include "config.h"
 #include "options.h"
-#include "group.h"    /* pourquoi ? */
+#include "group.h"   
 #include "flrn_xover.h"
 #include "flrn_tcp.h"
 

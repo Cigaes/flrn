@@ -14,7 +14,6 @@
 #include "flrn_tcp.h"
 #include "flrn_format.h"
 #include "flrn_xover.h"
-#include "tty_display.h"
 #include "rfc2047.h"
 
 /* On définit ici la structure des XOVER qu'on va avoir */

@@ -5,8 +5,6 @@ dnl 		Jo.
 AC_INIT(src/art_group.c)
 AC_CONFIG_HEADER(src/config.h)
 
-CFLAGS="-I. $CFLAGS"
-
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
@@ -33,6 +31,8 @@ AC_ARG_WITH(domain, [  --with-domain[=DOMAIN]     default host for adresses],[
 if test "$ac_cv_prog_CC" = gcc; then
   CFLAGS="-Wall $CFLAGS"
 fi
+
+CFLAGS="-I. $CFLAGS"
 
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(nsl, gethostbyname)

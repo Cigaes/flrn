@@ -18,9 +18,7 @@
 #include "group.h"
 #include "flrn_tcp.h"
 #include "flrn_format.h"
-#include "flrn_xover.h"
 #include "tty_display.h"
-#include "post.h"     /* Ce truc devrait être supprimé !*/
 #include "rfc2047.h"
 #include "flrn_filter.h"
 

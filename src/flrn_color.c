@@ -11,7 +11,6 @@
 #include "flrn.h"
 #include "flrn_slang.h"
 #include "options.h"
-#include "tty_display.h"
 #include "flrn_color.h"
 
 /* I want to use this code and the old one together */

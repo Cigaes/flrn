@@ -13,6 +13,7 @@ changement entre deux versions, et il n'est pas exempt de bugs.
 [\fB-c|--co\fR]
 [\fB-n|--name <name>\fR]
 [\fB-s|--show-config\fR]
+[\fB--stupid-term\fR]
 
 .B flrn
 \fB<nom>\fR
@@ -52,7 +53,10 @@ Affiche le numéro de version.
 .IP \fB-s\fR
 Donne un fichier de configuration contenant les valeurs par défaut de toutes
 les variables. Cette option devrait disparaître.
-
+.IP \fB--stupid-term\fR
+Cette option activée, flrn n'utilise pas les possibilités de défilement de
+régions de l'écran pour optimiser l'affichage. Ceci est utile sur certains
+terminaux qui supportent mal cette capacités, comme les minitels.
 
 .SS Options de configuration
 Se reporter à l'aide interne pour avoir une description plus complète.

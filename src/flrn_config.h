@@ -50,7 +50,7 @@
 
 
 /* Touches de Commande */
-#define NB_FLCMD 61
+#define NB_FLCMD 62
 #define FLCMD_UNDEF -1
 #define FLCMD_RETURN FLCMD_SUIV
 #define FLCMD_MACRO 1024
@@ -90,11 +90,13 @@ extern int do_add_kill(int);
 extern int do_remove_kill(int);
 extern int do_pipe_header(int);
 extern int do_select(int);
+extern int do_keybindings(int);
 
 /* completions */
 #include "flrn_comp.h"
 
 extern int options_comp(char * /*option*/, int /*len*/, Liste_Chaine *);
+extern int keybindings_comp(char *, int, Liste_Chaine *);
 
 
 /* ATTENTION : MAX_FL_KEY DOIT ÊTRE UN BIT SEULEMENT */
@@ -229,6 +231,8 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_SELECT 59
    { "art-to-return", 'x', 0, 2|CMD_NEED_GROUP, &do_kill, NULL },
 #define FLCMD_ART_TO_RETURN 60
+   { "keybindings", 0, 0, 17, &do_keybindings, &keybindings_comp },
+#define FLCMD_KEYBINDINGS 61
 };
 
 #define CMD_DEF_PLUS (sizeof(Cmd_Def_Plus)/sizeof(Cmd_Def_Plus[0]))

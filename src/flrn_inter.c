@@ -19,13 +19,13 @@
 #include "group.h"
 #include "art_group.h"
 #include "flrn_menus.h"
+#include "flrn_pager.h"
 #include "flrn_filter.h"
 #include "flrn_tags.h"
 #include "flrn_macros.h"
 #include "flrn_command.h"
 #include "flrn_files.h"
 #include "flrn_shell.h"
-#include "flrn_xover.h"
 #include "tty_display.h"
 #include "tty_keyboard.h"
 #include "post.h"
@@ -33,6 +33,7 @@
 #include "flrn_regexp.h"
 #include "flrn_color.h"
 #include "flrn_messages.h"
+#include "flrn_xover.h"
 
 /* On va définir ici des structures et des variables qui seront utilisées */
 /* pour loop, et les fonctions qui y sont associés. Il faudrait en fait   */
@@ -131,6 +132,7 @@ int do_remove_kill(int res);
 int do_add_kill(int res);
 int do_pipe_header(int res);
 int do_select(int res);
+int do_keybindings(int);
 
 
 /* Ces fonctions sont appelés par les do_* */
@@ -407,6 +409,7 @@ int loop(char *opt) {
 			}
 	   if ((etat_loop.etat==1) || (etat_loop.etat==2))
 	     Aff_message(etat_loop.etat-1, etat_loop.num_message);
+	   if (etat_loop.etat==4) ret=1; /* Commande deja tapee */
 	   etat_loop.etat=0; etat_loop.num_message=0; 
 	   etat_loop.num_futur_article=0;
 	   etat_loop.Newsgroup_nouveau=NULL;
@@ -1090,7 +1093,7 @@ int do_hist_menu(int res) {
     if (tags[i].numero <0) {
       snprintf(buf,80,"%s:?",tags[i].newsgroup_name);
     } else
-      snprintf(buf,80,"%s:%d",tags[i].newsgroup_name, tags[i].numero);
+      snprintf(buf,80,"%s:%ld",tags[i].newsgroup_name, tags[i].numero);
     courant=ajoute_menu(courant,safe_strdup(buf),(void *)(long)(i+1));
     if (tags[i].article==Article_courant) start=courant;
     if (!menu) menu=courant;
@@ -2090,6 +2093,42 @@ void zap_thread(Article_List *article,int all, int flag,int zap)
   return;
 }
 
+int do_keybindings(int res) {
+   int i, ret, key=-1;
+   int context=-1, row=1;
+   char ligne[80], *buf=Arg_str, *buf2;
+   Liste_Menu *menu=NULL, *courant=NULL;
+
+   if (*buf) {
+      while (isblank(*buf)) buf++;
+      buf2=strchr(buf,' ');
+      if (buf2) *buf2='\0';
+      for (context=0; context<NUMBER_OF_CONTEXTS; context++) 
+         if (strcasecmp(buf,Noms_contextes[context])==0) break;
+      if (context==NUMBER_OF_CONTEXTS) context=-1;
+   }
+   for (i=0; i<4096; i++) {
+      ret=aff_ligne_binding(i,context,ligne,79);
+      if (ret<0) continue;
+      if (context!=-1) {
+         courant=ajoute_menu(courant,safe_strdup(ligne),(void *)(long)i);
+	 if (!menu) menu=courant;
+      } else row=ajoute_pager(ligne,row);
+   }
+   if ((context==-1) && (row>Screen_Rows-1)) {
+      Init_Scroll_window(row-1,1,Screen_Rows-2);
+      Aff_fin("Bindings de touche...");
+      key=Page_message(row-1,1,0,1,1,NULL,NULL,NULL);
+      free_text_scroll();
+   } else {
+      Menu_simple(menu,menu,NULL,NULL,Noms_contextes[context]);
+      Libere_menu_noms(menu);
+   }
+   etat_loop.hors_struct|=1;
+   etat_loop.etat=3+(key>=0);
+   return 0;
+}
+
 #if 0
 /* passe au prochain thread ou il y a un message non lu */
 /* renvoie -1 s'il n'y a rien d'autre */
@@ -2554,3 +2593,5 @@ void save_etat_loop() {
 void restore_etat_loop() {
   memcpy(&etat_loop,&etat_save,sizeof(etat_loop));
 }
+
+

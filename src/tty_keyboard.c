@@ -12,8 +12,6 @@
 
 #include "flrn.h"
 #include "flrn_slang.h"
-#include "options.h"
-#include "post.h"
 #include "tty_display.h"
 #include "tty_keyboard.h"
 

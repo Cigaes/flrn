@@ -422,3 +422,40 @@ int parse_key_name(char *name) {
   }
   return 0;
 }
+
+/* Taille maximum de la chaine rendue : 9 */
+/* Tout est envoyé non alloué */
+const char *get_name_char(int ch) {
+  static char chaine[10];
+
+  if ((ch<0) || (ch>=MAX_FL_KEY)) return NULL;
+  if (ch<FIRST_FL_KEY_OFFSET) {
+     if (ch==32) return "espace";
+     if (ch=='\r') return "enter";
+     if ((ch<32) || (ch==127)) {
+        strcpy(chaine,"C-?");
+	if (ch!=127) chaine[2]=(ch==127 ? '?' : (char)(ch+'@'));
+        return chaine;
+     }
+     if (ch<127) {
+        chaine[0]=(char) ch;
+	chaine[1]='\0';
+	return chaine;
+     }
+     if (ch==160) return "M-esp";
+     if ((ch>160) && (ch<255)) {
+        strcpy(chaine,"M- ");
+	chaine[2]=(char)(ch-128);
+	return chaine;
+     }
+  } else {
+     if (ch-FIRST_FL_KEY_OFFSET<sizeof(fl_key_names)/sizeof(fl_key_names[0])) 
+         return fl_key_names[ch-FIRST_FL_KEY_OFFSET];
+     if ((ch>=FIRST_FN_OFFSET) && (ch<FIRST_FN_OFFSET+21)) {
+        sprintf(chaine,"F%i",ch-FIRST_FN_OFFSET);
+	return chaine;
+     }
+  }
+  sprintf(chaine,"(%4i)",ch);
+  return chaine;
+}

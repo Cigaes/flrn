@@ -18,7 +18,6 @@
 #include "art_group.h"
 #include "group.h"
 #include "flrn_menus.h"
-#include "flrn_command.h"
 #include "flrn_tcp.h"
 #include "flrn_files.h"
 #include "flrn_format.h"

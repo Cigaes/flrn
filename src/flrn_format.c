@@ -15,7 +15,7 @@
 #include "options.h"
 #include "group.h"
 #include "flrn_format.h"
-#include "tty_display.h"  /* Hmmm, pas bon ! */
+#include "flrn_slang.h"
 
 
 /* Parsing de la date */

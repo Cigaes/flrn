@@ -10,13 +10,9 @@
 #include <stdlib.h>
 #include "flrn.h"
 #include "options.h"
-#include "flrn_config.h"
 #include "flrn_menus.h"
-#include "flrn_inter.h"
-#include "flrn_macros.h"
 #include "flrn_command.h"
 #include "tty_display.h"
-#include "tty_keyboard.h"
 #include "flrn_slang.h"
 #include "flrn_messages.h"
 
@@ -29,10 +25,10 @@ int *Flcmd_menu_rev = &Flcmd_rev[CONTEXT_MENU][0];
 extern int get_new_pattern();
 
 /* retour : -4 : CONTEXT_COMMAND */
-int get_command_menu()  {
+int get_command_menu(int with_command)  {
    int res, res2;
 
-   res=get_command(0,CONTEXT_MENU, CONTEXT_COMMAND, &une_commande);
+   res=get_command(0,CONTEXT_MENU, (with_command ? CONTEXT_COMMAND : -1), &une_commande);
    if (res==-1)
       Aff_error_fin(Messages[MES_UNKNOWN_CMD],1,1);
    if (res<0) return res;
@@ -143,7 +139,7 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
       Screen_write_char('>');
       no_change_last_line=0;
       Aff_fin(chaine);
-      res=get_command_menu();
+      res=get_command_menu((action_select!=NULL));
       if (KeyBoard_Quit) {
          courant=NULL; break;
       }

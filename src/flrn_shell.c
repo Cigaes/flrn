@@ -19,7 +19,6 @@
 #include "flrn_shell.h"
 #include "tty_display.h"
 #include "tty_keyboard.h"
-#include "flrn_slang.h"
 
 /* Lancement de l'éditeur sur le fichier à éditer..                    */
 /* flag est pour l'instant inutilisé. 				       */

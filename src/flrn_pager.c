@@ -13,7 +13,6 @@
 #include "flrn.h"
 #include "options.h"
 #include "flrn_pager.h"
-#include "flrn_macros.h"
 #include "flrn_command.h"
 #include "tty_display.h"
 #include "tty_keyboard.h"
@@ -168,6 +167,20 @@ void init_Flcmd_pager_rev() {
          Flcmd_pager_rev[Cmd_Def_Pager[i].key]=Cmd_Def_Pager[i].cmd;
    Flcmd_pager_rev[0]=FLCMD_PAGER_UNDEF;
    return;
+}
+
+int ajoute_pager(char *ligne, int row) {
+   if (row<Screen_Rows-1) {
+     Cursor_gotorc(row,0);
+     Screen_write_string(ligne);
+     Screen_erase_eol();
+   } else if (row==Screen_Rows-1) {
+      Aff_fin("Patientez...");
+      Screen_refresh();
+   }
+   Ajoute_line(ligne);
+   row++;
+   return row;
 }
 
 
