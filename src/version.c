@@ -44,12 +44,12 @@ void print_version_defines(FILE *out)
 #ifdef DOMAIN
    fprintf(out, "DOMAIN=\"%s\"  ", DOMAIN);
 #endif
-   fprintf(out, "MAX_HEADER_LIST=%d  ", MAX_HEADER_LIST);
+   fprintf(out, "MAX_HEADER_LIST=%d\n", MAX_HEADER_LIST);
    fputs(
 #ifdef MODE_EXPERT
-         "+MODE_EXPERT\n"
+         "+MODE_EXPERT  "
 #else
-         "-MODE_EXPERT\n"
+         "-MODE_EXPERT  "
 #endif
 #ifdef WITH_CHARACTER_SETS
          "+WITH_CHARACTER_SETS  "
