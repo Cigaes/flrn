@@ -90,7 +90,7 @@ static void derelie_article(Article_List *pere, Article_List *fils) {
     fils->pere=NULL;
     fils->parent=0;
     if (fils->frere_suiv) fils->frere_suiv->frere_prev=fils->frere_prev;
-    if (fils->frere_prev) fils->frere_prev->frere_suiv=fils->frere_prev;
+    if (fils->frere_prev) fils->frere_prev->frere_suiv=fils->frere_suiv;
     if (pere->prem_fils==fils) 
     		pere->prem_fils=(fils->frere_prev ? fils->frere_prev :
     							     fils->frere_suiv);
@@ -103,16 +103,17 @@ static void relie_article(Article_List *pere, Article_List *fils) {
     Article_List *temp;
 
     if ((fils==NULL) || (pere==NULL)) return;
+    if (fils->pere==pere) return;
     fils->pere=pere;
     fils->parent=pere->numero;
-    fils->frere_suiv=NULL;
     if (pere->prem_fils==NULL) {
         pere->prem_fils=fils;
-	fils->frere_prev=NULL;
+	fils->frere_prev=fils->frere_suiv=NULL;
     /* Je renonce provisoirement à la recherche de cousins   */
     /* (surtout qu'il faudrait noter dans ce cas à quel profondeur est */
     /* le cousin.						       */
     } else {
+
        temp=pere->prem_fils;
        while ((temp->frere_prev) && (temp->numero>fils->numero))
              temp=temp->frere_prev;
@@ -121,8 +122,8 @@ static void relie_article(Article_List *pere, Article_List *fils) {
        if (temp->numero<fils->numero) {
          temp->frere_suiv=fils;
          fils->frere_prev=temp;
+	 fils->frere_suiv=NULL;
        } else {
-         if (fils==temp) return; /* On ne sait jamais, mais en théorie non */
          fils->frere_prev=temp->frere_prev;
 	 if (fils->frere_prev) fils->frere_prev->frere_suiv=fils;
          temp->frere_prev=fils;
