@@ -245,6 +245,7 @@ int read_server (char *ligne, int deb, int max)
          rendus=max;
          strncpy(ligne, ptr, max);
          ptr+=rendus;
+	 stockes-=rendus;
          ligne[max]='\0';
          return max;
       } else {  /* le cas qui devrait marcher le plus souvent... */

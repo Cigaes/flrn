@@ -1495,6 +1495,10 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file,
 	       strcpy(tcp_line_read,buf); /* A priori, cols < 1024 */
 	       buf=tcp_line_read;
                res=read_server(buf+strlen(buf), 1, MAX_READ_SIZE-strlen(buf)-1);
+           /* le cas ou buf2 est défini correspond a un \r en fin de lecture */
+           /* dans ce cas, on est sur de lire simplement \n */
+               if (!buf2) buf2=strchr(buf,'\r'); else buf2=tcp_line_read;
+               if (buf2) *buf2='\0';
 #ifdef WITH_CHARACTER_SETS
                if (mustfree) free(mustfree);
                mustfree=NULL;
