@@ -128,7 +128,7 @@ int magic_getline(char *buf, int buffsize, int row, int col, char *magic, int fl
        key=key_pressed;
        key_pressed=0;
      } else key=Attend_touche();
-     if (key=='\r') key='\n';
+     /* if (key=='\r') key='\n'; */
      if (KeyBoard_Quit) return -1; /* on n'a rien fait... */
      if (key==FL_KEY_BACKSPACE) {
         if (place==0) return -2;
@@ -148,7 +148,7 @@ int magic_getline(char *buf, int buffsize, int row, int col, char *magic, int fl
           return key;
      }
      Screen_write_char(key);
-   } while ((key != '\n')&&(place < buffsize-1));
+   } while ((key != '\r')&&(place < buffsize-1));
    buf[--place]='\0';           /* He oui... */
    return 0;
 }

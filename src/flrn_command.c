@@ -1,12 +1,22 @@
 /* flrn
  * Gestion des bindings de touches
  * Commun a tous les contextes */
+/* On y ajoute aussi, commum a tous les contextes, l'entrées de commandes 
+ * Ce qui fait de ce fichier un code extrêmement important qui reprend 
+ * une partie du travail de flrn_inter.c . On y ajoute enfin la complétion
+ * de commandes, de facon encore imparfaite. */
 
 #include <stdlib.h>
 #include "flrn.h"
 #include "options.h"
 #include "flrn_macros.h"
 #include "flrn_command.h"
+#include "tty_display.h"
+#include "tty_keyboard.h"
+#include "flrn_pager.h"
+#include "flrn_menus.h"
+
+/* I)  Bindings de commandes */
 
 /* le tableau touche -> commande */
 int Flcmd_rev[NUMBER_OF_CONTEXTS][MAX_FL_KEY];
@@ -99,3 +109,302 @@ void free_Macros(void) {
    Flcmd_num_macros_max=0;
    free(Flcmd_macro);
 }
+
+
+/* II) : complétion d'une commande quelconque */
+
+
+/* TODO : généraliser ça mieux */
+static char * get_command_name_tout(void * rien, int num) {
+    int n;
+    if ((n=num-NB_FLCMD)<0) return Flcmds[num].nom; else
+    if ((num=n-NB_FLCMD_PAGER)<0) return Flcmds_pager[n]; else
+	return Flcmds_menu[num];
+}
+
+/* Comp_cmd_explicite ne s'occupe pas de connaitre le contexte. C'est */
+/* ennuyeux. Il faudrait améliorer ça un jour...		      */
+int Comp_cmd_explicite(char *str, int len, Liste_Chaine *debut)
+{
+  int res,res2=-2,i,nbflcmd, bon;
+  char *suite;
+  Liste_Chaine *courant, *pere, *suivant;
+  int result[NB_FLCMD+NB_FLCMD_PAGER+NB_FLCMD_MENU];
+
+  if (*str=='\\') {
+    str++; strcat(debut->une_chaine,"\\");
+  }
+  /* TODO : améliorer ça */
+  nbflcmd=NB_FLCMD+NB_FLCMD_PAGER+NB_FLCMD_MENU;
+  for (i=0;i<nbflcmd;i++) result[i]=0;
+  res = Comp_generic(debut,str,len,NULL,nbflcmd, get_command_name_tout,
+	      " ",result);
+  if (res==-3) return 0;
+  if (res>=0) {
+    if ((res<NB_FLCMD) && (Flcmds[res].comp)) {
+       return (*Flcmds[res].comp)(str,len,debut);
+    } else {
+      strcat(debut->une_chaine,str);
+      if (str[0]) debut->complet=0;
+      return 0;
+    }
+  }
+  if (res==-1) {
+    bon=0;
+    pere=debut;
+    courant=debut->suivant;
+    suivant=courant->suivant;
+    /* TODO : améliorer ça */
+    for (i=0;i<NB_FLCMD;i++) {
+       if (result[i]==0) continue;
+       res2=0;
+       if (Flcmds[i].comp) {
+         suite=safe_strdup(str);
+         res2=(*Flcmds[i].comp)(suite,len,courant);
+         free(suite);
+         if (res2<-1) {
+            free(courant->une_chaine);
+            pere->suivant=courant->suivant;
+            free(courant);
+            courant=pere->suivant;
+            continue;
+         }
+       } else {
+         strcat(courant->une_chaine,str);
+         if (str[0]) courant->complet=0;
+       }
+       if (res2==-1) bon+=2; else bon++;
+       pere=courant;
+       while (pere->suivant!=suivant) pere=pere->suivant;
+       courant=suivant;
+       if (courant) suivant=courant->suivant;
+    }
+    for (i=NB_FLCMD;i<NB_FLCMD+NB_FLCMD_PAGER+NB_FLCMD_MENU;i++) {
+       if (result[i]==0) continue;
+       res2=0;
+       strcat(courant->une_chaine,str);
+       if (str[0]) courant->complet=0;
+       bon++;
+       pere=courant;
+       while (pere->suivant!=suivant) pere=pere->suivant;
+       courant=suivant;
+       if (courant) suivant=courant->suivant;
+    }
+    if (bon>1) return -1; else if (bon) {
+       free(debut->une_chaine);
+       courant=debut->suivant;
+       debut->suivant=courant->suivant;
+       debut->une_chaine=courant->une_chaine;
+       free(courant);
+       return 0;
+    }
+  }
+  return -2;
+}
+
+
+/* III) Entrées de commandes */
+
+/* Prend une commande... Renvoie, selon les contextes, le code de la     */
+/* commande frappée, ainsi que les paramètres à lire...			 */
+/* Prend en paramètre : key_depart : la touche de départ si elle existe  */
+/*			princip, second : les contextes possibles	 */
+/* 			la_commande : pointeur sur le retour...		 */
+/*			chaine : la chaîne à afficher			 */
+/* Renvoie  0,2 contexte principal					 */
+/*          1,3 contexte secondaire					 */
+/*    (2 et 3 : on peut attendre autre chose... et ->after est vide)	 */
+/*	   -1 si commande non défini                                     */
+/*         -2 si rien                                                    */
+/*         -3 si l'état est déjà défini...                               */
+
+#define MAX_CHAR_STRING 100
+#define DENIED_CHARS "0123456789<>.,_*-"
+/* on ne met pas le '-', hélas, pour des raisons classiques */
+
+int get_command_nocbreak(int, int, int, int, Cmd_return *);
+int get_command_explicite(char *, int, int, int, Cmd_return *);
+int get_command_newmode(int, int, int, int, Cmd_return *);
+int Lit_cmd_key(int, int, int, Cmd_return *);
+int Lit_cmd_explicite(char *, int, int, Cmd_return *);
+
+int get_command(int key_depart, int princip, int second, 
+		Cmd_return *la_commande, char *chaine) {
+   int key, col,i, res;
+
+   la_commande->before=la_commande->after=NULL;
+   for (i=0; i<NUMBER_OF_CONTEXTS; i++) la_commande->cmd[i]=FLCMD_UNDEF;
+   col=Aff_fin(chaine);
+   if (!Options.cbreak) 
+      return get_command_nocbreak(key_depart,col,princip,second,
+                                        la_commande);
+   if (key_depart) key=key_depart; else key=Attend_touche();
+   if (key==fl_key_nocbreak) 
+      return get_command_nocbreak(fl_key_nocbreak,col,princip,second,
+					la_commande);
+   if (key==fl_key_explicite) 
+      return get_command_explicite(NULL,col,princip,second,la_commande);
+   else {
+      /* Beurk pour '-' */
+      if ((key=='-') || (strchr(DENIED_CHARS,key)==NULL)) {
+                   res=Lit_cmd_key(key,princip,second,la_commande);
+		   if ((res>=0) && (key!='\r')) res+=2;
+      }
+         else res=get_command_newmode(key,col,princip,second,la_commande);
+   }
+   return res;
+}
+
+/* Renvoie le nom d'une commande par touche raccourcie */
+int Lit_cmd_key(int key, int princip, int second, Cmd_return *la_commande) {
+   int res=-1, j, context;
+   if ((key <0) || (key >= MAX_FL_KEY)) return -1;
+   for (j=0; j<2; j++) {
+      context=(j==0 ? princip : second);
+      if (context==-1) break;
+      /* CAS PARTICULIER : la touche entrée */
+      if ((key=='\r') && (la_commande->before) && (context==CONTEXT_COMMAND))
+      {
+	  res=(res==-1 ? j : res);
+	  la_commande->cmd[CONTEXT_COMMAND]=FLCMD_VIEW;
+      } else
+      if ((la_commande->cmd[context]=Flcmd_rev[context][key])!=FLCMD_UNDEF)
+          res=(res==-1 ? j : res);
+   }
+   return res;
+}
+
+
+/* Lit le nom explicite d'une commande */
+int Lit_cmd_explicite(char *str, int princip, int second, Cmd_return *la_commande) {
+   int i, j, res=-1;
+     
+   /* Hack pour les touches fleches en no-cbreak */
+   if (strncmp(str, "key-up ",7)==0) 
+        return Lit_cmd_key(FL_KEY_UP, princip, second, la_commande);
+   if (strncmp(str, "key-down ",9)==0) 
+        return Lit_cmd_key(FL_KEY_DOWN, princip, second, la_commande);
+   if (strncmp(str, "key-left ",9)==0) 
+        return Lit_cmd_key(FL_KEY_LEFT, princip, second, la_commande);
+   if (strncmp(str, "key-right ",10)==0) 
+        return Lit_cmd_key(FL_KEY_RIGHT, princip, second, la_commande);
+   /* cas "normal" */
+   
+   for (j=0;j<2;j++) {
+      switch (j==0 ? princip : second) {
+      /* TODO : unifier un peu mieux ça. C'est vrai quoâ ! */
+         case CONTEXT_COMMAND : for (i=0;i<NB_FLCMD;i++) 
+                if ((strncmp(str, Flcmds[i].nom, strlen(Flcmds[i].nom))==0)
+                    && ((str[strlen(Flcmds[i].nom)]=='\0') ||
+                    (isblank(str[strlen(Flcmds[i].nom)])))) {
+		  la_commande->cmd[CONTEXT_COMMAND]=i;
+		  res=(res==-1 ? j : res);
+		  break;
+		}
+		break;
+         case CONTEXT_MENU : for (i=0;i<NB_FLCMD_MENU;i++) 
+                if ((strncmp(str, Flcmds_menu[i], strlen(Flcmds_menu[i]))==0)
+                    && ((str[strlen(Flcmds_menu[i])]=='\0') ||
+                    (isblank(str[strlen(Flcmds_menu[i])])))) {
+		  la_commande->cmd[CONTEXT_MENU]=i;
+		  res=(res==-1 ? j : res);
+		  break;
+		}
+		break;
+         case CONTEXT_PAGER : for (i=0;i<NB_FLCMD_PAGER;i++) 
+                if ((strncmp(str, Flcmds_pager[i], strlen(Flcmds_pager[i]))==0)
+                    && ((str[strlen(Flcmds_pager[i])]=='\0') ||
+                    (isblank(str[strlen(Flcmds_pager[i])])))) {
+		  la_commande->cmd[CONTEXT_PAGER]=i;
+		  res=(res==-1 ? j : res);
+		  break;
+		}
+		break;
+      }
+   }
+   return res;
+}
+
+/* Prend une commande explicite */
+/* retourne -2 si rien */
+int get_command_explicite(char *start, int col, int princip, int second, Cmd_return *la_commande) {
+   int res=0, ret=0;
+   char cmd_line[MAX_CHAR_STRING], *str=cmd_line;
+   int prefix_len=0;
+   cmd_line[0]='\0';
+   if (start) {
+     prefix_len = strlen(start);
+     strncpy (cmd_line, start, MAX_CHAR_STRING-2);
+   }
+   strcat(cmd_line,"\\");
+   prefix_len++;
+   do {
+     Aff_ligne_comp_cmd(str,strlen(str),col);
+     if ((res=magic_getline(str+prefix_len,MAX_CHAR_STRING-prefix_len,
+         Screen_Rows-1,col+prefix_len,"\011",0,ret))<0)
+       return -2;
+     ret=0;
+     if (res>0) ret=Comp_general_command(str+prefix_len,MAX_CHAR_STRING-prefix_len,col+prefix_len,Comp_cmd_explicite, Aff_ligne_comp_cmd);
+     if (ret<0) ret=0;
+   } while (res!=0);
+   res=Lit_cmd_explicite(str+prefix_len, princip, second, la_commande);
+   str=strchr(str,' ');
+   if (str) la_commande->after=safe_strdup(str+1);
+   return res;
+}
+
+/* Prend une commande en nocbreak */
+int get_command_nocbreak(int asked,int col, int princip, int second, Cmd_return *la_commande) {
+   char cmd_line[MAX_CHAR_STRING];
+   char *str=cmd_line,*buf;
+   int res, key;
+
+   /* Dans le cas où asked='\r', et vient donc directement d'une interruption */
+   /* on ne prend pas de ligne de commande : on l'a déjà...                   */
+   if (asked=='\r') return Lit_cmd_key('\r',princip,second,la_commande);
+   if (asked) Screen_write_char(asked);
+   if (asked && (asked!=fl_key_nocbreak))  *(str++)=asked;
+   *str='\0';
+   str=cmd_line;
+   if ((res=getline(str,MAX_CHAR_STRING,Screen_Rows-1,
+                      col+(asked && (asked==fl_key_nocbreak))))<0)
+     return -2;
+   while(*str==fl_key_nocbreak) str++;
+   if (str[0]=='\0') return Lit_cmd_key('\r',princip,second,la_commande);
+   /* Beurk pour le '-' */
+   if ((str[0]=='-') && (str[1]=='\0'))
+       return Lit_cmd_key('-',princip,second,la_commande);
+   buf=str+strspn(str,DENIED_CHARS);
+   key=(*buf ? *buf : '\r');
+   if (*buf) *(buf++)='\0';
+   if (*str) la_commande->before=safe_strdup(str);
+   if (key==fl_key_explicite) {
+       res=Lit_cmd_explicite(buf, princip, second, la_commande);
+       buf=strchr(buf,' '); if (buf) buf++;
+   } else res=Lit_cmd_key(key,princip,second,la_commande);
+   /* Ne pas oublier !!!!! */
+   /* dans Lit_cmd_key le cas très particulier de \r qui devient 'v' pour un */
+   /* contexte particulier...						     */
+   if (*buf) la_commande->after=safe_strdup(buf);
+   return res;
+}
+
+/* Prend une commande dans le nouveau mode */
+int get_command_newmode(int key,int col, int princip, int second, Cmd_return *la_commande) {
+   int res;
+   char cmd_line[MAX_CHAR_STRING];
+   char *str=cmd_line;
+
+   cmd_line[0]=key; cmd_line[1]='\0';
+   Screen_write_char(key);
+   /* On appelle magic_getline avec flag=1 */
+   if ((key=magic_getline(str,MAX_CHAR_STRING,Screen_Rows-1,col,DENIED_CHARS,1,0))<0)
+      return -2;
+   if (*str) la_commande->before=safe_strdup(str);
+   if (key==fl_key_explicite) 
+       return get_command_explicite(cmd_line,col,princip,second,la_commande); 
+   else 
+       res=Lit_cmd_key(key,princip,second,la_commande);
+   return ((res>=0) && (key!='\r') ? res+2 : res);
+}
+

@@ -76,7 +76,7 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
 		 nll=Number_current_line_scroll()+Screen_Rows-act_row-2;
 		 le_scroll=Do_Scroll_Window(
 		     ((!Options.scroll_after_end) && 
-		      (num_elem-nll<=Screen_Rows-(deb ? row_deb : act_row))) ?
+		      (num_elem-nll<Screen_Rows-(deb ? row_deb : act_row))) ?
 		     num_elem-nll :
                      (Screen_Rows- (deb ? row_deb : act_row)-1),deb);
                  break;

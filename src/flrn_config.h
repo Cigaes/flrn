@@ -256,6 +256,7 @@ extern Flcmd Flcmds[NB_FLCMD];
 /* On fait les defines suivant pour les menus */
 #define FLCMD_PREC 0
 #define FLCMD_SUIV 1
+#define FLCMD_VIEW 2
 #define FLCMD_QUIT 11
 #define FLCMD_UP 27
 #define FLCMD_DOWN 28

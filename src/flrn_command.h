@@ -20,4 +20,16 @@ extern int Flcmd_num_macros;
 extern int Bind_command_new(int, int, char *, int, int);
 extern void free_Macros(void);
 
+/* Complétions */
+extern int Comp_cmd_explicite(char *, int , Liste_Chaine *);
+
+/* Entrée de commandes */
+typedef struct command_return {
+   int cmd[NUMBER_OF_CONTEXTS];
+   char *before;
+   char *after;
+} Cmd_return;
+
+extern int get_command(int, int, int, Cmd_return *, char *);
+
 #endif

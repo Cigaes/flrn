@@ -11,12 +11,13 @@ typedef struct liste_menu_desc {
    struct liste_menu_desc *prec, *suiv;
 } Liste_Menu;
 
+#define NB_FLCMD_MENU 7
+#define FLCMD_MENU_UNDEF -1
+extern char *Flcmds_menu[NB_FLCMD_MENU];
+
 #ifdef IN_FLRN_MENUS_C
 
 #include "flrn_slang.h"
-
-#define NB_FLCMD_MENU 7
-#define FLCMD_MENU_UNDEF -1
 
 char *Flcmds_menu[NB_FLCMD_MENU] = 
    { "up",

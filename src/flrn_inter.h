@@ -26,12 +26,8 @@ extern int call_func(int, char *);
 extern int loop(char * /*opt*/);
 extern int aff_opt_c(char *);
 extern void init_Flcmd_rev(void);
-extern int Comp_generic(Liste_Chaine *, char *, int, void *, int, 
-          char *(void *,int), char *, int *);
-extern int Comp_cmd_explicite(char * /*str*/, int /*len*/, Liste_Chaine *);
 extern int Bind_command_explicite(char * /*nom*/, int /*key*/, char *, int);
 extern void save_etat_loop(void);
 extern void restore_etat_loop(void);
 
 #endif
-

@@ -96,10 +96,10 @@ struct file_and_int {
    int num;
 };
 
-int parse_arg_string(char *str,int command);
+int parse_arg_string(char *str,int command, int annu16);
 /* On prédéfinit ici les fonctions appelés par loop... A l'exception de */
 /* get_command, elles DOIVENT être de la forme int do_* (int res)       */ 
-int get_command(int key);
+int get_command_command(int key);
 int do_deplace(int res); 
 int do_goto(int res); /* renvoie change */
 int do_unsubscribe(int res);
@@ -422,12 +422,12 @@ int loop(char *opt) {
 	     etat_loop.next_cmd=-1; /* remis à jour ensuite */
 	     Arg_str[0]='\0';
 	   } else
-	     res=get_command(key);
+	     res=get_command_command(key);
 	   if (debug) fprintf(stderr, "retour de get_command : %d\n", res);
 	   if ((res >0) && (res & FLCMD_MACRO)) {
 	     int num_macro= res ^FLCMD_MACRO;
 	     res = Flcmd_macro[num_macro].cmd;
-	     res = parse_arg_string(Flcmd_macro[num_macro].arg,res);
+	     res = parse_arg_string(Flcmd_macro[num_macro].arg,res,0);
 	     etat_loop.next_cmd = Flcmd_macro[num_macro].next_cmd;
 	   }
 	   if (res==-2) etat_loop.etat=3; else
@@ -502,12 +502,6 @@ void init_Flcmd_rev() {
   return;
 }
 
-/* Renvoie le nom d'une commande par touche raccourcie */
-static int Lit_cmd_key(int key) {
-   if ((key <0) || (key >= MAX_FL_KEY)) return FLCMD_UNDEF;
-   return Flcmd_rev_command[key];
-}
-
 int fonction_to_number(char *nom) {
   int i;
   for (i=0;i<NB_FLCMD;i++)
@@ -521,7 +515,7 @@ int call_func(int number, char *arg) {
   *Arg_str='\0';
   Arg_do_funcs.flags=0;
   res=number;
-  res=parse_arg_string(arg,res);
+  res=parse_arg_string(arg,res,0);
   return (*Flcmds[res].appel)(res);
 }
 
@@ -549,23 +543,6 @@ int Bind_command_explicite(char *nom, int key, char *arg, int add) {
       return 0;
     }
   return -1;
-}
-
-/* Lit le nom explicite d'une commande */
-static int Lit_cmd_explicite(char *str) {
-   int i;
-   
-   /* Hack pour les touches fleches en no-cbreak */
-   if (strncmp(str, "key-up ",7)==0) return Lit_cmd_key(FL_KEY_UP);
-   if (strncmp(str, "key-down ",9)==0) return Lit_cmd_key(FL_KEY_DOWN);
-   if (strncmp(str, "key-left ",9)==0) return Lit_cmd_key(FL_KEY_LEFT);
-   if (strncmp(str, "key-right ",10)==0) return Lit_cmd_key(FL_KEY_RIGHT);
-   /* cas "normal" */
-   for (i=0;i<NB_FLCMD;i++) 
-     if ((strncmp(str, Flcmds[i].nom, strlen(Flcmds[i].nom))==0)
-         && ((str[strlen(Flcmds[i].nom)]=='\0') || 
-	     (isblank(str[strlen(Flcmds[i].nom)])))) return i;
-   return FLCMD_UNDEF;
 }
 
 
@@ -642,7 +619,7 @@ static void Parse_nums_article(char *str, char **sortie, int flags) {
      if (ptr2!=NULL) *ptr2='\0'; else
         if (flags & 16) {
 	   courant->flags=0;
-	   *sortie=ptr;
+	   if (sortie) *sortie=ptr;
 	   return;
 	}
      if (*ptr=='\0') {
@@ -708,12 +685,13 @@ static void Parse_nums_article(char *str, char **sortie, int flags) {
      if (ptr2) *ptr2=',';
      courant->flags=0;
    }
-   *sortie=ptr;
+   if (sortie) *sortie=ptr;
 }
 
 
-/* appelé par get_command_explicite et get_command_nocbreak */
-int parse_arg_string(char *str,int command)
+/* appelé par get_command_command et d'autres */
+/* annu16=1 : annuler le flag 16 si macro */
+int parse_arg_string(char *str,int command, int annu16)
 {
    int flag;
    int cmd;
@@ -725,250 +703,13 @@ int parse_arg_string(char *str,int command)
      cmd = Flcmd_macro[cmd ^ FLCMD_MACRO].cmd;
    }
    flag=Flcmds[cmd].flags & 19; /* c'est crade... */
+   /* un truc quand même : le flag 16 n'a pas de valeur si macro et appele */
+   /* depuis get_command_command */
+   if ((annu16) && (command & FLCMD_MACRO)) flag=flag & 3;
    if (flag==0) return command;
    Parse_nums_article(str, &str, flag);
    if (str) strncpy(Arg_str, str, MAX_CHAR_STRING-1);
    return command;
-}
-
-/* Prend une commande en nocbreak */
-/* renvoie -2 si rien */
-/* asked est le nom de la touche tapée si on n'est pas en mode nocbreak */
-/* asked peut eventuellement ne pas etre fl_key_nocbreak, auquel cas    */
-/* elle provient de l'interruption de aff_article_courant...		*/
-int get_command_nocbreak(int asked,int col) {
-   char cmd_line[MAX_CHAR_STRING];
-   char *str=cmd_line;
-   int res;
-   
-   /* Dans le cas où asked='\r', et vient donc directement d'une interruption */
-   /* on ne prend pas de ligne de commande : on l'a déjà...		      */
-   if (asked=='\r') return Flcmd_rev_command['\r'];
-   if (asked) Screen_write_char(asked);
-   if (asked && (asked!=fl_key_nocbreak))  *(str++)=asked; 
-   *str='\0';
-   str=cmd_line;
-   if ((res=getline(str,MAX_CHAR_STRING,Screen_Rows-1,col+(asked && (asked==fl_key_nocbreak))))<0)
-     return -2;
-   while(*str==fl_key_nocbreak) str++;
-   if (str[0]=='\0') return Flcmd_rev_command['\r'];
-   if (isdigit((int) str[0]) || (str[0]=='<')) {
-     Parse_nums_article(str, &str, 2);
-     return FLCMD_VIEW;
-   }
-   if (str[0]==fl_key_explicite) {
-     res=Lit_cmd_explicite(str+1); 
-     str=strchr(str,' ');
-   }
-   else {
-     res=Lit_cmd_key(str[0]);
-     str++;
-   }
-   if (res==FLCMD_UNDEF) {
-      strncpy(Arg_str, cmd_line, MAX_CHAR_STRING-1);
-      return res;
-   }
-   return parse_arg_string(str,res);
-}
-
-/* prefix : la chaine de départ sur laquelle on doit construire */
-/* str : la chaine a étendre */
-/* len : la taille totale, doit prendre en compte le prefixe */
-/* truc, num, get_str : les possibilités d'extensions */
-/* delim : les délimiteurs de l'extension */
-/* result : si resultat=-1, tableau des resultats... */
-/* resultat : >=0 grassouille, -1 plusieurs solutions, -2 aucune solution */
-/* -3 : la chaine est vide...	*/
-/* on renvoie dans prefix ce qu'on a construit. */
-int Comp_generic(Liste_Chaine *prefix, char *str, int len, void * truc, 
-  int num, char *get_str(void *, int ), char *delim, int *result) 
-{
-  Liste_Chaine *courant=prefix;
-  Liste_Chaine *nouveau;
-  char *guess=NULL;
-  char *cur=NULL;
-  int prefix_len=0;
-  int match=0;
-  int i,j;
-  int good=0;
-  char *suite;
-
-  suite=strtok(str,delim);
-  if (suite==NULL) return -3;
-  suite=strtok(NULL,"\0");
-  if (suite) suite=safe_strdup(suite);
-
-  for (i=0;i<num;i++) 
-    if (strncmp(str, cur=get_str(truc,i), strlen(str))==0) {
-      if (strlen(cur)+strlen(prefix->une_chaine)+(suite ? strlen(suite) : 0)>=len) continue;
-      if (match) {
-	if (!prefix_len) prefix_len=strlen(guess);
-	for (j=0;j<prefix_len;j++)
-	if (guess[j] != cur[j]){
-	  prefix_len=j; break;
-	}
-      }
-      guess=cur;
-      good=i;
-      match++;
-      result[i]=1;
-      nouveau=safe_calloc(1,sizeof(Liste_Chaine));
-      nouveau->une_chaine=safe_malloc((len+1)*sizeof(char));
-      strcpy(nouveau->une_chaine,prefix->une_chaine);
-      strcat(nouveau->une_chaine,cur);
-      strcat(nouveau->une_chaine," ");
-      nouveau->complet=1;
-      nouveau->suivant=courant->suivant;
-      courant->suivant=nouveau;
-      courant=nouveau;
-    }
-  if (match==1) {
-    free(prefix->une_chaine);
-    prefix->une_chaine=courant->une_chaine;
-    prefix->suivant=courant->suivant;
-    if (suite) strcpy(str,suite); else str[0]='\0';
-    if (suite) free(suite);
-    free(courant);
-    return good;
-  } else if (match>1) {
-      prefix->complet=0;
-      good=strlen(prefix->une_chaine);
-      strncat(prefix->une_chaine,guess,prefix_len);
-      prefix->une_chaine[good+prefix_len]='\0';
-      if (suite) { 
-        strcat(prefix->une_chaine," ");
-        strcpy(str,suite); 
-	strcat(prefix->une_chaine, suite);
-	free(suite);
-      } else str[0]='\0';
-      return -1;
-  }
-  prefix->complet=-1;
-  if (suite) 
-    free(suite);
-  return -2;
-}
-
-static char * get_command_name(void * cmdlist, int num) {
-  return ((Flcmd *) cmdlist)[num].nom;
-}
-
-/* Completion automagique sur les commandes explicites */
-int Comp_cmd_explicite(char *str, int len, Liste_Chaine *debut)
-{
-  int res,res2,i,bon;
-  char *suite;
-  Liste_Chaine *courant, *pere, *suivant;
-  int result[NB_FLCMD];
-  for (i=0;i<NB_FLCMD;i++) result[i]=0;
-  if (*str=='\\') {
-    str++; strcat(debut->une_chaine,"\\");
-  }
-  res = Comp_generic(debut,str,len,(void *)Flcmds,NB_FLCMD,
-      get_command_name," ",result);
-  if (res==-3) return 0;
-  if (res>=0) {
-    if (Flcmds[res].comp) {
-       return (*Flcmds[res].comp)(str,len,debut);
-    } else {
-      strcat(debut->une_chaine,str);
-      if (str[0]) debut->complet=0;
-      return 0;
-    }
-  }
-  if (res==-1) {
-    bon=0;
-    pere=debut;
-    courant=debut->suivant;
-    suivant=courant->suivant;
-    for (i=0;i<NB_FLCMD;i++) {
-       if (result[i]==0) continue;
-       res2=0;
-       if (Flcmds[i].comp) {
-         suite=safe_strdup(str);
-         res2=(*Flcmds[i].comp)(suite,len,courant);
-	 free(suite);
-	 if (res2<-1) {
-	    free(courant->une_chaine);
-	    pere->suivant=courant->suivant;
-	    free(courant);
-	    courant=pere->suivant;
-	    continue;
-	 } 
-       } else {
-         strcat(courant->une_chaine,str);
-	 if (str[0]) courant->complet=0;
-       }
-       if (res2==-1) bon+=2; else bon++;
-       pere=courant;
-       while (pere->suivant!=suivant) pere=pere->suivant;
-       courant=suivant;
-       if (courant) suivant=courant->suivant;
-    }
-    if (bon>1) return -1; else if (bon) {
-       free(debut->une_chaine);
-       courant=debut->suivant;
-       debut->suivant=courant->suivant;
-       debut->une_chaine=courant->une_chaine;
-       free(courant);
-       return 0;
-    }
-  }
-  return -2;
-}
-
-static void Aff_ligne_comp_cmd (char *str, int len, int col) {
-   Cursor_gotorc(Screen_Rows-1,col); Screen_erase_eol();
-   Screen_write_nstring(str,len);
-}
-
-/* Prend une commande explicite */
-/* returne -2 si rien */
-int get_command_explicite(char *start, int col) {
-   int res=0, ret=0;
-   char cmd_line[MAX_CHAR_STRING], *str=cmd_line;
-   int prefix_len=0;
-   cmd_line[0]='\0'; 
-   if (start) {
-     prefix_len = strlen(start);
-     strncpy (cmd_line, start, MAX_CHAR_STRING-2);
-   }
-   strcat(cmd_line,"\\");
-   prefix_len++;
-   do {
-     Aff_ligne_comp_cmd(str,strlen(str),col);
-     if ((res=magic_getline(str+prefix_len,MAX_CHAR_STRING-prefix_len,
-	 Screen_Rows-1,col+prefix_len,"\011",0,ret))<0)
-       return -2;
-     ret=0;
-     if (res>0) ret=Comp_general_command(str+prefix_len,MAX_CHAR_STRING-prefix_len,col+prefix_len,Comp_cmd_explicite, Aff_ligne_comp_cmd); 
-     if (ret<0) ret=0;
-   } while (res!=0);
-   res=Lit_cmd_explicite(str+prefix_len); 
-   str=strchr(str,' ');
-   if (res==FLCMD_UNDEF) {
-      strcpy(Arg_str,"\\");
-      strncat(Arg_str, cmd_line+prefix_len, MAX_CHAR_STRING-prefix_len-2);
-   }
-   return parse_arg_string(str,res);
-}
-
-/* Prend une commande avec le nouveau mode */
-int get_command_newmode(int key,int col) {
-   int res;
-   char cmd_line[MAX_CHAR_STRING];
-   char *str=cmd_line;
-
-   cmd_line[0]=key; cmd_line[1]='\0';
-   Screen_write_char(key);
-   /* On appelle magic_getline avec flag=1 */
-   if ((res=magic_getline(str,MAX_CHAR_STRING,Screen_Rows-1,col,"1234567890,<>._-",1,0))<0)
-     return -2;
-   Parse_nums_article(str, &str, 0);
-   if (res==fl_key_explicite) res=get_command_explicite(cmd_line,col); else {
-      if (res!='\n') res=Lit_cmd_key(res); else res=FLCMD_VIEW;
-   }
-   return res;
 }
 
 /* Prend la chaine argument pour les appels qui en ont besoin en mode cbreak */
@@ -997,36 +738,39 @@ static int get_str_arg(int res) {
 /* Renvoie -1 si commande non défini				         */
 /*         -2 si rien							 */
 /*         -3 si l'état est déjà défini...				 */
-int get_command(int key_depart) {
-   int key, res, res2, col;
+int get_command_command(int key_depart) {
+   int res, res2;
+   Cmd_return une_commande;
 
    Arg_do_funcs.flags=0;
    Arg_str[0]='\0';
 
-   col=Aff_fin("A vous : ");
-   if (!Options.cbreak) return get_command_nocbreak(key_depart,col);
-   if (key_depart) key=key_depart; else key=Attend_touche();
-   if (key==fl_key_nocbreak) return get_command_nocbreak(fl_key_nocbreak,col);
-   if (key==fl_key_explicite) return get_command_explicite(NULL,col);
-   else {
-      /* Beurk pour '-' et ',' */
-      if (index(",-",key)) return Flcmd_rev_command[key];
-      if (strchr("0123456789<>.,_*",key)==NULL) res=Lit_cmd_key(key);
-         else res=get_command_newmode(key,col);
+   res=get_command(key_depart,CONTEXT_COMMAND,-1,&une_commande,"A vous : ");
+   if (res<0) {
+      if (une_commande.before) free(une_commande.before);
+      if (une_commande.after) free(une_commande.after);
+      return res;
    }
-   if (res==FLCMD_UNDEF) return FLCMD_UNDEF;
-   if (res & FLCMD_MACRO) return res;
+   /* res = 0 ou res = 2*/
+   res2=une_commande.cmd[CONTEXT_COMMAND];
+   if (une_commande.before) {
+      Parse_nums_article(une_commande.before,NULL,0);
+      free(une_commande.before);
+   }
+   if (une_commande.after) {
+      res2=parse_arg_string(une_commande.after,res2,1);
+      free(une_commande.after);
+   }
+   if (res2==FLCMD_UNDEF) return FLCMD_UNDEF; /* impossible à priori */
+   if (res2 & FLCMD_MACRO) return res2;
    /* Testons si on a besoin d'un (ou plusieurs) parametres */
-   if (((!Options.forum_mode) && (Flcmds[res].flags & 8) && (Arg_str[0]=='\0')) 
-       || ((Options.forum_mode) && (Flcmds[res].flags & 4))) {
-	/* En forum_mode, si on a déjà rentré un chiffre, FLCMD_VIEW ne prend*/
-        /* pas d'argument */
-     if ((Options.forum_mode) && (res==FLCMD_VIEW) && 
-	 (strchr("0123456789<>.,_*",key)!=NULL)) return FLCMD_VIEW;
-     res2=get_str_arg(res);
-     if (res2==-1) return -2;
+   if ((res & 2) && 
+       ( ((!Options.forum_mode) && (Flcmds[res2].flags & 8))
+       || ((Options.forum_mode) && (Flcmds[res2].flags & 4)) )) {
+     res=get_str_arg(res2);
+     if (res==-1) return -2;
    }
-   return res;
+   return res2;
 }
 
 static int tag_article(Article_List *art, void * flag)

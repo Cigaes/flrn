@@ -446,7 +446,7 @@ static int get_Body_post() {
 	   free(ligne_courante);
            return 0;
       }
-      if (key=='\r') key='\n';
+      if (key=='\r') key='\n'; /* On ne VEUT pas distinguer ^J et ^M */
       if ((key==FL_KEY_BACKSPACE) || (key==21) || (key==23)) {
 	int mottrouve=0;
 	int lignetrouvee=0;

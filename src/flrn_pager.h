@@ -3,10 +3,11 @@
 #ifndef FLRN_FLRN_PAGER_H
 #define FLRN_FLRN_PAGER_H
 
-#ifdef IN_FLRN_PAGER_C
-
 #define NB_FLCMD_PAGER 6
 #define FLCMD_PAGER_UNDEF -1
+extern char *Flcmds_pager[NB_FLCMD_PAGER];
+
+#ifdef IN_FLRN_PAGER_C
 
 char *Flcmds_pager[NB_FLCMD_PAGER] = 
    { "up",
