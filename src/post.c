@@ -76,7 +76,7 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
 	fprintf(tmp_file, "%s ", Headers[i].header);
 	if (Header_post->k_header[i])
 	   fprintf(tmp_file, "%s", Header_post->k_header[i]);
-	fprintf(tmp_file, "\n");
+	putc('\n',tmp_file);
       }
       liste=Header_post->autres;
       while (liste) {
@@ -87,6 +87,11 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
       fprintf(tmp_file, "Groupes: %s\n", 
 	      Header_post->k_header[NEWSGROUPS_HEADER]);
       fprintf(tmp_file, "Sujet: %s\n", Header_post->k_header[SUBJECT_HEADER]);
+      liste=Header_post->autres;
+      while (liste) {
+	 if (liste->num_af) fprintf(tmp_file, "%s\n", liste->header);
+	 liste=liste->next;
+      }
    }
    fprintf(tmp_file, "\n");
    if (Pere_post && ((incl==1) || ((incl==-1) && (Options.include_in_edit)))) { 
@@ -118,7 +123,7 @@ int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
    int taille;
    Lecture_List *lecture_courant;
    int headers=1,read_something=0, i;
-   Header_List *liste, *last_liste=NULL;
+   Header_List *liste, *last_liste=NULL, **unk_header_courant=NULL;
 
    lecture_courant=Deb_body;
    lecture_courant->size=0;
@@ -167,26 +172,39 @@ int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
 		      last_liste=liste;
 		      liste=liste->next;
 		   }
-		   if (liste) header_courant=&(liste->header); else
-		      if (last_liste) {
-		        last_liste->next=safe_malloc(sizeof(Header_List));
-		        last_liste->next->next=NULL;
-		        last_liste->next->header=NULL;
-		        header_courant=&(last_liste->next->header);
-		      } else {
-		        Header_post->autres=safe_malloc(sizeof(Header_List));
-		        Header_post->autres->next=NULL;
-		        Header_post->autres->header=NULL;
-		        header_courant=&(Header_post->autres->header);
-		      }
+		   if (liste) {
+		      header_courant=&(liste->header); 
+		      if (last_liste) unk_header_courant=&(last_liste->next);
+		       else unk_header_courant=&(Header_post->autres);
+		   } else
+		   if (last_liste) {
+		      last_liste->next=safe_malloc(sizeof(Header_List));
+		      last_liste->next->next=NULL;
+		      last_liste->next->header=NULL;
+		      header_courant=&(last_liste->next->header);
+		      unk_header_courant=&(last_liste->next);
+		   } else {
+		      Header_post->autres=safe_malloc(sizeof(Header_List));
+		      Header_post->autres->next=NULL;
+		      Header_post->autres->header=NULL;
+		      header_courant=&(Header_post->autres->header);
+		      unk_header_courant=&(Header_post->autres);
+		   }
+		   (*unk_header_courant)->num_af=1;
 		 }
 	      }
 	      buf2++;
 	      while ((*buf2) && isblank(*buf2)) buf2++;
 	      if ((*buf2=='\0') || (*buf2=='\n')) {
-		  if (*header_courant) { free(*header_courant);
-		                         *header_courant=NULL;
-				       }
+		  if (*header_courant) { 
+		     free(*header_courant);
+		     *header_courant=NULL;
+		     if (header_connu==0) {
+		        liste=(*unk_header_courant)->next;
+			free(*unk_header_courant);
+			*unk_header_courant=liste;
+	             }
+	          }
 		  continue;
 	      }
 	      *header_courant=safe_realloc(*header_courant,(strlen(header_connu ? buf2 : buf)+1)*sizeof(char));
@@ -794,11 +812,43 @@ static char *extract_post_references (char *str, int len_id) {
 /* Creation des headers du futur article */
 /* Flag : 0 : normal 1 : mail -1 : cancel ou supersedes */
 static int Get_base_headers(int flag) {
-   int res, len1, len2=0, len3, key;
+   int res, len1, len2=0, len3, key, i;
    char *real_name, *buf;
+   user_hdr_type *parcours;
 
    Header_post=safe_calloc(1,sizeof(Post_Headers));
+   memset(Header_post,0,sizeof(Post_Headers));
    par_mail=(flag==1);
+   /* On va d'abord gérer les headers persos... */
+   /* Comme ca ils vont se faire écraser par les autres... */
+   /* ces headers sont bien formatés...	*/
+   if (flag!=-1) {
+      parcours=Options.user_header;
+      while (parcours) {
+        buf=strchr(parcours->str,':');
+	len1=buf-parcours->str+1;
+	for (i=0;i<NB_KNOWN_HEADERS;i++) 
+	  if (strncasecmp(parcours->str,Headers[i].header,
+	                          Headers[i].header_len)==0) break;
+        if ((i!=NB_KNOWN_HEADERS) && (is_modifiable(i))) 
+	  /* c'est a revoir... */
+	   Header_post->k_header[i]=safe_strdup(buf+2); /* pas l'espace */
+	else if (i==NB_KNOWN_HEADERS) {
+	   Header_List *parcours2=Header_post->autres;
+	   while (parcours2 && (parcours2->next)) parcours2=parcours2->next;
+	   if (Header_post->autres==NULL) 
+	      Header_post->autres=parcours2=safe_malloc(sizeof(Header_List));
+	   else { 
+	     parcours2->next=safe_malloc(sizeof(Header_List));
+	     parcours2=parcours2->next;
+	   }
+	   parcours2->next=NULL;
+	   parcours2->header=safe_strdup(parcours->str);
+	   parcours2->num_af=0;
+	}
+	parcours=parcours->next;
+      }
+   }
    if (Pere_post) { 
       if ((Pere_post->headers==NULL)||(Pere_post->headers->all_headers==0))
 	cree_header(Pere_post,0,0);
@@ -875,14 +925,21 @@ static int Get_base_headers(int flag) {
    Cursor_gotorc(1,0);
    Screen_erase_eos();
    if (par_mail) {   /* Ceci suppose que Pere_post soit défini */
+     Header_List *parcours2=Header_post->autres;
+
      if (Pere_post->headers->k_headers[REPLY_TO_HEADER])
        Header_post->k_header[TO_HEADER]=safe_strdup(Pere_post->headers->k_headers[REPLY_TO_HEADER]); else
        Header_post->k_header[TO_HEADER]=safe_strdup(Pere_post->headers->k_headers[FROM_HEADER]); 
-     Header_post->autres=safe_malloc(sizeof(Header_List));
-     Header_post->autres->next=NULL;
-     Header_post->autres->header=safe_malloc(15+strlen(Pere_post->msgid));
-     strcpy(Header_post->autres->header,"In-Reply-To: ");
-     strcat(Header_post->autres->header,Pere_post->msgid);
+     while (parcours2 && (parcours2->next)) parcours2=parcours2->next;
+     if (parcours2) {
+       parcours2->next=safe_malloc(sizeof(Header_List));
+       parcours2=parcours2->next;
+     } else Header_post->autres=parcours2=safe_malloc(sizeof(Header_List));
+     parcours2->next=NULL;
+     parcours2->header=safe_malloc(15+strlen(Pere_post->msgid));
+     parcours2->num_af=0;
+     strcpy(parcours2->header,"In-Reply-To: ");
+     strcat(parcours2->header,Pere_post->msgid);
      Screen_write_string("To : ");
      Screen_write_string(Header_post->k_header[TO_HEADER]);
    } else {
@@ -898,7 +955,7 @@ static int Get_base_headers(int flag) {
        res=get_Sujet_post(Header_post->k_header[SUBJECT_HEADER]); 
        if (res==-1) return -1;
      }
-   }
+   } 
    /* From */
    real_name=safe_strdup(flrn_user->pw_gecos);
    buf=strchr(real_name,','); if (buf) *buf='\0';

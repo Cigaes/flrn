@@ -17,6 +17,9 @@
 #define OPT_HEADER "header"
 #define OPT_HEADER_LEN 6
 
+#define OPT_MY_HEADER "my_hdr"
+#define OPT_MY_HEADER_LEN 6
+
 #define OPT_SET_COLOR "color"
 #define OPT_SET_COLOR_LEN 5
 
@@ -36,6 +39,12 @@
 extern Known_Headers unknown_Headers[MAX_HEADER_LIST];
 	/* on va les reperer en négatif de -2 à -MAX_HEADER_LIST-1 */
 
+/* pour les my_hdr */
+typedef struct string_list {
+  char *str;
+  struct string_list *next;
+} user_hdr_type;
+
 
 struct Option_struct {
   char *serveur_name;     /* option serveur   */
@@ -44,6 +53,7 @@ struct Option_struct {
   int  header_list[MAX_HEADER_LIST];     /* ordre des headers  */
   int  weak_header_list[MAX_HEADER_LIST]; /* headers "faibles" */
   int  hidden_header_list[MAX_HEADER_LIST]; /* headers a cacher */
+  user_hdr_type *user_header;
   int  skip_line;                /* nombre de lignes avant le header */
   int  color;
   int  cbreak;

@@ -94,13 +94,25 @@ void options_comp(char *option, int len)
       strcpy(option,OPT_SET_COLOR); strcat(option," ");
     }
   } else
+  if (strncmp(buf,OPT_MY_HEADER,used)==0) {
+    /* On ne fait pas de complétion pour my_header, même si ca pourrait */
+    /* se faire dans le cas de remove... A noter que my_header est en   */
+    /* concurrence avec mono...						*/
+    if (used<OPT_MY_HEADER_LEN) {
+      strcpy(option,OPT_MY_HEADER); strcat(option," ");
+      free(my_option);
+      return;}
+    if (!strtok(NULL,delim)) {
+      strcpy(option,OPT_MY_HEADER); strcat(option," ");
+    }
+  } else
   if (strncmp(buf,OPT_HEADER,used)==0) {
-    if (used<=OPT_HEADER_LEN) {
+    if (used<OPT_HEADER_LEN) {
       strcpy(option,OPT_HEADER); strcat(option," ");
       free(my_option);
       return;}
     if (!strtok(NULL,delim)) {
-      strcpy(option,OPT_SET_COLOR); strcat(option," ");
+      strcpy(option,OPT_HEADER); strcat(option," ");
     }
   } else
   if (strncmp(buf,OPT_BIND,used)==0) {
@@ -262,9 +274,61 @@ void parse_options_line (char *ligne, int flag)
       if (flag)
 	  Aff_error(err);
       else {
-	fprintf(stderr,"%s: %s",ligne,err);
+	fprintf(stderr,"%s: %s\n",ligne,err);
 	sleep(1);
       }
+    }
+    return;
+  } else
+  if (strcmp(buf,OPT_MY_HEADER)==0) {
+    char *buf2;
+    user_hdr_type *parcours, *parcours2;
+    int len;
+
+    buf=strtok(NULL,"\n");
+    if (buf==NULL) return;
+    buf+=strspn(buf,delim);
+    buf2=strchr(buf,':');
+    if ((buf2==NULL) || (buf2!=strpbrk(buf,delim))) {
+       char *err="Echec de my_hdr : header invalide.";
+       if (flag)
+         Aff_error(err);
+       else {
+         fprintf(stderr,"%s: %s\n",ligne,err);
+	 sleep(1);
+       }
+       return;
+    }
+    len=(++buf2)-buf;
+    buf2+=strspn(buf2," \t");
+    parcours2=NULL;
+    parcours=Options.user_header;
+    while (parcours) {
+      if (strncasecmp(parcours->str,buf,len)==0) break;
+      parcours2=parcours;
+      parcours=parcours->next;
+    }
+    if (parcours) {
+      if (*buf2=='\0') {
+         free(parcours->str);
+	 if (parcours2) parcours2->next=parcours->next; else
+	   Options.user_header=parcours->next;
+	 free(parcours);
+      } else {
+        parcours->str=safe_realloc(parcours->str,len+strlen(buf2)+2);
+	strncpy(parcours->str,buf,len);
+	(parcours->str)[len]=' ';
+	strcpy(parcours->str+len+1,buf2);
+      }
+    } else if (*buf2!='\0') {
+      parcours=safe_malloc(sizeof(user_hdr_type));
+      parcours->str=safe_malloc(len+strlen(buf2)+2);
+      strncpy(parcours->str,buf,len);
+      (parcours->str)[len]=' ';
+      strcpy(parcours->str+len+1,buf2);
+      parcours->next=NULL;
+      if (parcours2) parcours2->next=parcours; else
+        Options.user_header=parcours;
     }
     return;
   } else
@@ -373,6 +437,7 @@ static char *print_option(int i, char *buf, int buflen) {
 void dump_variables(FILE *file) {
   int i;
   char buf[80];
+  user_hdr_type *parcours;
   fprintf(file,"# Variables :\n");
   for (i=0; i< NUM_OPTIONS; i++){
     fprintf(file,"set %s",print_option(i,buf,80));
@@ -381,6 +446,11 @@ void dump_variables(FILE *file) {
   for (i=0; i<MAX_HEADER_LIST; i++) {
     if (Options.header_list[i]+1) fprintf(file," %d",Options.header_list[i]+1);
     else break;
+  }
+  parcours=Options.user_header;
+  while (parcours) {
+    fprintf(file,"\nmy_hdr %s",parcours->str);
+    parcours=parcours->next;
   }
   fprintf(file,"\n\n# C'est tout, il ne manque plus que les couleurs.\n");
   return;
@@ -454,10 +524,18 @@ void init_options() {
 /* ne sert a rien, mais bon */
 void free_options() {
   int i;
+  user_hdr_type *parcours, *parcours2;
   for (i=0; i< NUM_OPTIONS; i++)
     if (All_options[i].flags.allocated) {
       free(*All_options[i].value.string);
       All_options[i].flags.allocated=0;
       *All_options[i].value.string=NULL;
     }
+  parcours=Options.user_header;
+  while (parcours) {
+    parcours2=parcours->next;
+    free(parcours->str);
+    free(parcours);
+    parcours=parcours2;
+  }
 }
