@@ -234,7 +234,6 @@ static void Apply_regexp_scroll (File_Line_Type *line) {
     if (line->data==NULL) return;
     if (regexp_scroll) {
        out=safe_malloc(line->data_len+1);
-       out[line->data_len]='\0';
        Read_Line(out,line);
        retour=Search_in_line (line->data,out,line->data_len,regexp_scroll);
        free(out);
@@ -261,10 +260,11 @@ File_Line_Type *Change_line(int n,char *buf) {
        line->data_save=NULL;
     }
     line->data = safe_malloc(sizeof(short) * (strlen(buf)+1));
-    for(i=0;buf[i];i++) {
+    for(i=0;(buf[i]) && (buf[i]!='\n');i++) {
       line->data[i]=(unsigned char)buf[i];
     }
-    line->data_len=i-1;
+    line->data[i]=(unsigned char)buf[i];
+    line->data_len=i;
     if (regexp_scroll) Apply_regexp_scroll(line);
     return (line);
 } 
@@ -281,6 +281,7 @@ char * Read_Line(char * out, File_Line_Type *line) {
   int i;
   for(i=0;i<line->data_len;i++)
     out[i]=line->data[i];
+  out[line->data_len]='\0';
   return out;
 }
 

@@ -1,5 +1,5 @@
-/* flrn v 0.1                                                           */
-/*              post.c              28/11/97                            */
+/* flrn v 0.4                                                           */
+/*              post.c              19/03/99                            */
 /*                                                                      */
 /* Gestion des posts...                                                 */
 /* Ce fichier ne fait pas appel à slang...				*/
@@ -320,11 +320,48 @@ int charge_postfile (char *str) {
    return 1;
 }
 
+static void include_file(FILE *to_include, File_Line_Type **last, Lecture_List **d_l, int *row, int *inited, int *empty, int *size_max_line) {
+   char buf[513]; /* On suppose qu'un ligne ne peut pas faire plus de 512 */
+   int act_row=*row;
+   int already_init=*inited;
+   int len;
+
+   while (fgets(buf,513,to_include)) {
+      *empty=0;
+      buf[512]='\0';
+      len=strlen(buf);
+      if (buf[len-1]=='\n') buf[--len]='\0';
+      if (len+1>*size_max_line) *size_max_line=len+1; /* on aura besoin d'une longue ligne */
+      (*last)=Ajoute_line(buf);
+      str_cat(d_l,buf);
+      Cursor_gotorc(act_row,0);
+      Screen_write_string(buf);
+      act_row++;
+      ajoute_char(d_l,'\n');
+      if (act_row>=Screen_Rows) {
+          if (!already_init) {
+	     Init_Scroll_window(Screen_Rows-4,4,Screen_Rows-5);
+	     already_init=1;
+	  }
+	  Do_Scroll_Window(1,1);
+	  Cursor_gotorc(Screen_Rows-1,0);
+	  Screen_erase_eol();
+	  act_row=Screen_Rows-1;
+      }
+   }
+   *row=act_row;
+   *inited=already_init;
+}
+
+
 /* Analyse le debut de la ligne tapée (pour voir les commandes spéciales */
 /* Pour l'instant, on se contente de renvoyer 1 en cas de ".\n"		 */
 /* On appelle aussi Summon_Editor en cas de "~e\n", puis on renvoie 2    */
-/* ou 3 si le message est vide */
-static int analyse_ligne (Lecture_List **d_l, int *place) {
+/* ou 3 si le message est vide 						 */
+/* 4 : ligne annulée... 						 */
+/* On implémente aussi la possibilité de faire un ~r pipo\n...		 */
+/* et aussi un ~p, pour plus tard....					 */
+static int analyse_ligne (Lecture_List **d_l, int *place, FILE **a_inclure) {
    Lecture_List *sd_l=*d_l;
    int splace=*place;
    char debut[3];
@@ -340,6 +377,17 @@ static int analyse_ligne (Lecture_List **d_l, int *place) {
    if ((strncmp(debut,"~e\n",3)==0) || (strncmp(debut,"~E\n",3)==0)) {
       res=Summon_Editor(d_l, place, (debut[1]=='E'));
       if ((res>=0)) return (res==1)?3:2; else return -1;
+   }
+   if (strncmp(debut,"~r ",3)==0) {
+     char nom[256];
+     for (i=0; i<256; i++) {
+        nom[i]=sd_l->lu[splace];
+	if (nom[i]=='\n') break;
+	splace++; if (splace>=sd_l->size) { splace=0; sd_l=sd_l->suivant; }
+     }
+     nom[i]='\0';
+     (*a_inclure)=fopen(nom,"r");
+     return 4;
    }
    return 0;
 }
@@ -357,6 +405,7 @@ static int get_Body_post() {
    int already_init=0, incl_in_auto=-1;
    int empty=1, size_max_line;
    int screen_start=0;
+   FILE *to_include=NULL;
 
    Screen_Start=0;
    Deb_body=lecture_courant=debut_ligne=alloue_chaine();
@@ -506,23 +555,8 @@ static int get_Body_post() {
       }
       if (key>255) continue;
       if (key=='\n') {
-	 last_line=Ajoute_line(ligne_courante);
-	 ptr_ligne_cou=ligne_courante;
-	 *ptr_ligne_cou='\0';
-         act_row++; act_col=0;
 	 ajoute_char(&lecture_courant, '\n');
-	 if (act_row>=Screen_Rows) {
-	    if (!already_init) {
-                Init_Scroll_window(Screen_Rows-4,4,Screen_Rows-5);
-	        already_init=1;
-	    }
-	    Do_Scroll_Window(1,1);
-/* On efface la ligne devenue superflue */
-	    Cursor_gotorc(Screen_Rows-1,0);
-	    Screen_erase_eol();
-	    act_row=Screen_Rows-1;
-	 }
-	 fin=analyse_ligne(&debut_ligne, &size_debligne);
+	 fin=analyse_ligne(&debut_ligne, &size_debligne, &to_include);
 	 if (fin==-1) {
 	     Cursor_gotorc(2,0);
 	     Screen_write_string(" Ligne trop longue !!! ");
@@ -531,13 +565,44 @@ static int get_Body_post() {
 	     return 0;
 	 }
 	 if (fin==0) {  /* Si rien de special, on encaisse la ligne */
+	   last_line=Ajoute_line(ligne_courante);
 	   empty=0;
 	   debut_ligne=lecture_courant;
            size_debligne=lecture_courant->size;
-	 } else {
-	   lecture_courant=debut_ligne;
-	   lecture_courant->size=size_debligne;
+           act_row++; act_col=0;
+	   if (act_row>=Screen_Rows) {
+	      if (!already_init) {
+                Init_Scroll_window(Screen_Rows-4,4,Screen_Rows-5);
+	        already_init=1;
+	      }
+	      Do_Scroll_Window(1,1);
+/* On efface la ligne devenue superflue */
+	      Cursor_gotorc(Screen_Rows-1,0);
+	      Screen_erase_eol();
+	      act_row=Screen_Rows-1;
+	   }
+	 } else { /* On annule la ligne rentree */
+	    lecture_courant=debut_ligne;
+	    lecture_courant->size=size_debligne;
+	    act_col=0;
+	    Cursor_gotorc(act_row,0);
+	    Screen_erase_eol();
 	 }
+	 if (to_include) {
+	    int old_size_max_line=size_max_line;
+	    include_file(to_include, &last_line, &lecture_courant,&act_row,&already_init, &empty, &size_max_line);
+	    debut_ligne=lecture_courant;
+            size_debligne=lecture_courant->size;
+	    fclose(to_include);
+	    to_include=NULL;
+	    if (size_max_line!=old_size_max_line) {
+	         /* C'est lourd, une ligne longue */
+	       free(ligne_courante);
+	       ligne_courante=safe_malloc(size_max_line*sizeof(char));
+	    }
+	 }
+	 ptr_ligne_cou=ligne_courante;
+	 *ptr_ligne_cou='\0';
 	 if ((fin==2)||(fin==3)) {
 	   empty = (fin==3);
 	   Cursor_gotorc(2,0);
@@ -546,7 +611,6 @@ static int get_Body_post() {
 	   } else {
 	     Screen_write_string(" (début) ");
 	   }
-	   fin=0;
 	   act_row=4; act_col=0;
 	   already_init=0;
 	   last_line=NULL;
@@ -554,6 +618,7 @@ static int get_Body_post() {
 	   Screen_set_screen_start(NULL,NULL);
 	 }
          Cursor_gotorc(act_row, act_col);
+	 if (fin!=1) fin=0;
       } else
       {
 	 if ((key==4)&&(act_col==0)) {fin=1; continue;}
