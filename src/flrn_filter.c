@@ -1,6 +1,7 @@
 /* flrn, gestion des kill files
  * 		Jo.		*/
 
+#include <malloc.h>
 #include "flrn.h"
 #include "flrn_filter.h"
 #include "art_group.h"

@@ -1,7 +1,6 @@
 /* On definit ce qui pourait nous manquer */
 
 #include <stdio.h>
-#include <malloc.h>
 #include <stdarg.h>
 
 #ifdef HAVE_ERRNO_H
@@ -15,7 +14,6 @@
 
 #ifndef HAVE_SNPRINTF
 extern int snprintf(char * /*out*/, int /*len*/, char * /*fmt*/, ...);
-
 #endif
 
 #ifndef HAVE_ISBLANK
@@ -52,97 +50,41 @@ static inline size_t strspn(const char *s, const char *accept) {
 /* Les fonctions qui suivent ne sont pas vraiment la pour la compatibilite.  */
 /* Plutot pour eviter les OS qui louzent...				     */
 #ifndef DEBUG_MALLOC
-static inline void *safe_malloc(size_t s) {
+extern void *safe_malloc(size_t);
 #else
 #define safe_malloc(a) __safe_malloc(a,__PRETTY_FUNCTION__,__FILE__,__LINE__)
-static inline void *__safe_malloc(size_t s, char *f, char *fi, int l) {
+extern void *__safe_malloc(size_t s, char *f, char *fi, int l);
 #endif
-   void *res;
-   if (s==0) return NULL;
-   if ((res=malloc(s))==NULL) {
-      fprintf(stderr, "Mémoire insuffisante !\n");
-      exit(-1);
-   } else {
-#ifdef DEBUG_MALLOC
-     fprintf(stderr,"%8lx malloc %ld, %s :%s, %d\n",(long) res,(long) s,
-	 f,fi,l);
-#endif
-     return res;
-   }
-   return NULL;
-}
 
 #ifndef DEBUG_MALLOC
-static inline void *safe_calloc(size_t s, size_t t) {
+extern void *safe_calloc(size_t, size_t );
 #else
 #define safe_calloc(a,b) __safe_calloc(a,b,__PRETTY_FUNCTION__,__FILE__,__LINE__)
-static inline void *__safe_calloc(size_t s, size_t t, char *f, char *fi, int l)
-{
+extern void *__safe_calloc(size_t, size_t, char *, char *, int );
 #endif
-   void *res;
-   if (s==0) return NULL;
-   if ((res=calloc(s,t))==NULL) {
-      fprintf(stderr, "Mémoire insuffisante !\n");
-      exit(-1);
-   } else {
-#ifdef DEBUG_MALLOC
-     fprintf(stderr,"%8lx calloc %ld * %ld, %s :%s, %d\n",(long) res,(long) s,
-	 (long t),f,fi,l);
-#endif
-     return res;
-   }
-   return NULL;
-}
 
 #ifndef DEBUG_MALLOC
-static inline void *safe_realloc(void *ptr, size_t s) {
+extern void *safe_realloc(void *, size_t ) ;
 #else
 #define safe_realloc(ptr,s) __safe_realloc(ptr,s,\
     __PRETTY_FUNCTION__,__FILE__,__LINE__)
-static inline void *__safe_realloc(void *ptr, size_t s,
-    char *f, char *fi, int l) {
+extern void *__safe_realloc(void *, size_t ,
+    char *, char *, int ) ;
 #endif
-   void *res;
-   if (s==0) {
-      free(ptr);
-      return NULL;
-   }
-   if (ptr==NULL) return safe_malloc(s); else
-     if ((res=realloc(ptr,s))==NULL) {
-        fprintf(stderr, "Mémoire insuffisante !\n");
-	exit(-1);
-     } else {
-#ifdef DEBUG_MALLOC
-       fprintf(stderr,"%8lx free *realloc* (%8lx) %ld, %s :%s, %d\n",
-	   (long) ptr, (long) res,
-	   (long) s, __PRETTY_FUNCTION__,__FILE__,__LINE__);
-       fprintf(stderr,"%8lx malloc *realloc* (%8lx) %ld, %s :%s, %d\n",
-	   (long) res, (long) ptr,
-	   (long) s, __PRETTY_FUNCTION__,__FILE__,__LINE__);
-#endif
-       return res;
-     }
-   return NULL;
-}
 
 #ifndef DEBUG_MALLOC
-static inline void *safe_strdup(const char *s) {
+extern void *safe_strdup(const char *);
 #else
 #define safe_strdup(s) __safe_strdup(s,__PRETTY_FUNCTION__,__FILE__,__LINE__)
-static inline void *__safe_strdup(const char *s, char *f, char *fi, int l) {
+extern void *__safe_strdup(const char *, char *, char *, int);
 #endif
-   char *res;
-#ifdef DEBUG_MALLOC
-   { char blah[1024]="*safe_strdup* ";
-     strcat(blah,f);
-     res=__safe_malloc(strlen(s)+1,blah,fi,l);
-   }
+
+#ifndef DEBUG_MALLOC
+extern void *safe_strappend(char *, const char *);
 #else
-   res=safe_malloc(strlen(s)+1);
+#define safe_strappend(s,t) __safe_strappend(s,t,__PRETTY_FUNCTION__,__FILE__,__LINE__)
+extern void *__safe_strdup(char *,const char *, char *, char *, int);
 #endif
-   strcpy(res,s);
-   return res;
-}
 
 #ifdef DEBUG_MALLOC
 #define free(a) (fprintf(stderr,"%8lx free, %s :%s, %d\n",(long) a,\

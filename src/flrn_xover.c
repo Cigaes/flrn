@@ -18,11 +18,12 @@
 #define FULL_HEADER_OVER 256   /* doit être > NB_KNOWN_HEADERS */
 /* -10 = bad, -1 = message-id */
 static int overview_list[OVERVIEW_SIZE_MAX];
+/* A un si l'on trouvé ce qu'on veut dans le xover */
 int overview_usable=0;
 
 /* Cette fonction teste si overview.fmt existe et remplit la structure
  * du xover si possible...
- * Résultat : 0 Ok
+ * Résultat : 0 Ok (il faut Message-Id et References au moins
  *           -1 Bug ou xover inutilisable */
 int get_overview_fmt() {
    int res, code, num, i;
@@ -49,6 +50,7 @@ int get_overview_fmt() {
       if (strncasecmp(tcp_line_read, "Message-Id:",11)==0)
       {
 	   overview_list[num]=-1;
+	 /* C'est moche mais on ne s'est pas donné la peine de gérer ce cas */
 	   if (strstr(tcp_line_read,"full"))
 	     return -1;
 	   good++;
@@ -79,12 +81,13 @@ int get_overview_fmt() {
 /* par exemple se faire appeler par un truc avant cree_liste...		    */
 /* retour : >=0 si succès... -1 si échec				    */
 int cree_liste_xover(int n1, int n2, Article_List **input_article) {
-    int res, code, suite_ligne=0, num=0, crees=0, fait_coupure=0;
+    int res, code, suite_ligne=0, num=0, crees=0;
     char *buf, *buf2;
     Article_List *creation, *article=input_article?*input_article:NULL;
     Range_List *msg_lus=Newsgroup_courant->read;
     int i,lus_index=0;
-    int new_article=0;
+    int new_article=0; /* s'il y a du neuf, pour cree_liens */
+    int out=0;
 
     buf=safe_malloc(50*sizeof(char)); /* De toute façon, on devra */
     	/* gérer des lignes TRES longues cette fois :-( */
@@ -102,10 +105,11 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
     while ((suite_ligne) || (tcp_line_read[0]!='.')) {
        if (!suite_ligne) {
          num=0;
-         creation = safe_calloc (1,sizeof(Article_List));
 	 buf=tcp_line_read;
 	 buf2=strchr(buf,'\t');
-	 *buf2='\0';  /* On suppose qu'il ne peut y avoir de pbs ici */
+	 if (!buf2) { return -1; }
+	 *buf2='\0';
+         creation = safe_calloc (1,sizeof(Article_List));
 	 creation->numero=strtol(buf,NULL,10);
 	 creation->flag=FLAG_NEW; /* pour le kill_file */
 	 /* on le recherche */
@@ -123,6 +127,7 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
 	       (article->next->numero <= creation->numero))
 	     article=article->next;
 	   if (article && (article->numero == creation->numero)) {
+	     /* on l'a déjà, celui-la */
 	       new_article=0;
 	       free_article_headers(article->headers);
 	       article->headers=NULL;
@@ -144,7 +149,6 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
 	 crees+= new_article;
 	 buf=buf2+1;
 	 article->headers=new_header();
-	 fait_coupure=0;
 	 /* on regarde si le message est lu */
 	 /* on recherche dans la table un max >= au numero de message */
 	 if (new_article) {
@@ -162,71 +166,51 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
 	 }
        }
        buf2=strchr(buf,'\t');
-       while (buf2!=NULL) {
-          *buf2='\0';
+       out=0;
+       /* en fait, y'a toujours au moins le message-id et references */
+       while (!out) {
+	  if (buf2) *buf2='\0';
 	  if (buf!=buf2) {
 	    if (new_article && (overview_list[num]==-1)) {
-	      if(suite_ligne) {
-		article->msgid= safe_realloc(article->msgid,
-		    strlen(article->msgid) + strlen(buf) +2);
-		strcat(article->msgid, buf);
-	      } else
-		article->msgid=safe_strdup(buf);
+	      /* article->msgid est == NULL ssi suite_ligne==0, non ? */
+	      article->msgid=safe_strappend(article->msgid,buf);
 	    } else
 	    if (overview_list[num]>=0) {
-	       if ((!fait_coupure) && (overview_list[num] & FULL_HEADER_OVER)) {
-	          buf=strchr(buf,':');
-	  	  buf++;
+	      i=overview_list[num] & ~FULL_HEADER_OVER;
+	      if ((article->headers->k_headers[i]==NULL) &&
+		  (overview_list[num] & FULL_HEADER_OVER)) {
+		buf=strchr(buf,':');
+		if (buf) {
+		  buf++;
 		  if (*buf) buf++; /* on passe aussi le ' ' */
-               } 
-	       i=overview_list[num] & ~FULL_HEADER_OVER;
-	       if (suite_ligne) { article->headers->k_headers[i]=safe_realloc(
-	          article->headers->k_headers[i], 
-		    (strlen(article->headers->k_headers[i])+strlen(buf)+2));
-		    strcat(article->headers->k_headers[i],buf);
-		  } else
-	           article->headers->k_headers[i]=safe_strdup(buf);
+		}
+              } 
+	      if ((buf) && (buf !=buf2)) {
+		article->headers->k_headers[i]=
+		  safe_strappend(article->headers->k_headers[i],buf);
+	      }
+	      /* ca peut être trop tot, mais c'est pas grave */
+	      article->headers->k_headers_checked[i]=1;
 	    }
-	  }
-	  if (overview_list[num]>=0) {
-	    article->headers->k_headers_checked[
-	      overview_list[num] & ~FULL_HEADER_OVER ] = 1;
-	  }
-	  buf=buf2+1;
-	  fait_coupure=0;
-	  suite_ligne=0;
-	  buf2=strchr(buf,'\t');
-	  if (buf2==NULL) buf2=strchr(buf,'\r');
-	  num++;
-       }
-       /* si la ligne est fini, on devrait avoir *buf='\n' */
-       if (*buf!='\n') {
-         if (*buf) 
+	  } else /* faut mettre a jour checked pour des headers vides */
 	    if (overview_list[num]>=0) {
-	       if ((!fait_coupure) && (overview_list[num] & FULL_HEADER_OVER)) {
-	          buf=strchr(buf,':');
-		  if (buf==NULL) buf=index(buf,'\0'); else {
-	  	    buf++;
-		    fait_coupure=1;
-		  }
-                } 
-	     }
-	 if (*buf) { 
-	   if (overview_list[num] >=0) {
-	       i=overview_list[num] & ~FULL_HEADER_OVER;
-	       if (suite_ligne) { article->headers->k_headers[i]=safe_realloc(
-	          article->headers->k_headers[i], 
-		    (strlen(article->headers->k_headers[i])+strlen(buf)+2));
-		    strcat(article->headers->k_headers[i],buf);
-		  } else
-	           article->headers->k_headers[i]=safe_strdup(buf);
-	   } else
-	     if (new_article && (overview_list[num] == -1)) {
-	       article->msgid=safe_strdup(buf);
-	     }
-	 }
-	 suite_ligne=1;
-       } else {
+	      article->headers->k_headers_checked[
+		overview_list[num] & ~FULL_HEADER_OVER ] = 1;
+	    }
+	  if (buf2) {
+	    buf=buf2+1;
+	    suite_ligne=1;
+	    buf2=strchr(buf,'\t');
+	    if (buf2==NULL) buf2=strchr(buf,'\r');
+	    num++;
+	  } else {
+	    out=1;
+	    if ((!buf) || (*buf != '\n')) {
+	      suite_ligne=1;
+	    } else suite_ligne=0;
+	  }
+       }
+       if (!suite_ligne) {
 	 /* On décode le header subject */
 	 /* C'est un peu limité, mais bon, faudra voir ça avec Jo */
 	 /* On parse la date aussi */
@@ -235,8 +219,8 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
 	       article->headers->k_headers[SUBJECT_HEADER],
 	       strlen(article->headers->k_headers[SUBJECT_HEADER]));
 	 if (article->headers->k_headers[DATE_HEADER])
-	    article->headers->date_gmt=parse_date(article->headers->k_headers[DATE_HEADER]);
-	 suite_ligne=0;
+	    article->headers->date_gmt=
+	      parse_date(article->headers->k_headers[DATE_HEADER]);
        }
        res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
        if (res<0) return -1;
