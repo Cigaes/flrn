@@ -37,7 +37,7 @@ int server_command_status[NB_TCP_CMD] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 /* Ligne lue (cf flrn_glob.h) */
 char tcp_line_read[MAX_READ_SIZE];
 /* file desciptor de la socket */
-int tcp_fd;
+int tcp_fd, init_connection=0;
 
 static char filter_cmd_list [MAX_NEWSGROUP_LEN+1];
 static int group_instead_of_list=0;
@@ -116,7 +116,8 @@ static int contact_server (char *host, int port) {
 /* lus.									*/ 
 /* min est le nombre d'octects minimum que l'on s'attend a pouvoir lire */
 /* (en cas de reponse a une requete).					*/
-/* Cette fonction renvoie -1 en cas d'erreur, 0 si connexion coupee.	*/
+/* Cette fonction renvoie -2 en cas d'erreur, -1 si connexion coupee.	*/
+/* on ne renvoie pas 0...						*/
 /* ATTENTION : on suppose avoir assez de place dans buf.		*/
 
 static int raw_read_server (char *buf, int min) {
@@ -150,13 +151,16 @@ static int raw_read_server (char *buf, int min) {
 #else
      ret_read=read(tcp_fd,buf+lus,MAX_BUF_SIZE-1-lus);
      if (ret_read<0) { /* dans ce cas, on laisse tomber */ 
-	if (errno==EINTR)
+	if (errno==EINTR) {
+	   if (debug) fprintf(stderr,"interruption en lecture...\n");
 	   continue;
+	}
 	else
-	  { perror ("Read : "); return -1; }
+	  { if (debug) perror ("Read : "); return -2; }
      }
      if (ret_read==0) /* pourquoi ? */
      {  if (debug) fprintf (stderr, "Qu'est-ce que signifie read=0 ?\n");
+        /* a priori, la connexion est coupée */
 	return -1;
      }
      lus+=ret_read;
@@ -190,8 +194,8 @@ int read_server (char *ligne, int deb, int max)
  
    if (stockes<=0) {  /* nouvelle lecture */
       ret_raw_read=raw_read_server(raw_buf, (deb==0 ? 1 : deb) );
-      if (ret_raw_read<=0)   /* BUG */
-         return -1;
+      if (ret_raw_read<0)   /* BUG */
+         return ret_raw_read;
       ptr=raw_buf;
       stockes=ret_raw_read;
       raw_buf[stockes]='\0';
@@ -213,7 +217,7 @@ int read_server (char *ligne, int deb, int max)
                           }
                         }
          ret=read_server(ligne_ptr, 0, max-rendus);
-         if (ret==-1) return -1;
+         if (ret<0) return ret;
          rendus+=ret;
          ligne[rendus]='\0';
          return rendus;
@@ -271,6 +275,12 @@ int read_server_with_reconnect (char *ligne, int deb, int max) {
    lus=read_server(ligne, deb, max);
    if (lus<3) {
       if (debug) fprintf(stderr, "Echec en lecture du serveur\n");
+      /* dans le cas ou c'est -1, on a une fin de connection */
+      if (lus==-1) {
+         if (debug) fprintf(stderr,"Un timeout ?\n");
+	 if (reconnect_after_timeout(1)<0) return -1;
+	 return read_server_with_reconnect(ligne,deb,max);
+      }
       return -1;
    }
    
@@ -366,6 +376,7 @@ int discard_server() {
 int connect_server (char *host, int port) {
     int ret, code;
    
+    init_connection=1;
     if (host==NULL) {
        fprintf(stderr,"Pas de serveur où se connecter.\n");
        return -1; 
@@ -378,6 +389,7 @@ int connect_server (char *host, int port) {
     }
      
     code=return_code();
+    init_connection=0;
 
     if ((code!=200) && (code!=201))
     {
@@ -441,7 +453,8 @@ int return_code () {
    int lus, code;
    char *buf;
 
-   lus=read_server_with_reconnect(tcp_line_read, 3, MAX_READ_SIZE-1);
+   lus=(init_connection ? read_server(tcp_line_read,3,MAX_READ_SIZE-1) : 
+               read_server_with_reconnect(tcp_line_read, 3, MAX_READ_SIZE-1));
    if (lus<3) return -1;
    
    code=(int)strtol(tcp_line_read,&buf,10);
