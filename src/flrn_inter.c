@@ -824,6 +824,7 @@ int get_command_command(int get_com) {
    Arg_str[0]='\0';
 
    if (get_com==-1) {
+     num_help_line=thread_view;
      Aff_help_line(Screen_Rows-1);
      Aff_fin("A vous : ");
      key=Attend_touche();

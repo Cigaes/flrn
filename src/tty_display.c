@@ -1485,8 +1485,6 @@ void Aff_newsgroup_name(int erase_scr) {
      Screen_set_color(FIELD_NORMAL);
      Cursor_gotorc(1,0);
      Screen_erase_eos();
-     num_help_line=0;
-     Aff_help_line(Screen_Rows-1);
      Screen_refresh(); 
           /* Cas particulier : pour le temps que ça prend parfois */
    }
@@ -1577,8 +1575,6 @@ int Aff_grand_thread(int to_build) {
    int i;
 
    if (base_Aff_article(to_build)==-1) return 0;
-   num_help_line=1;
-   Aff_help_line(Screen_Rows-1);
    grande_table=safe_malloc((Screen_Rows-4)*sizeof(char *));
    for (i=0;i<Screen_Rows-4;i++)
      grande_table[i]=safe_malloc(Screen_Cols);
@@ -1599,9 +1595,6 @@ int Aff_article_courant(int to_build) {
    
    if (debug) fprintf(stderr, "Appel a Aff_article_courant\n");
    if (base_Aff_article(to_build)==-1) return 0;
-   num_help_line=0;
-   Aff_help_line(Screen_Rows-1);
-
    Cursor_gotorc(1+Options.skip_line,0);
 
   /* Headers  -- on veut all_headers <=> un appel a cree_headers */
