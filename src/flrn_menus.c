@@ -99,7 +99,7 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
       key=Attend_touche();
       Cursor_gotorc(act_row,0);
       Screen_write_char(' ');
-      switch (Flcmd_rev[key]) {
+      switch (key<MAX_FL_KEY ? Flcmd_rev[key] : FLCMD_UNDEF) {
 	 case FLCMD_PREC : 
 	 case FLCMD_UP :  if (courant->prec!=NULL) {
 			    act_row--; num_courant--; courant=courant->prec; }
