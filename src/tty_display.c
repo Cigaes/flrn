@@ -1099,7 +1099,7 @@ int Aff_place_article (int flag){
 /* headers dans le cas ou flag vaut 0. On gardera ensuite ledit scrolling   */
 /* selon les options obtenues...					    */
 int Aff_headers (int flag) {
-   int index=0, row, row2, col, i, j, i0, length;
+   int index=0, row, row2, col, i, j, i0, length, szl;
    char buf[15];
    Header_List *tmp=Last_head_cmd.headers;
    char *une_ligne=NULL, *flags_header;
@@ -1176,7 +1176,7 @@ int Aff_headers (int flag) {
              strcpy(une_ligne,"Réponse à: ");
 	     if (!Options.parse_from) 
 	     	strcat(une_ligne,Article_courant->headers->reponse_a);
-	     else ajoute_parsed_from(une_ligne,Article_courant->headers->reponse_a);
+	     else ajoute_parsed_from(une_ligne,Article_courant->headers->reponse_a,NULL);
 	     une_belle_ligne=safe_malloc((strlen(une_ligne)+1)*sizeof(short));
 	     Aff_color_line(0,une_belle_ligne, &length,
 		 FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);
@@ -1221,11 +1221,14 @@ int Aff_headers (int flag) {
 	   row=Aff_header(1, with_arbre, row, 0, une_ligne, une_belle_ligne,!flag);
            break;
          case FROM_HEADER:
-	   une_ligne=safe_malloc(14+2*strlen(Article_courant->headers->k_headers[FROM_HEADER]));
+	   szl=20+2*strlen(Article_courant->headers->k_headers[FROM_HEADER]);
+	   if (Article_courant->headers->k_headers[SENDER_HEADER])
+	       szl+=strlen(Article_courant->headers->k_headers[SENDER_HEADER]);
+	   une_ligne=safe_malloc(szl);
            strcpy(une_ligne,"Auteur: ");
 	   if (!Options.parse_from) 
 	     	strcat(une_ligne,Article_courant->headers->k_headers[FROM_HEADER]);
-	   else ajoute_parsed_from(une_ligne,Article_courant->headers->k_headers[FROM_HEADER]);
+	   else ajoute_parsed_from(une_ligne,Article_courant->headers->k_headers[FROM_HEADER],Article_courant->headers->k_headers[SENDER_HEADER]);
 	   une_belle_ligne=safe_malloc((strlen(une_ligne)+1)*sizeof(short));
 	   Aff_color_line(0,une_belle_ligne, &length,
 		 FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);

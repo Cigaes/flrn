@@ -2292,12 +2292,22 @@ int do_post(int res) {
 
 
 /* do_cancel : cancel (SI !) */
-static int cancel_article(Article_List *article, void *toto)
- { return cancel_message(article); }
+static int cancel_article(Article_List *article, void *toto) { 
+   static int confirm;
+   int ret;
+   if (article==NULL) {
+     confirm=0;
+     return 0;
+   }
+   ret=cancel_message(article,confirm); 
+   if (ret==2) confirm=1;
+   return ret;
+}
 int do_cancel(int res) {
   Numeros_List *courant=&Arg_do_funcs;
   int ret;
 
+  cancel_article(NULL,NULL);
   ret=distribue_action(courant,cancel_article,NULL,NULL);
   if (ret>=0) {
      etat_loop.etat=1; etat_loop.num_message=(ret==0 ? 16 : 17);
@@ -3012,7 +3022,7 @@ int parents_action(Article_List *article,int all, Action action, void *param, in
     if ((!(flags & 64)) || (racine->flag & FLAG_IS_SELECTED)) 
         res2=action(racine,param);
     racine->flag &= ~FLAG_INTERNE2;
-    if (res2<res) res=res2;
+    if (res<res2) res=res2;
   } while((racine=next_in_thread(racine,FLAG_INTERNE2,NULL,0,0,
       FLAG_INTERNE2,0)));
   return res;
@@ -3047,7 +3057,7 @@ int thread_action(Article_List *article,int all, Action action, void *param, int
   do { if (racine->numero!=-1) 
          if ((!(flags & 64)) || (racine->flag & FLAG_IS_SELECTED)) 
           res2=action(racine,param);
-    if (res2<res) res=res2;
+    if (res<res2) res=res2;
     racine->flag |= FLAG_INTERNE1;
   } while ((racine=next_in_thread(racine,FLAG_INTERNE1,&level,-1,0,
             0,0)));
@@ -3080,7 +3090,7 @@ int gthread_action(Article_List *article,int all, Action action, void *param, in
   do { if (racine->numero!=-1)
          if ((!(flags & 64)) || (racine->flag & FLAG_IS_SELECTED)) 
           res2=action(racine,param);
-    if (res2<res) res=res2;
+    if (res<res2) res=res2;
     racine->flag |= FLAG_INTERNE1;
   } while ((racine=next_in_thread(racine,FLAG_INTERNE1,&level,-1,0,
             0,1)));

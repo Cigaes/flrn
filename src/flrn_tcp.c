@@ -698,7 +698,8 @@ int reconnect_after_timeout(int refait_commande) {
    adjust_time();   /* il faut peut-être mieux le refaire, si c'est possible */
    /* reste a envoyer la bonne commande pour GROUP */
    if (refait_commande) {
-     if ((ret=va_dans_groupe())==-1) { free(chaine_to_sauve); return -1; }
+     ret=(Newsgroup_courant ? va_dans_groupe() : 1);
+     if (ret==-1) { free(chaine_to_sauve); return -1; }
      if (ret==0) {
        code=return_code(); 
        if (code<0) { free(chaine_to_sauve); return -1; }

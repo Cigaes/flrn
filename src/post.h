@@ -27,7 +27,7 @@ typedef struct Flrn_post_headers {
 /* Les fonctions */
 
 extern void Get_user_address(char * /*str*/);
-extern int cancel_message (Article_List * /*origine*/);
+extern int cancel_message (Article_List * /*origine*/, int /*confirm*/);
 extern int post_message (Article_List * /*origine*/, char * /*name_file*/,
     int /*flag*/);
 

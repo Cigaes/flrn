@@ -1183,6 +1183,29 @@ static char *extract_post_references (char *str, int len_id) {
 
 /* Creation des headers du futur article */
 /* Flag : 0 : normal 1 : mail -1 : cancel ou supersedes */
+#if 0
+static int Get_base_headers_supersedes (Article_List *article) {
+   int i;
+
+   if (Last_head_cmd.Article_vu!=article) {
+      cree_header(article,0,1,0);
+      if (article->headers==NULL) {
+	  if (debug) fprintf(stderr,"Cree-headers a renvoye un resultat beurk !\n");
+	  return -1;
+      }
+   }
+   /* on garde tout, sauf X-ref, Path, NNTP-Posting_Host,
+      	     X-Trace, NNTP-Posting-Date, X-Complaints-To et Message-ID */
+   for (i=0;i<NB_KNOWN_HEADERS;i++) {
+      if (i==XREF_HEADER) continue;
+      if (i==MESSAGE_ID_HEADER) continue;
+      if (article->headers->k_headers[i])
+          Header_post->k_header[i]=safe_strdup(article->headers->k_headers[i]);
+   }
+#endif
+
+      
+   
 static int Get_base_headers(int flag, Article_List *article) {
    int res, len1, len2=0, len3, key, i, from_perso=0;
    char *real_name, *buf, *buf2;
@@ -1191,6 +1214,12 @@ static int Get_base_headers(int flag, Article_List *article) {
    Header_post=safe_calloc(1,sizeof(Post_Headers));
    memset(Header_post,0,sizeof(Post_Headers));
    par_mail=(flag==1);
+#if 0
+   /* le supersedes est traité à part */
+   if (supersedes) {
+      return Get_base_headers_supersedes(article);
+   }
+#endif
    /* On va d'abord gérer les headers persos... */
    /* Comme ca ils vont se faire écraser par les autres... */
    /* ces headers sont bien formatés... mais ils peuvent etre "reformates" */
@@ -1410,7 +1439,9 @@ static void encode_headers(char **header_to_encode) {
 /* Cancel un message (fonction secondaire de ce fichier).		*/
 /* Renvoie : >0 si le message est effectivement cancelé... 0 si le      */
 /* cancel est annulé, et <0 si le cancel est refusé, ou bug...		*/
-int cancel_message (Article_List *origine) {
+/* si confirm=1, alors on ne demande pas confirmation et on renvoit 2   */
+/* sinon, on revonoie 2 si la reponse à la confirmation est 'T'         */
+int cancel_message (Article_List *origine, int confirm) {
    int res,key;
    char line[80];
 
@@ -1421,16 +1452,17 @@ int cancel_message (Article_List *origine) {
    if (res!=1) return -1;
    /* On pourrait demander confirmation */
    /* L'équivalent d'un Aff_fin */
-   sprintf(line,"Canceler le message %d (O/N) : ",origine->numero);
-   Cursor_gotorc(Screen_Rows2-1,0);
-   Screen_set_color(FIELD_ERROR);
-   Screen_write_string(line);
-   Screen_set_color(FIELD_NORMAL);
-   Screen_erase_eol();
-   Cursor_gotorc(Screen_Rows2-1, strlen(line));
-   key=Attend_touche();
-   key=toupper(key);
-   if (key!='O') return 0;
+   if (confirm==0) {
+     sprintf(line,"Canceler le message %d (O/N/T) : ",origine->numero);
+     Cursor_gotorc(Screen_Rows2-1,0);
+     Screen_set_color(FIELD_ERROR);
+     Screen_write_string(line);
+     Screen_set_color(FIELD_NORMAL);
+     Screen_erase_eol();
+     Cursor_gotorc(Screen_Rows2-1, strlen(line));
+     key=Attend_touche();
+     if (key=='T') confirm=1; else if (toupper(key)!='O') return 0;
+   }
    /* Bon... Tant pis */
    res=Get_base_headers(-1,origine);
    if (res==-1) {
@@ -1445,7 +1477,7 @@ int cancel_message (Article_List *origine) {
    Free_post_headers();
    Libere_listes();
    if (res<0) return -1;
-   return 1;
+   return 1+confirm;
 }
 
 

@@ -680,13 +680,16 @@ char * Prepare_summary_line(Article_List *article, char *previous_subject,
 /* forum-like...						      */
 /* ajoute le resultat à str */
 /* on suppose qu'il y a de la place (2*strlen(from_line))+3 */
+/* (plus strlen(sender) ) */
 
-void ajoute_parsed_from(char *str, char *from_line) {
-   char *buf,*buf2;
+void ajoute_parsed_from(char *str, char *from_line, char *sender_line) {
+   char *buf,*buf2,*bufs;
+   int siz_login;
    buf=vrai_nom(from_line);
    strcat(str,buf);
    strcat(str," (");
    free(buf);
+   bufs=str+strlen(str); /* sauvegarde du nom entre parentheses */
    buf=strchr(from_line,'<');
    if (buf) {
       buf2=strchr(buf,'@');
@@ -699,6 +702,16 @@ void ajoute_parsed_from(char *str, char *from_line) {
        strncat(str,from_line,buf2-from_line);
      else strcat(str,from_line);
    }
+   siz_login=strlen(bufs);
    strcat(str,")");
+   if (sender_line) {
+      /* on ajoute [sender]  si le login est différent */
+      buf=strchr(sender_line,'@');
+      if ((buf) && ((siz_login!=(buf-sender_line)) ||
+                    (strncmp(bufs,sender_line,siz_login)))) {
+	 strcat(str," [");
+	 strncat(str,sender_line,buf-sender_line);
+	 strcat(str,"]");
+      }
+   }
 }
-
