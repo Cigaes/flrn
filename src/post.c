@@ -281,47 +281,57 @@ static int Summon_Editor (Lecture_List **d_l, int *place, int incl) {
    FILE *tmp_file;
    int res;
    struct stat before, after;
+   char name[MAX_PATH_LEN];
 
    free_text_scroll();
    Cursor_gotorc(1,0);
    Screen_erase_eos();
-   tmp_file=open_postfile(TMP_POST_FILE,"w");
+   tmp_file=open_postfile(TMP_POST_FILE,"w",name,1);
    if (tmp_file==NULL) {
       Screen_write_string("Echec dans l'ouverture du fichier temporaire.");
       return -1;
    }
    Copie_prepost (tmp_file, *d_l, *place, incl);
    fclose(tmp_file);
-   if (stat_postfile(TMP_POST_FILE,&before)<0) {
+   if (stat(name,&before)<0) {
      /* ca doit jamais arriver */
      Screen_write_string("Echec dans la création du fichier temporaire.");
      return -1;
    }
-   res=Launch_Editor(0);  
+   res=Launch_Editor(0,name);  
    if (res==-1) {
       Screen_write_string("Echec dans le lancement de l'éditeur.");
       return -1;
    }
-   if (stat_postfile(TMP_POST_FILE,&after)<0) {
+   if (stat(name,&after)<0) {
      /* ca doit jamais arriver */
      Screen_write_string("Et le fichier temporaire louze.");
      return -1;
    }
    if (after.st_size == 0) {
      Screen_write_string("Fichier temporaire vide.");
+#ifdef USE_MKSTEMP
+     unlink(name);
+#endif
      return 1;
    }
    if (after.st_mtime == before.st_mtime) {
      Screen_write_string("Message non modifié.");
+#ifdef USE_MKSTEMP
+     unlink(name);
+#endif
      return 2;
    }
-   tmp_file=open_postfile(TMP_POST_FILE,"r");
+   tmp_file=fopen(name,"r");
    if (tmp_file==NULL) {
       Screen_write_string("Echec dans la réouverture du fichier temporaire");
       return -1;
    }
    res=Lit_Post_Edit(tmp_file, d_l, place);
    fclose (tmp_file);
+#ifdef USE_MKSTEMP
+   unlink(name);
+#endif
    return res;
 }
 
@@ -1097,8 +1107,9 @@ static int Format_article(char *to_cancel) {
 static void Save_failed_article() {
     FILE *tmp_file;
     Lecture_List *lecture_courant;
+    char name[MAX_PATH_LEN];
     
-    tmp_file=open_postfile(TMP_REJECT_POST_FILE,"w");
+    tmp_file=open_postfile(REJECT_POST_FILE,"w",name,0);
     if (tmp_file==NULL) return;
     lecture_courant=Deb_body;
     while (lecture_courant->suivant) lecture_courant=lecture_courant->suivant;
@@ -1112,8 +1123,9 @@ static void Save_failed_article() {
 static int Mail_article() {
    Lecture_List *a_ecrire=Deb_article;
    int fd, res;
+   char name[MAX_PATH_LEN];
 
-   fd=Pipe_Msg_Start (1,0,MAILER_CMD); 
+   fd=Pipe_Msg_Start (1,0,MAILER_CMD,name); 
    	/* pas de stdout : sendmail envoie tout */
    	/* par mail...				*/
    if (fd==-1) return -1;
@@ -1123,6 +1135,9 @@ static int Mail_article() {
      a_ecrire=a_ecrire->suivant;
    } while (a_ecrire);
    Pipe_Msg_Stop(fd);
+#ifdef USE_MKSTEMP
+   unlink(name);
+#endif
    return 1;
 }
 
@@ -1701,7 +1716,7 @@ int post_message (Article_List *origine, char *name_file,int flag) {
       Screen_write_string("Ce message n'a pas de sujet. Post annulé.");
       Cursor_gotorc(Screen_Rows/2,3);
       Screen_write_string("Message sauvé dans ~/");
-      Screen_write_string(TMP_REJECT_POST_FILE);
+      Screen_write_string(REJECT_POST_FILE);
       res=-1;
     }
 #endif
@@ -1725,7 +1740,7 @@ int post_message (Article_List *origine, char *name_file,int flag) {
       Screen_set_color(FIELD_ERROR);
       Cursor_gotorc(Screen_Rows/2-1,3); /* Valeurs au pif */
       Screen_write_string("Post refusé... L'article est sauvé dans ~/");
-      Screen_write_string(TMP_REJECT_POST_FILE);
+      Screen_write_string(REJECT_POST_FILE);
       Cursor_gotorc(Screen_Rows/2,3);
       Screen_write_string("Raison du refus : ");
       switch (res_post) {
@@ -1757,7 +1772,10 @@ int post_message (Article_List *origine, char *name_file,int flag) {
       Cursor_gotorc(Screen_Rows/2+1,3);
       Screen_write_nstring(tcp_line_read,strlen(tcp_line_read)-2);
       Screen_set_color(FIELD_NORMAL);
-    } else if (res_mail<0) Aff_error("Mail refusé... L'article est sauvé dans dead.article");
+    } else if (res_mail<0) {
+	 Aff_error("Mail refusé... L'article est sauvé dans ");
+         Screen_write_string(REJECT_POST_FILE);
+    }
     Free_post_headers();
     Libere_listes();
     return ((res_post<0) || (res_mail<0) ? -1 : res_post+res_mail*2);

@@ -2257,12 +2257,13 @@ int do_launch_pager(int res) {
   FILE *fichier;
   Numeros_List *courant=&Arg_do_funcs;
   int fd;
+  char name[MAX_PATH_LEN];
 
   if (Article_courant==&Article_bidon) {
       etat_loop.etat=1; etat_loop.num_message=3; 
       etat_loop.hors_struct=7; return 0;
   }
-  fd=Pipe_Msg_Start(1,0,NULL);
+  fd=Pipe_Msg_Start(1,0,NULL,name);
   fichier=fdopen(fd,"w");
   if (fichier==NULL) {
     etat_loop.etat=2; etat_loop.num_message=-6;
@@ -2274,22 +2275,18 @@ int do_launch_pager(int res) {
 
   if (fd>0) fclose(fichier);
   Pipe_Msg_Stop(fd);
+#ifdef USE_MKSTEMP
+  unlink(name);
+#endif
   etat_loop.etat=3;
   return 0;
 }
 
 /* lit le fichier temporaire créé par un filtre */
 /* appelée par do_pipe */
-int display_filter_file(char *cmd, int flag) {
+int display_filter_file(char *cmd, int flag, char *name) {
   FILE *file;
-  char name[MAX_PATH_LEN];
-  char *home;
   char prettycmd[MAX_CHAR_STRING];
-  if (NULL == (home = getenv ("FLRNHOME")))
-       home = getenv ("HOME");
-  if (home==NULL) return -1;  /* TRES improbable :-) */
-  strncpy(name,home,MAX_PATH_LEN-2-strlen(TMP_PIPE_FILE));
-  strcat(name,"/"); strcat(name,TMP_PIPE_FILE);
   file=fopen(name,"r");
   if (file == NULL) {
     etat_loop.etat=2; etat_loop.num_message=-11;
@@ -2318,6 +2315,7 @@ static int Sauve_header_article (Article_List *a_sauver, void *file_and_int);
 int do_pipe(int res) { 
   FILE *fichier;
   char *name=Arg_str;
+  char filename[MAX_PATH_LEN];
   int ret, use_argstr=0, col, num_known_header=0;
   Numeros_List *courant=&Arg_do_funcs;
   int fd;
@@ -2358,7 +2356,7 @@ int do_pipe(int res) {
   }
   fd=Pipe_Msg_Start((res!=FLCMD_SHELLIN) && (res!=FLCMD_SHELL), 
       (res == FLCMD_FILTER ) || (res == FLCMD_GFILTER)
-      || (res == FLCMD_SHELLIN), name);
+      || (res == FLCMD_SHELLIN), name, filename);
   if (fd<0) {
     if (use_argstr) free(name);
     etat_loop.etat=2; etat_loop.num_message=-11;
@@ -2390,7 +2388,10 @@ int do_pipe(int res) {
   Pipe_Msg_Stop(fd);
   if ((res == FLCMD_FILTER ) || (res == FLCMD_GFILTER)
       || (res == FLCMD_SHELLIN))
-    display_filter_file(name, res == FLCMD_SHELLIN);
+    display_filter_file(name, res == FLCMD_SHELLIN, filename);
+#ifdef USE_MKSTEMP
+  unlink(filename);
+#endif
   etat_loop.etat=1; etat_loop.num_message=14;
   if (use_argstr) free(name);
   return 0;

@@ -22,8 +22,8 @@
 
 extern FILE *open_flrnfile (char * /*file*/,char * /*mode*/, int, time_t *);
 extern void rename_flnewsfile (char * /*old_link*/,char * /*new_link*/);
-extern FILE *open_postfile (char * /*file*/,char * /*mode*/);
-extern int stat_postfile (char * /*file*/,struct stat * /*mode*/);
+extern FILE *open_postfile (char * /*file*/,char * /*mode*/, char * /* name */,
+	                    int /* tmp */);
 extern FILE *open_flhelpfile (char /*ext*/);
 extern void Copy_article (FILE * /*dest*/, Article_List * /*article*/,
     int /*copie_head*/, char * /*avant*/, int /*with_sig*/);

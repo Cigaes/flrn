@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <ctype.h>
 #include <sys/times.h>
 
@@ -624,18 +625,12 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 			FILE *file;
 			int fd;
 			char name[MAX_PATH_LEN];
-			char *home;
 		        *ptr_att='\0';
-			fd=Pipe_Msg_Start(0,1,buf);
+			fd=Pipe_Msg_Start(0,1,buf,name);
 			*ptr_att='`';
 			ptr_att++;
 			if (fd<0) break;
 			Pipe_Msg_Stop(fd);
-			if (NULL == (home = getenv ("FLRNHOME")))
-			    home = getenv ("HOME");
-			if (home==NULL) break;
-			strncpy(name,home,MAX_PATH_LEN-2-strlen(TMP_PIPE_FILE));
-			strcat(name,"/"); strcat(name,TMP_PIPE_FILE);
 			file=fopen(name,"r");
 			if (file == NULL) break;
 			while (fgets(tcp_line_read, MAX_READ_SIZE-1, file)) {
@@ -643,9 +638,16 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 			    else {
 			      strncat(result,tcp_line_read,len2);
 			      len2-=strlen(tcp_line_read);
-			      if (len2<=0) { result[len]=0; return; }
+			      if (len2<=0) { result[len]=0; 
+#ifdef USE_MKSTEMP
+				             unlink(name);
+#endif
+				             return; }
 			      else result[len-len2]=0; }
 			}
+#ifdef USE_MKSTEMP
+			unlink (name);
+#endif
 			break;
 		      } 
 		      ptr_att=buf; /* -> default */

@@ -107,13 +107,17 @@
 
 /* Nom du fichier temporaire utilisé pour les posts */
 #define TMP_POST_FILE           ".article"
-
 /* Nom du fichier temporaire utilisé pour obtenir la sortie standard
    d'un programme (lancé via \shin par exemple) */
 #define TMP_PIPE_FILE		".pipe_flrn"
+/* Cette fonction rajoute une extension aux fichiers temporaires (.article
+ * et .pipe_flrn), pour que plusieurs flrn puissent tourner simultanément.
+ * L'extension utilise mkstemp, qui est plus rigoureux que de rajouter
+ * le pid du process */
+#define USE_MKSTEMP	1
 
 /* Lieu où sauver un message qui a été refusé par le serveur */
-#define TMP_REJECT_POST_FILE    "dead.article"
+#define REJECT_POST_FILE    "dead.article"
 
 /* Défini à 1 si on veut que flrn vérifie la présence de nouveaux mails */
 #define CHECK_MAIL	1

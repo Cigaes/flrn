@@ -44,19 +44,13 @@ void sigwinch_while_fork(int sig) {
     /*SL*/signal(SIGWINCH, sigwinch_while_fork);
 }   
 
-int Launch_Editor (int flag) {
-    char name[MAX_PATH_LEN];
+int Launch_Editor (int flag, char *name) {
     char *home;
     char *editor;
     pid_t pid;
     int retval=0, ret;
 
     sigwinchcatch=0;
-    if (NULL == (home = getenv ("FLRNHOME")))
-            home = getenv ("HOME");
-    if (home==NULL) return -1;  /* TRES improbable :-) */
-    strncpy(name,home,MAX_PATH_LEN-2-strlen(TMP_POST_FILE));
-    strcat(name,"/"); strcat(name,TMP_POST_FILE);
 
     Reset_keyboard();
     Screen_suspend();
@@ -89,11 +83,11 @@ int Launch_Editor (int flag) {
 
 /* ouvre le pipe et renvoie un file descr. */
 /* si flag est !=0, on met la sortie std dans un fichier */
-int Pipe_Msg_Start (int flagin ,int flagout, char *cmdline) {
-    char name[MAX_PATH_LEN];
-    char *home;
+int Pipe_Msg_Start (int flagin ,int flagout, char *cmdline, char *name) {
+    char *home,*tmpchr;
     pid_t pid;
     int fd[2];
+    int fdfile;
 
     if (!cmdline) {
        cmdline=getenv("PAGER");
@@ -106,8 +100,21 @@ int Pipe_Msg_Start (int flagin ,int flagout, char *cmdline) {
       if (NULL == (home = getenv ("FLRNHOME")))
               home = getenv ("HOME");
       if (home==NULL) return -1;  /* TRES improbable :-) */
+#ifdef USE_MKSTEMP
+      strncpy(name,home,MAX_PATH_LEN-10-strlen(TMP_PIPE_FILE));
+#else
       strncpy(name,home,MAX_PATH_LEN-2-strlen(TMP_PIPE_FILE));
-      strcat(name,"/"); strcat(name,TMP_PIPE_FILE);
+#endif
+      tmpchr=name+strlen(name);
+#ifdef USE_MKSTEMP
+      sprintf(tmpchr,"/%s.XXXXXX",TMP_PIPE_FILE);
+      /* we open the temporary file in order to create the name, then
+       * we close it. It's awful */
+      fdfile = mkstemp(name);
+      close (fdfile);
+#else
+      sprintf(tmpchr,"/%s",TMP_PIPE_FILE);
+#endif
     }
 
     sigwinchcatch=0;
@@ -120,7 +127,6 @@ int Pipe_Msg_Start (int flagin ,int flagout, char *cmdline) {
     switch ((pid=fork())) {
        case -1 : break;
        case 0 : {
-                  int fdfile;
                   if (flagin) {
                     close(tcp_fd); close(fd[1]);
                     close(0);

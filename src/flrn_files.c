@@ -193,31 +193,34 @@ void rename_flnewsfile (char *old_link,char *new_link)
 /* Ouverture du fichier temporaire de post. On renvoie NULL si echec   */
 /* note : on ne teste pas la longueur de file, qui ne doit JAMAIS etre */
 /* defini par l'utilisateur 					       */
-FILE *open_postfile (char *file,char *mode) {
-   char name[MAX_PATH_LEN];
+/* resname renvoie le nom total du fichier. il doit être un tableau de */
+/* caractères de taille MAX_PATH_LEN.                                  */
+FILE *open_postfile (char *file,char *mode,char *name, int tmp) {
    char *home;
    FILE *tmppostfile;
+   int fdfile;
 
    if (NULL == (home = getenv ("FLRNHOME")))
            home = getenv ("HOME");
    if (home==NULL) return NULL;
-   strncpy(name,home,MAX_PATH_LEN-2-strlen(TMP_POST_FILE));
+#ifdef USE_MKSTEMP
+   if (tmp)
+      strncpy(name,home,MAX_PATH_LEN-10-strlen(TMP_POST_FILE));
+   else
+#endif
+      strncpy(name,home,MAX_PATH_LEN-2-strlen(TMP_POST_FILE));
    strcat(name,"/"); if (file) strcat(name, file); else
       strcat(name,TMP_POST_FILE);
+#ifdef USE_MKSTEMP
+   if (tmp) {
+     strcat(name,".XXXXXX");
+     fdfile=mkstemp(name);
+     if (fdfile==-1) return NULL;
+     tmppostfile=fdopen(fdfile,mode);
+   } else
+#endif
    tmppostfile=fopen(name,mode);
    return tmppostfile;
-}
-
-int stat_postfile(char *file,struct stat *st) {
-   char name[MAX_PATH_LEN];
-   char *home;
-   if (NULL == (home = getenv ("FLRNHOME")))
-           home = getenv ("HOME");
-   if (home==NULL) return -1;
-   strncpy(name,home,MAX_PATH_LEN-2-strlen(TMP_POST_FILE));
-   strcat(name,"/"); if (file) strcat(name, file); else
-      strcat(name,TMP_POST_FILE);
-   return stat(name,st);
 }
 
 /* teste si un fichier type mailbox a du nouveau */

@@ -20,10 +20,10 @@
 static UNUSED char rcsid[]="$Id$";
 
 char version_string[]=
-"Flrn version 0.5.0pre1 par Damien et Jo, 04/2003.";
+"Flrn version 0.5.0pre2 par Damien et Jo, 04/2003.";
 
 char short_version_string[]=
-"Flrn (0.5.0pre1 - 03/04)";
+"Flrn (0.5.0pre2 - 03/04)";
 
 
 void print_version_defines(FILE *out)
@@ -108,7 +108,12 @@ void print_version_defines(FILE *out)
    fprintf(out,"DEFAULT_CONFIG_SYS_FILE=\"%s\"\n", DEFAULT_CONFIG_SYS_FILE);
    fprintf(out,"TMP_POST_FILE=\"%s\"  ", TMP_POST_FILE);
    fprintf(out,"TMP_PIPE_FILE=\"%s\"\n", TMP_PIPE_FILE);
-   fprintf(out,"TMP_REJECT_POST_FILE=\"%s\"\n",TMP_REJECT_POST_FILE); 
+#ifdef USE_MKSTEMP
+   fputs(out,"+USE_MKSTEMP\n");
+#else
+   fputs(out,"-USE_MKSTEMP\n");
+#endif
+   fprintf(out,"REJECT_POST_FILE=\"%s\"\n",REJECT_POST_FILE); 
 #ifdef NO_INTERN_EDITOR
    fputs("+NO_INTERN_EDITOR  ",out);
 #else
