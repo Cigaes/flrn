@@ -434,3 +434,82 @@ unsigned short *cree_chaine_mono (const char *str, int field, int len) {
    for (i=0;i<len;i++) toto[i]=(field<<8) + (unsigned char)str[i];
    return toto;
 }
+
+/* Tout pour l'écriture du .flrnrc :-( */
+void ecrit_attributs(FILE *file, FL_Char_Type att) {
+  int comma=0;
+  if (att==0) {
+    fprintf(file," normal");
+    return;
+  }
+  if (att & FL_BOLD_MASK) {
+    fprintf(file,"%cbold",(comma ? ',' : ' '));
+    comma=1;
+  }
+  if (att & FL_BLINK_MASK) {
+    fprintf(file,"%cblink",(comma ? ',' : ' '));
+    comma=1;
+  }
+  if (att & FL_ULINE_MASK) {
+    fprintf(file,"%cunderline",(comma ? ',' : ' '));
+    comma=1;
+  }
+  if (att & FL_REV_MASK) {
+    fprintf(file,"%creverse",(comma ? ',' : ' '));
+    comma=1;
+  }
+}
+
+void dump_colors_in_flrnrc (FILE *file) {
+  int i,comma,mask;
+  struct Highlight *current=highlight_first;
+
+  fprintf(file,"# Couleurs des champs généraux :");
+  for (i=0;i<NROF_FIELDS;i++) {
+    fprintf(file,"\ncolor %s %s %s",Field_names[i],Colors[i].fg,Colors[i].bg);
+    ecrit_attributs(file,Colors[i].attributs);
+    fprintf(file,"\nmono %s",Field_names[i]);
+    ecrit_attributs(file,Colors[i].attributs);
+  }
+  fprintf(file,"\n# Les regcolors, dans la mesure du possible, ça marche pas toujours...");
+  /* on ne copie pas les std-bla, donc on peu avoir de GROS problèmes */
+  while (current) {
+    comma=0;
+    mask=current->field_mask;
+    fprintf(file,"\nregcolor");
+    if (mask==~0) fprintf(file," all");
+    else
+    for (i=0;i<NROF_FIELDS;i++) {
+      if (mask%2) {
+       fprintf(file,"%c%s",(comma ? ',' : ' '),Field_names[i]);
+       comma=1;
+      }
+      mask>>=1;
+    }
+    comma=0;
+    if (current->pat_num) {
+       fprintf(file," %d",current->pat_num);
+       comma=1;
+    }
+    mask=current->flags;
+    if (mask==0) {
+      if (current->pat_num==0) fprintf(file," -");
+    } else
+    for (i=0;i<NUM_FLAGS;i++) {
+      if (mask%2) {
+        fprintf(file,"%c%s",(comma ? ',' : ' '),flags_names[i]);
+	comma=1;
+      }
+      mask>>=1;
+    }
+    fprintf(file," %s %s",current->colors.fg,current->colors.bg);
+    ecrit_attributs(file,
+    		current->colors.attributs & current->colors.attributs_mono);
+		/* LA est le problème */
+    fprintf(file," une_regexp_iconnue...");
+    current=current->next;
+  }
+  fprintf(file,"\n\nVoila, c'est fini...\n");
+}
+
+

@@ -44,6 +44,7 @@ extern int Pipe_Msg_Stop(int /*fd*/);
 extern void init_options(void);
 extern void parse_options_line(char * /*ligne*/, int /*flag*/);
 extern void dump_variables(FILE * /*file*/);
+extern void dump_flrnrc(FILE * /*file*/);
 extern void options_comp(char * /*option*/, int /*len*/);
 extern void free_options(void);
 extern void menu_config_variables(void);
@@ -204,6 +205,7 @@ extern int Aff_color_line(int /*to_print*/, unsigned short * /*format_line*/,
     int * /*format_len*/, int /*field*/, char * /*line*/, int /*len*/,
     int /*bol*/, int /*def_color*/);
 extern unsigned short *cree_chaine_mono (const char *, int, int);
+extern void dump_colors_in_flrnrc (FILE *file);
 
 /* Fonctions liées avant à slang... Dans flrn_slang.c */
 extern void Screen_suspend(void);

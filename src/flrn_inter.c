@@ -1385,7 +1385,7 @@ int do_save(int res) {
     }
   }
   if (stat(name,&status)==0) {
-      if (!Options.use_mailbox)
+      if ((!Options.use_mailbox) || (res==FLCMD_SAVE_OPT))
         Aff_fin("Ecraser le fichier ? ");
       else Aff_fin("Ajouter au folder ? "); 
       key=Attend_touche();
@@ -1395,12 +1395,18 @@ int do_save(int res) {
         return 0;
       }
   }
-  if (!Options.use_mailbox)
+  if ((!Options.use_mailbox) || (res==FLCMD_SAVE_OPT))
     fichier=fopen(name,"w");
   else fichier=fopen(name,"a");
   if (fichier==NULL) {
     if (use_argstr) free(name);
     etat_loop.etat=2; etat_loop.num_message=-6;
+    return 0;
+  }
+  if (res==FLCMD_SAVE_OPT) {
+    dump_flrnrc(fichier);
+    fclose(fichier);
+    etat_loop.etat=1; etat_loop.num_message=14; /* la flemme */
     return 0;
   }
   if (res==FLCMD_SAVE)

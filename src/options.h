@@ -102,24 +102,24 @@ extern struct Option_struct Options;
 #define OPT_TYPE_STRING 3
 
 /* les macros pour ajouter les options */
-#define MAKE_OPT(a,b) {#a,b,OPT_TYPE_BOOLEAN,{0,0,0},{&Options.a}}
-#define MAKE_OPT_NAME(a,b,c) {#a,c,OPT_TYPE_BOOLEAN,{0,0,0},{&Options.b}}
-#define MAKE_OPT_REVNAME(a,b,c) {#a,c,OPT_TYPE_BOOLEAN,{0,1,0},{&Options.b}}
-#define MAKE_OPT_L(a,b) {#a,b,OPT_TYPE_BOOLEAN,{1,0,0},{&Options.a}}
-#define MAKE_INTEGER_OPT(a,b) {#a,b,OPT_TYPE_INTEGER,{0,0,0},{&Options.a}}
-#define MAKE_INTEGER_OPT_NAME(a,b,c) {#a,c,OPT_TYPE_INTEGER,{0,0,0},{&Options.b}}
-#define MAKE_INTEGER_OPT_REVNAME(a,b,c) {#a,c,OPT_TYPE_INTEGER,{0,1,0},{&Options.b}}
-#define MAKE_INTEGER_OPT_L(a,b) {#a,b,OPT_TYPE_INTEGER,{1,0,0},{&Options.a}}
+#define MAKE_OPT(a,b) {#a,b,OPT_TYPE_BOOLEAN,{0,0,0,0},{&Options.a}}
+#define MAKE_OPT_NAME(a,b,c) {#a,c,OPT_TYPE_BOOLEAN,{0,0,0,0},{&Options.b}}
+#define MAKE_OPT_REVNAME(a,b,c) {#a,c,OPT_TYPE_BOOLEAN,{0,1,0,0},{&Options.b}}
+#define MAKE_OPT_L(a,b) {#a,b,OPT_TYPE_BOOLEAN,{1,0,0,0},{&Options.a}}
+#define MAKE_INTEGER_OPT(a,b) {#a,b,OPT_TYPE_INTEGER,{0,0,0,0},{&Options.a}}
+#define MAKE_INTEGER_OPT_NAME(a,b,c) {#a,c,OPT_TYPE_INTEGER,{0,0,0,0},{&Options.b}}
+#define MAKE_INTEGER_OPT_REVNAME(a,b,c) {#a,c,OPT_TYPE_INTEGER,{0,1,0,0},{&Options.b}}
+#define MAKE_INTEGER_OPT_L(a,b) {#a,b,OPT_TYPE_INTEGER,{1,0,0,0},{&Options.a}}
 
 #ifdef __GNUC__
   /* une extension de gcc que j'aime bien... */
-#  define MAKE_STRING_OPT(a,b) {#a,b,OPT_TYPE_STRING,{0,0,0},{string:&Options.a}}
-#  define MAKE_STRING_OPT_NAME(a,b,c) {#a,c,OPT_TYPE_STRING,{0,0,0},{string:&Options.b}}
-#  define MAKE_STRING_OPT_NAME_L(a,b,c) {#a,c,OPT_TYPE_STRING,{1,0,0},{string:&Options.b}}
+#  define MAKE_STRING_OPT(a,b) {#a,b,OPT_TYPE_STRING,{0,0,0,0},{string:&Options.a}}
+#  define MAKE_STRING_OPT_NAME(a,b,c) {#a,c,OPT_TYPE_STRING,{0,0,0,0},{string:&Options.b}}
+#  define MAKE_STRING_OPT_NAME_L(a,b,c) {#a,c,OPT_TYPE_STRING,{1,0,0,0},{string:&Options.b}}
 #else /* __GNUC__ */
-#  define MAKE_STRING_OPT(a,b) {#a,b,OPT_TYPE_STRING,{0,0,0},{(void *)&Options.a}}
-#  define MAKE_STRING_OPT_NAME(a,b,c) {#a,c,OPT_TYPE_STRING,{0,0,0},{(void *)&Options.b}}
-#  define MAKE_STRING_OPT_NAME_L(a,b,c) {#a,c,OPT_TYPE_STRING,{1,0,0},{(void *)&Options.b}}
+#  define MAKE_STRING_OPT(a,b) {#a,b,OPT_TYPE_STRING,{0,0,0,0},{(void *)&Options.a}}
+#  define MAKE_STRING_OPT_NAME(a,b,c) {#a,c,OPT_TYPE_STRING,{0,0,0,0},{(void *)&Options.b}}
+#  define MAKE_STRING_OPT_NAME_L(a,b,c) {#a,c,OPT_TYPE_STRING,{1,0,0,0},{(void *)&Options.b}}
 #endif
 /* la liste des options 
  * en ordre alphabétique... Peut-être y a-t-il mieux ?
@@ -133,6 +133,7 @@ static struct {
     unsigned int lock :1;	/* la valeur ne peut être changée qu-au début */
     unsigned int reverse:1;	/* il faut afficher !value.integer */
     unsigned int allocated:1;	/* la mémoire doit être libérée */
+    unsigned int modified:1;	/* modifié par rapport au site_config.h */
   } flags;
   union { int *integer; char **string; } value;
 } All_options[] = {

@@ -48,7 +48,7 @@ extern const char *tcp_command[];
 
 
 /* Touches de Commande */
-#define NB_FLCMD 55
+#define NB_FLCMD 56
 #define FLCMD_UNDEF -1
 #define FLCMD_RETURN FLCMD_SUIV
 #define FLCMD_MACRO 1024
@@ -207,6 +207,8 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_MENUGTHR 53
    { "menu-search" , '/', 0 ,14|CMD_NEED_GROUP, &do_summary },
 #define FLCMD_MENUSUMMS 54
+   { "sav-opt", 0, 0, 1, &do_save },
+#define FLCMD_SAVE_OPT 55
 };
 
 #define CMD_DEF_PLUS (sizeof(Cmd_Def_Plus)/sizeof(Cmd_Def_Plus[0]))

@@ -194,6 +194,8 @@ void parse_options_line (char *ligne, int flag)
 	}
 	if ((All_options[i].type==OPT_TYPE_BOOLEAN) ||
 	    (All_options[i].type==OPT_TYPE_INTEGER)) {
+	  int oldvalue=*All_options[i].value.integer;
+
 	  buf=strtok(NULL,delim);
 	  if (buf) {
 	    *All_options[i].value.integer=0;
@@ -208,6 +210,8 @@ void parse_options_line (char *ligne, int flag)
 	  } else *All_options[i].value.integer=1;
 	  if (reverse != All_options[i].flags.reverse)
 	    *All_options[i].value.integer = !*All_options[i].value.integer;
+	  All_options[i].flags.modified|=
+	  	(oldvalue!=*All_options[i].value.integer);
 	  return;
 	} else if (All_options[i].type==OPT_TYPE_STRING) {
 	  char *buf2;
@@ -235,6 +239,7 @@ void parse_options_line (char *ligne, int flag)
 	      free(*All_options[i].value.string);
 	    *All_options[i].value.string=NULL;
 	  }
+	  All_options[i].flags.modified=1;
 	  return;
 	}
       }
@@ -447,9 +452,19 @@ void dump_variables(FILE *file) {
   for (i=0; i< NUM_OPTIONS; i++){
     fprintf(file,"set %s",print_option(i,buf,80));
   }
-  fprintf(file,"\nheader: ");
+  fprintf(file,"\nheader list: ");
   for (i=0; i<MAX_HEADER_LIST; i++) {
     if (Options.header_list[i]+1) fprintf(file," %d",Options.header_list[i]+1);
+    else break;
+  }
+  fprintf(file,"\nheader weak: ");
+  for (i=0; i<MAX_HEADER_LIST; i++) {
+    if (Options.weak_header_list[i]+1) fprintf(file," %d",Options.weak_header_list[i]+1);
+    else break;
+  }
+  fprintf(file,"\nheader hide: ");
+  for (i=0; i<MAX_HEADER_LIST; i++) {
+    if (Options.hidden_header_list[i]+1) fprintf(file," %d",Options.hidden_header_list[i]+1);
     else break;
   }
   parcours=Options.user_header;
@@ -458,6 +473,61 @@ void dump_variables(FILE *file) {
     parcours=parcours->next;
   }
   fprintf(file,"\n\n# C'est tout, il ne manque plus que les couleurs.\n");
+  return;
+}
+
+/* Affiche le nom d'un header */
+void print_header_name(FILE *file, int i) {
+  if (i>=0) {
+    if (i==NB_KNOWN_HEADERS) fputs("others",file); else
+    fputs(Headers[i].header,file);
+  } else {
+    i=-i-2;
+    if (i==MAX_HEADER_LIST) return;
+    fputs(unknown_Headers[i].header,file);
+  }
+}
+
+/* Affiche les options modifiées, comme un beau .flrn(rc) */
+void dump_flrnrc(FILE *file) {
+  int i;
+  char buf[80];
+  user_hdr_type *parcours;
+  fprintf(file,"# Variables, modifiables avec set :\n\n");
+  for (i=0; i< NUM_OPTIONS; i++){
+    if (!All_options[i].flags.modified) continue;
+    fprintf(file,"# %s\n",All_options[i].desc);
+    fprintf(file,"set %s",print_option(i,buf,80));
+  }
+  fprintf(file,"\n\n# Affichage des headers\nheader list: ");
+  for (i=0; i<MAX_HEADER_LIST; i++) {
+    if (Options.header_list[i]+1)  {
+        putc(' ',file);
+    	print_header_name(file,Options.header_list[i]);
+    } else break;
+  }
+  fprintf(file,"\nheader weak: ");
+  for (i=0; i<MAX_HEADER_LIST; i++) {
+    if (Options.header_list[i]+1)  {
+        putc(' ',file);
+    	print_header_name(file,Options.header_list[i]);
+    } else break;
+  }
+  fprintf(file,"\nheader hide: ");
+  for (i=0; i<MAX_HEADER_LIST; i++) {
+    if (Options.header_list[i]+1)  {
+        putc(' ',file);
+    	print_header_name(file,Options.header_list[i]);
+    } else break;
+  }
+  fprintf(file,"\n\n# Headers ajoutés dans les posts");
+  parcours=Options.user_header;
+  while (parcours) {
+    fprintf(file,"\nmy_hdr %s",parcours->str);
+    parcours=parcours->next;
+  }
+  fprintf(file,"\n\n# Il reste les couleurs...\n");
+  dump_colors_in_flrnrc(file);
   return;
 }
 
