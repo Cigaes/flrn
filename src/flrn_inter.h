@@ -10,8 +10,8 @@ typedef struct command_desc {
    int  key_nm;
    int  flags; /* 1 : chaine de caractère a prendre
    		  2 : possibilites d'articles       
-                  4 : demande une chaine dans l'ancien mode 
-                  8 : demande une chaine dans le nouveau mode aussi
+                  4 : demande une chaine dans le mode forum (numéros ou autre)
+                  8 : demande une chaine dans le nouveau mode
 		  16: demande à avoir un groupe valide */
 #define CMD_NEED_GROUP 16
    int (*appel)(int);

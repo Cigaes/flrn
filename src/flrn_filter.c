@@ -17,6 +17,7 @@ int check_article(Article_List *article, flrn_filter *filtre, int flag) {
   if ((article->flag & filtre->cond_mask) != filtre->cond_res)
     return 1;
 
+  /* regarde s'il y a lieu de faire un xover */
   if (article->headers==NULL) {
     int first, last;
     first=last=article->numero;
@@ -27,8 +28,11 @@ int check_article(Article_List *article, flrn_filter *filtre, int flag) {
     if (article->next && article->next->headers==NULL) {
       last +=50;
     }
-    if (overview_usable) if(cree_liste_xover(first, last, &Article_deb))
+    if (overview_usable) if(cree_liste_xover(first, last, &Article_deb)) {
+      /* en fait, on a trouvé de nouveaux articles !!! */
       cree_liens();
+      apply_kill_file();
+    }
   }
   while(regexp) {
     if ((article->headers == NULL) ||
@@ -37,8 +41,9 @@ int check_article(Article_List *article, flrn_filter *filtre, int flag) {
       else return -1;
     }
     if(regexec(regexp->condition,
-	article->headers->k_headers[regexp->header_num],
-	0,NULL,0)!=0)
+	article->headers->k_headers[regexp->header_num]?
+	article->headers->k_headers[regexp->header_num]:"",
+	0,NULL,0)!=(regexp->flags & FLRN_COND_REV)?REG_NOMATCH:0)
       return 1;
     regexp=regexp->next;
   }
@@ -110,11 +115,17 @@ int parse_filter_toggle_flag(char * str, flrn_filter *filt) {
   return 0;
 }
 
-int parse_filter(char * str, flrn_filter *start) {
+int parse_filter(char * istr, flrn_filter *start) {
   flrn_condition *cond, *c2;
+  char *str=istr;
   char *buf;
   int i;
   cond=safe_calloc(1,sizeof(flrn_condition));
+
+  if (*str == '~' || *str == '^') {
+    cond->flags |= FLRN_COND_REV;
+    str++;
+  }
   for (i=0;i<NB_KNOWN_HEADERS;i++) {
     if (strncmp(str,Headers[i].header,Headers[i].header_len)==0) {
       cond->header_num=i; break;
@@ -257,12 +268,14 @@ int parse_kill_file(FILE *fi) {
 static int check_group(flrn_kill *kill) {
   if (kill->Article_deb_key &&
       (Newsgroup_courant->article_deb_key == kill->Article_deb_key))
-    return 1;
+    return kill->group_matched;
+  kill->Article_deb_key=Newsgroup_courant->article_deb_key;
   if (regexec(kill->newsgroup_cond,
       Newsgroup_courant->name,0,NULL,0)==0) {
-    kill->Article_deb_key=Newsgroup_courant->article_deb_key;
+    kill->group_matched=1;
     return 1;
   }
+  kill->group_matched=0;
   return 0;
 }
 
@@ -278,7 +291,7 @@ void apply_kill(int flag) {
 
   while (kill) {
     if (check_group(kill)) {
-      if ((res=check_article(Article_courant,kill->filter,flag)==0)) {
+      if ((res=check_article(Article_courant,kill->filter,flag))==0) {
 	Article_courant->flag &= ~FLAG_NEW;
 	filter_do_action(kill->filter);
       } else if (res <0) all_bad=0;
@@ -287,4 +300,14 @@ void apply_kill(int flag) {
   }
   if (all_bad || flag)
     Article_courant->flag &= ~FLAG_NEW;
+}
+
+void check_kill_article(Article_List *article, int flag) {
+  Article_List *save;
+  save_etat_loop();
+  save=Article_courant;
+  Article_courant=article;
+  apply_kill(flag);
+  Article_courant=save;
+  restore_etat_loop();
 }

@@ -1,5 +1,20 @@
 ChangeLog Flrn
 
+. bugfix des kill-files
+. bugfix dans next_in_thread
+. début des zolis arbres de thread, option alpha_tree
+. ajout de la doc du kill-file.
+. ajout des conditions inverses dans les kill-files (*^ ou *~).
+. gestion du kill-file dans prochain_non_lu.
+. appel du kill-file dans plus de cas.
+. bugfix des kill-files.
+. patch lors de l'écriture du .flnewsrc... A voir...
+. Bugfix dans les résumés avec noordered_summary
+. Bugfix dans prochain_non_lu
+. orthographe
+. mode forum
+. modif dans group.c
+
 ----------------------------
 Version 0.2.3
 ----------------------------

@@ -46,7 +46,7 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
 
   at_end=(num_elem<Screen_Rows-row_deb);
   while (1) {
-    switch (Flcmd_pager_rev[key]) {
+    switch (((key<MAX_FL_KEY) && (key>0)) ? Flcmd_pager_rev[key] : FLCMD_PAGER_UNDEF) {
        case FLCMD_PAGER_PGUP : 
 	     le_scroll=Do_Scroll_Window(-Screen_Rows+act_row+1,deb); break;
        case FLCMD_PAGER_PGDOWN : 

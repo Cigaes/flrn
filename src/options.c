@@ -444,7 +444,7 @@ void init_options() {
     unknown_Headers[i].header_len=0;
     unknown_Headers[i].header=NULL;
   }
-  flrnfile=open_flrnfile(NULL,"r+",2);
+  flrnfile=open_flrnfile(NULL,"r+",2,NULL);
   if (flrnfile==NULL) return;
   while (fgets(buf1,MAX_BUF_SIZE,flrnfile)) 
     parse_options_line(buf1,0);

@@ -107,7 +107,6 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article) {
 	 buf2=strchr(buf,'\t');
 	 *buf2='\0';  /* On suppose qu'il ne peut y avoir de pbs ici */
 	 creation->numero=strtol(buf,NULL,10);
-	 /* TODO faire la même chose partout !!! */
 	 creation->flag=FLAG_NEW; /* pour le kill_file */
 	 /* on le recherche */
 	 if ((article) && (article->numero > creation->numero)) {
@@ -394,6 +393,7 @@ int cree_liste(int art_num, int *part) {
        if (cree_liste_xover(Newsgroup_courant->max+1,max,&Article_deb)) {
 	 Date_groupe = time(NULL)+Date_offset;
 	 cree_liens();
+	 apply_kill_file();
        }
        else
 	 cherche_newnews();
@@ -437,6 +437,8 @@ int cree_liste(int art_num, int *part) {
    /* attention, Article_deb et Article_exte_deb pourraient changer !!! */
    /* donc on ne les utilise pas, et on les remplacera a la fin... */
    Newsgroup_courant->article_deb_key=Article_deb_key;
+   /* on a besoin de article_deb_key pour le kill_file... */
+   apply_kill_file();
    Newsgroup_courant->Article_deb=Article_deb;
    Newsgroup_courant->Article_exte_deb=Article_exte_deb;
    return res;
@@ -448,6 +450,9 @@ int cree_liste_end() {
   if (!overview_usable) return 0;
   if (Article_deb->numero <2) return 0;
   res=cree_liste_xover(1,Article_deb->numero-1,&Article_deb);
-  if (res) cree_liens();
+  if (res) {
+    cree_liens();
+    apply_kill_file();
+  }
   return 0;
 }

@@ -235,7 +235,8 @@ int loop(char *opt) {
 	Newsgroup_courant=cherche_newsgroup(opt,0);
       if (Newsgroup_courant==NULL) {
 	Aff_error("Newsgroup non trouvé");
-	sleep(1);
+	Screen_refresh();
+	sleep(2);
 	quit=1;
       } else {
 	to_build=1;
@@ -725,8 +726,7 @@ int get_command_newmode(int key) {
      return -2;
    Parse_nums_article(str, &str, 0);
    if (res==fl_key_explicite) res=get_command_explicite(cmd_line); else {
-      res=Lit_cmd_key(res);
-      if (res==FLCMD_SUIV) res=FLCMD_VIEW;
+      if (res!='\n') res=Lit_cmd_key(res); else res=FLCMD_VIEW;
    }
    return res;
 }
@@ -734,7 +734,7 @@ int get_command_newmode(int key) {
 /* Prend la chaine argument pour les appels qui en ont besoin en mode cbreak */
 /* On ajoute key dans le cas ou isdigit(key) ou key=='<' */
 /* Renvoie -1 si annulation */
-static int get_str_arg(int res, int key) {
+static int get_str_arg(int res) {
    int col=9, ret;
    char cmd_line[MAX_CHAR_STRING];
    char *str=cmd_line;
@@ -743,12 +743,10 @@ static int get_str_arg(int res, int key) {
    Screen_write_string(Flcmds[res].nom);
    Screen_write_char(' ');
    col+=1+strlen(Flcmds[res].nom) /* +1 */;
-   if ((isdigit(key) || (key=='<')))  { str[0]=key;
-       str[1]='\0'; Screen_write_char(key); } else 
-      str[0]=0;
+   str[0]=0;
    ret=getline(str, MAX_CHAR_STRING, Screen_Rows-1, col);
    if (ret<0) return -1;
-   if ((!Options.new_mode) && (Flcmds[res].flags & 2)) 
+   if (Flcmds[res].flags & 2) 
      Parse_nums_article(str,&str,0);
    if (str) strcpy(Arg_str, str); else Arg_str[0]='\0';
    return 0;
@@ -773,18 +771,19 @@ int get_command(int key_depart) {
    else {
       /* Beurk pour '-' et ',' */
       if (index(",-",key)) return Flcmd_rev[key];
-      if (!Options.new_mode) 
-	if ((isdigit(key)) || (key=='<')) res=FLCMD_VIEW; else
-        res=Lit_cmd_key(key); 
-      else if (strchr("0123456789<>.,_",key)==NULL) res=Lit_cmd_key(key);
+      if (strchr("0123456789<>.,_",key)==NULL) res=Lit_cmd_key(key);
          else res=get_command_newmode(key);
    }
    if (res==FLCMD_UNDEF) return FLCMD_UNDEF;
    if (res & FLCMD_MACRO) return res;
    /* Testons si on a besoin d'un (ou plusieurs) parametres */
-   if (((Options.new_mode) && (Flcmds[res].flags & 8) && (Arg_str[0]=='\0')) ||
-       ((!Options.new_mode) && (Flcmds[res].flags & 4))) {
-     res2=get_str_arg(res,(!Options.new_mode ? key : '\0'));
+   if (((!Options.forum_mode) && (Flcmds[res].flags & 8) && (Arg_str[0]=='\0')) 
+       || ((Options.forum_mode) && (Flcmds[res].flags & 4))) {
+	/* En forum_mode, si on a déjà rentré un chiffre, FLCMD_VIEW ne prend*/
+        /* pas d'argument */
+     if ((Options.forum_mode) && (res==FLCMD_VIEW) && 
+	 (strchr("0123456789<>.,_",key)!=NULL)) return FLCMD_VIEW;
+     res2=get_str_arg(res);
      if (res2==-1) return -2;
    }
    return res;
@@ -1220,6 +1219,12 @@ static Article_List * raw_Do_summary (int deb, int fin, int thread,
   while (parcours && (parcours->numero<deb)) parcours=parcours->next;
   while (parcours && !(parcours->flag & FLAG_ACTION))
     parcours=parcours->next;
+  if (parcours && (thread || !Options.ordered_summary)) {
+    parcours=root_of_thread(parcours,0);
+    if (!(parcours->flag & FLAG_ACTION))
+       parcours=next_in_thread(parcours,FLAG_ACTION,&level,deb,fin,
+	   FLAG_ACTION);
+  }
   parcours2=parcours;
 
   while (parcours && (!fin || (parcours->numero<=fin))) {
@@ -1240,6 +1245,12 @@ static Article_List * raw_Do_summary (int deb, int fin, int thread,
       while(parcours2 && (!(parcours2->flag & FLAG_ACTION)))
 	parcours2=parcours2->next;
       parcours=parcours2; level=1;
+      if (parcours && (thread || !Options.ordered_summary)) {
+        parcours=root_of_thread(parcours,0);
+        if (!(parcours->flag & FLAG_ACTION))
+          parcours=next_in_thread(parcours,FLAG_ACTION,&level,deb,fin,
+	     FLAG_ACTION);
+      }
     }
   }
   /* on jouait avec un menu */
@@ -1560,7 +1571,23 @@ int do_opt_menu(int res) {
   return 0;
 }
 
-int do_neth(int res) { return 0; }
+int do_neth(int res) {  /* Très pratique, cette fonction, pour les tests idiots */
+  unsigned char **grande_table;
+  int i;
+
+  Cursor_gotorc(1,0);
+  Screen_erase_eos();
+  grande_table=safe_malloc((Screen_Rows-1)*sizeof(char *));
+  for (i=0;i<Screen_Rows-1;i++)
+    grande_table[i]=safe_malloc(Screen_Cols);
+
+  Aff_arbre(1,0,Article_courant,Screen_Cols/4-1,Screen_Cols/4-1,Screen_Rows-2,grande_table);
+  for (i=0;i<Screen_Rows-1;i++)
+    free(grande_table[i]);
+  free(grande_table);
+  etat_loop.etat=3;
+  return 0; 
+}
 
 
 /* Affiche la liste des newsgroup */
@@ -1870,7 +1897,7 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 /* Et eventuellement l'appel a ajoute_message_par_num si posts récents  */
 /* Renvoie donc en plus : */
 /* -2 : reconstruire le groupe... */
-int prochain_non_lu(int force_reste, Article_List **debut) {
+static int raw_prochain_non_lu(int force_reste, Article_List **debut) {
    Article_List *myarticle=*debut;
    int res;
 
@@ -1887,20 +1914,27 @@ int prochain_non_lu(int force_reste, Article_List **debut) {
    /* On teste d'abord ce qu'on trouve après Article_courant */
    while (myarticle && (myarticle->flag & FLAG_READ))
       myarticle=myarticle->next;
-   if (myarticle) { *debut=myarticle; return 0; }
-
-   /* Puis on repart de Article_deb */
-   myarticle=Article_deb;
-   while (myarticle && (myarticle!=*debut) && (myarticle->flag & FLAG_READ))
-      myarticle=myarticle->next;
-   if (myarticle==NULL) myarticle=Article_deb;
-   if ((myarticle->flag & FLAG_READ)==0)
-    { *debut=myarticle; return 0; }
-
+   if (myarticle==NULL) { 
+     /* Puis on repart de Article_deb */
+     myarticle=Article_deb;
+     while (myarticle && (myarticle!=*debut) && (myarticle->flag & FLAG_READ))
+        myarticle=myarticle->next;
+     if (myarticle==NULL) myarticle=Article_deb;
+   }
+   if (myarticle && (myarticle->flag & FLAG_READ)==0) {
+     if (Options.threaded_space) {
+       myarticle=root_of_thread(myarticle,0);
+       if (myarticle->flag & FLAG_READ)
+         myarticle=next_in_thread(myarticle,FLAG_READ,NULL,0,0,0);
+        /* En théorie, on est SUR de trouver quelque chose */
+     }
+     if (myarticle) { *debut=myarticle; return 0; }
+       /* test inutile... en théorie */
+   }
    /* Si on a rien trouvé, un appel a cherche_newnews ne fait pas de mal */
    res=cherche_newnews();
    if (res==-2) return -2;
-   if (res>=1) return prochain_non_lu(force_reste, debut);
+   if (res>=1) return raw_prochain_non_lu(force_reste, debut);
 
    /* On fixe Article_courant au dernier article dans tous les cas */
    while (myarticle->next) myarticle=myarticle->next;
@@ -1909,6 +1943,18 @@ int prochain_non_lu(int force_reste, Article_List **debut) {
       return 0;
 
    return -1;
+}
+
+/* en fait juste un wrapper pour appliquer le kill-file */
+int prochain_non_lu(int force_reste, Article_List **debut) {
+  int res;
+  res=raw_prochain_non_lu(force_reste,debut);
+  if (((*debut)->flag & FLAG_READ) == 0) {
+    check_kill_article(*debut,1); /* le kill_file_avec création des headers */
+    if (((*debut)->flag & FLAG_READ) != 0)
+      return prochain_non_lu(force_reste,debut);
+  }
+  return res;
 }
 
 /* Prend le prochain newsgroup interessant. Renvoie : */

@@ -20,6 +20,8 @@
 int name_news_col, num_art_col, num_max_col, num_col_num, name_fin_col;
 /* place des messages d'erreur */
 int row_erreur, col_erreur;
+/* pour l'arbre */
+unsigned char **table_petit_arbre;
 
 /* Objet courant dans l'affichage de l'article */
 /* Espace actuellement conservé dans l'affichage de l'article */
@@ -90,6 +92,9 @@ void sig_winch(int sig) {
 int Init_screen() {
    int res;
 
+   table_petit_arbre=safe_malloc(7*sizeof(char *));
+   for (res=0;res<7;res++)
+     table_petit_arbre[res]=safe_malloc(11);
    Get_terminfo ();
    res=Screen_init_smg ();
   
@@ -331,6 +336,236 @@ int Liste_groupe (int flags, char *mat) {
    return 0;
 }
 
+/* Affichage de l'arbre autour d'un message */
+#define SYMB_ART_READ 'o'
+#define SYMB_ART_UNK  '?'
+#define SYMB_ART_UNR  'O'
+#define SYMB_ART_COUR '@'
+/* row, col : coordonnées du haut a gauche */
+/* on essaie d'arranger to_left et to_right... height est la max... */
+/* table est un pointeur vers un tableau de taille ((to_left+to_right)*2+3, */
+/* height+1) ou plutôt l'inverse... il est déjà alloué... */
+void Aff_arbre (int row, int col, Article_List *init,
+    		int to_left, int to_right, int height,
+		unsigned char **table) {
+  Article_List *parcours=init, *parcours2, *parcours3;
+  int up,down, act_right, act_right_deb, act_right_temp, left, right, initcol;
+
+  /* on "nettoie" table */
+  for (up=0;up<height+1;up++)
+    memset (table[up], ' ', (to_left+to_right)*2+3);
+#define char_for_art(x) (x->flag & FLAG_READ ? SYMB_ART_READ : SYMB_ART_UNR)
+  /* Enfin, on va commencer "modifier" to_left et to_right... */
+  left=up=down=act_right=act_right_deb=0;
+  while (parcours->pere) {
+      left++;
+      if (left>to_left) break;
+      if (parcours->pere->numero<0) break;
+      parcours=parcours->pere;
+  }
+  if (left>to_left) 
+     /* On dessine le < */
+     (table[0])[0]='<';
+  else if (parcours->pere && (parcours->pere->numero<0)) 
+     (table[0])[0]='-';
+  /* L'ancêtre est celui dont on regarde pas les frères... */
+  parcours=init;
+  if (to_left>left) {
+     to_right+=to_left-left;
+     initcol=left*2+1;
+  } else {
+    initcol=to_left*2+1;
+    left=to_left;
+  }
+  while (parcours->prem_fils) {
+      act_right_deb++;
+      if (act_right_deb>to_right) break;
+      parcours=parcours->prem_fils;
+  }
+  if (act_right_deb>to_right) {
+     (table[0])[(to_left+to_right)*2+2]='>';
+     act_right_deb=to_right;
+  }
+  right=act_right_deb; /* right sera le max atteint à droite */
+  while (act_right_deb>=-left) {
+     int remonte, cl, rw, c, r;
+
+     remonte=0;
+     act_right=act_right_deb;
+     cl=initcol+act_right*2;
+     if (parcours==init) (table[0])[cl]=SYMB_ART_COUR;
+        else if (parcours->numero<0) (table[0])[cl]=SYMB_ART_UNK; else
+	  (table[0])[cl]=char_for_art(parcours);
+     if (act_right!=-left) (table[0])[cl-1]='-'; 
+     /* on commence l'infame parcours */
+     parcours2=parcours->frere_prev;
+     rw=height+1-up;
+     if (parcours2)
+     while (act_right>=act_right_deb) {
+        if ((remonte!=1) && (up+((down==0) ? 1 : down)==height)) {
+      /* cela ne peut pas arriver si on vient de descendre. C'est un frere */
+      /* A moins que remonte==2 */
+	   if (((table[rw])[cl-1]==' ') && (parcours2->frere_suiv))
+	           (table[rw])[cl-1]='/';
+	   (table[rw])[cl]='^';
+	   c=cl-2; r=rw+1;
+	   if (((table[rw])[cl-1]=='\\') || (parcours2->frere_suiv==NULL))
+	           remonte=2; /* obligatoire */
+	   else
+	   if ((c<0) || ((table[rw])[c]!=' ')) remonte=1; 
+	   else {
+	     while ((r<height+1) && 
+	         ((table[r])[c]==' ') && ((table[r])[c+1]!='\\')) 
+	        (table[r++])[c]='|';
+	     if ((r<height+1) && (c>=0) && ((table[r])[c+1]=='\\')) remonte=2;
+	         /* cas particulier : on veut afficher le "/^" pour le pere */
+	     else remonte=1;
+	   }
+	   parcours2=parcours2->pere;
+	   cl-=2;
+	   act_right--;
+	   continue;
+	}
+	if ((parcours2->prem_fils==NULL) || (act_right==to_right)) {
+	   /* on ne veut pas aller plus a droite */
+	   /* on fait donc l'affichage (remonte=0 toujours ici) */
+
+	   up++; rw--;
+	   (table[rw])[cl]=char_for_art(parcours2);
+	   if (parcours2->prem_fils) (table[rw])[cl+1]='>';
+	   act_right_temp=act_right; parcours3=parcours2; c=cl;
+	   /* et on remonte pour l'affichage */
+           while (act_right_temp>act_right_deb) {
+	      if (parcours3->pere->prem_fils==parcours3) {
+		 parcours3=parcours3->pere;
+		 act_right_temp--; c-=2;
+		 (table[rw])[c]=char_for_art(parcours3);
+		 (table[rw])[c+1]='-';
+		 r=rw+1;
+		 if (parcours3->prem_fils->frere_suiv)
+		 while ((r<height+1) && ((table[r])[c]==' ') && 
+		     ((table[r])[c+1]!='\\'))
+		     (table[r++])[c]='|';
+	      } else break;
+	   }
+	   if (parcours3->frere_suiv==NULL) 
+	      (table[rw])[c-1]='\\'; else
+	   if (parcours3->frere_prev==NULL) {
+	      (table[rw])[c-1]='/';
+	      r=rw+1;
+	      while ((r<height+1) && ((table[r])[c-2]==' '))
+		(table[r++])[c-2]='|';
+	   } else (table[rw])[c-1]='-';
+	} else if (!remonte) {
+	   parcours2=parcours2->prem_fils;
+	   while (parcours2->frere_suiv) parcours2=parcours2->frere_suiv;
+	   act_right++; cl+=2;
+	   if (right<act_right) right=act_right;
+	   continue;
+	}
+	if (parcours2->frere_prev!=NULL) {
+	   parcours2=parcours2->frere_prev;
+	   remonte=0;
+	   continue;
+	}
+	remonte=1;
+	parcours2=parcours2->pere;
+	act_right--;
+	cl-=2;
+     }
+     remonte=0;
+     act_right=act_right_deb;
+     cl=initcol+act_right*2;
+     /* on recommence l'infame parcours */
+     parcours2=parcours->frere_suiv;
+     rw=down;
+     if (parcours2)
+     while (act_right>=act_right_deb) {
+        if ((remonte!=1) && (((up==0) ? 1 : up)+down==height)) {
+      /* cela ne peut pas arriver si on vient de descendre. C'est un frere */
+	   if (((table[rw])[cl-1]==' ') && (parcours2->frere_prev))
+	            (table[rw])[cl-1]='\\';
+	   (table[rw])[cl]='v';
+	   c=cl-2; r=rw-1;
+	   if (((table[rw])[cl-1]=='/') || (parcours2->frere_prev==NULL))
+	                         remonte=2; /* obligatoire */
+	   if ((c<0) || ((table[rw])[c]!=' ')) remonte=1; 
+	   else {
+	     while ((r>0) && 
+	         ((table[r])[c]==' ') && ((table[r])[c+1]!='/')) 
+	        (table[r--])[c]='|';
+	     if ((r>0) && ((table[r])[c+1]=='/')) remonte=2;
+	         /* cas particulier : on veut afficher le "\\v" pour le pere */
+	     else remonte=1;
+	   }
+	   parcours2=parcours2->pere;
+	   cl-=2;
+	   act_right--;
+	   continue;
+	}
+	if ((parcours2->prem_fils==NULL) || (act_right==to_right)) {
+	   /* on ne veut pas aller plus a droite */
+	   /* on fait donc l'affichage (remonte=0 toujours ici) */
+
+	   down++; rw++;
+	   (table[rw])[cl]=char_for_art(parcours2);
+	   if (parcours2->prem_fils) (table[rw])[cl+1]='>';
+	   act_right_temp=act_right; parcours3=parcours2; c=cl;
+	   /* et on remonte pour l'affichage */
+           while (act_right_temp>act_right_deb) {
+	      if (parcours3->pere->prem_fils==parcours3) {
+		 parcours3=parcours3->pere;
+		 act_right_temp--; c-=2;
+		 (table[rw])[c]=char_for_art(parcours3);
+		 (table[rw])[c+1]='-';
+		 r=rw-1;
+		 if (parcours3->prem_fils->frere_prev)
+		 while ((r>0) && ((table[r])[c]==' ') && ((table[r])[c+1]!='/'))
+		     (table[r--])[c]='|';
+	      } else break;
+	   }
+	   if (parcours3->frere_prev==NULL) 
+	      (table[rw])[c-1]='/'; else
+	   if (parcours3->frere_suiv==NULL) {
+	      (table[rw])[c-1]='\\';
+	      r=rw-1;
+	      while ((r>0) && ((table[r])[c-2]==' '))
+		(table[r--])[c-2]='|';
+	   } else (table[rw])[c-1]='-';
+	} else if (!remonte) {
+	   parcours2=parcours2->prem_fils;
+	   while (parcours2->frere_prev) parcours2=parcours2->frere_prev;
+	   act_right++; cl+=2;
+	   if (right<act_right) right=act_right;
+	   continue;
+	}
+	if (parcours2->frere_suiv!=NULL) {
+	   parcours2=parcours2->frere_suiv;
+	   remonte=0;
+	   continue;
+	}
+	remonte=1;
+	parcours2=parcours2->pere;
+	act_right--;
+	cl-=2;
+     }
+     parcours=parcours->pere;
+     act_right_deb--;
+  }
+  /* table est correctement remplie, right est le maximum atteint a droite,
+   * left celui a gauche, up en haut et down en bas... Tout le reste n'est
+   * qu'affichage */
+  for (;up>0;up--) {
+    Cursor_gotorc(row++,col);
+    Screen_write_nstring(table[height+1-up],initcol+right*2+2);
+  }
+  for (up=0;up<=down;up++) {
+    Cursor_gotorc(row++,col);
+    Screen_write_nstring(table[up],initcol+right*2+2);
+  }
+}
+     
+
 
 /* Affichage d'un header, juste appelé par Aff_headers */
 /* flag=1 : juste une ligne... flag=2 : cas particulier reponse_a */
@@ -346,7 +581,7 @@ static int Aff_header (int flag, int row, int col, char *str,
       if (buf2==NULL) buf2=strchr(buf,'\0'); 
       decalage=flag ? 5 : 0;
       if (flag==2) decalage+=8;
-      if (row<4+Options.skip_line) decalage+=5;
+      if (row<4+Options.skip_line) decalage+=5; /* pour l'arbre */
       if (buf2-buf>Screen_Cols-col-decalage) {
 	 Screen_write_color_chars(ptr, Screen_Cols-col-decalage);
 	 if (flag) {
@@ -541,6 +776,7 @@ int Aff_headers (int flag) {
    if (une_ligne) free(une_ligne);
    if (une_belle_ligne) free(une_belle_ligne);
    Screen_set_color(FIELD_NORMAL);
+   if (!Options.alpha_tree) {
    /* On affiche les petites fleches */
    Cursor_gotorc(2+Options.skip_line, Screen_Cols-4);
    Screen_write_char('+');
@@ -572,6 +808,9 @@ int Aff_headers (int flag) {
       if (Article_courant->prem_fils->prem_fils)
         Screen_write_char('>');
    }
+   } else
+     Aff_arbre(1+Options.skip_line,Screen_Cols-12,Article_courant,2,2,6,
+	 table_petit_arbre);
    return row;
 }
 

@@ -25,7 +25,7 @@ extern int return_code (void);
 extern int adjust_time(void);
 
 /*   flrn_files.c */
-extern FILE *open_flrnfile (char * /*file*/,char * /*mode*/, int);
+extern FILE *open_flrnfile (char * /*file*/,char * /*mode*/, int, time_t *);
 extern void rename_flnewsfile (char * /*old_link*/,char * /*new_link*/);
 extern FILE *open_postfile (char * /*file*/,char * /*mode*/);
 extern int stat_postfile (char * /*file*/,struct stat * /*mode*/);
@@ -81,6 +81,7 @@ extern int Recherche_article (int /*num*/, Article_List ** /*retour*/,
 extern int ajoute_exte_article(Article_List * /*fils*/);
 extern Article_Header *new_header(void);
 extern int Est_proprietaire(Article_List * /*article*/);
+extern void apply_kill_file(void );
 
 /* flrn_format */
 extern time_t parse_date(char * /*s*/);
@@ -115,6 +116,7 @@ extern int Aff_fin(const char * /*str*/);
 extern int Aff_error(const char * /*str*/);
 extern int Aff_file(FILE * /*file*/, char *, char *);
 extern int Liste_groupe(int /*n*/, char * /*mat*/);
+extern void Aff_arbre(int,int,Article_List *, int, int, int, unsigned char **);
 
 /* tty_keyboard.c */
 extern int Init_keyboard(void);
@@ -187,6 +189,7 @@ extern int parse_filter_action(char *, flrn_filter *);
 extern void free_filter(flrn_filter *);
 extern int parse_kill_file(FILE *);
 extern void apply_kill(int);
+extern void check_kill_article(Article_List *, int );
 
 
 

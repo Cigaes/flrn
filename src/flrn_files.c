@@ -32,11 +32,12 @@ extern int tcp_fd;
 /* flag =1, créer un fichier vide, =2 créer un fichier avec du pipo,
  * flag=0 ne pas créer de fichier */
 
-FILE *open_flrnfile (char *file,char *mode, int flag)
+FILE *open_flrnfile (char *file,char *mode, int flag, time_t * date)
 {
    char *home, name[MAX_PATH_LEN];
    int home_found = 1;
    FILE *config_file;
+   struct stat buf;
 
    if (NULL == (home = getenv ("FLRNHOME")))
       home = getenv ("HOME");
@@ -60,6 +61,11 @@ FILE *open_flrnfile (char *file,char *mode, int flag)
    name[MAX_PATH_LEN-1]='\0';	/* Décidément, j'insiste */
 
    if (debug) fprintf(stderr,"On essaie d'ouvrir %s\n",name);
+   if (date) {
+     if (stat(name, &buf)<0)  *date=0;
+      else *date=buf.st_mtime+Date_offset;
+   }
+
    if (!(config_file=fopen(name,mode))) {
      if (flag)
        fprintf(stderr,"Le fichier %s ne peut être ouvert\n",name);
@@ -198,10 +204,8 @@ void Copy_article (FILE *dest, Article_List *article, int copie_head, char *avan
 
 /* TODO à écrire correctement */
 int init_kill_file() {
-  FILE *blah = open_flrnfile(".flrnkill","r",0);
+  FILE *blah = open_flrnfile(Options.kill_file_name,"r",0,NULL);
   if (blah) {
-    fprintf (stderr,"Kill-file trouvé... Attention, le code est incomplet.\n");
-    sleep(1);
     if (!parse_kill_file(blah)){
       fprintf(stderr,"Kill-file invalide, ignoré !\n");
       sleep(1);

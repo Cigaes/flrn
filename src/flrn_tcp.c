@@ -107,7 +107,7 @@ static int contact_server (char *host, int port) {
 /* lus.									*/ 
 /* min est le nombre d'octects minimum que l'on s'attend a pouvoir lire */
 /* (en cas de reponse a une requete).					*/
-/* Cette fonction renvoie -1 en cas d'erreur, 0 si connection coupee.	*/
+/* Cette fonction renvoie -1 en cas d'erreur, 0 si connexion coupee.	*/
 /* ATTENTION : on suppose avoir assez de place dans buf.		*/
 
 static int raw_read_server (char *buf, int min) {
@@ -256,12 +256,12 @@ int discard_server() {
 }
 
 
-/* Ouverture PROPRE de la connection					*/
+/* Ouverture PROPRE de la connexion					*/
 /* Cette fonction se charge d'appeler connect_server, et lit la reponse */
-/* du serveur a la connection.						*/
-/* Elle renvoie -1 en cas d'echec de la connection, le code renvoye par */
+/* du serveur a la connexion.						*/
+/* Elle renvoie -1 en cas d'echec de la connexion, le code renvoye par */
 /* le serveur sinon. Si ce code indique un refus du serveur, la         */
-/* fonction coupe la connection.					*/
+/* fonction coupe la connexion.					*/
 int connect_server (char *host, int port) {
     int ret, code;
    
@@ -272,7 +272,7 @@ int connect_server (char *host, int port) {
     if (port==0) port=Options.port;
     ret=contact_server(host, port);
     if (ret<0) {
-       fprintf(stderr, "Echec de la connection au serveur : %s\n", host);
+       fprintf(stderr, "Echec de la connexion au serveur : %s\n", host);
        return -1;
     }
      
@@ -448,7 +448,7 @@ int write_command (int num_com, int num_param, char **param) {
 }
 
 
-/* on renvoie 0 si la connection est un succes, -1 sinon */
+/* on renvoie 0 si la connexion est un succes, -1 sinon */
 /* si refait_commande=1, on envoie la commande GROUPE, puis */
 /* l'ancienne commande...				 */
 int reconnect_after_timeout(int refait_commande) {
@@ -473,12 +473,12 @@ int reconnect_after_timeout(int refait_commande) {
      raw_write_server(chaine_to_sauve, strlen(chaine_to_sauve)); 
       /* on renvoie la commande... */
    }
-   if (debug) fprintf(stderr, "Reconnection réussie ...\n");
+   if (debug) fprintf(stderr, "Reconnexion réussie ...\n");
    free(chaine_to_sauve);
    return 0;
 }
 
-/* Termine la connection au serveur					*/
+/* Termine la connexion au serveur					*/
 /* Cette fonction se charge d'envoyer QUIT au serveur, avant de quitter */
 void quit_server () {
   int res;

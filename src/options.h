@@ -47,7 +47,7 @@ struct Option_struct {
   int  skip_line;                /* nombre de lignes avant le header */
   int  color;
   int  cbreak;
-  int  new_mode;
+  int  forum_mode;
   int  space_is_return;
   int  inexistant_arrow;
   int  edit_all_headers;
@@ -71,6 +71,8 @@ struct Option_struct {
   int zap_change_group;
   int scroll_after_end;
   char *attribution;
+  int alpha_tree;
+  char *kill_file_name;
 };
 
 extern struct Option_struct Options;
@@ -118,6 +120,7 @@ static struct {
   } flags;
   union { int *integer; char **string; } value;
 } All_options[] = {
+  MAKE_OPT(alpha_tree),
   MAKE_STRING_OPT(attribution),
   MAKE_OPT(auto_edit),
   MAKE_STRING_OPT(auto_ignore),
@@ -129,9 +132,10 @@ static struct {
   MAKE_OPT(default_subscribe),
   MAKE_OPT(duplicate_subject),
   MAKE_OPT(edit_all_headers),
+  MAKE_OPT(forum_mode),
   MAKE_OPT(include_in_edit),
   MAKE_STRING_OPT(index_string),
-  MAKE_OPT(new_mode),
+  MAKE_STRING_OPT(kill_file_name),
   MAKE_OPT(ordered_summary),
   MAKE_INTEGER_OPT_L(port),
   MAKE_STRING_OPT(post_name),

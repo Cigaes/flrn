@@ -4,6 +4,7 @@
 
 typedef struct _flrn_condition {
   int flags;
+#define FLRN_COND_REV 1
   int header_num;
   regex_t *condition;
   struct _flrn_condition *next;
@@ -32,6 +33,7 @@ typedef struct _flrn_filter {
 typedef struct _flrn_kill {
   regex_t *newsgroup_cond;
   long Article_deb_key; /* on reprend ce moyen rapide de validation */
+  int  group_matched;
   flrn_filter * filter;
   struct _flrn_kill *next;
 } flrn_kill;

@@ -25,10 +25,12 @@ Newsgroup_List *Newsgroup_deleted=NULL;
 
 time_t Last_check;
 
+
 /* Lit les articles lus marques dans le .flnews */
 /* La syntaxe est celle d'un .newsrc standard */
 /* On lui passe un pointeur apres l'espace qui suit ':' ou '!' */
-Range_List *init_range(char *buf)
+/* on renvoie aussi le max lu...				*/
+Range_List *init_range(char *buf, int *max)
 {
    Range_List *creation;
    char *index=buf;
@@ -40,12 +42,14 @@ Range_List *init_range(char *buf)
    do {
      /* on lit le premier nombre */
      creation->min[i] = creation->max[i] = strtol(index,&index,10);
+     if (*max<creation->max[i]) *max=creation->max[i];
      if (*index=='\0')
        return creation;
      /* syntaxe 2-5 ? */
      if (*index=='-')
      {
        creation->max[i] = -strtol(index,&index,10);
+       if (*max<creation->max[i]) *max=creation->max[i];
        if (*index=='\0')
 	 return creation;
      }
@@ -58,7 +62,7 @@ Range_List *init_range(char *buf)
      i++;
    } while (i<RANGE_TABLE_SIZE);
    /* ca deborde, on alloue un second bloc */
-   creation->next=init_range(index);
+   creation->next=init_range(index,max);
    return creation;
 }
 
@@ -79,7 +83,7 @@ void init_groups() {
    char buf[MAX_BUF_SIZE], *deb, *ptr;
    
    Newsgroup_courant=Newsgroup_deb=NULL;
-   flnews_file = open_flrnfile(".flnewsrc","r",1);
+   flnews_file = open_flrnfile(".flnewsrc","r",1,&Last_check);
 
    if (flnews_file==NULL) return;
    
@@ -101,8 +105,8 @@ void init_groups() {
       creation->flags=(ptr[strlen(ptr)-1]==':' ? 0 : GROUP_UNSUBSCRIBED);
       creation->name[strlen(ptr)-1]='\0';
       creation->min=1;
-      creation->read=init_range(deb);
       creation->max=0;
+      creation->read=init_range(deb,&(creation->max));
    }
    if (Newsgroup_courant) Newsgroup_courant->next=NULL;
    fclose (flnews_file);
@@ -247,7 +251,7 @@ void new_groups(int opt_c) {
    if (Options.auto_ignore) regfree(&badreg);
 }
 
-/* Creation du .flrnrc a partir de la liste des newsgroups */
+/* Creation du .flnewsrc a partir de la liste des newsgroups */
 /* libere la memoire occupee par les groupes */
 void free_groups(int save_flnewsrc) {
    FILE *flnews_file=NULL;
@@ -260,25 +264,33 @@ void free_groups(int save_flnewsrc) {
    if (debug) fprintf(stderr, "Sauvegarde du .flnewsrc\n");
    if (write_flnewsrc)
    {
-     flnews_file = open_flrnfile(".flnewsrc.new","w+",1);
+     flnews_file = open_flrnfile(".flnewsrc.new","w+",1,NULL);
      if (flnews_file==NULL) write_flnewsrc=0;;
    }
    for (Newsgroup_courant=Newsgroup_deb;Newsgroup_courant;
        Newsgroup_courant=tmpgroup) {
      tmpgroup=Newsgroup_courant->next;
      if (Newsgroup_courant->description) free(Newsgroup_courant->description);
-     /* on construit la ligne du .flnews */
-     if (write_flnewsrc)
-       fprintf(flnews_file,"%s%c ",Newsgroup_courant->name,
-	 (Newsgroup_courant->flags & GROUP_UNSUBSCRIBED)?'!':':');
+     /* on construit la ligne du .flnewsrc */
+     /* Je propose de ne pas marquer le groupe quand on n'est non abonné */
+     /* et qu'on a rien lu...						 */
      msg_lus=Newsgroup_courant->read;
      first=1;
      if (write_flnewsrc) {
+       int name_written;
+       if (!(Newsgroup_courant->flags & GROUP_UNSUBSCRIBED)) {
+	 fprintf(flnews_file,"%s: ",Newsgroup_courant->name);
+	 name_written=1;
+       } else name_written=0;
        while (msg_lus)
        {
 	  for (lu_index=0;lu_index<RANGE_TABLE_SIZE; lu_index++)
 	  {
 	    if (msg_lus->min[lu_index]==0) continue;
+	    if (!name_written) {
+	      fprintf(flnews_file,"%s! ",Newsgroup_courant->name);
+	      name_written=1;
+	    }
 	    if (!first) fprintf(flnews_file,"%c",',');
 	    first=0;
 	    fprintf(flnews_file,"%d",msg_lus->min[lu_index]);
@@ -287,7 +299,7 @@ void free_groups(int save_flnewsrc) {
 	  }
 	  msg_lus=msg_lus->next;
        }
-       fprintf(flnews_file,"\n");
+       if (name_written) fprintf(flnews_file,"\n");
      }
      /* on libere la liste des messages lus */
      tmprange=msg_lus=Newsgroup_courant->read;

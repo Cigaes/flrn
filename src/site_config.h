@@ -16,7 +16,7 @@ struct Option_struct Options = {
   1,			/* skip_line */
   -1,			/* color, -1 = autodetect */
   1,			/* cbreak */
-  1,			/* new_mode */
+  0,			/* forum_mode */
   0,			/* space_is_return */
   0,			/* cool_arrows, inversé ! */
   0,			/* edit_all_headers */
@@ -40,6 +40,8 @@ struct Option_struct Options = {
   0,			/* zap_change_group */
   0,			/* scroll_after_end */
   "%n, dans son post %i, a écrit :",	/* attribution */
+  0,			/* alpha_tree, temporaire */
+  ".flrnkill",         /* kill_file_name */
   };
 
 #endif

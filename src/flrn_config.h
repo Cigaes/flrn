@@ -106,9 +106,9 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_UNSU 5
    { "abon", 'a', 0, 5|CMD_NEED_GROUP, &do_abonne },
 #define FLCMD_ABON 6
-   { "omet", 'o', 0, 2|CMD_NEED_GROUP, &do_omet },
+   { "omet", 'o', 0, 6|CMD_NEED_GROUP, &do_omet },
 #define FLCMD_OMET 7
-   { "OMET", 'O', 0, 2|CMD_NEED_GROUP, &do_omet },
+   { "OMET", 'O', 0, 6|CMD_NEED_GROUP, &do_omet },
 #define FLCMD_GOMT 8
    { "zap" , 'z', 0 ,13|CMD_NEED_GROUP, &do_zap_group },
 #define FLCMD_ZAP  9
@@ -126,9 +126,9 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_PKIL 15
    { "summary" , 'r', 0 ,6|CMD_NEED_GROUP, &do_summary },
 #define FLCMD_SUMM 16
-   { "post", 'm', 0, 1|CMD_NEED_GROUP, &do_post },
+   { "post", 'm', 0, 5|CMD_NEED_GROUP, &do_post },
 #define FLCMD_POST 17
-   { "repond", 'R', 0, 3|CMD_NEED_GROUP, &do_post },
+   { "repond", 'R', 0, 7|CMD_NEED_GROUP, &do_post },
 #define FLCMD_ANSW 18
    { "view", 'V', 0, 2|CMD_NEED_GROUP, &do_launch_pager },
 #define FLCMD_PAGE 19
@@ -140,9 +140,9 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_LIST 22
    { "LIST", 'L', 0, 13, &do_list },
 #define FLCMD_GLIS 23
-   { "summ-fil", 't', 0, 2|CMD_NEED_GROUP, &do_summary },
+   { "summ-fil", 't', 0, 6|CMD_NEED_GROUP, &do_summary },
 #define FLCMD_THRE 24
-   { "summ-thr", 'T', 0, 2|CMD_NEED_GROUP, &do_summary },
+   { "summ-thr", 'T', 0, 6|CMD_NEED_GROUP, &do_summary },
 #define FLCMD_GTHR 25
    { "option", 0, fl_key_nm_opt, 1, &do_opt }, 
 #define FLCMD_OPT 26

@@ -80,8 +80,8 @@ int main(int argc, char *argv[])
   if (debug) fprintf(stderr,"Serveur : %s\n",Options.serveur_name);
   code=connect_server(Options.serveur_name, 0);
   if ((code!=200) && (code!=201)) {
-     fprintf(stderr, "La connection au serveur a echouée...\n");
-     if (code>500) fprintf(stderr, "Le serveur refuse la connection.\n");
+     fprintf(stderr, "La connexion au serveur a échoué...\n");
+     if (code>500) fprintf(stderr, "Le serveur refuse la connexion.\n");
      return 1;
   }
   adjust_time();

@@ -207,17 +207,14 @@ int cree_liens() {
     fprintf(stderr,"\n %d %d %d\n",
        good,bad,vbad);
   }
-  /* TODO réécrire ça... */
-  creation=Article_courant;
-  save_etat_loop();
-  Article_courant=Article_deb;
-  while(Article_courant) {
-    apply_kill(0);
-    Article_courant=Article_courant->next;
-  }
-  Article_courant=creation;
-  restore_etat_loop();
   return 0;
+}
+
+void apply_kill_file() {
+  Article_List *creation;
+  /* 3eme passe, on regarde le kill-file */
+  for(creation=Article_deb; creation; creation=creation->next)
+    check_kill_article(creation,0);
 }
 
 Article_Header *new_header() {
@@ -482,6 +479,9 @@ Article_List *ajoute_message (char *msgid, int exte) {
       }
       if (parcours!=NULL) relie_article(parcours, creation);
    }
+   creation->flag |= FLAG_NEW;
+   if (!exte) /* un coup de kill_file... */
+     check_kill_article(creation,0);
    return creation;
 }
 
@@ -571,6 +571,8 @@ Article_List *ajoute_message_par_num (int min, int max) {
       }
       if (parcours!=NULL) relie_article(parcours, creation);
    }
+   creation->flag |= FLAG_NEW;
+   check_kill_article(creation,0);
    return creation;
 }
 
@@ -764,7 +766,7 @@ Article_List * next_in_thread(Article_List *start, long flag, int *level,
 	return famille;
       }
       famille = raw_next_in_thread(famille,&mylevel);
-    } while (famille != famille2);
+    } while (famille && (famille != famille2));
     return NULL;
   }
   /* y'a plus rien a donner */
