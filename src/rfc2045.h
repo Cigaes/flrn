@@ -22,5 +22,6 @@ extern int Parse_ContentType_header (char *);
 extern int Decode_ligne_with_charset (char *, char **, int);
 extern int Decode_ligne_message (char *, char **);
 extern const char *get_name_charset(int);
+extern int Length_one_character(char *);
 
 #endif

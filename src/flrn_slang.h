@@ -83,5 +83,6 @@ extern const char *get_name_char(int);
 extern void Screen_beep(void);
 extern void Screen_set_screen_start(int * /*r*/, int * /*c*/);
 extern int Parcours_du_menu(int);
+extern void set_Display_Eight_Bit (int);
 
 #endif

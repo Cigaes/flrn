@@ -28,6 +28,9 @@
 #ifdef USE_SLANG_LANGUAGE
 #include <slang.h>
 #endif
+#ifdef WITH_CHARACTER_SETS
+#include "rfc2045.h"
+#endif
 
 static UNUSED char rcsid[]="$Id$";
 
@@ -351,23 +354,39 @@ char *local_date (char *date) {
 
 /* Fonctions pour estimer la taille d'une chaine a afficher (avec les tab) */
 int str_estime_len (char *la_chaine, int tmp_col, int tai_chaine) {
-  int i;
+  char *buf = la_chaine;
+  int i=0,l=1;
 
   if (tai_chaine==-1) tai_chaine=strlen(la_chaine);
-  for (i=0;i<tai_chaine;i++) 
-    if (la_chaine[i]=='\t') 
-      tmp_col=(tmp_col/Screen_Tab_Width+1)*Screen_Tab_Width; else tmp_col++;
+  while (i<tai_chaine) {
+    if (*buf=='\t') {
+      tmp_col=(tmp_col/Screen_Tab_Width+1)*Screen_Tab_Width; 
+      buf++;
+    } else {
+#ifdef WITH_CHARACTER_SETS
+      l=Length_one_character(buf);
+#endif
+      buf+=l;
+      tmp_col++;
+    }
+  }
   return tmp_col;
 }
 int to_make_len (char *la_chaine, int col_total, int tmp_col) {
   char *last_s=NULL, *buf=la_chaine;
-  int tmp_col_ini=tmp_col;
+  int tmp_col_ini=tmp_col, l=1;
 
   if (*buf=='\0') return 0;
   while (tmp_col<col_total) {
     if (isblank(*buf)) last_s=buf;
     if (*buf=='\t') tmp_col=(tmp_col/Screen_Tab_Width+1)*Screen_Tab_Width; else
+    {
       tmp_col++;
+#ifdef WITH_CHARACTER_SETS
+      l=Length_one_character(buf);
+#endif
+      buf+=(l-1);
+    }
     buf++;
     if (*buf=='\0') return strlen(la_chaine);
   }

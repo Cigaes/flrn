@@ -56,6 +56,7 @@ void Screen_touch_lines (int d, unsigned int n) { SLsmg_touch_lines(d,n); }
 
 void Set_Use_Ansi_Colors(int n) { SLtt_Use_Ansi_Colors=n; }
 int  Get_Use_Ansi_Colors() { return SLtt_Use_Ansi_Colors; }
+
 void Color_set(int n, char *s1, char *s2, char *s3)
 	{ SLtt_set_color(n,s1,s2,s3); }
 void Color_add_attribute(int n, FL_Char_Type a)
@@ -65,6 +66,7 @@ void Mono_set (int n, char *s, FL_Char_Type a)
 
 void Screen_set_color(int n) { SLsmg_set_color(n); }
 
+void set_Display_Eight_Bit(int n) { SLsmg_Display_Eight_Bit = n; }
 
 /* Regestion du clavier */
 int Put_tty_single_input (int a, int b, int c) { return SLang_init_tty(a,b,c); }
