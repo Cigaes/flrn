@@ -1,0 +1,62 @@
+5: les kill-files
+
+
+	Présentation de flrn : les kill-files
+	-------------------------------------
+
+  Le kill-file est un moyen de filtrer les articles que l'on ne souhaite
+pas lire. Il est utilisé par exemple pour implémenter la censure.
+Il a été rendu volontairement assez libre, il est donc possible de
+faire de nombreuses choses à la sémantique douteuse et même de faire planter
+flrn avec. La syntaxe est librement inspirée de celles de procmail et de slrn.
+
+Ce fichier est constitués de blocs séparés par une ligne blanche. # introduit
+encore des commentaires.
+
+La première ligne d'un bloc indique les groupes où cela s'applique. Elle est
+de la forme :
+:<regexp groupe>:<flags>
+Il n'y a pas encore de flag implémenté.
+
+La suite est constituée de
+. conditions (Header: regexp ou ^Header:regexp) sur les headers (une partie des
+  headers seulement pour l'instant) de la forme :
+*<condition>
+. conditions sur les flags de l'article (read/unread/all) :
+F<flag>
+. de flag a modifier (read)
+T<flag>
+. de commande à lancer (la, faire attention, il n'est fait aucune
+  vérification !)
+C<commande avec arguments>
+
+On ne peut avoir qu'une ligne T, et on ne peut avoir à la fois des lignes T
+et C. Par contre, on peut avoir plusieurs commandes.
+
+Par exemple :
+
+# on ne lit pas les messages postés avec flrn dans les groupes de test
+# c'est stupide, mais bon.
+:test:
+*X-Newsreader: Flrn
+Tread
+
+# dans linux-kernel, on ne lit que les messages de Linus.
+:kernel:
+*^From: linus
+Tread
+
+# dans essai, je lis mes messages même si je les ai déjà lus...
+:essai:
+*From: jo
+Fread
+Comet
+
+Il y a bien sur plein de restrictions derrière (surtout quand on utilise
+Fread) qui ne sont pas développées ici.
+
+
+			Jo.
+
+'q' permet de quitter l'aide à tout moment.
+'m' permet de revenir au menu

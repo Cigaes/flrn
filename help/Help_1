@@ -9,25 +9,26 @@ Les paragraphes en retrait sont des descriptions plus détaillées qui peuvent
 	Syntaxe générale des commande
 	-----------------------------
 
-Les commandes sont utilisables soit en tappant leur nom :
+Les commandes sont utilisables soit en tapant leur nom :
 "\goto" ou en utilisant une touche sur laquelle elles sont bindées, comme 'g'.
 
-Certaines commandes prennent une chaine de caractères en argument. On peut la
+Certaines commandes prennent une chaîne de caractères en argument. On peut la
 mettre directement si l'on utilise la première forme : "\goto flrn".
 
-  Enfin, on peut tapper avant toutes les commandes un préfixe décrivant les
+  Enfin, on peut taper avant toutes les commandes un préfixe décrivant les
   articles auxquels elle doit s'appliquer (la sémantique varie un peu pour
   certaines commandes particulières). La forme générale de ce préfixe est :
   elem_1,elem_2...
   où chaque élément peut être un numéro (15), une suite de numéro (10-20),
-  un article et ses réponses (15>) ou l'ensemble des ancètre d'un article (15_).
+  un article et ses réponses (15>) ou l'ensemble des ascendants d'un 
+  article (15_).
   Il existe deux racourcis supplémentaires : '.' représente l'article courant,
-  '5<' représente l'origine du fil de discution et '1' représente le
+  '5<' représente l'origine du fil de discussion et '1' représente le
   premier article du groupe. Enfin, '-10' et '10-' sont utilisables, et
   représentent respectivement tous les articles de numéro inférieur à 10, 
   et tous les articles de numéro supérieur à 10.
 
-  Ainsi, pour avoir le résumé de la discution en cours, on peut tapper :
+  Ainsi, pour avoir le résumé de la discussion en cours, on peut taper :
   '.<>r'.
 
 	Commandes de flrn
@@ -39,12 +40,12 @@ par défaut.
 * Déplacement dans les articles :
 
 espace, enter et n changent d'article. Espace affichera l'article suivant de
-la discution qui n'as pas encore été lu. Enter (comme n) va juste à l'article
+la discussion qui n'as pas encore été lu. Enter (comme n) va juste à l'article
 suivant.
 
 v affiche un article. Par exemple '15v'.
 
-Les flèches permettent de se déplacer dans les discutions. La flèche gauche
+Les flèches permettent de se déplacer dans les discussions. La flèche gauche
 va au père, celles du haut et du bas se déplacent parmis les frères.
 (On a aussi les bindings équivalents []() comme trn, ainsi que b et f issus
 de forum).
@@ -56,37 +57,37 @@ de lire.
 
 V (\view) lance $PAGER.
 s (\save) sauve l'article.
-S (\SAVE) sauve une discution.
-o (\omet) marque l'article non lu. O marque la discution non lue.
-k (\kill) marque l'article lu. Cela sert quand l'article est long.
-	K et J marquent l'article et ses descendants lus (toute la discution
+S (\SAVE) sauve une discussion.
+o (\omet) marque l'article comme non lu. O marque la discussion non lue.
+k (\kill) marque l'article comme lu. Cela sert quand l'article est long.
+	K et J marquent l'article et ses descendants lus (toute la discussion
 	pour J)
 
 * Affichage de résumés
 
 r (\summary) affiche un résumé.
 t (\summ_fil) résumé d'un article et de ses fils. (équivalent à '.>r')
-T (\summ_thr) résumé de la discution. (équivalent à '.<>r')
+T (\summ_thr) résumé de la discussion. (équivalent à '.<>r')
 
 * Gestion des groupes :
 
 u (\unsubscribe) se désabonne du groupe.
 a (\subscribe) s'abonne au groupe.
-z (\zap)  marque tous les messages du groupe lus.
-g (\goto) change de groupe parmis les groupes auxquels on est abonné.
+z (\zap)  marque comme lus tous les messages du groupe.
+g (\goto) change de groupe, en restant dans ceux auxquels on est abonné
 G (\GOTO) change de groupe.
-l (\list) donne la liste des groupes auquel on est abonné.
+l (\list) donne la liste des groupes auxquel on est abonné.
 L (\LIST) liste tous les groupes.
 
 * Posts :
 
 m (\post) poste un article.
-R (\reply) répond à un article, c-à-d poste un followup.
+R (\reply) répond à un article, c-à-d poste un followup (une réponse)
 
 * Divers :
 
-(\config) permet de changer la valeur de certaines options par un menu.
-: (\option) permet de donner une ligne d'option.
+(\config) permet de changer la valeur de certaines options à l'aide d'un menu
+: (\option) évalue directement une ligne d'option
 q (\quit) quitte.
 Q (\QUIT) quitte sans sauver le .flnewsrc.
 h (\help) lance cette aide.

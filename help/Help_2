@@ -6,11 +6,13 @@
 Comment poster un message ?
 ---------------------------
 
-Pour poster un message, vous pouvez utiliser les commande \post (bindé sur
-m) et \reply (bindé sur R).
-La commande \post permet de poster un message dans les newsgroups où
-vous êtes. Il vous sera alors demandé d'entrer un sujet pour votre message.
-La commande \reply répond à l'article où vous êtes.
+Pour poster un message, vous pouvez utiliser les commandes \post (touche m)
+et \reply (touche R).
+La commande \post permet de poster un message dans le groupe courant.
+Il vous sera alors demandé de saisir un sujet pour votre message.
+S'il est impossible de poster dans ce groupe, le groupe proposé par
+défaut sera "junk".
+La commande \reply répond à l'article courant.
 Ces deux commandes peuvent prendrent un nom de fichier en argument. Le
 fichier est alors directement posté sans confirmation.
 Si aucun fichier n'est en argument, vous entrez dans l'éditeur intégré

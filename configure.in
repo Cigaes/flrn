@@ -1,0 +1,149 @@
+dnl Process this file with autoconf to produce a configure script.
+dnl Configuration pour flrn
+dnl 		Jo.
+
+AC_INIT(src/art_group.c)
+AC_CONFIG_HEADER(src/config.h)
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_INSTALL
+
+dnl En fait, on peut s'en passer...
+AC_CHECK_PROGS(MAKEDEPEND,gccmakedep makedepend, echo)
+
+AC_PATH_PROG(SENDMAIL, sendmail, no, `echo $PATH | sed "s/:/ /"` /usr/sbin /usr/lib)
+AC_DEFINE_UNQUOTED(SENDMAIL, "$ac_cv_path_SENDMAIL")
+
+AC_ARG_WITH(default-host, [  --with-default-host[=MACHINE]   default host for adresses],
+  AC_DEFINE_UNQUOTED(DEFAULT_HOST, "$withval")
+  AC_MSG_RESULT(default host : $withval)
+)
+
+AC_ARG_WITH(domain, [  --with-domain[=DOMAIN]     default host for adresses],[
+  AC_DEFINE_UNQUOTED(DOMAIN, "$withval")
+  AC_MSG_RESULT(domain : $withval)
+],
+  AC_DEFINE_UNQUOTED(DOMAIN, "ens.fr")
+  AC_MSG_RESULT(domain : ens.fr, use --with-domain to change this)
+)
+
+if test "$ac_cv_prog_CC" = gcc; then
+  CFLAGS="-Wall $CFLAGS"
+fi
+
+AC_CHECK_LIB(socket, socket)
+AC_CHECK_LIB(nsl, gethostbyname)
+
+if test "`(uname) 2>/dev/null`" = SunOS &&
+    uname -r | grep '^5' >/dev/null; then
+    solaris=yes;
+fi
+
+AC_MSG_CHECKING(for 8 bit nroff)
+if test X`echo 'é'| nroff | head -1` = 'Xé'; then
+  MANISO=.iso
+  AC_MSG_RESULT(yes)
+else
+  AC_MSG_RESULT(no)
+fi
+
+
+
+AC_ARG_WITH(slang, [  --with-slang[=DIR]         use S-Lang in dir DIR],
+        AC_MSG_CHECKING(for S-Lang)
+        if test $withval = yes; then
+                if test -d $srcdir/../slang; then
+                        flrn_cv_slang=$srcdir/../slang/src
+                        CPPFLAGS="$CPPFLAGS -I${flrn_cv_slang}"
+                        LDFLAGS="$LDFLAGS -L${flrn_cv_slang}/objs"
+                else
+                        flrn_cv_slang=yes
+                fi
+        else
+                dnl ---Check to see if $withval is a source directory
+                if test -f $withval/src/slang.h; then
+                        flrn_cv_slang=$withval/src
+                        CPPFLAGS="$CPPFLAGS -I${flrn_cv_slang}"
+                        LDFLAGS="$LDFLAGS -L${flrn_cv_slang}/objs"
+                else
+                        dnl ---Must be installed somewhere
+                        flrn_cv_slang=$withval
+                        if test -d $withval/include/slang; then
+                                CPPFLAGS="$CPPFLAGS -I${withval}/include/slang"
+                        elif test -d $withval/include; then
+                                CPPFLAGS="$CPPFLAGS -I${withval}/include"
+                        fi
+                        LDFLAGS="$LDFLAGS -L${withval}/lib"
+			if test X$solaris = Xyes; then
+			    LDFLAGS="$LDFLAGS -R${withval}/lib"
+			fi
+                fi
+        fi
+        AC_MSG_RESULT($flrn_cv_slang)
+)
+LIBS="$LIBS -lslang -lm"
+dnl --- try to link a sample program to check if we're ok
+	        
+AC_MSG_CHECKING(if I can compile a test SLang program)
+AC_TRY_LINK([], [SLang_init_tty ();],
+  [AC_MSG_RESULT(yes)],
+  [AC_MSG_ERROR(unable to compile.  check config.log)])
+
+
+dnl Checks for libraries.
+dnl Replace `main' with a function in -lslang:
+dnl AC_CHECK_LIB(slang, SLkp_init)
+
+flrn_cv_rx=no
+AC_ARG_WITH(rx, [  --with-rx[=DIR]            Use GNU rx ],
+        [if test $withval != yes; then
+                if test -d $withval/lib; then
+                        flrn_cv_rx=$withval/lib
+                        CPPFLAGS="-I$withval/include $CPPFLAGS"
+                else
+                        flrn_cv_rx=$withval
+                        CPPFLAGS="-I$withval $CPPFLAGS"
+                fi
+	else
+		flrn_cv_rx=yes
+        fi],
+        [AC_CHECK_FUNCS(regcomp,,[flrn_cv_rx=yes])
+		AC_CHECK_HEADER(regdef.h)
+	])
+
+
+if test X$flrn_cv_rx != Xno; then
+	if test X$flrn_cv_rx != Xyes; then
+		LDFLAGS="$LDFLAGS -L$flrn_cv_rx"
+		if test X$solaris = Xyes; then
+			LDFLAGS="$LDFLAGS -R$flrn_cv_rx"
+		fi
+	fi
+        echo checking for librx... $flrn_cv_rx
+	AC_CHECK_LIB(rx, regcomp,,[
+	  AC_MSG_ERROR(You need to use the option --with-rx)])
+fi
+
+dnl Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS(sys/time.h unistd.h ctype.h errno.h)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_TYPE_SIZE_T
+AC_HEADER_TIME
+AC_STRUCT_TM
+
+dnl Checks for library functions.
+AC_FUNC_STRFTIME
+AC_CHECK_FUNCS(gethostname select socket strdup strspn strstr strtol)
+AC_CHECK_FUNCS(inet_aton snprintf isdigit isblank)
+
+AC_SUBST(MANISO)
+
+AC_OUTPUT(src/Makefile)
+
+cd src
+echo starting make depend
+make depend
