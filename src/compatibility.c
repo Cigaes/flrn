@@ -52,7 +52,7 @@ void *__safe_calloc(size_t s, size_t t, char *f, char *fi, int l)
    } else {
 #ifdef DEBUG_MALLOC
      fprintf(stderr,"%8lx calloc %ld * %ld, %s :%s, %d\n",(long) res,(long) s,
-	 (long t),f,fi,l);
+	 (long) t,f,fi,l);
 #endif
      return res;
    }
@@ -107,11 +107,10 @@ void *__safe_strdup(const char *s, char *f, char *fi, int l) {
 }
 
 #ifndef DEBUG_MALLOC
-void *safe_strappend(char *s, const char *a)
+void *safe_strappend(char *s, const char *a) {
 #else
 void *__safe_strappend(char *s,const char *a, char *f, char *fi, int l) {
 #endif
-{
 #ifdef DEBUG_MALLOC
   char blah[1024]="*safe_strappend* ";
   strcat(blah,f);

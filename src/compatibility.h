@@ -83,7 +83,7 @@ extern void *__safe_strdup(const char *, char *, char *, int);
 extern void *safe_strappend(char *, const char *);
 #else
 #define safe_strappend(s,t) __safe_strappend(s,t,__PRETTY_FUNCTION__,__FILE__,__LINE__)
-extern void *__safe_strdup(char *,const char *, char *, char *, int);
+extern void *__safe_strappend(char *,const char *, char *, char *, int);
 #endif
 
 #ifdef DEBUG_MALLOC
