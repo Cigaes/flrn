@@ -152,6 +152,10 @@ if test X$flrn_cv_rx != Xno; then
 	  AC_MSG_ERROR(You need to use the option --with-rx)])
 fi
 
+TBLS=`(cd ${srcdir}/src; ls chrtrans/*.tbl | tr '\n' ' ')`
+
+TBLS_h=`echo $TBLS | sed 's%chrtrans/%%g;s%\.tbl%\.h%g'`
+
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS(sys/time.h unistd.h ctype.h errno.h)
@@ -170,6 +174,8 @@ AC_CHECK_FUNCS(inet_aton snprintf isdigit isblank)
 
 AC_SUBST(ROOTDIR)
 AC_SUBST(MANISO)
+AC_SUBST(TBLS)
+AC_SUBST(TBLS_h)
 
 AC_OUTPUT(src/Makefile src/chrtrans/Makefile Makefile)
 

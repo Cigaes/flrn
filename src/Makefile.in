@@ -52,12 +52,15 @@ HDRS = flrn.h options.h flrn_config.h flrn_glob.h group.h art_group.h post.h flr
 
 OBJS = art_group.o compatibility.o flrn_color.o flrn_files.o flrn_format.o flrn_help.o flrn_inter.o flrn_menus.o flrn_pager.o flrn_regexp.o flrn_shell.o flrn_slang.o flrn_string.o flrn_tcp.o flrn_xover.o group.o main.o options.o post.o rfc2047.o tty_display.o tty_keyboard.o flrn_filter.o flrn_lists.o flrn_tags.o flrn_command.o flrn_comp.o flrn_messages.o getdate.o flrn_func.o rfc2045.o slang_flrn.o version.o
 
+TBLS = @TBLS@
+
 # Suite a modifier au cas où
 
 all:  flrn $(ROOTDIR)/man/flrn.1$(MANISO)
 
-do_chartrans_stuff:
+do_chartrans_stuff: ${TBLS}
 	-cd chrtrans && $(MAKE) tables
+	touch do_chartrans_stuff
 
 flrn:  do_chartrans_stuff $(OBJS)
 	$(CC) $(LDFLAGS) -o flrn $(OBJS) $(MISCLIBS)

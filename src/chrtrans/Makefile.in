@@ -22,19 +22,7 @@ SRCDIR = @srcdir@
 ROOTDIR = @top_srcdir@
 VPATH = @srcdir@
 
-TABLES= \
- def7_uni.h \
- iso01_uni.h \
- iso02_uni.h \
- iso03_uni.h \
- iso04_uni.h \
- iso05_uni.h \
- iso06_uni.h \
- iso07_uni.h \
- iso08_uni.h \
- iso09_uni.h \
- iso10_uni.h \
- iso15_uni.h 
+TABLES= @TBLS_h@
 
 tables: $(TABLES)
 
