@@ -18,9 +18,9 @@ LDFLAGS = @LDFLAGS@
 MISCLIBS = @LIBS@
 MAKEDEPEND = @MAKEDEPEND@
 INSTALL = @INSTALL@
-SRCDIR = @SRCDIR@
-ROOTDIR = @top_SRCDIR@
-VPATH = @SRCDIR@
+SRCDIR = @srcdir@
+ROOTDIR = @top_srcdir@
+VPATH = @srcdir@
 
 TABLES= \
  def7_uni.h \
