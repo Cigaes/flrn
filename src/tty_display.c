@@ -1941,7 +1941,7 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
    if (saved_field!=FIELD_SIG) {
      if (buf[0]=='>') saved_field=FIELD_QUOTED; else saved_field=FIELD_NORMAL;
    }
-   if (strcmp(buf,"-- ")==0) saved_field=FIELD_SIG;
+   if ((!from_file) && ((strcmp(buf,"-- \r\n")==0))) saved_field=FIELD_SIG;
    if (from_file) saved_field=FIELD_FILE;
    last_color=saved_field;
    memset(&cf,0,sizeof(struct construct_fill));

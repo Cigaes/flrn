@@ -97,7 +97,7 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
   
    if (Options.edit_all_headers) {
       int i;
-      for (i=0; i<NB_KNOWN_HEADERS; i++) {
+      for (i=NB_KNOWN_HEADERS-1; i>=0; i--) {
 	if (i==SENDER_HEADER) continue;
 	if (i==DATE_HEADER) continue;
 	if (i==LINES_HEADER) continue;
