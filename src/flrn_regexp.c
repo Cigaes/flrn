@@ -10,6 +10,7 @@
 
 
 #include "flrn.h"
+#include "flrn_regexp.h"
 
 /* renvoie une chaine qui doit être matchée pour que la regexp donnée
  * matche 

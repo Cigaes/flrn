@@ -3,6 +3,8 @@
 #ifndef FLRN_FLRN_PAGER_H
 #define FLRN_FLRN_PAGER_H
 
+#ifdef IN_FLRN_PAGER_C
+
 #define NB_FLCMD_PAGER 5
 #define FLCMD_PAGER_UNDEF -1
 
@@ -33,5 +35,13 @@ struct cmd_predef_pager {
   { 'q', FLCMD_PAGER_QUIT },
 };
 
+#endif /* IN_FLRN_PAGER_C */
+
+/* les fonctions */
+
+extern int Page_message (int /*num_elem*/, int /*short_exit*/, int /*key*/,
+        int /*act_row*/, int /*row_deb*/, char * /*exit_chars*/, char *);
+extern int Bind_command_pager(char *, int, char *);
+extern void init_Flcmd_pager_rev(void);
 
 #endif

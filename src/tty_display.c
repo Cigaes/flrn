@@ -14,9 +14,21 @@
 
 #include "flrn.h"
 #include "options.h"
+#include "art_group.h"
 #include "group.h"
 #include "flrn_menus.h"
 #include "flrn_command.h"
+#include "flrn_tcp.h"
+#include "flrn_files.h"
+#include "flrn_format.h"
+#include "tty_display.h"
+#include "tty_keyboard.h"
+#include "flrn_menus.h"
+#include "flrn_pager.h"
+#include "flrn_regexp.h"
+#include "flrn_filter.h"
+#include "flrn_color.h"
+#include "flrn_slang.h"
 
 /* place des objets de la barre */
 int name_news_col, num_art_col, num_rest_col, num_col_num, name_fin_col;
@@ -100,13 +112,14 @@ void sig_winch(int sig) {
   
 
 /* Initialise l'écran, crée la barre */
-int Init_screen() {
+int Init_screen(int stupid_term) {
    int res;
 
    table_petit_arbre=safe_malloc(7*sizeof(char *));
    for (res=0;res<7;res++)
      table_petit_arbre[res]=safe_malloc(11);
    Get_terminfo ();
+   if (stupid_term) Set_term_cannot_scroll(1);
    res=Screen_init_smg ();
   
 #if 0  /* Les valeurs de retour de la fonction ont changés */
@@ -836,7 +849,7 @@ static char *Recupere_user_flags (Article_List *article) {
    parcours=Options.user_flags;
    while (parcours) {
      memset(filt,0,sizeof(flrn_filter));
-     filt->action.flag=FLAG_ACTION;
+     filt->action.flag=FLAG_SUMMARY;
      buf=parcours->str;
      parcours=parcours->next;
      flag=*(buf++);

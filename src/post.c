@@ -14,10 +14,20 @@
 
 #include "flrn.h"
 #include "flrn_slang.h"
+#include "art_group.h"
 #include "group.h"
 #include "flrn_string.h"
 #include "post.h"
 #include "options.h"
+#include "flrn_tcp.h"
+#include "flrn_files.h"
+#include "flrn_shell.h"
+#include "flrn_format.h"
+#include "tty_display.h"
+#include "tty_keyboard.h"
+#include "flrn_menus.h"
+#include "rfc2047.h"
+#include "flrn_regexp.h"
 
 extern char short_version_string[];
 

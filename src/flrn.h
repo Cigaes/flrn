@@ -11,6 +11,9 @@
 #include "flrn_config.h"    /* Defines autres */
 #include "compatibility.h"  /* La compatibilité */
 #include "flrn_glob.h"      /* Variables externes */
+/* Les fonctions externes sont éclatées */
+#if 0
 #include "extern.h"	    /* Fonctions externes */
+#endif
 
 #endif

@@ -14,4 +14,15 @@ typedef struct flrn_lecture_list {
     int size;
 } Lecture_List;
 
+/* Les fonctions */
+
+extern Lecture_List *alloue_chaine(void);
+extern int free_chaine(Lecture_List * /*chaine*/);
+extern int ajoute_char(Lecture_List ** /*chaine*/, int /*chr*/);
+extern int enleve_char(Lecture_List ** /*chaine*/);
+extern char get_char(Lecture_List * /*chaine*/, int /*n*/);
+extern int str_cat (Lecture_List ** /*chaine1*/, char * /*chaine*/);
+extern int str_ch_cat(Lecture_List ** /*chaine1*/, Lecture_List * /*chaine2*/,
+    int /*place*/, char /*chr*/);
+
 #endif

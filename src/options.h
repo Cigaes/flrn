@@ -8,6 +8,7 @@
 #ifndef FLRN_OPTIONS_H
 #define FLRN_OPTIONS_H
 
+#include <stdio.h>
 #include "flrn_slang.h"
 #include "art_group.h"
 #include "flrn_color.h"
@@ -204,5 +205,15 @@ static struct {
 
 
 #endif /* IN_OPTION_C */
+
+/* les fonctions */
+
+extern void init_options(void);
+extern void parse_options_line(char * /*ligne*/, int /*flag*/);
+extern void dump_variables(FILE * /*file*/);
+extern void dump_flrnrc(FILE * /*file*/);
+extern void options_comp(char * /*option*/, int /*len*/);
+extern void free_options(void);
+extern void menu_config_variables(void);
 
 #endif

@@ -5,7 +5,11 @@
 #include "flrn.h"
 #include "flrn_filter.h"
 #include "art_group.h"
+#include "group.h"
 #include "flrn_lists.h"
+#include "flrn_files.h"
+#include "flrn_xover.h"
+#include "flrn_inter.h"
 
 /* on met ici le contenu du kill_file */
 static flrn_kill *flrn_kill_deb=NULL;

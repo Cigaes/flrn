@@ -13,6 +13,9 @@
 #include "flrn.h"
 #include "art_group.h"
 #include "options.h"
+#include "group.h"
+#include "flrn_format.h"
+#include "tty_display.h"  /* Hmmm, pas bon ! */
 
 
 /* Parsing de la date */

@@ -21,6 +21,8 @@
 #include "flrn.h"
 #include "config.h"
 #include "options.h"
+#include "group.h"    /* pourquoi ? */
+#include "flrn_xover.h"
 #include "flrn_tcp.h"
 
 int Date_offset;

@@ -8,11 +8,16 @@
 #include <stdlib.h>
 #include <strings.h>
 
+#define IN_FLRN_PAGER_C
+
 #include "flrn.h"
 #include "options.h"
 #include "flrn_pager.h"
 #include "flrn_macros.h"
 #include "flrn_command.h"
+#include "tty_display.h"
+#include "tty_keyboard.h"
+#include "flrn_slang.h"
 
 /* le tableau touche -> commande */
 int *Flcmd_pager_rev = &Flcmd_rev[CONTEXT_PAGER][0];

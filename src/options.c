@@ -11,8 +11,16 @@
 #include <ctype.h>
 
 #include "flrn.h"
-#include "art_group.h"
 #define IN_OPTION_C
+#include "art_group.h"
+#include "flrn_files.h"
+#include "tty_display.h"
+#include "tty_keyboard.h"
+#include "flrn_inter.h"
+#include "flrn_menus.h"
+#include "flrn_pager.h"
+#include "flrn_color.h"
+#include "flrn_slang.h"
 #include "options.h"
 #include "site_config.h"
 #include "flrn_command.h"

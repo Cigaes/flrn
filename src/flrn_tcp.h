@@ -33,4 +33,20 @@ ARTICLE		|   N	|	   peut ne pas renvoyer num ou mesgid
 
 */
 
+/* Les fonctions */
+
+extern int connect_server (char * /*host*/, int /*port*/);
+extern void quit_server (void);
+extern int read_server (char * /*ligne*/, int /*deb*/, int /*max*/);
+extern int read_server_with_reconnect
+                        (char * /*ligne*/, int /*deb*/, int /*max*/);
+  /* appel pour post */
+extern int raw_write_server (char * /*buf*/, unsigned int /*len*/);
+extern int write_command (int /*num_com*/, int /*num_para*/, char ** /*param*/);
+extern int reconnect_after_timeout(int /*refait_commande*/);
+extern int discard_server(void);
+extern int return_code (void);
+extern int adjust_time(void);
+extern int read_server_for_list (char*, int, int);
+
 #endif

@@ -19,4 +19,11 @@ typedef struct Flrn_post_headers {
 
 #define is_modifiable(i) ((i>NEWSGROUPS_HEADER) && (i!=TO_HEADER))
 
+/* Les fonctions */
+
+extern void Get_user_address(char * /*str*/);
+extern int cancel_message (Article_List * /*origine*/);
+extern int post_message (Article_List * /*origine*/, char * /*name_file*/,
+    int /*flag*/);
+
 #endif

@@ -1,6 +1,8 @@
 #ifndef FLRN_COLOR_H
 #define FLRN_COLOR_H
 
+#include <stdio.h>
+
 #ifdef DEF_FILD_NAMES
 static char *Field_names[] ={
   "normal",
@@ -26,5 +28,16 @@ static char *Field_names[] ={
 #define FIELD_SUMMARY 8
 
 #define NROF_FIELDS   9
+
+/* Les fonctions */
+
+extern void free_highlights(void);
+extern int parse_option_color(int /*func*/, char * /*line*/);
+extern void Init_couleurs(void);
+extern int Aff_color_line(int /*to_print*/, unsigned short * /*format_line*/,
+    int * /*format_len*/, int /*field*/, char * /*line*/, int /*len*/,
+    int /*bol*/, int /*def_color*/);
+extern unsigned short *cree_chaine_mono (const char *, int, int);
+extern void dump_colors_in_flrnrc (FILE *file);
 
 #endif

@@ -1,9 +1,6 @@
 #ifndef FLRN_INTER_H
 #define FLRN_INTER_H
 
-#include "art_group.h"
-#include "flrn_config.h"
-
 typedef struct command_desc {
    char *nom;
    int  key;
@@ -17,6 +14,19 @@ typedef struct command_desc {
 #define CMD_NEED_GROUP 32
    int (*appel)(int);
 } Flcmd;
+
+
+/* Les fonctions : */
+
+extern int fonction_to_number(char *);
+extern int call_func(int, char *);
+extern int loop(char * /*opt*/);
+extern void aff_opt_c(void);
+extern void init_Flcmd_rev(void);
+extern int Comp_cmd_explicite(char * /*str*/, int /*len*/);
+extern int Bind_command_explicite(char * /*nom*/, int /*key*/, char * /*arg*/);
+extern void save_etat_loop(void);
+extern void restore_etat_loop(void);
 
 #endif
 

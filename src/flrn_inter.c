@@ -17,11 +17,21 @@
 #include "flrn_slang.h"
 #include "options.h"
 #include "group.h"
+#include "art_group.h"
 #include "flrn_menus.h"
 #include "flrn_filter.h"
 #include "flrn_tags.h"
 #include "flrn_macros.h"
 #include "flrn_command.h"
+#include "flrn_files.h"
+#include "flrn_shell.h"
+#include "flrn_xover.h"
+#include "tty_display.h"
+#include "tty_keyboard.h"
+#include "post.h"
+#include "flrn_help.h"
+#include "flrn_regexp.h"
+#include "flrn_color.h"
 
 /* On va définir ici des structures et des variables qui seront utilisées */
 /* pour loop, et les fonctions qui y sont associés. Il faudrait en fait   */
@@ -119,7 +129,9 @@ void Get_option_line(char *argument);
 /* les trois fonctions suivantes sont inutilisées...
  * mais on les laisse tant que la bonne version 'est pas écrite */
 void zap_thread(Article_List *article,int all, int flag, int zap);
+#if 0
 int next_thread(int flags);
+#endif
 
 static int push_tag();
 
@@ -1365,7 +1377,7 @@ static int tag_thread_article(Article_List *article, void *blah)
 }
 
 /* do_summary Il faut toujours appeler Aff_summary
- * car Aff_summary retire le FLAG_ACTION
+ * car Aff_summary retire le FLAG_SUMMARY
  * La, on a des comportements par défaut non triviaux, et qui
  * en plus ont le mauvais gout de dependre de la commande */
 static int Do_aff_summary_line(Article_List *art, int *row,
@@ -1395,13 +1407,13 @@ static Article_List * raw_Do_summary (int deb, int fin, int thread,
   /* find first article */
   parcours=Article_deb;
   while (parcours && (parcours->numero<deb)) parcours=parcours->next;
-  while (parcours && !(parcours->flag & FLAG_ACTION))
+  while (parcours && !(parcours->flag & FLAG_SUMMARY))
     parcours=parcours->next;
   if (parcours && (thread || !Options.ordered_summary)) {
     parcours=root_of_thread(parcours,0);
-    if (!(parcours->flag & FLAG_ACTION))
-       parcours=next_in_thread(parcours,FLAG_ACTION,&level,deb,fin,
-	   FLAG_ACTION,1);
+    if (!(parcours->flag & FLAG_SUMMARY))
+       parcours=next_in_thread(parcours,FLAG_SUMMARY,&level,deb,fin,
+	   FLAG_SUMMARY,1);
   }
   parcours2=parcours;
 
@@ -1414,20 +1426,20 @@ static Article_List * raw_Do_summary (int deb, int fin, int thread,
     if ((courant) && (!start) && (parcours==Article_courant)) start=courant;
     if ((!Options.duplicate_subject) && (parcours->headers))
       previous_subject=parcours->headers->k_headers[SUBJECT_HEADER];
-    parcours->flag &= ~FLAG_ACTION;
+    parcours->flag &= ~FLAG_SUMMARY;
     if (thread || !Options.ordered_summary) {
-      parcours=next_in_thread(parcours,FLAG_ACTION,&level,deb,fin,
-	  FLAG_ACTION,1);
+      parcours=next_in_thread(parcours,FLAG_SUMMARY,&level,deb,fin,
+	  FLAG_SUMMARY,1);
     }
-    if (!parcours || !(parcours->flag & FLAG_ACTION)) {
-      while(parcours2 && (!(parcours2->flag & FLAG_ACTION)))
+    if (!parcours || !(parcours->flag & FLAG_SUMMARY)) {
+      while(parcours2 && (!(parcours2->flag & FLAG_SUMMARY)))
 	parcours2=parcours2->next;
       parcours=parcours2; level=1;
       if (parcours && (thread || !Options.ordered_summary)) {
         parcours=root_of_thread(parcours,0);
-        if (!(parcours->flag & FLAG_ACTION))
-          parcours=next_in_thread(parcours,FLAG_ACTION,&level,deb,fin,
-	     FLAG_ACTION,1);
+        if (!(parcours->flag & FLAG_SUMMARY))
+          parcours=next_in_thread(parcours,FLAG_SUMMARY,&level,deb,fin,
+	     FLAG_SUMMARY,1);
       }
     }
   }
@@ -1569,7 +1581,7 @@ int do_summary(int res) {
   char *buf=Arg_str;
 
   filt=new_filter();
-  filt->action.flag=FLAG_ACTION;
+  filt->action.flag=FLAG_SUMMARY;
   act=check_and_tag_article;
   if (Arg_str && *Arg_str) {
     while(*buf==' ') buf++;
@@ -2056,27 +2068,29 @@ void zap_thread(Article_List *article,int all, int flag,int zap)
   return;
 }
 
+#if 0
 /* passe au prochain thread ou il y a un message non lu */
 /* renvoie -1 s'il n'y a rien d'autre */
 int next_thread(int flags) {
   Article_List *racine=Article_deb;
   while(racine->next) {
     racine=racine->next;
-    racine->flag &= ~FLAG_DISPLAYED;
+    racine->flag &= ~FLAG_INTERNE1;
   }
   racine = Article_courant;
-  zap_thread(racine, 1, FLAG_DISPLAYED,2);
-  while(racine && (racine->flag & (FLAG_DISPLAYED | FLAG_READ)))
+  zap_thread(racine, 1, FLAG_INTERNE1,2);
+  while(racine && (racine->flag & (FLAG_INTERNE1 | FLAG_READ)))
   { racine = racine->next; }
   if (racine) { Article_courant=racine; return 0; }
   racine = Article_deb;
   while(racine != Article_courant &&
-      (racine->flag & (FLAG_DISPLAYED | FLAG_READ)))
+      (racine->flag & (FLAG_INTERNE1 | FLAG_READ)))
   { racine = racine->next; }
-  if (!(racine->flag & (FLAG_DISPLAYED | FLAG_READ)))
+  if (!(racine->flag & (FLAG_INTERNE1 | FLAG_READ)))
   { Article_courant=racine; return 0; }
   return -1;
 }
+#endif
 
 void Get_option_line(char *argument)
 {
@@ -2383,21 +2397,21 @@ int prochain_newsgroup(Newsgroup_List **newgroup ) {
 /* Applique action sur tous les peres de l'article donne*/
 int parents_action(Article_List *article,int all, Action action, void *param) {
   Article_List *racine=article;
-  while(racine->pere && !(racine->pere->flag & FLAG_TAGGED)) {
-    racine->flag |= FLAG_TAGGED;
+  while(racine->pere && !(racine->pere->flag & FLAG_INTERNE2)) {
+    racine->flag |= FLAG_INTERNE2;
     racine=racine->pere;
   }
   do {
     action(racine,param);
-    racine->flag &= ~FLAG_TAGGED;
-  } while((racine=next_in_thread(racine,FLAG_TAGGED,NULL,0,0,
-      FLAG_TAGGED,0)));
+    racine->flag &= ~FLAG_INTERNE2;
+  } while((racine=next_in_thread(racine,FLAG_INTERNE2,NULL,0,0,
+      FLAG_INTERNE2,0)));
   return 0;
 }
   
 
 /* Applique action(flag) sur tous les articles du thread
- * On utilise en interne FLAG_DISPLAYED
+ * On utilise en interne FLAG_INTERNE1
  * Attention a ne pas interferer
  * all indique qu'il faut d'abord remonter a la racine */
 /* on applique a tous les articles non extérieurs */
@@ -2411,24 +2425,24 @@ int thread_action(Article_List *article,int all, Action action, void *param) {
   if (all) 
     racine = root_of_thread(racine,1);
   racine2=racine;
-  /* On retire le FLAG_DISPLAYED a tout ceux qui l'ont dans le thread
+  /* On retire le FLAG_INTERNE1 a tout ceux qui l'ont dans le thread
    * C'est oblige car l'etat par defaut n'est pas defini
    * On le change dans la boucle pour que next_in_thread ne cycle pas */
-  racine->flag &= ~FLAG_DISPLAYED;
-  while((racine=next_in_thread(racine,FLAG_DISPLAYED,&level,-1,0,
-      FLAG_DISPLAYED,0)))
-    racine->flag &= ~FLAG_DISPLAYED;
+  racine->flag &= ~FLAG_INTERNE1;
+  while((racine=next_in_thread(racine,FLAG_INTERNE1,&level,-1,0,
+      FLAG_INTERNE1,0)))
+    racine->flag &= ~FLAG_INTERNE1;
   racine=racine2;
   /* Et la on peut faire ce qu'il faut */
   do { if (racine->numero!=-1) res2=action(racine,param);
     if (res2<res) res=res2;
-    racine->flag |= FLAG_DISPLAYED;
-  } while ((racine=next_in_thread(racine,FLAG_DISPLAYED,&level,-1,0,
+    racine->flag |= FLAG_INTERNE1;
+  } while ((racine=next_in_thread(racine,FLAG_INTERNE1,&level,-1,0,
             0,0)));
   return res; 
 }
 /* gthread_action : Applique action(flag) sur tous les articles du BIG thread
- * On utilise en interne FLAG_DISPLAYED
+ * On utilise en interne FLAG_INTERNE1
  * Attention a ne pas interferer
  * all indique qu'il faut d'abord remonter a la racine */
 /* on applique a tous les articles non extérieurs */
@@ -2441,19 +2455,19 @@ int gthread_action(Article_List *article,int all, Action action, void *param) {
   /* On remonte a la racine */
   racine = root_of_thread(racine,1);
   racine2=racine;
-  /* On retire le FLAG_DISPLAYED a tout ceux qui l'ont dans le thread
+  /* On retire le FLAG_INTERNE1 a tout ceux qui l'ont dans le thread
    * C'est oblige car l'etat par defaut n'est pas defini
    * On le change dans la boucle pour que next_in_thread ne cycle pas */
-  racine->flag &= ~FLAG_DISPLAYED;
-  while((racine=next_in_thread(racine,FLAG_DISPLAYED,&level,-1,0,
-      FLAG_DISPLAYED,1)))
-    racine->flag &= ~FLAG_DISPLAYED;
+  racine->flag &= ~FLAG_INTERNE1;
+  while((racine=next_in_thread(racine,FLAG_INTERNE1,&level,-1,0,
+      FLAG_INTERNE1,1)))
+    racine->flag &= ~FLAG_INTERNE1;
   racine=racine2;
   /* Et la on peut faire ce qu'il faut */
   do { if (racine->numero!=-1) res2=action(racine,param);
     if (res2<res) res=res2;
-    racine->flag |= FLAG_DISPLAYED;
-  } while ((racine=next_in_thread(racine,FLAG_DISPLAYED,&level,-1,0,
+    racine->flag |= FLAG_INTERNE1;
+  } while ((racine=next_in_thread(racine,FLAG_INTERNE1,&level,-1,0,
             0,1)));
   return res; 
 }

@@ -6,7 +6,11 @@
 #ifndef FLRN_GROUP_H
 #define FLRN_GROUP_H
 
+#include <sys/types.h>
+#include <regex.h>
 #include "flrn_config.h"
+#include "flrn_menus.h"
+#include "art_group.h"
 
 #ifdef TM_IN_SYS_TIME
 #include <sys/time.h>
@@ -53,5 +57,24 @@ extern Newsgroup_List *Newsgroup_courant;
 extern Newsgroup_List *Newsgroup_deb;
 
 extern time_t Last_check;
+
+/* les fonctions */
+
+extern void init_groups(void);
+extern void free_groups(int /*save_flnewsrc*/);
+extern void new_groups(int /*opt_c*/);
+extern Newsgroup_List *cherche_newsgroup(char * /*name*/, int /*exact*/, int);
+extern Newsgroup_List *cherche_newsgroup_re (char * /*name*/, 
+    regex_t /*reg*/, int );
+extern Liste_Menu *menu_newsgroup_re (char * /*name*/, regex_t /*reg*/,
+    int /*avec_reg*/);
+extern void zap_newsgroup(Newsgroup_List * /*group*/);
+extern int NoArt_non_lus(Newsgroup_List * /*group*/);
+extern int cherche_newnews(void);
+extern void add_read_article(Newsgroup_List * /*group*/, int /*numero*/);
+extern char *truncate_group (char *, int);
+extern void test_readonly(Newsgroup_List *);
+extern void zap_group_non_courant (Newsgroup_List *);
+extern void Ligne_carac_du_groupe (void *, char *, int );
 
 #endif

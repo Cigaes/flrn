@@ -16,19 +16,32 @@
 #include "flrn.h"
 #include "flrn_tags.h"
 #include "options.h"
+#include "art_group.h"
 #include "group.h"
 #include "version.h"
 #include "flrn_command.h"
+#include "flrn_tcp.h"
+#include "flrn_files.h"
+#include "flrn_xover.h"
+#include "tty_display.h"
+#include "tty_keyboard.h"
+#include "flrn_inter.h"
+#include "flrn_menus.h"
+#include "flrn_pager.h"
+#include "flrn_filter.h"
+#include "flrn_color.h"
+#include "flrn_slang.h"
 
 extern int with_direc;
 int debug;
+int stupid_terminal=0;
 struct passwd *flrn_user;
 char *mailbox;
 char *name_program;
 
 void Usage(char *argv[])
 {
-  printf("Utilisation : %s [-d] [-c] [-v] [-s] [-n name] [<newsgroup>]\n",argv[0]);
+  printf("Utilisation : %s [-d] [-c] [-v] [-s] [--stupid-term] [-n name] [<newsgroup>]\n",argv[0]);
 }
 
 void Help(char *argv[])
@@ -37,6 +50,7 @@ void Help(char *argv[])
   printf(
 " -d|--debug  : affiche plein d'informations sur la sortie d'erreur\n"
 " -c|--co     : donne les nouveaux newsgroups, et le nombre d'articles non lus\n"
+" --stupid-term : cette option activee, le terminal ne defile jamais\n"
 " -n|--name   : change le nom d'appel\n"
 " -s|--show-config : donne un .flrn avec les valeurs par defaut.\n"
 " -v|--version: donne la version et quitte\n"
@@ -77,6 +91,7 @@ int main(int argc, char *argv[])
     {printf("%s\n",version_string); exit(0);}
     if ((strncmp(argv[i],"-c",2)==0)||(strcmp(argv[i],"--co")==0))
     {opt_c=1; continue;}
+    if (strcmp(argv[i],"--stupid-term")==0) { stupid_terminal=1; continue; }
     if ((strncmp(argv[i],"-h",2)==0)||(strcmp(argv[i],"--help")==0))
     {Help(argv); exit(0);}
     if ((strncmp(argv[i],"-s",2)==0)||(strcmp(argv[i],"--show-config")==0))
@@ -116,7 +131,7 @@ int main(int argc, char *argv[])
   new_groups(opt_c); 
   if (!opt_c) {
      load_history();
-     res=Init_screen();
+     res=Init_screen(stupid_terminal);
      if (res==0) return 1;
      res=Init_keyboard();
      if (res<0) return 1;

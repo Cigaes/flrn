@@ -65,20 +65,24 @@ typedef struct Flrn_art_list
    int parent;
 
 
-#define FLAG_READ 1
-   /* Utilise en interne, il faut le mettre a 0 avant de l'utiliser */
-#define FLAG_DISPLAYED 2
-   /* utilise en interne par distribue
-    * il faut le mettre a 0 apres l'avoir utilise */
-#define FLAG_TAGGED 4
+/* flags externes : sont directement liés à l'utilisateur */
+#define FLAG_READ		0x0001
+#define FLAG_KILLED		0x0002
+#define FLAG_IMPORTANT		0x0004
+#define FLAG_IS_SELECTED	0x0008
+#define FLAG_WILL_BE_OMITTED	0x0010
+#define FLAG_NEW   		0x0020
+/* flags internes : pour certaines commandes */
+/* A mettre à 0 avant de l'utiliser : */
+   /* utilisé par next_thread, thread_action et gthread_action */
+#define FLAG_INTERNE1		0x0100
+/* A mettre à 0 après l'avoir utilisé : */
+   /* utilise par parent_action */
+#define FLAG_INTERNE2		0x0200
    /* Flag a utiliser avec distribue_action
     * utilise par le resume
     * Il doit en etat normal etre a 0 */
-#define FLAG_ACTION 8
-   /* Flag disant d'appliquer le kill_file */
-#define FLAG_NEW   16
-   /* Flag disant d'ignorer le message */
-#define FLAG_KILLED   32
+#define FLAG_SUMMARY		0x0400
    int flag;  
 
    char *msgid;
@@ -128,5 +132,30 @@ typedef struct Flrn_last_headers_cmd {
 } Last_headers_cmd;
 
 extern Last_headers_cmd Last_head_cmd;
+
+/* Les fonctions */
+
+extern int cree_liens(void);
+extern Article_Header *cree_header(Article_List * /*article*/,
+    int /*rech_pere*/, int /*others*/, int);
+extern void ajoute_reponse_a(Article_List * /*article*/);
+extern Article_List *ajoute_message(char * /*msgid*/, int * /*should_retry*/);
+extern Article_List *ajoute_message_par_num(int , int);
+extern void detruit_liste(int);
+extern void libere_liste(void);
+extern void free_article_headers(Article_Header *);
+extern Article_List *next_in_thread(Article_List * /*start*/,
+    long /*flag*/, int * /*level*/,
+    int /*deb*/, int /*fin*/, int /*set*/, int);
+extern Article_List *root_of_thread(Article_List * /*article*/, int /*flag*/);
+extern void article_read(Article_List * /*article*/);
+extern int Recherche_article (int /*num*/, Article_List ** /*retour*/,
+    int /*flags*/);
+extern int ajoute_exte_article(Article_List * /*fils*/);
+extern Article_Header *new_header(void);
+extern int Est_proprietaire(Article_List * /*article*/);
+extern void apply_kill_file(void );
+extern Article_List *cousin_prev(Article_List *article);
+extern Article_List *cousin_next(Article_List *article);
 
 #endif

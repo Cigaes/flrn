@@ -51,6 +51,19 @@ struct cmd_predef_menu {
   { '\r', FLCMD_MENU_SELECT },
 };
 
-#endif
+#endif     /* IN_FLRN_MENUS_C */
+
+/* les fonctions */
+
+extern void *Menu_simple (Liste_Menu * /*debut_menu*/, Liste_Menu * /*actuel*/,
+    void action(void *,char *,int),
+    int action_select(void *, char **, int, char *, int,int), char * /*titre*/);
+extern void Libere_menu (Liste_Menu * /*debut*/);
+extern void Libere_menu_noms (Liste_Menu * /*debut*/);
+extern Liste_Menu *ajoute_menu(Liste_Menu * /*base*/, char * /*nom*/,
+    void * /*lobjet*/);
+extern Liste_Menu *ajoute_menu_ordre(Liste_Menu *, char *, void *, int);
+extern int Bind_command_menu(char *, int, char *);
+extern void init_Flcmd_menu_rev(void);
 
 #endif

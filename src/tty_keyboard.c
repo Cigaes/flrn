@@ -14,7 +14,8 @@
 #include "flrn_slang.h"
 #include "options.h"
 #include "post.h"
-
+#include "tty_display.h"
+#include "tty_keyboard.h"
 
 /* Gestion élémentaire des signaux */
 /* Je me base sur ce que fait slrn, parce que je comprend pas grand chose */

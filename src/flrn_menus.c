@@ -15,6 +15,9 @@
 #include "flrn_inter.h"
 #include "flrn_macros.h"
 #include "flrn_command.h"
+#include "tty_display.h"
+#include "tty_keyboard.h"
+#include "flrn_slang.h"
 
 /* le tableau touche -> commande */
 int *Flcmd_menu_rev = &Flcmd_rev[CONTEXT_MENU][0];

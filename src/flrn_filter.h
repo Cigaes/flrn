@@ -2,6 +2,9 @@
 #ifndef FLRN_FILTER_H
 #define FLRN_FILTER_H
 
+#include <stdio.h>
+
+#include "art_group.h"
 #include "flrn_lists.h"
 
 typedef struct _flrn_condition {
@@ -50,5 +53,21 @@ typedef struct _flrn_kill {
   flrn_filter * filter;
   struct _flrn_kill *next;
 } flrn_kill;
+
+/* Les fonctions */
+
+extern int check_article(Article_List *, flrn_filter *, int);
+extern flrn_filter *new_filter(void);
+extern int parse_filter(char *, flrn_filter *);
+extern int parse_filter_flags(char *, flrn_filter *);
+extern int parse_filter_action(char *, flrn_filter *);
+extern void free_filter(flrn_filter *);
+extern int parse_kill_file(FILE *);
+extern void apply_kill(int);
+extern void check_kill_article(Article_List *, int );
+extern int add_to_main_list(char *);
+extern int remove_from_main_list(char *);
+extern void free_kill();
+extern int in_main_list(char *);
 
 #endif

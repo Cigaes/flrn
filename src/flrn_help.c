@@ -10,6 +10,10 @@
 #include <strings.h>
 
 #include "flrn.h"
+#include "flrn_files.h"
+#include "tty_display.h"
+#include "tty_keyboard.h"
+#include "flrn_help.h"
 
 static char hl_chars[]="0123456789mq";
 static char hl_mesgs[]="Aide de flrn, à vous [0-9qm] :";
