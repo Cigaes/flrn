@@ -69,7 +69,7 @@ static int do_macro(int cmd,
     Flcmd_num_macros++;
   Flcmd_macro[num].cmd = cmd;
 #ifdef USE_SLANG_LANGUAGE
-  if (fun_slang != NULL) 
+  if (fun_slang != NULL)
     Flcmd_macro[num].fun_slang = safe_strdup(fun_slang);
   else
     Flcmd_macro[num].fun_slang = NULL;

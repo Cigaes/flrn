@@ -30,6 +30,7 @@ avec le langage de script.
 #include "group.h"
 #include "tty_display.h"
 #include "tty_keyboard.h"
+#include "flrn_inter.h"
 
 int flrn_SLang_inited=0;
 
@@ -72,6 +73,13 @@ static int Newsgroup_Type_pop_callback(unsigned char type, VOID_STAR addr)
    return SLclass_pop_ptr_obj(type, (VOID_STAR *)addr); 
 }
 
+int Push_newsgroup_on_stack (Newsgroup_List *groupe) {
+   if (groupe)
+     return SLclass_push_ptr_obj (NEWSGROUP_TYPE_NUMBER, (VOID_STAR) groupe);
+   return SLclass_push_ptr_obj 
+        (NEWSGROUP_TYPE_NUMBER, (VOID_STAR) (&dummy_group));
+}
+
 /* méthodes intrinsèques */
 /* flags de la fonction */
 int intrin_get_flags_group (Newsgroup_List *group) {
@@ -83,6 +91,66 @@ char *intrin_get_description_group (Newsgroup_List *group) {
    /* group = (&dummy_group) ? */
    return group->description;
 }
+
+/* Liste des groupes. Pour l'instant on ignore l'argument entier. On
+ * renvoie le nombre de groupes trouvés */
+int intrin_get_groupes (char *nom, int *flags) {  
+    int number=0;
+    regex_t reg;
+    void *bla=NULL;
+
+    int no_order(char *u1, void *u2) { return 0; }
+    int igg_ajoute_elem (void *param, int flags2, int order,
+	                  void **retour) {
+	Newsgroup_List *grp = (Newsgroup_List *) param;
+	if (param==NULL) return 0;
+	Push_newsgroup_on_stack(grp);
+	number++;
+	return 0;
+    }
+
+    cherche_newsgroups_in_list (nom, reg, 8, &igg_ajoute_elem,
+	                                     &no_order, &bla);
+    return number;
+}
+
+int intrin_menu_groups (int *flags,int *num) {
+    char *fun_label_str, *str;
+    int to_free,ret,numero;
+    Newsgroup_List *grp;
+    SLang_Name_Type *fun_label=NULL;
+    Liste_Menu *lemenu=NULL, *courant=NULL;
+
+    if ((*flags) & 1) {
+	ret = SLang_pop_string(&fun_label_str, &to_free);
+        if (ret<0) return -1;
+        fun_label=SLang_get_function(fun_label_str);
+	if (to_free) SLfree(fun_label_str);
+    }
+    for (numero=0; numero<*num; numero++) {
+        if (SLclass_pop_ptr_obj(NEWSGROUP_TYPE_NUMBER, (VOID_STAR *)&grp)<0)
+	    break;
+	if (fun_label) {
+	    Push_newsgroup_on_stack(grp);
+            if (SLexecute_function(fun_label)==-1) {
+               SLang_restart (1);
+               SLang_Error = 0;
+	       str = safe_strdup(grp->name);
+	    } else {
+	      ret = SLpop_string(&str);
+	      if (ret<0) str = safe_strdup(grp->name);
+            }
+	} else str = safe_strdup(grp->name); /* TODO : correct that */
+	courant = ajoute_menu(courant, str, (void *) grp);
+	if (lemenu==NULL) lemenu=courant;
+   }
+   grp = Menu_simple (lemenu, lemenu, NULL, NULL, "Menu de groupes");
+   Libere_menu_noms(lemenu);
+   lemenu = NULL;
+   if (grp!=NULL) side_effect_of_slang_command(1,grp,0,0,0);
+   return 0;
+}
+
 
 /* article : Article_Type : structure MMT : pointeur vers article et groupe */
 typedef struct s_article_and_group {
@@ -124,13 +192,6 @@ int Push_article_on_stack (Article_List *article, Newsgroup_List *groupe) {
    } else return 0;
 }
 
-int Push_newsgroup_on_stack (Newsgroup_List *groupe) {
-   if (groupe)
-     return SLclass_push_ptr_obj (NEWSGROUP_TYPE_NUMBER, (VOID_STAR) groupe);
-   return SLclass_push_ptr_obj 
-        (NEWSGROUP_TYPE_NUMBER, (VOID_STAR) (&dummy_group));
-}
-
 /***************** Les variables *****************************/
 
 static SLang_MMT_Type *flrn_SLang_article_courant_mmt;
@@ -162,6 +223,10 @@ SLang_Intrin_Fun_Type flrn_Intrin_Fun [] =
 	                        NEWSGROUP_TYPE_NUMBER),
    MAKE_INTRINSIC_1("get_description_group", intrin_get_description_group,
 	        SLANG_STRING_TYPE, NEWSGROUP_TYPE_NUMBER),
+   MAKE_INTRINSIC_2("get_groupes", intrin_get_groupes,
+	        SLANG_INT_TYPE, SLANG_STRING_TYPE, SLANG_INT_TYPE), 
+   MAKE_INTRINSIC_2("menu_groups", intrin_menu_groups, SLANG_INT_TYPE,
+	                        SLANG_INT_TYPE,SLANG_INT_TYPE),
    SLANG_END_TABLE
 };
 
@@ -335,7 +400,7 @@ int Parse_type_fun_slang(char *str_int) {
     return strtol(str_int, NULL, 10);
 }
 
-extern SLang_Name_Type *Parse_fun_slang (char *str, int *num) {
+SLang_Name_Type *Parse_fun_slang (char *str, int *num) {
     char *comma;
     SLang_Name_Type *result;
     comma=strchr(str,',');

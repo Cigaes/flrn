@@ -626,107 +626,97 @@ int fin_passage_menu (void **retour, int passage, int flags) {
 /* un menu : ça fout trop la merde (sans menu, c'est plus facile... */
 int Liste_groupe (int flags, char *mat, Newsgroup_List **retour) {
    regex_t reg; /* En cas d'usage des regexp */
-   Newsgroup_List *parcours;
-   int passage=-1, ret, res;
-   int (*ajoute_elem)(void *, int);
-   int (*fin_passage)(void **, int, int);
+   char *mustmatch=NULL;
+   int ret;
 
-   *retour=NULL;
-   ajoute_elem=(Options.use_menus ? ajoute_elem_menu : ajoute_elem_not_menu);
-   fin_passage=(Options.use_menus ? fin_passage_menu : fin_passage_not_menu);
+   int lg1_ajoute_elem(void *param, int flag_bis, int order, void **retour) {
+       int ret;
+
+       if (param==NULL) {
+	    if (Options.use_menus) ret=fin_passage_menu(retour,
+		                       (flag_bis & 32 ? 1 : 0),flags); else
+		                   ret=fin_passage_not_menu(retour,
+				       (flag_bis & 32 ? 1 : 0),flags);
+	    return ret;
+       }
+       if (Options.use_menus) ret=ajoute_elem_menu(param, 
+	                            (flag_bis & 32 ? 1 : 0)); else
+	                      ret=ajoute_elem_not_menu (param,
+				      (flag_bis & 32 ? 1 : 0));
+       return ret;
+   }
+
+   int lg1_order (char *unused, void *unused2) {
+       return 0;
+   }
+
+   int lg2_ajoute_elem(void *param, int flag_bis, int order, void **retour) {
+       Newsgroup_List *parcours;
+       char *ptr;
+       int ret;
+
+       if (param==NULL) {
+	    if (Options.use_menus) ret=fin_passage_menu(retour,
+		                       2,flags); else
+		                   ret=fin_passage_not_menu(retour,
+				       2,flags);
+	    return ret;
+       }
+       /* On teste si ce newsgroup existe déjà */
+       ptr=strchr((char *)param,' ');
+       if (ptr) *ptr='\0';
+       parcours=Newsgroup_deb;
+       while (parcours) {
+	   if (strcmp(tcp_line_read, parcours->name)==0) break;
+	   parcours=parcours->next;
+       }
+       if (parcours!=NULL) return 0;
+       if (Options.use_menus) ret=ajoute_elem_menu(param, 2); else 
+	                      ret=ajoute_elem_not_menu (param, 2);
+       return ret;
+    }
+
+
    if (Options.use_regexp) {
-     if (regcomp(&reg,mat,REG_EXTENDED|REG_NOSUB))
-        return -1;
+       if (regcomp(&reg,mat,REG_EXTENDED|REG_NOSUB))
+          return -1;
+       mustmatch = reg_string(mat,1);
    }
-   parcours=NULL;
-   while (parcours || (passage<flags)) {
-      if (parcours==NULL) {
-         if (passage>=0) { /* On achève un parcours */
-	    ret=fin_passage((void **)retour, passage, flags);
-	    if (ret) {
-	       if (Options.use_regexp) regfree(&reg);
-	       return (ret>0 ? ret : 0);
-	    }
-	 }
-	 ajoute_elem(NULL,++passage); /* On réinitialise */
-	 if (passage==2) {
-            char *buf[2],*buf2; /* Ordre envoyé */
-	    int tofree=0, code;
-            buf[0]="active";
-	    if (Options.use_regexp) {
-	      buf2=reg_string(mat,1);
-	      tofree=1;
-	    } else buf2=mat;
-	    if (!buf2) {buf2="*"; tofree=0;}
-	    buf[1]=safe_malloc(strlen(buf2)+4);
-	    if ((Options.use_regexp) || (mat==NULL))
-	       sprintf(buf[1],"%s",buf2);
-	    else sprintf(buf[1],"*%s*",buf2);
-	    if (debug) fprintf(stderr,"Liste active %s\n",buf[1]);
-	    res=write_command (CMD_LIST, 2, buf);
-	    if (res<1) code=-1;
-	        else code=return_code();
-	    free(buf[1]);
-	    if(tofree) free(buf2);
-	    if ((code<0) || (code>400)) {
-	       if (Options.use_regexp) regfree(&reg);
-	       return -2;
-	    }
-	 }
-	 parcours=Newsgroup_deb;
-	 continue;
-      }
-      if ((passage==0) && (parcours->flags & GROUP_UNSUBSCRIBED)) {
-         parcours=parcours->next;
-	 continue;
-      }
-      if ((passage==1) && !(parcours->flags & GROUP_UNSUBSCRIBED)) {
-         parcours=parcours->next;
-	 continue;
-      }
-      if ( (passage<2) &&(
-         (Options.use_regexp && regexec(&reg,parcours->name,0,NULL,0)!=0) ||
-	 (!Options.use_regexp && !strstr(parcours->name, mat)))) {
-	parcours=parcours->next;
-	continue;
-      }
-      if (passage==2) {
-         char *ptr;
-         res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1);
-	 if (res<2) {
-	    if (Options.use_regexp) regfree(&reg);
-	    return -2;
-	 }
-	 if (tcp_line_read[0]=='.') { parcours=NULL; continue; }
-	 ptr=strchr(tcp_line_read,' ');
-	 if (ptr) *ptr='\0'; else tcp_line_read[res-2]='\0';
-	 /* On teste si ce newsgroup existe déjà */
-	 parcours=Newsgroup_deb;
-	 while (parcours) {
-	    if (strcmp(tcp_line_read, parcours->name)==0) break;
-	    parcours=parcours->next;
-	 }
-	 if (parcours!=NULL) continue;
-	 parcours=Newsgroup_deb;
-	 if (Options.use_regexp && regexec(&reg,tcp_line_read,0,NULL,0))
-	   continue;
-	 if (!Options.use_regexp && !strstr(tcp_line_read,mat))
-	   continue;
-      }
-      if (passage<2) 
-        ret=ajoute_elem((void *)parcours,passage);
-      else ret=ajoute_elem((void *)tcp_line_read,passage);
-      if (ret==-1) {
-        if (passage==2) discard_server();
-	if (Options.use_regexp) regfree(&reg);
-	return 0;
-      }
-      if (passage<2) parcours=parcours->next;
+   if (Options.use_menus) ajoute_elem_menu (NULL,0); else
+                          ajoute_elem_not_menu (NULL,0);
+   ret = cherche_newsgroups_in_list (
+	   (Options.use_regexp ? mustmatch : mat), reg,
+	   8+(Options.use_regexp ? 2 : 0)+32,
+	   &lg1_ajoute_elem,
+           &lg1_order,
+           (void **)retour);
+   if (ret || (flags==0)) {
+       if (Options.use_regexp) regfree(&reg);
+       return (ret>0 ? ret : 0);
    }
-   ret=fin_passage((void **)retour, passage, flags);
+   if (Options.use_menus) ajoute_elem_menu (NULL,1); else
+                          ajoute_elem_not_menu (NULL,1);
+   ret = cherche_newsgroups_in_list (
+	   (Options.use_regexp ? mustmatch : mat), reg,
+	   16+(Options.use_regexp ? 2 : 0),
+	   &lg1_ajoute_elem,
+           &lg1_order,
+           (void **)retour);
+   if (ret || (flags==1)) {
+       if (Options.use_regexp) regfree(&reg);
+       return (ret>0 ? ret : 0);
+   }
+   if (Options.use_menus) ajoute_elem_menu (NULL,2); else
+                          ajoute_elem_not_menu (NULL,2);
+   ret = cherche_newsgroups_base (
+	   (Options.use_regexp ? mustmatch : mat), reg,
+	   (Options.use_regexp ? 2 : 0),
+	   &lg2_ajoute_elem,
+           &lg1_order,
+           (void **)retour);
    if (Options.use_regexp) regfree(&reg);
-   return (ret>=0 ? ret : 0);
-} 
+   return (ret>0 ? ret : 0);
+}
   
 /* Affichage de l'arbre autour d'un message */
 #define SYMB_ART_READ 'o'
@@ -1590,12 +1580,14 @@ void Aff_newsgroup_name(int erase_scr) {
    int used_slang=0;
    
 #endif
-   Screen_set_color(FIELD_STATUS);
-   Cursor_gotorc(0,name_news_col);
    if (name_fin_col-name_news_col>0) {
 #ifdef USE_SLANG_LANGUAGE
      used_slang = try_hook_newsgroup_string ("Newsgroup_title_string",
 	                                 Newsgroup_courant, &buf);
+#endif
+     Screen_set_color(FIELD_STATUS);
+     Cursor_gotorc(0,name_news_col); /* après try_hook... */
+#ifdef USE_SLANG_LANGUAGE
      if (used_slang==0) {
 #endif
        if (Newsgroup_courant) {

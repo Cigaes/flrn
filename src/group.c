@@ -459,124 +459,183 @@ void free_groups(int save_flnewsrc) {
    /* C'est tout */
 }
 
-/* Demande au serveur l'existence d'un newsgroup         */
+/* Demande au serveur l'existence de groupes */
 /* L'ajoute à la liste des newsgroup existants (en fin)  */
 /* name contient deja s'il y a lieu les *... */
-/* flag=1 : avec prefixe_groupe */
-/* name doit etre non NULL */
+/* flag=1 : avec prefixe_groupe, flag & 2 = avec regexp,
+ * flag & 4 : exact */
+/* name peut être NULL */
+/* retour : -1 : erreur */
+int cherche_newsgroups_base (char *name, regex_t reg, int flag,
+	int ajoute_elem (void *,int,int, void **), 
+	int cal_order (char *, void *),
+	void **retour)
+{
+    int res, code, order;
+    char *buf,*buf2;
+
+    buf=safe_malloc((MAX_NEWSGROUP_LEN+12)*sizeof(char));
+    strcpy(buf, "active ");
+    if (flag & 1) strcat(buf, Options.prefixe_groupe);
+    if (!(flag & 6)) strcat(buf,"*");
+    if (name) {
+	strcat(buf, name);
+	if (!(flag & 6)) strcat(buf,"*");
+    }
+    res=write_command(CMD_LIST, 1, &buf);
+    free(buf);
+    if (res<1) return -1;
+    code=return_code();
+    if ((code<0) || (code>400)) return -1;
+
+    while((res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1))>=0)
+    {
+      if (res<4) return ajoute_elem(NULL,flag,0,retour); /* ok */
+      buf2=strchr(tcp_line_read,' ');
+      if (buf2==NULL) continue;
+      *buf2='\0';
+      buf=tcp_line_read+((flag & 1) ? strlen(Options.prefixe_groupe) : 0);
+      order=((flag & 2) ? cal_order(buf,(void *)&reg) :
+	                      cal_order(buf,(void *)name));
+
+      if (order!=-1) {
+	*buf2=' ';
+	res=ajoute_elem(tcp_line_read,flag,order,(void **)retour);
+	if (res) {
+	   discard_server();
+	   return res;
+	}
+      }
+    }
+    return ajoute_elem(NULL, flag, 0 ,retour);
+}
+
+int cnr_ajoute_elem (void *param, int flag, int order, void **retour)
+{
+    static int best_order;
+    static char *name;
+
+    if (order==-1) {  /* initialisation */
+	best_order = -1;
+	name=NULL;
+	return 0;
+    }
+
+    if (param==NULL) {  /* retour */
+	if (name) {
+	    strcpy(tcp_line_read,name); free (name);
+	    (Newsgroup_List *) *retour = un_nouveau_newsgroup(tcp_line_read);
+	    return 1;
+        }
+	*retour=NULL;
+	return 0;
+    }
+
+    if ((best_order==-1) || (best_order>order)) {
+	best_order=order;
+	if (name) free(name);
+        name = safe_strdup((char *)param);
+    }
+    return 0;
+}
+
 Newsgroup_List *cherche_newsgroup_re (char *name, regex_t reg, int flag)
 {
-    int res, code, order, best_order=-1;
-    char *buf,*buf2,*buf3=NULL;
+    Newsgroup_List *retour;
 
-    buf=safe_malloc((MAX_NEWSGROUP_LEN+12)*sizeof(char));
-    strcpy(buf, "active ");
-    if (flag) strcat(buf, Options.prefixe_groupe);
-    strcat(buf, name);
-    res=write_command(CMD_LIST, 1, &buf);
-    free(buf);
-    if (res<1) return NULL;
-    code=return_code();
-    if ((code<0) || (code>400)) return NULL;
-    while((res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1))>=0)
-    {
-      if (res<4) break; /* Existe pas... */
-      buf2=strchr(tcp_line_read,' ');
-      if (buf2==NULL) continue;
-      *buf2='\0';
-      buf=tcp_line_read+(flag ? strlen(Options.prefixe_groupe) : 0);
-      if ((order=calcul_order_re(buf,&reg))!=-1) {
-	*buf2=' ';
-        if ((best_order==-1) || (best_order>order)) {
-	  buf3=safe_strdup(tcp_line_read);
-	  best_order=order;
-	}
-      }
-    }
-    if (buf3) {
-       strcpy(tcp_line_read,buf3); free(buf3);
-       return un_nouveau_newsgroup(tcp_line_read);
-    }
-    return NULL;
+    cnr_ajoute_elem(NULL,0,-1,NULL);
+    cherche_newsgroups_base (name, reg, flag || 2, &cnr_ajoute_elem, 
+	           &calcul_order_re, (void **) &retour);
+    return retour;
 }
 
-/* name doit être non NULL */
-Newsgroup_List *cherche_newsgroup (char *name, int exact, int flag) {
-    int res, code, order, best_order=-1;
-    char *buf, *buf2, *buf3=NULL;
+Newsgroup_List *cherche_newsgroup (char *name, int exact, int flag)
+{
+    Newsgroup_List *retour;
+    regex_t reg;
 
-    buf=safe_malloc((MAX_NEWSGROUP_LEN+12)*sizeof(char));
-    strcpy(buf, "active ");
-    if (flag) strcat(buf,Options.prefixe_groupe);
-    if (!exact) strcat(buf, "*");
-    strcat(buf, name);
-    if (!exact) strcat(buf, "*");
-    res=write_command(CMD_LIST, 1, &buf);
-    free(buf);
-    if (res<1) return NULL;
-
-    code=return_code();
-    if ((code<0) || (code>400)) return NULL;
-    while((res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1))>=0)
-    {
-      if (res<4) break; /* Existe pas... */
-      buf2=strchr(tcp_line_read,' ');
-      if (buf2==NULL) continue;
-      *buf2='\0';
-      buf=tcp_line_read+(flag ? strlen(Options.prefixe_groupe) : 0);
-      if ((order=calcul_order(buf,name))!=-1) {
-	*buf2=' ';
-        if ((best_order==-1) || (best_order>order)) {
-	  buf3=safe_strdup(tcp_line_read);
-	  best_order=order;
-	}
-      }
-    }
-    if (buf3) {
-       strcpy(tcp_line_read,buf3); free(buf3);
-       return un_nouveau_newsgroup(tcp_line_read);
-    }
-    return NULL;
+    cnr_ajoute_elem(NULL,0,-1,NULL);
+    cherche_newsgroups_base (name, reg, flag+(exact * 4),
+	    &cnr_ajoute_elem, &calcul_order, (void **) &retour);
+    return retour;
 }
 
-/*  La fonction est semblable à cherche_newsgroup_re, mais elle créée un */
-/* menu au lieu de renvoyer le premier newsgroup obtenu */
-/* si avec_reg & 2, on utilise options.prefixe_groupe */
-/* name peut être NULL */
 Liste_Menu *menu_newsgroup_re (char *name, regex_t reg, int avec_reg)
 {
-    Liste_Menu *lemenu=NULL, *courant=NULL;
-    int res, code, order;
-    Newsgroup_List *creation;
-    char *buf;
-    buf=safe_malloc((MAX_NEWSGROUP_LEN+12)*sizeof(char));
-    strcpy(buf, "active ");
-    if (avec_reg & 2) strcat(buf,Options.prefixe_groupe);
-    if (!(avec_reg & 1)) strcat(buf,"*");
-    if (name) {
-      strcat(buf, name);
-      if (!(avec_reg & 1)) strcat(buf,"*");
-    }
-    res=write_command(CMD_LIST, 1, &buf);
-    free(buf);
-    if (res<1) return NULL;
-    code=return_code();
-    if ((code<0) || (code>400)) return NULL;
-    while((res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1))>=0)
+    Liste_Menu *lemenu=NULL,*courant=NULL;
+    int flag;
+
+    int mnr_ajoute_elem (void *param, int flag, int order, void **retour)
     {
-      if (res<4) return lemenu; /* On peut repartir */
-      buf=strchr(tcp_line_read,' ');
-      if (buf==NULL) continue;
-      *buf='\0';
-      order=((avec_reg & 1) ? calcul_order_re(tcp_line_read+(avec_reg & 2 ? strlen(Options.prefixe_groupe):0),&reg) : calcul_order(tcp_line_read+(avec_reg & 2 ? strlen(Options.prefixe_groupe):0),name));
-      if (order!=-1) {
-	*buf=' ';
-	creation=un_nouveau_newsgroup(tcp_line_read);
-	courant=ajoute_menu_ordre(&lemenu,creation->name,creation,-1,order);
-      }
+       Newsgroup_List *creation;
+
+       if (param==NULL) {  /* retour */
+	  (Liste_Menu *) *retour = lemenu;
+          return 1;
+       } 
+
+       creation = un_nouveau_newsgroup((char *)param);
+       courant = ajoute_menu_ordre (&lemenu, creation->name, creation,
+	                           -1, order);
+
+       return 0;
     }
+
+    flag = ((avec_reg & 1)*2) + ((avec_reg & 2)?1:0);
+    cherche_newsgroups_base (name, reg, flag,
+	                &mnr_ajoute_elem,
+			(flag & 2) ? &calcul_order_re : &calcul_order, 
+			(void **) &lemenu);
     return lemenu;
 }
+
+/* Cherche dans la liste des groupes connus un groupe donné.
+ * Semblable à cherche_newsgroups_base, mais en différent
+ * flag & 1 : prefixe_group (unused), & 2 : regexp, & 4 : exact 
+ * flag & 8 : uniquement abonnés
+ * flag & 16 : uniquement non abonnés */
+int cherche_newsgroups_in_list (char *name, regex_t reg, int flag,
+	      int ajoute_elem (void *,int,int, void **), 
+	      int cal_order (char *, void *),
+	      void **retour)
+{
+    Newsgroup_List *parcours;
+    int ret,order;
+
+    parcours=Newsgroup_deb;
+    while (parcours) {
+      if ((flag & 8) && (parcours->flags & GROUP_UNSUBSCRIBED)) {
+	  parcours=parcours->next;
+	  continue;
+      }
+      if ((flag & 16) && !(parcours->flags & GROUP_UNSUBSCRIBED)) {
+	  parcours=parcours->next;
+	  continue;
+      }
+      if ((flag & 4) && (strcmp(parcours->name,name)!=0)) {
+	  parcours=parcours->next;
+	  continue;
+      }
+      if (((flag & 2) && regexec(&reg,parcours->name,0,NULL,0)!=0) ||
+          (!(flag & 2) && !strstr(parcours->name,name))) {
+	  parcours=parcours->next;
+	  continue;
+      }
+      order = ((flag & 2) ? cal_order (parcours->name,
+		                             (void *) &reg):
+	                    cal_order (parcours->name,
+				            (void *) name));
+      if (order!=-1) {
+         ret = ajoute_elem(parcours,flag,order,(void **)retour);
+         if (ret) return ret;
+      }
+      parcours=parcours->next;
+   }
+
+   return ajoute_elem(NULL, flag, 0, retour);
+}
+
+
 
 /* Renvoie -1 en cas d'erreur */
 /* 0 s'il n'y a rien de neuf  */
@@ -1082,7 +1141,8 @@ void Ligne_carac_du_groupe (void *letruc, char *lachaine,
   lachaine[taille-1]='\0';
 }
 
-int calcul_order(char *nom_gr, char *str) {
+int calcul_order(char *nom_gr, void *str_v) {
+    char *str = (char *)str_v;
     char *buf, *buf2;
     if (str==NULL) return 0;
     if ((buf=strstr(nom_gr,str))==NULL) return -1;
@@ -1090,7 +1150,8 @@ int calcul_order(char *nom_gr, char *str) {
     return (strlen(nom_gr)-strlen(str))*10-9*(buf-nom_gr);
 }
 
-int calcul_order_re(char *nom_gr, regex_t *sreg) {
+int calcul_order_re(char *nom_gr, void *sreg_v) {
+    regex_t *sreg = (regex_t *)sreg_v;
     int ret, bon=0, orderact, order=-1;
     char *buf=nom_gr;
     regmatch_t pmatch[1];

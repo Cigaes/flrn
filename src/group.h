@@ -85,7 +85,16 @@ extern void test_readonly(Newsgroup_List *);
 extern void zap_group_non_courant (Newsgroup_List *);
 extern void Ligne_carac_du_groupe (void *, char *, int );
 extern void get_group_description(Newsgroup_List *);
-extern int calcul_order(char *, char *);
-extern int calcul_order_re(char *, regex_t *);
+extern int calcul_order(char *, void *);
+extern int calcul_order_re(char *, void *);
+
+extern int cherche_newsgroups_base (char *, regex_t, int, 
+	         int (void *, int, int, void **),
+		 int (char *, void *),
+		 void **);
+extern int cherche_newsgroups_in_list (char *, regex_t, int,
+	         int (void *, int, int, void **),
+		 int (char *, void *),
+		 void **);
 
 #endif

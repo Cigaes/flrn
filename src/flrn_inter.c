@@ -831,7 +831,8 @@ static int get_str_arg(int res, char *beg) {
       str+=strlen(str);
       *(str++)='\\';
    }
-   strcpy(str,Flcmds[res].nom);
+   if (res<NB_FLCMD) strcpy(str,Flcmds[res].nom);
+       else strcpy(str,"macro");
    strcat(str,") : ");
    col=Aff_fin(cmd_line);
    str=cmd_line;
@@ -893,6 +894,7 @@ int get_command_command(int get_com
    /* res = 0 */
 #ifdef USE_SLANG_LANGUAGE
    if (une_commande.fun_slang) {
+      if (debug) { fprintf(stderr,"slang parse: %s\n",une_commande.fun_slang); }
       *slang_fun = Parse_fun_slang(une_commande.fun_slang, &a);
       free(une_commande.fun_slang);
       une_commande.fun_slang=NULL;
@@ -904,16 +906,34 @@ int get_command_command(int get_com
       res2=NB_FLCMD+a; /* pour signifier une fonction slang ,
                     on pourra éventuellement penser à modifier ça, ensuite */
       une_commande.maybe_after=0;
-   }
-   else 
+   } else
 #endif
-     res2=une_commande.cmd[CONTEXT_COMMAND];
+   res2=une_commande.cmd[CONTEXT_COMMAND];
    if (une_commande.before) 
       Parse_nums_article(une_commande.before,NULL,0);
    if (une_commande.after) {
       res2=parse_arg_string(une_commande.after,res2,1);
       free(une_commande.after);
    }
+#ifdef USE_SLANG_LANGUAGE
+   if ((res2!=FLCMD_UNDEF) && (res2 & FLCMD_MACRO)) {
+       int res3,res4;
+       res4 = res2 ^ FLCMD_MACRO;
+       res3 = Flcmd_macro[res4].cmd;
+       if (res3>=NB_FLCMD) {
+            /* fonction SLANG */
+	    *slang_fun = Parse_fun_slang(Flcmd_macro[res4].fun_slang, &a);
+            if ((Flcmd_macro[res4].arg==NULL) && 
+		 (((res3-NB_FLCMD) & 1) 
+	      || ( ((!Options.forum_mode) && ((res3-NB_FLCMD) & 8))
+              || ((Options.forum_mode) && ((res3-NB_FLCMD) & 4)) ))) {
+		res=get_str_arg(res2,une_commande.before);
+		if (res==-1) res2=-2;
+            }
+       }
+   }
+   else
+#endif
    if ((res2!=FLCMD_UNDEF) && ((res2 & FLCMD_MACRO)==0)) {
    /* Testons si on a besoin d'un (ou plusieurs) parametres */
      if ((une_commande.maybe_after) && 
@@ -3327,11 +3347,26 @@ int Exec_function_on_article(Article_List *a_sauver, void *la_fun)
   return 0;
 }
 
+/* effect = 1 : changer de groupe */
+int side_effect_of_slang_command (int rt, Newsgroup_List *new,
+	 int num_futur_article, int etat, int hors_struct) {
+    static int ret;
+
+    if (rt==-100) return ret;
+    ret=rt;
+    etat_loop.Newsgroup_nouveau=new;
+    etat_loop.num_futur_article=0;
+    etat_loop.etat=etat;
+    etat_loop.hors_struct=hors_struct;
+    return ret;
+}
+
 int Execute_function_slang_command(int type_fun, SLang_Name_Type *slang_fun)
 {
   char *name=Arg_str;
   Numeros_List *courant=&Arg_do_funcs;
 
+  side_effect_of_slang_command(0,NULL,0,0,0);
   if ((type_fun & 4)==0) {
     SLang_start_arg_list ();
     if (type_fun & 2) 
@@ -3351,6 +3386,6 @@ int Execute_function_slang_command(int type_fun, SLang_Name_Type *slang_fun)
     fonction.type_fun=type_fun;
     distribue_action(courant, Exec_function_on_article, NULL, &fonction, 0);
   }
-  return 0;
+  return (side_effect_of_slang_command(-100,NULL,0,0,0));
 }
 #endif

@@ -14,6 +14,7 @@
 #define FLRN_INTER_H
 
 #include "flrn_comp.h"
+#include "group.h"
 
 typedef struct command_desc {
    char *nom;
@@ -41,5 +42,10 @@ extern void init_Flcmd_rev(void);
 extern int Bind_command_explicite(char * /*nom*/, int /*key*/, char *, int);
 extern void save_etat_loop(void);
 extern void restore_etat_loop(void);
+
+#ifdef USE_SLANG_LANGUAGE
+extern int side_effect_of_slang_command (int, Newsgroup_List *,
+	         int , int , int );
+#endif
 
 #endif
