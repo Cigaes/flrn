@@ -69,6 +69,7 @@ int Keyboard_getkey() { int n; SLKeyBoard_Quit=KeyBoard_Quit;
   			KeyBoard_Quit=SLKeyBoard_Quit; return n; }
 void Reset_keyboard() { SLang_reset_tty(); }
 void Screen_beep() { SLtt_beep(); }
+void Screen_set_screen_start(int *r, int *c) { SLsmg_set_screen_start(r,c); };
 
 
 
@@ -252,9 +253,9 @@ void Retire_line(File_Line_Type *line) {
     if (line->data) 
       free(line->data);
     if (line->prev) line->prev->next=NULL;
-      Line_Window.num_lines--;
-      free(line);
+    Line_Window.num_lines--;
     if (line==Text_scroll) Text_scroll=NULL;
+    free(line);
     return;
 }
 

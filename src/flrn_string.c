@@ -148,3 +148,26 @@ char get_char(Lecture_List *chaine, int n) {
       if (chaine->prec) return get_char(chaine->prec, n-chaine->size);
       else return 0;
 }
+
+/* recherche un caractère en partant de la fin et renvoie la place suivante */
+/* (sert pour la recherche d'un debut de ligne...) */
+void cherche_char(Lecture_List **chaine, int *place, char c) {
+    Lecture_List *courant=*chaine;
+    int s=courant->size-1;
+
+    while (s>=0) {
+      if (courant->lu[s]==c) {
+         *chaine=courant;
+	 *place=s+1;
+         return;
+      }
+      s--;
+      if ((s<0) && (courant->prec)) {
+         courant=courant->prec;
+	 s=courant->size-1;
+      }
+    }
+    *chaine=courant;
+    *place=0;
+}
+   

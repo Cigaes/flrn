@@ -24,5 +24,6 @@ extern char get_char(Lecture_List * /*chaine*/, int /*n*/);
 extern int str_cat (Lecture_List ** /*chaine1*/, char * /*chaine*/);
 extern int str_ch_cat(Lecture_List ** /*chaine1*/, Lecture_List * /*chaine2*/,
     int /*place*/, char /*chr*/);
+extern void cherche_char(Lecture_List ** /*chaine*/, int * /*place*/, char /*c*/);
 
 #endif

@@ -29,6 +29,8 @@
 #include "rfc2047.h"
 #include "flrn_regexp.h"
 
+#define DEFAULT_SIZE_LINE 72
+
 extern char short_version_string[];
 
 Lecture_List *Deb_article;
@@ -339,6 +341,8 @@ static int analyse_ligne (Lecture_List **d_l, int *place) {
 
 /* Obtention du corps du post.					*/
 /* La gestions des points doubles ne se fait pas.		*/
+static int Screen_Start;
+
 static int get_Body_post() {
    int key, act_col=0, act_row=4, size_debligne, fin=0;
    char chr;
@@ -346,8 +350,10 @@ static int get_Body_post() {
    char *ligne_courante, *ptr_ligne_cou;
    Lecture_List *lecture_courant, *debut_ligne;
    int already_init=0, incl_in_auto=-1;
-   int empty=1;
+   int empty=1, size_max_line;
+   int screen_start=0;
 
+   Screen_Start=0;
    Deb_body=lecture_courant=debut_ligne=alloue_chaine();
    if (Options.auto_edit) {
       int place, res;
@@ -385,10 +391,48 @@ static int get_Body_post() {
 
    Cursor_gotorc(4,0);
    size_debligne=0;
-   ptr_ligne_cou=ligne_courante=safe_malloc((Screen_Cols+1)*sizeof(char));
+   size_max_line=(Screen_Cols > DEFAULT_SIZE_LINE ? Screen_Cols+1 : DEFAULT_SIZE_LINE+1);
+   ptr_ligne_cou=ligne_courante=safe_malloc(size_max_line*sizeof(char));
    *ptr_ligne_cou='\0';
 
    do {
+      if (act_col-Screen_Start>=Screen_Cols) {
+        screen_start=Screen_Start;
+        Screen_Start=act_col-Screen_Cols+1;
+	if (screen_start!=Screen_Start) {
+	  screen_start=Screen_Start;
+	  Screen_set_screen_start(NULL,&screen_start);
+	  if (last_line) {
+            if (!already_init) {
+              Init_Scroll_window(act_row-4,4,Screen_Rows-5);
+              already_init=1;
+            }
+            Do_Scroll_Window(0,1);
+	  }
+          Cursor_gotorc(act_row,0);
+          Screen_write_string(ligne_courante);
+          Screen_erase_eol();
+	}
+      } else
+      if (act_col-Screen_Start<=1) {
+        screen_start=Screen_Start;
+        if (act_col<Screen_Cols) Screen_Start=0; else
+	   Screen_Start=act_col-Screen_Cols+1;
+	if (screen_start!=Screen_Start) {
+	  screen_start=Screen_Start;
+	  Screen_set_screen_start(NULL,&screen_start);
+	  if (last_line) {
+            if (!already_init) {
+               Init_Scroll_window(act_row-4,4,Screen_Rows-5);
+               already_init=1;
+            }
+            Do_Scroll_Window(0,1);
+	  }
+          Cursor_gotorc(act_row,0);
+          Screen_write_string(ligne_courante);
+          Screen_erase_eol();
+	}
+      }
       key=Attend_touche();
       if (sigwinch_received || KeyBoard_Quit) {
            lecture_courant->lu[lecture_courant->size]='\0';
@@ -400,12 +444,18 @@ static int get_Body_post() {
       if (key=='\r') key='\n';
       if ((key==FL_KEY_BACKSPACE) || (key==21) || (key==23)) {
 	int mottrouve=0;
+	int lignetrouvee=0;
+	int retour_enleve=0;
 	do {
 	  
+	  if (retour_enleve) break;
 	  chr=get_char(lecture_courant,1);
 	  if ((key==23) && (mottrouve) && (isblank(chr))) break;
-	  mottrouve=!isblank(chr);
-	  if ((chr=='\0') || (chr=='\n')) break;
+	  if ((chr=='\n') && ((last_line==NULL) || (lignetrouvee))) break;
+	  mottrouve=(!isblank(chr)) || (chr=='\n');
+	  lignetrouvee=1; /* on ne poursuit jamais au-dela d'une ligne */
+	  retour_enleve=(chr=='\n');
+	  if (chr=='\0') break;
           enleve_char(&lecture_courant);
 	  if (chr==9)  
 	      act_col=recalc_col(ligne_courante,1);
@@ -413,14 +463,35 @@ static int get_Body_post() {
 	  if (act_col<0) {
 	      Read_Line(ligne_courante, last_line);
 	      ptr_ligne_cou=index(ligne_courante, '\0');
-	      *(--ptr_ligne_cou)='\0';
+	      /* On enleve le dernier caractere de la ligne si on n'a pas */
+	      /* enleve le saut de ligne (logique, non ?) */
+	      if (chr!='\n')
+	        *(--ptr_ligne_cou)='\0';
 	      if (last_line->prev) 
-	         last_line=last_line->prev;
-	      Retire_line(last_line);
+	      {
+		 last_line=last_line->prev;
+	         Retire_line(last_line);
+              } else
+	      {
+	         Retire_line(last_line);
+		 last_line=NULL;
+		 already_init=0;
+	      }
 	      Cursor_gotorc(act_row, 0);
 	      Screen_erase_eol();
               act_col=recalc_col(ligne_courante, 0);
 	      act_row--;
+	      if (act_row<4) {
+		 if (already_init) Do_Scroll_Window(-1,0);
+		 act_row=4;
+		 Cursor_gotorc(act_row,0);
+	         Screen_write_string(ligne_courante);
+	      }
+	      if (chr=='\n') { 
+	         /* on doit recalculer deb_line et size_deb_line */
+		 debut_ligne=lecture_courant;
+		 cherche_char(&debut_ligne,&size_debligne,'\n');
+	      }
 	  } else *(--ptr_ligne_cou)='\0';
 	  Cursor_gotorc(act_row,act_col);
 	  Screen_erase_eol();
@@ -473,6 +544,9 @@ static int get_Body_post() {
 	   fin=0;
 	   act_row=4; act_col=0;
 	   already_init=0;
+	   last_line=NULL;
+	   Screen_Start=screen_start=0;
+	   Screen_set_screen_start(NULL,NULL);
 	 }
          Cursor_gotorc(act_row, act_col);
       } else
@@ -484,11 +558,10 @@ static int get_Body_post() {
 	 *(ptr_ligne_cou++)=key;
 	 *ptr_ligne_cou='\0';
 	 ajoute_char(&lecture_courant, key);
-         if (act_col>=Screen_Cols) {
-#define MODE_PAS_BO
-#ifdef MODE_PAS_BO /* On remplace si possible par une nouvelle ligne */
-	           /* Mais c'est pas bo. */
+         if (act_col>=DEFAULT_SIZE_LINE) {
+/* Cette configuration tordue de l'éditeur intégrée a été suggérée par APO */
 	     char *beuh1;
+	     int on_change=0;
 	     beuh1=strrchr(ligne_courante,' ');
 	     if (beuh1) {
 	       char *beuh2;
@@ -509,32 +582,30 @@ static int get_Body_post() {
 	       enleve_char(&lecture_courant);
 	       ajoute_char(&lecture_courant, '\n');
 	       str_cat(&lecture_courant,ligne_courante);
-	     } else {
-#else 
-	    last_line=Ajoute_line(ligne_courante);
-	    ptr_ligne_cou=ligne_courante;
-	    *ptr_ligne_cou='\0';
-	    act_col=0;
-#endif
-#ifdef MODE_PAS_BO
+	       on_change=1;
+	    } else if (act_col>=Screen_Cols) {
+	       last_line=Ajoute_line(ligne_courante);
+	       ptr_ligne_cou=ligne_courante;
+	       *ptr_ligne_cou='\0';
+	       act_col=0;
+	       on_change=1;
 	    }
-#endif
-            act_row++;
-	    if (act_row>=Screen_Rows) {
-	       if (!already_init) {
+	    if (on_change) {
+              act_row++;
+	      if (act_row>=Screen_Rows) {
+	         if (!already_init) {
                    Init_Scroll_window(Screen_Rows-4,4,Screen_Rows-5);
 		   already_init=1;
-	       }
-	       Do_Scroll_Window(1,1);
+	         }
+	         Do_Scroll_Window(1,1);
 /* On efface la ligne devenue superflue */
-	       Cursor_gotorc(Screen_Rows-1,0);
-#ifdef MODE_PAS_BO
-	       Screen_write_string(ligne_courante);
-#endif
-	       Screen_erase_eol();
-	       act_row=Screen_Rows-1;
-	    }
-            Cursor_gotorc(act_row,act_col);
+	         Cursor_gotorc(Screen_Rows-1,0);
+	         Screen_write_string(ligne_courante);
+	         Screen_erase_eol();
+	         act_row=Screen_Rows-1;
+	      }
+              Cursor_gotorc(act_row,act_col);
+	   }
          }
       }
    } while (!fin);
@@ -1266,6 +1337,7 @@ int post_message (Article_List *origine, char *name_file,int flag) {
 	  Screen_write_string("Votre article de remplacement : ");
       }
       res=get_Body_post();
+      Screen_set_screen_start(NULL,NULL);
     }
     if (!Header_post->k_header[SUBJECT_HEADER]) res=0;
     if (res<=0) {

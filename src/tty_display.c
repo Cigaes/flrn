@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <signal.h>
+#include <unistd.h>
 
 #include <ctype.h>
 
@@ -199,7 +200,7 @@ int Aff_error_fin(const char *str, int s_beep) {
    Screen_erase_eol();
    Cursor_gotorc(Screen_Rows-1, Screen_Cols-1); 
    Screen_refresh();
-   error_fin_displayed=1;
+   if (Options.short_errors) sleep(1); else error_fin_displayed=1;
    return 0;
 }
 

@@ -108,6 +108,7 @@ struct Option_struct {
   char *hist_file_name;
   int  warn_if_new;
   char *default_flnewsfile;
+  int short_errors;
 };
 
 extern struct Option_struct Options;
@@ -193,6 +194,7 @@ static struct {
   MAKE_STRING_OPT(savepath,"Répertoire ou sauver les articles."),
   MAKE_OPT(scroll_after_end,"Modifie le comportement final du scrolling."),
   MAKE_STRING_OPT_NAME_L(server,serveur_name,"Nom du serveur de news."),
+  MAKE_OPT(short_errors,"flrn n'affiche les erreurs en bas qu'une seconde."),
   MAKE_OPT(simple_post,"Tente de faciliter le posts des messages."),
   MAKE_INTEGER_OPT(skip_line,"Nombre de lignes blanches après la barre de statut."),
   MAKE_OPT(space_is_return,"Cette option définie, la commande \\next ne permet pas de changer de groupe."),
