@@ -1173,12 +1173,12 @@ const char *parse_ContentType_header (flrn_char *contenttype_line) {
        buf=fl_strchr(buf,fl_static(';'));
        if (buf) {
 	   buf++;
-	   while ((*buf) && (fl_isblank(*buf))) buf++;
+	   while ((*buf) && (fl_isspace(*buf))) buf++;
 	   if (fl_strncasecmp(buf,fl_static("charset"),7)==0) {
 	      buf=fl_strchr(buf,fl_static('='));
 	      if (buf) {
 		  buf++;
-		  while ((*buf) && (fl_isblank(*buf))) buf++;
+		  while ((*buf) && (fl_isspace(*buf))) buf++;
 		  if (*buf) {
 		      if (*buf==fl_static('"')) buf++;
 		      buf2=buf;
