@@ -589,6 +589,35 @@ size_t fl_conv_to_flstring (char **inbuf, size_t *inbl,
 	    (const char **)inbuf, inbl, outbuf, outptr, outbl);
 }
 
+/* conversion avec '?' pour les caractères incorrects */
+size_t fl_appconv_to_flstring_ce (struct conversion_etat *ce,
+	const char **inbuf, size_t *inbl, 
+	flrn_char **outbuf, flrn_char **outptr, size_t *outbl) {
+    size_t res;
+    flrn_mbstate ps;
+    memset(&ps,0,sizeof(flrn_mbstate));
+    while (1) {
+	res=fl_conv_to_flstring_ce(ce,inbuf,inbl,outbuf,outptr,outbl);
+	if (((int)res==-1) && (errno==EILSEQ)) {
+#if 0
+	    (*inbl)--; (*outbl)--; (*inbuf)++; **outptr='?';
+	    (*outptr)++;
+#else
+	    /* on suppose qu'on est en locale utf8, ce qui est la norme */
+	    **outptr=fl_static('?'); (*outptr)++; (*outbl)--;
+	    (*inbl)--; (inbuf)++;
+	    if (*inbl==0) return 0;
+#endif
+	} else return res;
+    }
+}
+
+size_t fl_appconv_to_flstring (char **inbuf, size_t *inbl, 
+        flrn_char **outbuf, flrn_char **outptr, size_t *outbl) {
+    return fl_appconv_to_flstring_ce(&(conv_base[LOCA_CONV]),
+	    (const char **)inbuf, inbl, outbuf, outptr, outbl);
+}
+
 /* ouverture du canal de conversion "reverse" (chaîne courante vers
  * encodage locale). N'existe qu'avec la version "multi-byte".  */
 /* retour : 0 : OK . -1 : erreur */
@@ -1045,7 +1074,7 @@ int conversion_from_generic(struct conversion_etat *ce,
 	resptr=*resbuf;
 	resl=len;
     }
-    res2 = fl_conv_to_flstring_ce(ce,
+    res2 = fl_appconv_to_flstring_ce(ce,
 		&str, &lenstr, resbuf,&resptr,&resl);
     if ((res2!=(size_t)(-3)) && (resptr)) *resptr=fl_static('\0');
     if ((res2==(size_t)(-1)) || (res2==(size_t)(-2))) return -1;
@@ -1163,7 +1192,7 @@ const char *parse_ContentType_header (flrn_char *contenttype_line) {
 		  if (*buf) {
 		      if (*buf==fl_static('"')) buf++;
 		      buf2=buf;
-		      while ((*buf2) && (!fl_isblank(*buf2)) &&
+		      while ((*buf2) && (!fl_isspace(*buf2)) &&
 			      (*buf2!=fl_static('"'))) buf2++;
 		      sc=*buf2;
 		      *buf2=fl_static('\0');
