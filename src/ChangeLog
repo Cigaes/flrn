@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. macros, commande toggle... ca foire bien...
 . unification des flags
 . put-flag, on-selected
 . nxt-search

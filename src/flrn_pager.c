@@ -38,9 +38,10 @@ int get_new_pattern() {
 }
 
 /* retour : -4 : CONTEXT_COMMAND */
-int get_command_pager(int une_touche, int endroit, int cmd) {
-   int res, res2;
+int get_command_pager(int une_touche, int endroit, int cmd, int *number) {
+   int res, res2, bef=0;
 
+   *number=0;
    if (cmd==0) endroit=1;
    res=get_command(une_touche,(endroit ? CONTEXT_PAGER : CONTEXT_COMMAND),
 	   	(cmd ? (endroit ? CONTEXT_COMMAND : CONTEXT_PAGER) : -1), 
@@ -50,10 +51,18 @@ int get_command_pager(int une_touche, int endroit, int cmd) {
    if (res<0) return res;
    if (res==endroit) return -4;
    /* Le search */
-   if (une_commande.before) free(une_commande.before);
+   if (une_commande.before) {
+      bef=1;
+      *number=strtol(une_commande.before,NULL,10);
+      /* la on ne peut avoir que des nombres */
+      free(une_commande.before);
+   }
    res2=une_commande.cmd[CONTEXT_PAGER];
    if (res2!=FLCMD_PAGER_SEARCH) {
-      if (une_commande.after) free(une_commande.after);
+      if (une_commande.after) {
+         if (!bef) *number=strtol(une_commande.after,NULL,10);
+         free(une_commande.after);
+      }
       return res2;
    }
    if (une_commande.after) {
@@ -88,7 +97,7 @@ int get_command_pager(int une_touche, int endroit, int cmd) {
 int Page_message (int num_elem, int short_exit, int key, int act_row,
     			int row_deb, char *exit_chars, char *end_mesg,
 			int (in_wait)(int)) {
-  int percent, nll, deb=1, le_scroll, at_end, to_wait, res;
+  int percent, nll, deb=1, le_scroll, at_end, to_wait, res, number;
   char buf3[15], *buf=NULL;
 
   to_wait=(in_wait==NULL ? 0 : 1);
@@ -97,24 +106,30 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
     le_scroll=Do_Scroll_Window(0,deb);
     if ((exit_chars) && (strchr(exit_chars,key)))
  	return (key | (at_end ? MAX_FL_KEY : 0));
-    res=get_command_pager(key,(short_exit) && (at_end==0),short_exit);
+    res=get_command_pager(key,(short_exit) && (at_end==0),short_exit, &number);
+    if (number<1) number=1;
     if (res==-4) {
        if (short_exit) return (at_end ? MAX_FL_KEY : 0);
     }
     switch (res) {
        case FLCMD_PAGER_PGUP : 
-	     le_scroll=Do_Scroll_Window(-Screen_Rows+act_row+1,deb); break;
+	     le_scroll=Do_Scroll_Window(number*(-Screen_Rows+act_row+1),deb); 
+	     break;
        case FLCMD_PAGER_PGDOWN : 
 		 nll=Number_current_line_scroll()+Screen_Rows-act_row-2;
 		 le_scroll=Do_Scroll_Window(
 		     ((!Options.scroll_after_end) && 
-		      (num_elem-nll<Screen_Rows-(deb ? row_deb : act_row))) ?
+		      (num_elem-nll<number*(Screen_Rows-1)
+		                    -(deb ? row_deb : act_row)
+				    -(number-1)*act_row)) ?
 		     num_elem-nll :
-                     (Screen_Rows- (deb ? row_deb : act_row)-1),deb);
+                     (number*(Screen_Rows-1)
+		      -(deb ? row_deb : act_row)
+		      -(number-1)*act_row),deb);
                  break;
-      case FLCMD_PAGER_DOWN : le_scroll=Do_Scroll_Window(1,deb);
+      case FLCMD_PAGER_DOWN : le_scroll=Do_Scroll_Window(number,deb);
                  break;
-      case FLCMD_PAGER_UP : le_scroll=Do_Scroll_Window(-1,deb);
+      case FLCMD_PAGER_UP : le_scroll=Do_Scroll_Window(-number,deb);
                  break;
       case FLCMD_PAGER_SEARCH : { int ret;
       				 ret=New_regexp_scroll (pattern_search);
@@ -124,8 +139,12 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
 				      break;
 				  }
 				}  /* On continue */
-      case FLCMD_PAGER_NXT_SCH : { int ret;
-      				   ret=Do_Search(deb,&le_scroll,0);
+      case FLCMD_PAGER_NXT_SCH : { int ret=0;
+      				   while (number) {
+      				      ret=Do_Search(deb,&le_scroll,0);
+				      if (ret<0) break;
+				      number--;
+				   }
 				   if (ret==-1) 
 				       Aff_error_fin(Messages[MES_NO_SEARCH],1,1);
 				   else if (ret==-2)

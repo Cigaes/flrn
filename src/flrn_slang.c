@@ -429,6 +429,19 @@ int Do_Search(int just_do, int *le_scroll, int from_top) {
    return 0;
 }
 
+/* Un truc bien crade */
+int Parcours_du_menu(int a) {
+   static File_Line_Type *line;
+   if (a<0) return 0;
+   if (a==0) line=Line_Window.lines;
+   else while (a) {
+      if (line) line=line->next;
+      if (line==NULL) line=Line_Window.lines;
+      a--;
+   }
+   return (line->data_save!=NULL);
+}
+
 int Number_current_line_scroll() {
   return (Line_Window.line_num);
 }

@@ -10,9 +10,10 @@ typedef struct liste_menu_desc {
    void *lobjet; /* Ceci n'est pas libéré non plus !!! */
    struct liste_menu_desc *prec, *suiv;
    int changed; /* interne, quand on vient de changer la ligne */
+   int toggled; /* pour le toggle */
 } Liste_Menu;
 
-#define NB_FLCMD_MENU 8
+#define NB_FLCMD_MENU 9
 #define FLCMD_MENU_UNDEF -1
 extern char *Flcmds_menu[NB_FLCMD_MENU];
 
@@ -35,8 +36,10 @@ char *Flcmds_menu[NB_FLCMD_MENU] =
 #define FLCMD_MENU_SELECT 5
      "search",
 #define FLCMD_MENU_SEARCH 6
-     "nxt-search"
+     "nxt-search",
 #define FLCMD_MENU_NXT_SCH 7
+     "toggle"
+#define FLCMD_MENU_TOGGLE 8
 };
 
 #define CMD_DEF_MENU (sizeof(Cmd_Def_Menu)/sizeof(Cmd_Def_Menu[0]))

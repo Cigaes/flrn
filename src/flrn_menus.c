@@ -24,20 +24,44 @@ int *Flcmd_menu_rev = &Flcmd_rev[CONTEXT_MENU][0];
 /* Je préfère la déclarer en extern ici */
 extern int get_new_pattern();
 
+int get_signification(char *str) {
+   int a;
+   while ((*str) && (isblank(*str))) str++;
+   if (*str=='\0') return 1;
+   switch (*str) {
+         case '*' : return -1; /* tout */
+         case '.' : return -2; /* selected */
+         case '_' : return -3; /* tout ce qui matche */
+         case '<' : return -4; /* tout ce qui precede */
+         case '>' : return -5; /* tout ce qui suit */
+         default :  a=strtol(str,NULL,10);
+                    return (a<1 ? 1 : a);
+   }
+}
+
+
 /* retour : -4 : CONTEXT_COMMAND */
-int get_command_menu(int with_command)  {
-   int res, res2;
+int get_command_menu(int with_command, int *number)  {
+   int res, res2, bef=0;
 
    res=get_command(0,CONTEXT_MENU, (with_command ? CONTEXT_COMMAND : -1), &une_commande);
    if (res==-1)
       Aff_error_fin(Messages[MES_UNKNOWN_CMD],1,1);
    if (res<0) return res;
    if (res==1) return -4;
+   *number=1;
    /* Le search */
-   if (une_commande.before) free(une_commande.before);
+   if (une_commande.before) {
+      bef=1;
+      *number=get_signification(une_commande.before);
+      free(une_commande.before);
+   }
    res2=une_commande.cmd[CONTEXT_MENU];
    if (res2!=FLCMD_MENU_SEARCH) {
-      if (une_commande.after) free(une_commande.after);
+      if (une_commande.after) {
+	  if (!bef) *number=get_signification(une_commande.after);
+	  free(une_commande.after);
+      }
       return res2;
    }
    if (une_commande.after) {
@@ -64,7 +88,7 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
 	      int (action_select)(Liste_Menu *, Liste_Menu **,
 	          char *,int, Cmd_return *, int *), char *chaine) 
 {
-  int act_row=1+Options.skip_line, last_act_row, num_elem=0;
+  int act_row=1+Options.skip_line, last_act_row, num_elem=0, number=1;
   int correct=0; /* Pour savoir si on s'arrete ou pas... */
   Liste_Menu *courant=actuel, *parcours=debut_menu;
   int avant=1;
@@ -91,6 +115,7 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
     if (avant) act_row++; 
     num_elem++;
     parcours->changed=0;
+    parcours->toggled=0;
     parcours=parcours->suiv;
   }
 /* Si le courant n'est pas défini, on prend le premier élément...	*/
@@ -117,7 +142,6 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
     int res,p,deb;
     int no_change_last_line=0;
     while (!correct) {
-      deb=0;
     
       /* On update, mais le but est de garder la même ligne... */
       if ((act_row<1+Options.skip_line) || 
@@ -136,11 +160,26 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
 	 Cursor_gotorc(Screen_Rows-2,0);
 	 Screen_erase_eol();
       }
+      parcours=courant;
+      for (deb=act_row;deb<Screen_Rows-2-Options.skip_line;deb++) {
+	 if (parcours==NULL) break;
+	 Cursor_gotorc(deb,1);
+	 Screen_write_char(parcours->toggled ? '*' : ' ');
+	 parcours=parcours->suiv;
+      }
+      parcours=courant->prec;
+      for (deb=act_row-1;deb>Options.skip_line;deb--) {
+	 if (parcours==NULL) break;
+	 Cursor_gotorc(deb,1);
+	 Screen_write_char(parcours->toggled ? '*' : ' ');
+	 parcours=parcours->prec;
+      }
+      deb=0;
       Cursor_gotorc(act_row,0);
       Screen_write_char('>');
       no_change_last_line=0;
       Aff_fin(chaine);
-      res=get_command_menu((action_select!=NULL));
+      res=get_command_menu((action_select!=NULL),&number);
       if (KeyBoard_Quit) {
          courant=NULL; break;
       }
@@ -200,22 +239,41 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
 	  }
 	  continue;
       }
+      if ((res!=FLCMD_MENU_TOGGLE) && (number<1)) number=1;
       switch (res) {
-	 case FLCMD_MENU_UP :  if (courant->prec!=NULL) {
-			    act_row--; courant=courant->prec; }
+	 case FLCMD_MENU_UP : while (number) { 
+	     		        if (courant->prec!=NULL) {
+			          act_row--; courant=courant->prec; }
+				else break;
+				number--;
+		              }
 			  break;
-	 case FLCMD_MENU_DOWN : if (courant->suiv!=NULL) {
-			    act_row++; courant=courant->suiv; }
-			   break;
-	 case FLCMD_MENU_PGUP : for (p=0;(p<(Screen_Rows-3-2*Options.skip_line))
-	 				    && (courant->prec); p++) {
-				    act_row--; 
-				    courant=courant->prec; }
+	 case FLCMD_MENU_DOWN : while (number) {
+				    if (courant->suiv!=NULL) {
+			              act_row++; courant=courant->suiv; }
+				    else break;
+				    number--;
+				}
+			        break;
+	 case FLCMD_MENU_PGUP : while (number) {
+				   for (p=0;(p<(Screen_Rows-3
+					   -2*Options.skip_line))
+					   && (courant->prec); p++) {
+				      act_row--; 
+				      courant=courant->prec; }
+				   if (courant->prec==NULL) break;
+				   number--;
+				}
 				break;
-	 case FLCMD_MENU_PGDOWN:for (p=0;(p<(Screen_Rows-3-2*Options.skip_line))
+	 case FLCMD_MENU_PGDOWN:while (number) {
+				    for (p=0;(p<(Screen_Rows-3
+						    -2*Options.skip_line))
 	 				    && (courant->suiv); p++) {
-				    act_row++; 
-				    courant=courant->suiv; }
+				       act_row++; 
+				       courant=courant->suiv; }
+				       if (courant->suiv==NULL) break;
+				       number--;
+				}
 				break;
 	 case FLCMD_MENU_QUIT : courant=NULL;
 			   correct=1; break;
@@ -229,30 +287,66 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
 				  if (ret) break;
 				  deb=1;
                                 } /* Continue */
-      case FLCMD_MENU_NXT_SCH : { int ret, le_scroll;
-                                   ret=Do_Search(deb,&le_scroll,
+         case FLCMD_MENU_NXT_SCH : { int ret, le_scroll;
+				   while (number) {
+                                      ret=Do_Search(deb,&le_scroll,
 				   		act_row-1-Options.skip_line);
-                                   if (ret==-1)
-                                       Aff_error_fin(Messages[MES_NO_SEARCH],1,1);
-                                   else if (ret==-2)
-                                       Aff_error_fin(Messages[MES_NO_FOUND],1,1);
-				   else if (le_scroll<0) {
-				       for (p=0;p<-le_scroll;p++) {
-					   if (courant->prec==NULL) break; 
+                                      if (ret==-1) {
+                                         Aff_error_fin(Messages[MES_NO_SEARCH]
+						 ,1,1);
+					 break;
+				      }
+                                      else if (ret==-2) {
+                                          Aff_error_fin(Messages[MES_NO_FOUND]
+					       ,1,1);
+					  break;
+				      } else if (le_scroll<0) {
+				         for (p=0;p<-le_scroll;p++) {
+					    if (courant->prec==NULL) break; 
 					               /* beurk !*/
-					   act_row--;
-					   courant=courant->prec;
-				       }
-				   } else if (le_scroll>0) {
-				       for (p=0;p<le_scroll;p++) {
-					   if (courant->suiv==NULL) break; 
-					   act_row++;
-					   courant=courant->suiv;
-				       }
-				   }
+					    act_row--;
+					    courant=courant->prec;
+				         }
+				      } else if (le_scroll>0) {
+				          for (p=0;p<le_scroll;p++) {
+					     if (courant->suiv==NULL) break; 
+					     act_row++;
+					     courant=courant->suiv;
+				          }
+				      }
+				      number--;
+				   } }
                                    break;
-                                 }
-
+         case FLCMD_MENU_TOGGLE : { int r=0;
+	                            parcours=((number>0) || (number==-5) ?
+	 					courant : debut_menu);
+				    if (number==-3) r=Parcours_du_menu(0);
+				    for (;parcours;
+				            parcours=parcours->suiv) {
+				       if (number==-2) {
+				          if (parcours->toggled)
+				             parcours->toggled=0;
+					  continue;
+				       }
+				       if (number==-3) {
+				          if (r) 
+					  parcours->toggled=1-parcours->toggled;
+					  r=Parcours_du_menu(1);
+					  continue;
+				       }
+				       parcours->toggled=1-parcours->toggled;
+				       if (number>0) {
+					  if (courant->suiv==NULL) break;
+					  courant=courant->suiv;
+				          number--;
+					  act_row++;
+					  if (number==0) break;
+				       } else 
+				       if ((number==-4) && (parcours==courant))
+				           break;
+			           }
+				   break;
+				 }
       }
     }
   }

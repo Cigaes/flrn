@@ -289,6 +289,7 @@ static void Aff_message(int type, int num)
     case -17 : Aff_error(Messages[MES_NO_HEADER]); break;
     case -18 : Aff_error(Messages[MES_REFUSED_HEADER]); break;
     case -19 : Aff_error(Messages[MES_INVAL_FLAG]); break;
+    case -20 : Aff_error(Messages[MES_MACRO_FORBID]); break;
     default : Aff_error(Messages[MES_FATAL]);
 	       break;
   }
@@ -300,7 +301,10 @@ int loop(char *opt) {
    int res=0, quit=0, ret;
    int to_build=0; /* il faut appeler cree_liste */
    int change;
+   Numeros_List *fin_de_param=NULL;
+   char Str_macro[MAX_CHAR_STRING];
    
+   Str_macro[0]='\0';
    etat_loop.hors_struct=11;
    etat_loop.etat=etat_loop.num_message=0;
    etat_loop.Newsgroup_nouveau=NULL;
@@ -443,9 +447,20 @@ int loop(char *opt) {
 	   if (etat_loop.next_cmd>=0) {
 	     res=etat_loop.next_cmd;
 	     etat_loop.next_cmd=-1; /* remis à jour ensuite */
-	     Arg_str[0]='\0';
-	   } else
+	     strncpy(Arg_str,Str_macro,99);
+	     if (fin_de_param==NULL) Arg_do_funcs.flags=0; else
+	     if (fin_de_param->next) fin_de_param->next->flags=0;
+	   } else {
 	     res=get_command_command(ret-1);
+	     if ((res>0) && (res & FLCMD_MACRO)) {
+	        strncpy(Str_macro,Arg_str,99);
+	        fin_de_param=&Arg_do_funcs;
+		if (fin_de_param->flags==0) fin_de_param=NULL;
+		else
+		  while ((fin_de_param->next) && (fin_de_param->next->flags))
+		      fin_de_param=fin_de_param->next;
+ 	     }
+	   }
 	   if ((res >0) && (res & FLCMD_MACRO)) {
 	     int num_macro= res ^FLCMD_MACRO;
 	     res = Flcmd_macro[num_macro].cmd;
@@ -1432,7 +1447,6 @@ int do_kill(int res) {
       distribue_action(courant,temp_kill_article,NULL,NULL);
   else
       distribue_action(courant,thread_distribue,NULL,&beurk);
-  etat_loop.etat=0;
   /* Est-ce un hack trop crade ? */
   courant->flags=0;
   Aff_not_read_newsgroup_courant();
@@ -2318,6 +2332,11 @@ int do_on_selected (int res) {
 	  return 0;
        }
      }
+  } else {
+     if (une_commande.before) free(une_commande.before);
+     etat_loop.etat=2;
+     etat_loop.num_message=-20;
+     return 0;
   }
   if (une_commande.before) free(une_commande.before);
   /* On ne teste pas CMD_NEED_GROUP, ça a déjà été testé :-) */

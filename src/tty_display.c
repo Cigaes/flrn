@@ -178,6 +178,7 @@ int Aff_error(const char *str) {
    Cursor_gotorc(row_erreur,col_erreur); 
    Screen_write_string((char *)str);
    Screen_set_color(FIELD_NORMAL);
+   error_fin_displayed=0;
    return 0;
 }
 
