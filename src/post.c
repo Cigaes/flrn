@@ -751,7 +751,8 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header, int i
    regex_t reg;
    Liste_Menu *lemenu;
 
-   if (strlen(nom)>MAX_NEWSGROUP_LEN) return nom;
+   if (strlen(nom)>=MAX_NEWSGROUP_LEN-(*copy_pre ? strlen(Options.prefixe_groupe) : 0))
+           return nom;
      /* Tant pis. Si le mec se fout de ma gueule, c'est réciproque */
    while (1) {
      if (to_test) {
@@ -800,13 +801,17 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header, int i
 	Screen_erase_eol();
 	if (key=='R') {
 	  if (*copy_pre) strcpy(nom2,Options.prefixe_groupe);
+	  strcat(nom2,nom);
 	  Screen_write_string("Nom du groupe : ");
 	  Screen_write_string(nom2);
 	  ret=flrn_getline(nom2,MAX_NEWSGROUP_LEN,Screen_Rows2-1,16);
 	  if (ret<0) {
 	     strcpy(nom2,nom);
 	     to_test=0;
-	  } else to_test=1;
+	  } else {
+	     to_test=1;
+	     *copy_pre=0;
+	  }
 	  continue;
 	} 
 	/* key=='M' */
@@ -827,17 +832,21 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header, int i
 	      continue;
 	   }
 	   mustmatch=reg_string(nom2,1);
-	   if (mustmatch!=NULL) lemenu=menu_newsgroup_re(mustmatch, reg,
+	   lemenu=menu_newsgroup_re(mustmatch, reg,
 	     				1+((*copy_pre)*2));
-	   else {
-	     regfree(&reg);
-	     strcpy(nom2,nom);
-	     to_test=0;
-	     continue;
-	   }
-	   free(mustmatch);
+	    if ((*copy_pre) && (lemenu==NULL)) {
+		lemenu=menu_newsgroup_re(mustmatch,reg,1);
+		if (lemenu) *copy_pre=0;
+            }
+	   if (mustmatch!=NULL) free(mustmatch);
 	   regfree(&reg);
-	} else lemenu=menu_newsgroup_re(nom2,reg,((*copy_pre)*2));
+	} else {
+	    lemenu=menu_newsgroup_re(nom2,reg,((*copy_pre)*2));
+	    if ((*copy_pre) && (lemenu==NULL)) {
+		lemenu=menu_newsgroup_re(nom2,reg,0);
+		if (lemenu) *copy_pre=0; 
+            }
+	}
 	     /* On passe n'importe quoi pour reg */
 	if (lemenu) {
 	  if (lemenu->suiv==NULL) {
@@ -845,6 +854,7 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header, int i
              if (in_newsgroup && (((Newsgroup_List *)(lemenu->lobjet))->flags &
 	                                        GROUP_MODERATED_FLAG))
                  in_moderated_group=1;
+	     *copy_pre=0;
 	     return nom2;
 	  }
 	  else {
