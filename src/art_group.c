@@ -27,7 +27,9 @@
 #include "tty_display.h"
 #include "rfc2047.h"
 #include "flrn_filter.h"
+#include "flrn_regexp.h"
 #include "post.h"
+#include "options.h"
 
 static UNUSED char rcsid[] = "$Id$";
 
@@ -1236,8 +1238,18 @@ int Est_proprietaire(Article_List *article) {
      if (!article->headers) return -1;
   }
   la_chaine=article->headers->k_headers[SENDER_HEADER];
-  if (!la_chaine) la_chaine=article->headers->k_headers[FROM_HEADER];
-  if (!la_chaine) return -1;
+  if (!la_chaine) {
+      regex_t reg;
+      la_chaine=article->headers->k_headers[FROM_HEADER];
+      if (!la_chaine) return -1;
+      if ((Options.alternate) 
+	       && (regcomp(&reg, Options.alternate, REG_EXTENDED)==0)) {
+         int ret;
+	 ret = regexec(&reg, la_chaine, 0, NULL, 0);
+	 regfree(&reg);
+	 if (ret==0) return 1;
+      }
+  }
 #ifndef DOMAIN
   /* On veut une adresse EXACTE */
   ladresse=safe_malloc(257+strlen(flrn_user->pw_name));

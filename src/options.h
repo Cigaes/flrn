@@ -163,6 +163,7 @@ struct Option_struct {
   char *default_domain;
 #endif
   int max_group_size;
+  char *alternate;
 };
 
 extern struct Option_struct Options;
@@ -215,6 +216,7 @@ static struct {
   union { int *integer; char **string; } value;
 } All_options[] = {
   MAKE_OPT(alpha_tree,"Pour avoir les arbres de thread (alpha)."),
+  MAKE_STRING_OPT(alternate, "Adresses alternatives."),
   MAKE_STRING_OPT(attribution,"Chaine précédent les citations."),
   MAKE_STRING_OPT_L(auth_user,"Nom de l'utilisateur pour l'authentification par le serveur"),
   MAKE_STRING_OPT_L(auth_pass,"Mot de passe pour l'authentification par le serveur"),

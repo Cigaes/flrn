@@ -56,6 +56,7 @@ struct etat_var {
    int hors_struct; /* 1       : hors_limite 
 		       2 et 3  : end_of_group ( => hors_limite )
 		       4 et 5  : under_group  ( => hors_limite )
+		       (7)     : groupe vide
 		       8 et 11 : hors_newsgroup ( => end_of_groupe ) */
    int etat, num_message; 
    /* etat=0 : afficher, etat=1 : message, etat=3 : rien, etat=4 : commande */
@@ -164,7 +165,6 @@ int do_cancel(int res);
 int do_abonne(int res);
 int do_remove_kill(int res);
 int do_add_kill(int res);
-int do_pipe_header(int res);
 int do_select(int res);
 int do_keybindings(int);
 int do_on_selected(int res);
@@ -1106,6 +1106,10 @@ static int my_tag_void(Article_List *article,void *vtag) {
 int do_tag (int res) {
   int tag;
   Numeros_List *courant=&Arg_do_funcs;
+  if (Article_courant==&Article_bidon) {
+      etat_loop.etat=1; etat_loop.num_message=3; 
+      etat_loop.hors_struct=7; return 0;
+  }
   tag = ((unsigned char)Arg_str[0]) +NUM_SPECIAL_TAGS;
   distribue_action(courant,my_tag_void,NULL,(void *) (long) tag, 0);
   etat_loop.etat=1; etat_loop.num_message=15;
@@ -1445,6 +1449,10 @@ int do_omet(int res) {
   char *name=Arg_str;
   int use_argstr=0, ret=0;
   
+  if (Article_courant==&Article_bidon) {
+      etat_loop.etat=1; etat_loop.num_message=3; 
+      etat_loop.hors_struct=7; return 0;
+  }
   beurk.flags_to_omit = 0;
   if ((res==FLCMD_OMET) || (res==FLCMD_GOMT)) {
      beurk.action=omet_article;
@@ -1522,6 +1530,10 @@ int do_kill(int res) {
   Numeros_List *courant=&Arg_do_funcs;
   Action_with_args beurk;
   
+  if (Article_courant==&Article_bidon) {
+      etat_loop.etat=1; etat_loop.num_message=3; 
+      etat_loop.hors_struct=7; return 0;
+  }
   beurk.action=kill_article;
   beurk.flag=NULL;
   beurk.flags_to_omit = 0;
@@ -2053,6 +2065,10 @@ int do_select(int res) {
   Thread_List *parcours=Thread_deb, *retour=NULL;
   Article_List *art_ret;
 
+  if (Article_courant==&Article_bidon) {
+      etat_loop.etat=1; etat_loop.num_message=3; 
+      etat_loop.hors_struct=7; return 0;
+  }
   min_kill_l=max_kill_l=-1;
   filt=new_filter();
   act=tag_and_minmax_article;
@@ -2134,6 +2150,10 @@ int do_save(int res) {
   struct stat status;
   Numeros_List *courant=&Arg_do_funcs;
 
+  if (Article_courant==&Article_bidon) {
+      etat_loop.etat=1; etat_loop.num_message=3; 
+      etat_loop.hors_struct=7; return 0;
+  }
   while ((*name) && (isblank(*name))) name++;
   if (name[0]=='\0') {
     use_argstr=1;
@@ -2204,6 +2224,10 @@ int do_launch_pager(int res) {
   Numeros_List *courant=&Arg_do_funcs;
   int fd;
 
+  if (Article_courant==&Article_bidon) {
+      etat_loop.etat=1; etat_loop.num_message=3; 
+      etat_loop.hors_struct=7; return 0;
+  }
   fd=Pipe_Msg_Start(1,0,NULL);
   fichier=fdopen(fd,"w");
   if (fichier==NULL) {
@@ -2265,6 +2289,10 @@ int do_pipe(int res) {
   int fd;
 
 
+  if ((res!=FLCMD_SHELLIN) && (res!=FLCMD_SHELL) && (Article_courant==&Article_bidon)) {
+      etat_loop.etat=1; etat_loop.num_message=3; 
+      etat_loop.hors_struct=7; return 0;
+  }
   while ((*name) && (isblank(*name))) name++;
   if (res==FLCMD_PIPE_HEADER) {
     if (name[0]=='\0') {
@@ -2383,6 +2411,10 @@ int do_cancel(int res) {
   Numeros_List *courant=&Arg_do_funcs;
   int ret;
 
+  if (Article_courant==&Article_bidon) {
+      etat_loop.etat=1; etat_loop.num_message=3; 
+      etat_loop.hors_struct=7; return 0;
+  }
   cancel_article(NULL,NULL);
   ret=distribue_action(courant,cancel_article,NULL,NULL, 0);
   if (ret>=0) {
@@ -2654,6 +2686,10 @@ int do_swap_grp(int res) {
   Article_List *article_considere;
   char *gpe=Arg_str, *buf;
 
+  if (Article_courant==&Article_bidon) {
+     etat_loop.etat=1; etat_loop.num_message=3;
+     etat_loop.hors_struct=7; return 0;
+  }
   while ((*gpe) && (isblank(*gpe))) gpe++;
   article_considere=Article_courant;
   if (Arg_do_funcs.flags & 34) 
@@ -2793,6 +2829,11 @@ int do_on_selected (int res) {
   char *name=Arg_str,*buf;
   int ret, key, res2;
   Numeros_List *courant=&Arg_do_funcs;
+
+  if (Article_courant==&Article_bidon) {
+     etat_loop.etat=1; etat_loop.num_message=3;
+     etat_loop.hors_struct=7; return 0;
+  }
 
   while ((*name) && (isblank(*name))) name++;
   if (name[0]=='\0') {

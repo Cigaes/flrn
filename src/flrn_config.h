@@ -203,7 +203,6 @@ extern int do_cancel(int);
 extern int do_hist_menu(int);
 extern int do_add_kill(int);
 extern int do_remove_kill(int);
-extern int do_pipe_header(int);
 extern int do_select(int);
 extern int do_keybindings(int);
 extern int do_on_selected(int);

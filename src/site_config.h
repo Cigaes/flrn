@@ -91,6 +91,7 @@ struct Option_struct Options = {
   NULL,                  /* default_domain */
 #endif
   -1,			 /* max_group_size */
+  NULL,			 /* alternate */
   };
 
 #endif
