@@ -33,6 +33,7 @@
 #include "flrn_messages.h"
 
 /* place des objets de la barre */
+int screen_inited;
 int name_news_col, num_art_col, num_rest_col, num_col_num, name_fin_col;
 /* place des messages d'erreur */
 int row_erreur, col_erreur;
@@ -132,6 +133,7 @@ int Init_screen(int stupid_term) {
    }
 #endif
    Init_couleurs();
+   screen_inited=1;
 
    /*SL*/signal(SIGWINCH, sig_winch);
     
@@ -143,6 +145,7 @@ void Reset_screen() {
   for (res=0;res<7;res++)
     free(table_petit_arbre[res]);
   free(table_petit_arbre);
+  screen_inited=0;
   Screen_reset();
 }
 
@@ -208,12 +211,14 @@ int Aff_error_fin(const char *str, int s_beep, int short_e) {
 }
 
 void aff_try_reconnect() {
-   Aff_error_fin("Timeout ? J'essaie de me reconnecter...",1,0);
+   if (screen_inited) 
+      Aff_error_fin("Timeout ? J'essaie de me reconnecter...",1,0);
    error_fin_displayed=0;
 }
 
 void aff_end_reconnect() {
-   Aff_error_fin("Reconnexion au serveur effectuée...",0,1);
+   if (screen_inited) 
+      Aff_error_fin("Reconnexion au serveur effectuée...",0,1);
 }
 
 /* Affichage de la ligne résumé d'un article */
