@@ -154,8 +154,14 @@ int cree_liens() {
     for (creation2=creation->prev_hash; creation2;
 	creation2=creation2->prev_hash) {
 	if (strcmp(bufptr, creation2->msgid)==0) {
-	  /* on a un article a virer - il ne peut pas encore y avoir de
-	   * ref dessus */
+	  /* on a un article a virer - on enlève d'éventuelles ref dessus */
+          Article_List *parcours;
+          for (parcours=creation->prem_fils;parcours;
+               parcours=parcours->frere_suiv) {
+              parcours->parent=-2; /* Cas particulier temporaire */
+	      parcours->pere=creation2; /*on s'épargne juste un truc en plus*/
+          }
+          /* On n'a plus de ref... Chouette */
 	  Hash_table[hash]=creation->prev_hash;
 	  if (creation->prev) creation->prev->next=creation->next;
 	  else Article_exte_deb=creation->next;
@@ -177,9 +183,8 @@ int cree_liens() {
     if (!creation2->headers ||
 	!(bufptr=creation2->headers->k_headers[REFERENCES_HEADER]))
       continue;
-    if ((creation2->parent != 0)) continue; /* Pour éviter de repasser deux fois */
-    /* on peut eventuellement remplacer un lien vers un article
-     * exterieur bidon */
+    if (creation2->parent ==-2) relie_article(creation2->pere, creation2);
+    if ((creation2->parent != 0)) continue; /* Ça peut être -1 et c'est bon */
     buf2=strrchr(bufptr, '<');
     if (buf2) {   
       char *buf3;
