@@ -306,7 +306,8 @@ int chg_grp_not_in(void *value, char **nom, int i, char *name, int len, int key)
 /* renvoie 1 : on a choisi un groupe */
 /* TODO : remplacer l'affichage brut (sans menu) par un scrolling, et */
 /* tout mettre dans group.c */
-
+/* D'autre part, on supprime la recherche de la description quand on fait */
+/* un menu : ça fout trop la merde (sans menu, c'est plus facile... */
 int Liste_groupe (int flags, char *mat, Newsgroup_List **retour) {
    int row=0;
    int res, code, key;
@@ -321,8 +322,7 @@ int Liste_groupe (int flags, char *mat, Newsgroup_List **retour) {
        return -1;
    }
 
-   buf[0]=safe_malloc(11*sizeof(char));
-   strcpy(*buf, "newsgroups");
+   buf[0]=safe_malloc(8*sizeof(char));
    parcours=NULL;
    while (parcours || (passage<flags)) {
       if (parcours==NULL) {
@@ -336,7 +336,8 @@ int Liste_groupe (int flags, char *mat, Newsgroup_List **retour) {
 	        return 0;
 	      }
 	    } else if ((menu) && (passage!=0)) {
-	      *retour=(passage<2 ? Menu_simple(menu,start,NULL,
+	      *retour=(passage<2 ? Menu_simple(menu,start,
+				(passage<2 ? Ligne_carac_du_groupe : NULL),
 	     		            (passage<2 ? chg_grp_in :
 	     					 chg_grp_not_in),
 			  nom) : NULL);
@@ -414,24 +415,9 @@ int Liste_groupe (int flags, char *mat, Newsgroup_List **retour) {
 	 continue;
       }
       /* Peut-etre a mettre ailleurs */
-      if ((passage<2) && (parcours->description==NULL)) {
-        buf[1]=parcours->name;
-        res=write_command (CMD_LIST, 2, buf);
-	if (res!=-2) {
-          if (res<1) return 0;
-          code=return_code();
-          if ((code<0) || (code>400)) return 0;
-          res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
-          if (res<1) return 0;
-          if (tcp_line_read[0]!='.') {
-             ptr=tcp_line_read+strlen(parcours->name);
-             parcours->description=safe_malloc((strlen(ptr)-1)*sizeof(char));
-             strncpy(parcours->description,ptr, strlen(ptr)-2);
-             parcours->description[strlen(ptr)-2]='\0';
-             discard_server();
-	  } else parcours->description=safe_strdup("  (pas de description)  ");
-        } else 
-             parcours->description=safe_strdup("  (pas de description)  ");
+      if ((passage<2) && (parcours->description==NULL) 
+      		      && (!Options.use_menus)) {
+	get_group_description(parcours);
       }
       if (passage==2) {
         res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1);
@@ -486,7 +472,7 @@ int Liste_groupe (int flags, char *mat, Newsgroup_List **retour) {
       if (passage<2) {
         strncat(une_ligne,truncate_group(parcours->name,0),77);
 	une_ligne[79]='\0';
-        strncat(une_ligne,parcours->description,79-strlen(une_ligne));
+        if (parcours->description) strncat(une_ligne,parcours->description,79-strlen(une_ligne));
 	une_ligne[79]='\0';
       } else strncat(une_ligne,tcp_line_read,77);
       if (Options.use_menus) {
@@ -499,7 +485,8 @@ int Liste_groupe (int flags, char *mat, Newsgroup_List **retour) {
       row++;
    }
    if ((menu) && (Options.use_menus)) {
-      *retour=(passage<2 ? Menu_simple(menu,start,NULL,
+      *retour=(passage<2 ? Menu_simple(menu,start,(passage<2 ? 
+      						Ligne_carac_du_groupe : NULL),
    		            (passage<2 ? chg_grp_in :
     					 chg_grp_not_in),
 		  nom) : NULL);

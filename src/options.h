@@ -106,6 +106,8 @@ struct Option_struct {
   char *prefixe_groupe;
   char *flags_group;
   char *hist_file_name;
+  int  warn_if_new;
+  char *get_ext_flnewsfile;
 };
 
 extern struct Option_struct Options;
@@ -176,6 +178,7 @@ static struct {
   MAKE_STRING_OPT(flags_group,"Caractères précédents un groupe selon ses attributs."),
   MAKE_STRING_OPT_L(flnews_ext,"Extension sur le nom du .flnewsrc."),
   MAKE_OPT(forum_mode,"Mode de commande forum-like."),
+  MAKE_STRING_OPT_L(get_ext_flnewsfile,"Si le .flnewsrc n'existe pas, où en chercher un."),
   MAKE_OPT(headers_scroll,"Les headers scrollent avec le reste des messages."),
   MAKE_STRING_OPT(hist_file_name,"Nom de fichier pour sauvegarder l'historique."),
   MAKE_OPT(include_in_edit,"Lorsque auto_edit est défini, inclut automatiquement le message d'origine."),
@@ -199,6 +202,7 @@ static struct {
   MAKE_OPT(use_mailbox,"Sauve les messages au format d'une mailbox."),
   MAKE_OPT(use_menus,"Utilisation des menus (alpha)."),
   MAKE_OPT(use_regexp,"Utilise les expresions régulières."),
+  MAKE_OPT(warn_if_new,"Avertit de l'arrivée de nouveaux groupes."),
   MAKE_OPT(with_cousins,"Permet de se déplacer entre cousins."),
   MAKE_OPT(zap_change_group,"La commande \\zap change automatiquement de groupe courant."),
 };

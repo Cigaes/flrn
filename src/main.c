@@ -138,13 +138,13 @@ int main(int argc, char *argv[])
   }
 
   if (!opt_c) res=loop(newsgroup); else aff_opt_c();
-  if (res) new_groups(0);
-  quit_server();
-  if (res) save_history();
   if (!opt_c) {
     Reset_screen();
     Reset_keyboard();
   }
+  if (res) new_groups(0);
+  quit_server();
+  if (res) save_history();
   free_groups(res);
   free_options();
   free_kill(); /* pour sauver le kill-file... */

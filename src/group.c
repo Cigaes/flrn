@@ -98,8 +98,12 @@ void init_groups() {
    if (Options.flnews_ext) strcat(name,Options.flnews_ext);
    flnews_file = open_flrnfile(name,"r",1,&Last_check);
 
-   if (flnews_file==NULL) return;
-
+   if (flnews_file==NULL) {
+     if (Options.get_ext_flnewsfile) {
+        flnews_file=open_flrnfile(Options.get_ext_flnewsfile,"r",1,NULL);
+	if (flnews_file) Last_check=time(NULL); else return;
+     } else return;
+   }
    buf=deb=safe_malloc(size_buf*sizeof(char));
    while (fgets(deb,(deb==buf ? size_buf : 1025),flnews_file))
    	 /* si deb!=buf, on vient d'agrandir buf... */
@@ -194,7 +198,7 @@ void new_groups(int opt_c) {
    int res, code;
    char *buf;
    char param[20];
-   int good, bad;
+   int good, bad, wait_for_key=0;
    regex_t goodreg, badreg;
    time_t actuel;
 
@@ -209,7 +213,10 @@ void new_groups(int opt_c) {
    
       buf=param; 
       res=write_command(CMD_NEWGROUPS, 1, &buf);
-   } else res=write_command(CMD_LIST, 0, NULL);
+   } else {
+      res=write_command(CMD_LIST, 0, NULL);
+      wait_for_key=-1;
+   }
       
    if (res<0) return;
    code=return_code();
@@ -295,11 +302,27 @@ void new_groups(int opt_c) {
 	add_to_main_list(creation->name);
 	creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
       }
-      if (opt_c) fprintf(stdout, "Nouveau groupe : %s\n", creation->name);
+      if ((opt_c) || (Options.warn_if_new && (wait_for_key==0))) {
+          fprintf(stdout, "Nouveau groupe : %s ", creation->name); 
+	  if (!opt_c) {
+	     if (creation->flags & GROUP_UNSUBSCRIBED) 
+	        fputs("Non abonné",stdout);
+	     else
+	     if (creation->flags & GROUP_IN_MAIN_LIST_FLAG) 
+	        fputs("Abonné, dans le kill-file",stdout);
+	     else fputs("Abonné",stdout);
+	     wait_for_key=1;
+	  }
+	  putc('\n',stdout);
+      }
       res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
    } while (1);
    if (Options.auto_subscribe) regfree(&goodreg);
    if (Options.auto_ignore) regfree(&badreg);
+   if (wait_for_key==1) {
+      fputs("Appuyez sur entree pour continuer...\n",stdout);
+      getc(stdin); /* A priori, ça pose pas de problèmes */
+   }
 }
 
 /* Creation du .flnewsrc a partir de la liste des newsgroups */
@@ -936,11 +959,36 @@ void zap_group_non_courant (Newsgroup_List *group) {
    
 
 /* Action de Menu_simple pour le goto */
+void get_group_description (Newsgroup_List *legroupe) {
+  char *buf[2],*ptr;
+  int res, code;
+  buf[0]="newsgroups";
+  buf[1]=legroupe->name;
+  res=write_command (CMD_LIST, 2, buf);
+  if (res!=-2) {
+      if (res<1) return;
+      code=return_code();
+      if ((code<0) || (code>400)) return;
+      res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
+      if (res<1) return;
+      if (tcp_line_read[0]!='.') {
+          ptr=tcp_line_read+strlen(legroupe->name);
+          legroupe->description=safe_malloc((strlen(ptr)-1)*sizeof(char));
+          strncpy(legroupe->description,ptr, strlen(ptr)-2);
+          legroupe->description[strlen(ptr)-2]='\0';
+          discard_server();
+      } else legroupe->description=safe_strdup("  (pas de description)  ");
+  } else
+     legroupe->description=safe_strdup("  (pas de description)  ");
+}
+
+
 void Ligne_carac_du_groupe (void *letruc, char *lachaine,
                                 int taille)
 {
   Newsgroup_List *legroupe=letruc;
   lachaine[0]='\0';
+  if (legroupe->description==NULL) get_group_description(legroupe);
   if (legroupe->description) strncat(lachaine,legroupe->description,taille-1);
   lachaine[taille-1]='\0';
 }

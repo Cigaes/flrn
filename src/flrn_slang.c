@@ -29,7 +29,7 @@ void Get_terminfo() { SLtt_get_terminfo();
 		      Screen_Rows=SLtt_Screen_Rows;
 		      Screen_Cols=SLtt_Screen_Cols;
 		    }
-void Set_term_cannot_scroll (int a) { fprintf(stderr,"%d\n",SLtt_Term_Cannot_Scroll); SLtt_Term_Cannot_Scroll=a; fprintf(stderr,"%d\n",SLtt_Term_Cannot_Scroll); }
+void Set_term_cannot_scroll (int a) { SLtt_Term_Cannot_Scroll=a; }
 void Screen_write_char(char c) { SLsmg_write_char(c); }
 void Screen_write_string(char *s) { SLsmg_write_string(s); }
 void Screen_write_nstring(char *s, int n) { SLsmg_write_nstring(s,n); }

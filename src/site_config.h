@@ -56,6 +56,8 @@ struct Option_struct Options = {
   "",			/* prefixe_groupe */
   " TDD*tdd",		/* flags_group */
   NULL,			/* hist_file_name */
+  0,			/* warn_if_new */
+  NULL,			/* get_ext_flnewsfile */
   };
 
 #endif
