@@ -98,9 +98,9 @@ static int thread_view=0;
 
 typedef int (*Action)(Article_List *article, void * flag);
 int distribue_action(Numeros_List *num, Action action, Action special,
-    void * flag);
-int thread_action(Article_List *article,int all, Action action, void *param, int flags);
-int gthread_action(Article_List *article,int all, Action action, void *param, int flags);
+    void * flag, int flags_to_omit);
+int thread_action(Article_List *article,int all, Action action, void *param, int flags, int flags_to_omit);
+int gthread_action(Article_List *article,int all, Action action, void *param, int flags, int flags_to_omit);
 
 
 Cmd_return une_commande;
@@ -116,6 +116,7 @@ int *Flcmd_rev_command = &Flcmd_rev[CONTEXT_COMMAND][0];
 typedef struct Action_Beurk {
    Action action;
    void *flag;
+   int flags_to_omit;
 } Action_with_args;
 
 struct file_and_int {
@@ -1106,7 +1107,7 @@ int do_tag (int res) {
   int tag;
   Numeros_List *courant=&Arg_do_funcs;
   tag = ((unsigned char)Arg_str[0]) +NUM_SPECIAL_TAGS;
-  distribue_action(courant,my_tag_void,NULL,(void *) (long) tag);
+  distribue_action(courant,my_tag_void,NULL,(void *) (long) tag, 0);
   etat_loop.etat=1; etat_loop.num_message=15;
   return 0;
 }
@@ -1359,15 +1360,15 @@ int do_prem_grp (int res) {
 /* des hack crades :-( */
 int grand_distribue(Article_List *article, void * beurk) {
   Action_with_args *le_machin = (Action_with_args *) beurk;
-  return thread_action(article,0,le_machin->action,le_machin->flag,0);
+  return thread_action(article,0,le_machin->action,le_machin->flag,0,le_machin->flags_to_omit);
 }
 int thread_distribue(Article_List *article, void * beurk) {
   Action_with_args *le_machin = (Action_with_args *) beurk;
-  return thread_action(article,1,le_machin->action,le_machin->flag,0);
+  return thread_action(article,1,le_machin->action,le_machin->flag,0,le_machin->flags_to_omit);
 }
 int gthread_distribue(Article_List *article, void * beurk) {
   Action_with_args *le_machin = (Action_with_args *) beurk;
-  return gthread_action(article,0,le_machin->action,le_machin->flag,0);
+  return gthread_action(article,0,le_machin->action,le_machin->flag,0,le_machin->flags_to_omit);
 }
 
 static int omet_article(Article_List *article, void * toto)
@@ -1444,6 +1445,7 @@ int do_omet(int res) {
   char *name=Arg_str;
   int use_argstr=0, ret=0;
   
+  beurk.flags_to_omit = 0;
   if ((res==FLCMD_OMET) || (res==FLCMD_GOMT)) {
      beurk.action=omet_article;
      beurk.flag=NULL;
@@ -1497,9 +1499,9 @@ int do_omet(int res) {
       use_summary=1;
   }
   if (res==FLCMD_GOMT)
-      distribue_action(courant,grand_distribue,NULL,&beurk);
+      distribue_action(courant,grand_distribue,NULL,&beurk, 0);
   else
-      distribue_action(courant,beurk.action,NULL,beurk.flag);
+      distribue_action(courant,beurk.action,NULL,beurk.flag, 0);
   if (use_summary) transforme_selection();
   Aff_not_read_newsgroup_courant();
   if (use_argstr) free(name);
@@ -1522,14 +1524,18 @@ int do_kill(int res) {
   
   beurk.action=kill_article;
   beurk.flag=NULL;
+  beurk.flags_to_omit = 0;
   if (res==FLCMD_KILL)
-      distribue_action(courant,grand_distribue,NULL,&beurk);
+      distribue_action(courant,grand_distribue,NULL,&beurk, 0);
   else if (res==FLCMD_PKIL)
-      distribue_action(courant,kill_article,NULL,NULL);
+      distribue_action(courant,kill_article,NULL,NULL, 0);
   else if (res==FLCMD_ART_TO_RETURN) 
-      distribue_action(courant,temp_kill_article,NULL,NULL);
+      distribue_action(courant,temp_kill_article,NULL,NULL, 0);
   else
-      distribue_action(courant,thread_distribue,NULL,&beurk);
+  {
+      beurk.flags_to_omit = FLAG_TOREAD;
+      distribue_action(courant,thread_distribue,NULL,&beurk, 0);
+  }
   /* Est-ce un hack trop crade ? */
   courant->flags=0;
   Aff_not_read_newsgroup_courant();
@@ -1556,16 +1562,12 @@ int do_zap_group(int res) {
 
   blah.next=NULL; blah.flags=32; blah.elem1.number=1;
   blah.num2=Newsgroup_courant->max;
-  distribue_action(&blah,tag_article,NULL,&flag);
-  flag=~FLAG_IMPORTANT;
-  distribue_action(&blah,untag_article,NULL,&flag);
+  distribue_action(&blah,mark_article_read,NULL, &flag, FLAG_TOREAD);
   Recherche_article(Newsgroup_courant->max,&Article_courant,-1);
   if (!Options.zap_change_group) {
     etat_loop.hors_struct|=3; /* Fin du conti */
     etat_loop.etat=1; etat_loop.num_message=11;
   }
-  Newsgroup_courant->not_read=0;
-  Newsgroup_courant->important=0;
   while (parcours) { parcours->non_lu=0; parcours=parcours->next_thread; }
   Aff_not_read_newsgroup_courant();
   return (Options.zap_change_group)?1:0;
@@ -1639,7 +1641,10 @@ static void flags_summ_article (void *letruc, char *lachaine, int taille) {
    if (taille<43) return;
    strcat(lachaine,((larticle->flag & FLAG_IMPORTANT) ? "   " : " un"));
    strcat(lachaine,"interesting");
-   if (taille<65) return;
+   if (taille<52) return;
+   strcat(lachaine,((larticle->flag & FLAG_TOREAD) ? "   " : " un"));
+   strcat(lachaine,"toread");
+   if (taille<74) return;
    if (larticle->headers==NULL) return;
    strcat(lachaine,"  Lignes : ");
    buf=lachaine+strlen(lachaine);
@@ -1942,7 +1947,7 @@ static int default_thread(Article_List *article, void *flag)
   blah.next=NULL;
   blah.flags=8;
   blah.elem1.article=article;
-  distribue_action(&blah,(Action) tag_and_minmax_article,NULL,flag);
+  distribue_action(&blah,(Action) tag_and_minmax_article,NULL,flag, 0);
   return 1;
 }
 static int default_gthread(Article_List *article, void *flag)
@@ -2003,7 +2008,7 @@ int do_summary(int res) {
 		     break;
     default : defact=default_summary;
   }
-  result = distribue_action(courant, act, defact, (void *)filt);
+  result = distribue_action(courant, act, defact, (void *)filt, 0);
   if (filt) 
      result=check_article_list(Article_deb,filt,3,min_kill_l,max_kill_l);
   else result=1;
@@ -2056,7 +2061,7 @@ int do_select(int res) {
     if (parse_filter_flags(Arg_str,filt))
       parse_filter(Arg_str,filt);
   }
-  result = distribue_action(courant, act, NULL, NULL);
+  result = distribue_action(courant, act, NULL, NULL, 0);
   if (filt)
      result=check_article_list(Article_deb,filt,3,min_kill_l,max_kill_l);
   else result=1;
@@ -2178,13 +2183,14 @@ int do_save(int res) {
     return 0;
   }
   if (res==FLCMD_SAVE)
-    distribue_action(courant,Sauve_article,NULL ,fichier);
+    distribue_action(courant,Sauve_article,NULL ,fichier, 0);
   else {
     Action_with_args beurk;
 
     beurk.action=Sauve_article;
     beurk.flag=fichier;
-    distribue_action(courant,grand_distribue, NULL, &beurk);
+    beurk.flags_to_omit = 0;
+    distribue_action(courant,grand_distribue, NULL, &beurk, 0);
   }
   fclose(fichier);
   etat_loop.etat=1; etat_loop.num_message=8;
@@ -2206,7 +2212,7 @@ int do_launch_pager(int res) {
       Pipe_Msg_Stop(fd);
     return 0;
   }
-  distribue_action(courant,Sauve_article,NULL,fichier);
+  distribue_action(courant,Sauve_article,NULL,fichier, 0);
 
   if (fd>0) fclose(fichier);
   Pipe_Msg_Stop(fd);
@@ -2303,19 +2309,20 @@ int do_pipe(int res) {
     return 0;
   }
   if ((res==FLCMD_PIPE) || (res==FLCMD_FILTER))
-    distribue_action(courant,Sauve_article,NULL ,fichier);
+    distribue_action(courant,Sauve_article,NULL ,fichier, 0);
   else if (res==FLCMD_PIPE_HEADER) {
     struct file_and_int beurk2;
     beurk2.file=fichier;
     beurk2.num=num_known_header;
-    distribue_action(courant,Sauve_header_article,NULL ,&beurk2);
+    distribue_action(courant,Sauve_header_article,NULL ,&beurk2, 0);
   }
   else {
     Action_with_args beurk;
     beurk.action=Sauve_article;
     beurk.flag=fichier;
+    beurk.flags_to_omit = 0;
     if ((res != FLCMD_SHELL) && (res != FLCMD_SHELLIN))
-      distribue_action(courant,grand_distribue, NULL, &beurk);
+      distribue_action(courant,grand_distribue, NULL, &beurk, 0);
   }
   if (fd>0) fclose(fichier);
   Pipe_Msg_Stop(fd);
@@ -2377,7 +2384,7 @@ int do_cancel(int res) {
   int ret;
 
   cancel_article(NULL,NULL);
-  ret=distribue_action(courant,cancel_article,NULL,NULL);
+  ret=distribue_action(courant,cancel_article,NULL,NULL, 0);
   if (ret>=0) {
      etat_loop.etat=1; etat_loop.num_message=(ret==0 ? 16 : 17);
   } else {
@@ -3080,7 +3087,7 @@ int prochain_newsgroup(Newsgroup_List **newgroup ) {
 }
 
 /* Applique action sur tous les peres de l'article donne*/
-int parents_action(Article_List *article,int all, Action action, void *param, int flags) {
+int parents_action(Article_List *article,int all, Action action, void *param, int flags, int flags_to_omit) {
   Article_List *racine=article;
   int res=0, res2=0;
   while(racine->pere && !(racine->pere->flag & FLAG_INTERNE2)) {
@@ -3088,8 +3095,12 @@ int parents_action(Article_List *article,int all, Action action, void *param, in
     racine=racine->pere;
   }
   do {
-    if ((!(flags & 64)) || (racine->flag & FLAG_IS_SELECTED)) 
-        res2=action(racine,param);
+    if ((!(flags & 64)) || (racine->flag & FLAG_IS_SELECTED)) {
+        if(racine->flag & flags_to_omit)
+	    res2 = 0;
+	else
+            res2=action(racine,param);
+    }
     racine->flag &= ~FLAG_INTERNE2;
     if (res<res2) res=res2;
   } while((racine=next_in_thread(racine,FLAG_INTERNE2,NULL,0,0,
@@ -3104,7 +3115,7 @@ int parents_action(Article_List *article,int all, Action action, void *param, in
  * all indique qu'il faut d'abord remonter a la racine */
 /* on applique a tous les articles non extérieurs */
 /* flags & 64 : on se limite aux articles SELECTED */
-int thread_action(Article_List *article,int all, Action action, void *param, int flags) {
+int thread_action(Article_List *article,int all, Action action, void *param, int flags, int flags_to_omit) {
   Article_List *racine=article;
   Article_List *racine2=article;
   int res=0;
@@ -3124,8 +3135,12 @@ int thread_action(Article_List *article,int all, Action action, void *param, int
   racine=racine2;
   /* Et la on peut faire ce qu'il faut */
   do { if (racine->numero!=-1) 
-         if ((!(flags & 64)) || (racine->flag & FLAG_IS_SELECTED)) 
-          res2=action(racine,param);
+         if ((!(flags & 64)) || (racine->flag & FLAG_IS_SELECTED)) {
+	  if(racine->flag & flags_to_omit)
+	   res2=0;
+	  else
+           res2=action(racine,param);
+	 }
     if (res<res2) res=res2;
     racine->flag |= FLAG_INTERNE1;
   } while ((racine=next_in_thread(racine,FLAG_INTERNE1,&level,-1,0,
@@ -3138,7 +3153,7 @@ int thread_action(Article_List *article,int all, Action action, void *param, int
  * all indique qu'il faut d'abord remonter a la racine */
 /* on applique a tous les articles non extérieurs */
 /* flags & 64 : on se limite aux articles SELECTED */
-int gthread_action(Article_List *article,int all, Action action, void *param, int flags) {
+int gthread_action(Article_List *article,int all, Action action, void *param, int flags, int flags_to_omit) {
   Article_List *racine=article;
   Article_List *racine2=article;
   int res=0;
@@ -3157,8 +3172,12 @@ int gthread_action(Article_List *article,int all, Action action, void *param, in
   racine=racine2;
   /* Et la on peut faire ce qu'il faut */
   do { if (racine->numero!=-1)
-         if ((!(flags & 64)) || (racine->flag & FLAG_IS_SELECTED)) 
-          res2=action(racine,param);
+         if ((!(flags & 64)) || (racine->flag & FLAG_IS_SELECTED)) {
+	  if(racine->flag & flags_to_omit)
+	   res2 = 0;
+	  else
+           res2=action(racine,param);
+	 }
     if (res<res2) res=res2;
     racine->flag |= FLAG_INTERNE1;
   } while ((racine=next_in_thread(racine,FLAG_INTERNE1,&level,-1,0,
@@ -3169,11 +3188,12 @@ int gthread_action(Article_List *article,int all, Action action, void *param, in
 
 /* Appelle action sur tous les articles de Numero_List */
 int distribue_action(Numeros_List *num, Action action, Action special,
-    void *param) {
+    void *param, int flags_to_omit) {
   Article_List *parcours=NULL;
   int res,result=0,res2;
   if (num->flags==0) {
     if (!Article_courant) return -1;
+    if (Article_courant->flag & flags_to_omit) return 0;
     if (special) return special(Article_courant,param);
     return action(Article_courant,param);
   } else if (num->flags==64) {
@@ -3195,19 +3215,28 @@ int distribue_action(Numeros_List *num, Action action, Action special,
                            if ((res==0) && (!(parcours->flag & FLAG_IS_SELECTED)))
 			        res=-1;
 		       }
-                  if (res==0) res2=action(parcours,param);
+                  if (res==0) {
+		   if(parcours->flag & flags_to_omit)
+		    res2=0;
+		   else
+		    res2=action(parcours,param);
+		  }
 	      break;
-      case 4: if (res==0) res2=parents_action(parcours,0,action,param, num->flags);
+      case 4: if (res==0) res2=parents_action(parcours,0,action,param, num->flags, flags_to_omit);
 		break;
-      case 8: if (res==0) res2=thread_action(parcours,0,action,param, num->flags);
+      case 8: if (res==0) res2=thread_action(parcours,0,action,param, num->flags, flags_to_omit);
 		break;
-      case 16: if (res==0) res2=gthread_action(parcours,0,action,param,num->flags);
+      case 16: if (res==0) res2=gthread_action(parcours,0,action,param,num->flags, flags_to_omit);
 		break;
       case 32: if ((res==0) || (res==-1)) {
 		while(parcours) {
 		  if (parcours->numero > num->num2) break;
-		  if ((num->flags==32) || (parcours->flag & FLAG_IS_SELECTED)) 
-		       res2=action(parcours,param);
+		  if ((num->flags==32) || (parcours->flag & FLAG_IS_SELECTED)) {
+		       if(parcours->flag & flags_to_omit)
+			   res2 = 0;
+		       else
+		           res2=action(parcours,param);
+		  }
 		  if (res2<result) result=res2;
 		  parcours=parcours->next;
 		}
@@ -3265,7 +3294,7 @@ int Execute_function_slang_command(int type_fun, SLang_Name_Type *slang_fun)
   if ((type_fun & 4)==0) {
     SLang_start_arg_list ();
     if (type_fun & 2) 
-      distribue_action(courant, Push_article, NULL, Newsgroup_courant);
+      distribue_action(courant, Push_article, NULL, Newsgroup_courant, 0);
     if (type_fun & 1) 
        SLang_push_string(name);
     SLang_end_arg_list ();
@@ -3279,7 +3308,7 @@ int Execute_function_slang_command(int type_fun, SLang_Name_Type *slang_fun)
     struct slang_fun_with_type fonction;
     fonction.slang_fun=slang_fun;
     fonction.type_fun=type_fun;
-    distribue_action(courant, Exec_function_on_article, NULL, &fonction);
+    distribue_action(courant, Exec_function_on_article, NULL, &fonction, 0);
   }
   return 0;
 }

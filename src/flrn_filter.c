@@ -764,13 +764,14 @@ int parse_flags(char *name, int *toset, int *flag) {
    if (strcasecmp(buf,"read")==0) *flag=FLAG_READ; else
    if (strcasecmp(buf,"killed")==0) *flag=FLAG_KILLED; else
    if (strcasecmp(buf,"interesting")==0) *flag=FLAG_IMPORTANT; else
+   if (strcasecmp(buf,"toread")==0) *flag=FLAG_TOREAD; else
    if (strcasecmp(buf,"selected")==0) *flag=FLAG_IS_SELECTED;
    if (*flag==0) return -1;
    return 0;
 }
 
 /* ceci sert pour la complétion */
-#define NUM_FLAGS_STR 4
+#define NUM_FLAGS_STR 5
 
 static char *get_flag_name(void *ptr, int num) {
    char *pipo;
@@ -778,7 +779,8 @@ static char *get_flag_name(void *ptr, int num) {
       case 0 : pipo="unread"; break;
       case 1 : pipo="unkilled"; break;
       case 2 : pipo="uninteresting"; break;
-      default : pipo="unselected"; break;
+      case 3 : pipo="unselected"; break;
+      default : pipo="untoread"; break;
    }
    return (num>=NUM_FLAGS_STR ? pipo+2 : pipo);
 }

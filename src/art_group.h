@@ -45,9 +45,10 @@ extern const Known_Headers Headers[];
 #define XREF_HEADER 15
 #define MESSAGE_ID_HEADER 16
 #define X_CENSORSHIP 17
+#define X_TRACE 18
 
 
-#define NB_KNOWN_HEADERS 18
+#define NB_KNOWN_HEADERS 19
 
 typedef struct Flrn_art_header
 {
@@ -77,8 +78,9 @@ typedef struct Flrn_art_list
 #define FLAG_KILLED		0x0002
 #define FLAG_IMPORTANT		0x0004
 #define FLAG_IS_SELECTED	0x0008
-#define FLAG_WILL_BE_OMITTED	0x0010
-#define FLAG_NEW   		0x0020
+#define FLAG_TOREAD		0x0010
+#define FLAG_WILL_BE_OMITTED	0x0020
+#define FLAG_NEW   		0x0040
 /* flags internes : pour certaines commandes */
 /* A mettre à 0 avant de l'utiliser : */
    /* utilisé par next_thread, thread_action et gthread_action */

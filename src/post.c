@@ -1297,10 +1297,14 @@ static int Get_base_headers_supersedes (Article_List *article) {
       }
    }
    /* on garde tout, sauf X-ref, Path, NNTP-Posting_Host,
-      	     X-Trace, NNTP-Posting-Date, X-Complaints-To et Message-ID */
+      	     X-Trace, NNTP-Posting-Date, X-Complaints-To et Message-ID, To, Cc, Bcc */
    for (i=0;i<NB_KNOWN_HEADERS;i++) {
       if (i==XREF_HEADER) continue;
       if (i==MESSAGE_ID_HEADER) continue;
+      if (i==TO_HEADER) continue;
+      if (i==CC_HEADER) continue;
+      if (i==BCC_HEADER) continue;
+      if (i==X_TRACE) continue;
       if (article->headers->k_headers[i])
           Header_post->k_header[i]=safe_strdup(article->headers->k_headers[i]);
    }
@@ -1311,7 +1315,6 @@ static int Get_base_headers_supersedes (Article_List *article) {
       tmp2=tmp; tmp=tmp->next;
       if (strncasecmp(tmp2->header,"Path:",5)==0) continue;
       if (strncasecmp(tmp2->header,"NNTP-Posting-Host:",18)==0) continue;
-      if (strncasecmp(tmp2->header,"X-Trace:",8)==0) continue;
       if (strncasecmp(tmp2->header,"NNTP-Posting-Date:",18)==0) continue;
       if (strncasecmp(tmp2->header,"X-Complaints-To:",16)==0) continue;
       if (liste==NULL) 

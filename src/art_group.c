@@ -50,6 +50,7 @@ const Known_Headers Headers[NB_KNOWN_HEADERS] = {
    { "Xref:", 5 },
    { "Message-Id:", 11 },
    { "X-Censorship:", 13 },
+   { "X-Trace:", 8 },
 };
 
 
