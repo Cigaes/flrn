@@ -59,7 +59,7 @@ void Help(char *argv[])
 
 int main(int argc, char *argv[])
 {
-  int code, res=0;
+  int code, res=0, res_opt_c=0;
   int opt_c=0;
   int i;
   char *newsgroup=NULL;
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
 
   init_groups(); /* on y voit un exit */
   		 /* donc il faut le faire avant l'init de l'ecran */
-  new_groups(opt_c); 
+  if ((opt_c==0) || (newsgroup==NULL)) new_groups(opt_c); 
   if (!opt_c) {
      load_history();
      res=Init_screen(stupid_terminal);
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
      if (res<0) return 1;
   }
 
-  if (!opt_c) res=loop(newsgroup); else aff_opt_c();
+  if (!opt_c) res=loop(newsgroup); else res_opt_c=aff_opt_c(newsgroup);
   if (!opt_c) {
     Reset_screen();
     Reset_keyboard();

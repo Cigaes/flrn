@@ -139,12 +139,15 @@ static int push_tag();
 /* aff_opt_c : affiche simplement une liste de messages non lus vers stdout */
 /* A la demande de Sbi, j'affiche aussi le nombre total de messages    	*/
 /* non lus...								    */
-void aff_opt_c() {
-   int res, nb_non_lus=0;
+int aff_opt_c(char *newsgroup) {
+   int deb, res, nb_non_lus=0;
+   int to_build; /* sans intérêt ici, mais on doit l'utiliser pour un appel */
+   char ligne[80];
    
    Newsgroup_courant=Newsgroup_deb;
    while (Newsgroup_courant) {
-      if (Newsgroup_courant->flags & GROUP_UNSUBSCRIBED) {
+      if ((Newsgroup_courant->flags & GROUP_UNSUBSCRIBED) ||
+          (newsgroup && (strstr(truncate_group(Newsgroup_courant->name,0),newsgroup)==NULL))) {
          Newsgroup_courant=Newsgroup_courant->next;
 	 continue;
       }
@@ -152,13 +155,45 @@ void aff_opt_c() {
       if (res==-2) 
 	 fprintf(stdout, "Mauvais newsgroup : %s\n", Newsgroup_courant->name);
       if (res>0) {
-       fprintf(stdout, "%s : %d article%s non lu%s\n", truncate_group(Newsgroup_courant->name,0),res, (res==1 ? "" : "s"), (res==1 ? "" : "s"));
-       nb_non_lus+=res;
+        if (newsgroup) {
+          deb=Newsgroup_courant->read?Newsgroup_courant->read->max[0]:1;
+          cree_liste(deb,&to_build);
+	  if ((res=Newsgroup_courant->not_read)) {
+	    fprintf(stdout, "%s : %d article%s non lu%s\n", 
+	      truncate_group(Newsgroup_courant->name,0),res, 
+	         (res==1 ? "" : "s"), (res==1 ? "" : "s"));
+	    Article_courant=Article_deb;
+	    while (Article_courant) {
+	       if (!(Article_courant->flag & FLAG_READ)) {
+	          fprintf(stdout,"%s\n",Prepare_summary_line(Article_courant,NULL, 0, ligne, 79, 0));
+	       }
+	       Article_courant=Article_courant->next;
+	    }
+          }
+	  if (Article_deb) {
+	     detruit_liste(1);
+	     Newsgroup_courant->Article_deb=NULL;
+	     Newsgroup_courant->Article_exte_deb=NULL;
+	     Newsgroup_courant->Hash_table=NULL;
+	     Newsgroup_courant->Thread_deb=NULL;
+	  }
+	  to_build=0;
+        } else {
+          fprintf(stdout, "%s : %d article%s non lu%s\n", 
+            truncate_group(Newsgroup_courant->name,0),res, 
+	      (res==1 ? "" : "s"), (res==1 ? "" : "s"));
+	}
+        nb_non_lus+=res;
       }
       Newsgroup_courant=Newsgroup_courant->next;
    }
-   if (nb_non_lus==0) fprintf(stdout, "Rien de nouveau.\n"); else
-     fprintf(stdout, "  Il y a au total %d article%s non lu%s.\n",nb_non_lus,(nb_non_lus==1 ? "" : "s"), (nb_non_lus==1 ? "" : "s"));
+   if (newsgroup) {
+      if (nb_non_lus==0) 
+        fprintf(stdout, "Rien de nouveau.\n"); 
+      else
+       fprintf(stdout, "  Il y a au total %d article%s non lu%s.\n",nb_non_lus,(nb_non_lus==1 ? "" : "s"), (nb_non_lus==1 ? "" : "s"));
+   }
+   return (nb_non_lus>0);
 }
 
 /* affiche un message

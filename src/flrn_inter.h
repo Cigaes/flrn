@@ -22,7 +22,7 @@ typedef struct command_desc {
 extern int fonction_to_number(char *);
 extern int call_func(int, char *);
 extern int loop(char * /*opt*/);
-extern void aff_opt_c(void);
+extern int aff_opt_c(char *);
 extern void init_Flcmd_rev(void);
 extern int Comp_generic(char *, int, void *, int, char *(void *,int),
     int *, char *);
