@@ -1319,7 +1319,7 @@ int Est_proprietaire(Article_List *article) {
   buf=fl_strstr(la_chaine,fl_static_tran(flrn_user->pw_name));
   if (buf==NULL) return 0;
   if ((buf!=la_chaine) && (fl_isalnum(*(buf-1)))) return 0;
-  if (fl_isalnum((buf+strlen(flrn_user->pw_name)))) return 0;
+  if (fl_isalnum(*(buf+strlen(flrn_user->pw_name)))) return 0;
   buf=fl_strstr(la_chaine,fl_static_tran(DOMAIN));
   if (buf==NULL) return 0;
   if ((*(buf-1))!=fl_static('.')) return 0;
