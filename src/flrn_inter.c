@@ -1981,7 +1981,7 @@ int do_select(int res) {
 	       (Article_courant->flag & FLAG_READ)) {
 	    Article_List *myarticle;
 	    myarticle=next_in_thread(Article_courant,FLAG_READ,NULL,
-	    				0,0,0,1)
+	    				0,0,0,1);
 	    if (myarticle) Article_courant=myarticle;
 	 }
       }
