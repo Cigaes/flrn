@@ -24,12 +24,12 @@ AC_ARG_WITH(default-host, [  --with-default-host[=MACHINE]   default host for ad
   AC_MSG_RESULT(default host : $withval)
 )
 
-AC_ARG_WITH(domain, [  --with-domain[=DOMAIN]     default host for adresses],[
+AC_ARG_WITH(domain, [  --with-domain[=DOMAIN]     default domain for adresses],[
   AC_DEFINE_UNQUOTED(DOMAIN, "$withval")
   AC_MSG_RESULT(domain : $withval)
 ],
-  AC_DEFINE_UNQUOTED(DOMAIN, "ens.fr")
-  AC_MSG_RESULT(domain : ens.fr, use --with-domain to change this)
+  AC_DEFINE_UNQUOTED(DOMAIN, "nodomain")
+  AC_MSG_WARN(domain : nodomain, use --with-domain to change this)
 )
 
 if test "$ac_cv_prog_CC" = gcc; then

@@ -19,7 +19,7 @@ sont pas compatibles avec une installation pour les news extérieures.
 On conseille particulièrement de changer :
      (cf le manuel pour plus d'explications sur ces variables)
 
-_ server : mieux vaut mettre "news", ou le nom de votre serveur préféré.
+_ server : mieux vaut mettre le nom de votre serveur préféré.
   (cette variable est de toute façon écrasée par $NNTPSERVER)
 _ header, weak_headers, hidden_headers : on peut faire quelques
   modifications, mais cela ne permet hélas pas d'avoir ce que l'on

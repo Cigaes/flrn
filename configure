@@ -14,7 +14,7 @@ ac_default_prefix=/usr/local
 ac_help="$ac_help
   --with-default-host[=MACHINE]   default host for adresses"
 ac_help="$ac_help
-  --with-domain[=DOMAIN]     default host for adresses"
+  --with-domain[=DOMAIN]     default domain for adresses"
 ac_help="$ac_help
   --with-slang[=DIR]         use S-Lang in dir DIR"
 ac_help="$ac_help
@@ -976,10 +976,10 @@ EOF
 
 else
   cat >> confdefs.h <<EOF
-#define DOMAIN "ens.fr"
+#define DOMAIN "nodomain"
 EOF
 
-  echo "$ac_t""domain : ens.fr" 1>&6
+  echo "configure: warning: domain : nodomain" 1>&2
 
 fi
 

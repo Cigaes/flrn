@@ -23,7 +23,7 @@ header hide Message-Id Path NNTP-Posting-Host X-Trace X-Complaints-To NNTP-Posti
 header weak others
 
 # On marque d'un '-' les messages déjà lus
-my_flag - read
+my_flags - read
 
 
 # mettre cette ligne si vous voulez que les entêtes défilent avec le
@@ -63,7 +63,7 @@ set noauto_kill
 set savepath News
 
 # avec noauto_kill, on préfère ces drapeaux
-set flags_groups "M DDm*dd"
+set flags_group "M DDm*dd"
 
 # sauvegarde de l'historique
 set hist_file_name ".flrnhist"
@@ -72,7 +72,7 @@ set hist_file_name ".flrnhist"
 set warn_if_new
 
 # on veut avoir un .flnewsrc par défaut
-set default_flnewsrc flnewsrc
+set default_flnewsfile flnewsrc
 
 # la ligne d'aide est plutôt limitée. Mieux vaut la supprimer
 set nohelp_line
