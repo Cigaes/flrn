@@ -626,7 +626,7 @@ int get_xhdr_line(int num, flrn_char **flligne, int *tofree,
    Article_List *artbis=art;
    char *ligne;
    *tofree=0;
-   ligne=NULL;
+   *flligne=ligne=NULL;
    while (1) {
       res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
       if (res<2) return -1;

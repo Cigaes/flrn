@@ -69,6 +69,7 @@ int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
   }
   if (reste==0) return 0;
   min=newmin;
+  /* cas particulier de la date */
   if ((filtre->date_after>0) || (filtre->date_before>0)) {
      with_xhdr=((flag & 1) && (!check_in_xover(DATE_HEADER)));
      if (with_xhdr) {
