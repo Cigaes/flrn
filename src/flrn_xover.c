@@ -273,7 +273,7 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin, 
     }
     /* On veut leur faire la peau, à ces problèmes de synchronisation */
     if (crees>0) {
-      if (n2>=Newsgroup_courant->max)
+      if (n2>Newsgroup_courant->max)
 	Newsgroup_courant->max=article->numero;
     }
     return crees;
