@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. amélioration des menus.
 . les threads, les threads, et encore les threads.
 . sauvegarde de l'historique
 . remplacement de malloc.h par stdlib.h.

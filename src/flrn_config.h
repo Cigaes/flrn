@@ -256,6 +256,8 @@ extern Flcmd Flcmds[NB_FLCMD];
 #define FLCMD_UNSU 5
 #define FLCMD_ABON 6
 #define FLCMD_ZAP  9
+#define FLCMD_GOTO 3
+#define FLCMD_GGTO 4
 
 #endif
 

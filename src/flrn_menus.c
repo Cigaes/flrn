@@ -5,12 +5,27 @@
 /* C'est très proche des librairies I/O, mais on va essayer de faire    */
 /* un truc indépendant desdites librairies.				*/
 
+#define IN_FLRN_MENUS_C
+
 #include <stdlib.h>
 #include "flrn.h"
 #include "options.h"
 #include "flrn_config.h"
 #include "flrn_menus.h"
 #include "flrn_inter.h"
+
+/* le tableau touche -> commande */
+int Flcmd_menu_rev[MAX_FL_KEY];
+/* pour les macros */
+
+#define MAX_FL_MACRO_MENU 32 /* Pas exagerer non plus */
+struct {
+  int cmd;
+  char *arg;
+} Flcmd_macro_menu[MAX_FL_MACRO_MENU];
+
+int Flcmd_num_macros_menu=0;
+
 
 /* Cette fonction ne renvoie qu'un élément sélectionné, ou bien entendu NULL.
  * action est appelée quand le curseur est devant un item. Elle recoit une
@@ -23,7 +38,7 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
 	      void (action)(void *,char *,int),
 	      int (action_select)(void *,char **, int,char *,int,int), char *chaine) {
 
-  int act_row=1+Options.skip_line, num_elem=0, num_courant=0;
+  int act_row=1+Options.skip_line, last_act_row, num_elem=0, num_courant=0;
   int correct=0; /* Pour savoir si on s'arrete ou pas... */
   Liste_Menu *courant=actuel, *parcours=debut_menu;
   int avant=1;
@@ -72,17 +87,19 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
 
 /* Maintenant on peut faire des affichages et des choix.		*/
   Aff_fin(chaine);
+  last_act_row=act_row;
   {
     int key,p;
     int no_change_last_line=0;
     while (!correct) {
     
-      /* On update... */
+      /* On update, mais le but est de garder la même ligne... */
       if ((act_row<1+Options.skip_line) || 
       (act_row>Screen_Rows-3-Options.skip_line)) {
-	p=Do_Scroll_Window(act_row-(Screen_Rows-1)/2,0);
+	p=Do_Scroll_Window(act_row-last_act_row,0);
 	act_row-=p;
       }
+      last_act_row=act_row;
       if (action && courant && !no_change_last_line) {
 	 Cursor_gotorc(Screen_Rows-2,0);
 	 *Une_Ligne='\0';
@@ -102,18 +119,27 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
       }
       Cursor_gotorc(act_row,0);
       Screen_write_char(' ');
-      switch (key<MAX_FL_KEY ? Flcmd_rev[key] : FLCMD_UNDEF) {
-	 case FLCMD_PREC : 
-	 case FLCMD_UP :  if (courant->prec!=NULL) {
+      switch (key<MAX_FL_KEY ? Flcmd_menu_rev[key] : FLCMD_MENU_UNDEF) {
+	 case FLCMD_MENU_UP :  if (courant->prec!=NULL) {
 			    act_row--; num_courant--; courant=courant->prec; }
 			  break;
-	 case FLCMD_DOWN : if (courant->suiv!=NULL) {
+	 case FLCMD_MENU_DOWN : if (courant->suiv!=NULL) {
 			    act_row++; num_courant++; courant=courant->suiv; }
 			   break;
-	 case FLCMD_QUIT : courant=NULL;
+	 case FLCMD_MENU_PGUP : for (p=0;(p<(Screen_Rows-3-2*Options.skip_line))
+	 				    && (courant->prec); p++) {
+				    act_row--; num_courant--; 
+				    courant=courant->prec; }
+				break;
+	 case FLCMD_MENU_PGDOWN:for (p=0;(p<(Screen_Rows-3-2*Options.skip_line))
+	 				    && (courant->suiv); p++) {
+				    act_row++; num_courant++; 
+				    courant=courant->suiv; }
+				break;
+	 case FLCMD_MENU_QUIT : courant=NULL;
 			   correct=1; break;
 	 default : if ((action_select==NULL) || (courant==NULL)) break;
-	 case FLCMD_SUIV : if(action_select && courant) {
+	 case FLCMD_MENU_SELECT : if(action_select && courant) {
 			  /* on appelle l'action */
 	              *Une_Ligne='\0';
 		      if (!(correct=action_select(courant->lobjet,
@@ -220,11 +246,43 @@ Liste_Menu *ajoute_menu_ordre(Liste_Menu *menu, char *nom, void *lobjet, int
   return creation;
 }
   
+void init_Flcmd_menu_rev() {
+   int i;
+   for (i=0;i<MAX_FL_KEY;i++) Flcmd_menu_rev[i]=FLCMD_MENU_UNDEF;
+   for (i=0;i<CMD_DEF_MENU;i++)
+         Flcmd_menu_rev[Cmd_Def_Menu[i].key]=Cmd_Def_Menu[i].cmd;
+   Flcmd_menu_rev[0]=FLCMD_MENU_UNDEF;
+   return;
+}
 
 /* -1 commande non trouvee */
 /* -2 touche invalide */
 /* -3 touche verrouillee */
 /* -4 plus de macro disponible */
 int Bind_command_menu(char *nom, int key, char *arg) {
-   return -1;
+  int i;
+  if ((key<1)  || key >= MAX_FL_KEY)
+    return -2;
+  if (arg ==NULL) {
+    if (strncmp(nom, "undef", 5)==0) {
+      Flcmd_menu_rev[key]=FLCMD_MENU_UNDEF;
+      return 0;
+    }
+    for (i=0;i<NB_FLCMD_MENU;i++)
+      if (strcmp(nom, Flcmds_menu[i])==0) {
+        Flcmd_menu_rev[key]=i;
+        return 0;
+      }
+  } else {
+    if (Flcmd_num_macros_menu == MAX_FL_MACRO_MENU) return -4;
+    for (i=0;i<NB_FLCMD_MENU;i++)
+      if (strcmp(nom, Flcmds_menu[i])==0) {
+        Flcmd_macro_menu[Flcmd_num_macros_menu].cmd = i;
+        Flcmd_macro_menu[Flcmd_num_macros_menu].arg = safe_strdup(arg);
+        Flcmd_menu_rev[key]=Flcmd_num_macros_menu | FLCMD_MACRO_MENU;
+        Flcmd_num_macros_menu++;
+        return 0;
+      } 
+  } 
+  return -1;
 }

@@ -129,7 +129,7 @@ extern Article_List * Menu_summary (int /*deb*/, int /*fin*/, int /*thread*/);
 extern int Aff_fin(const char * /*str*/);
 extern int Aff_error(const char * /*str*/);
 extern int Aff_file(FILE * /*file*/, char *, char *);
-extern int Liste_groupe(int /*n*/, char * /*mat*/);
+extern int Liste_groupe(int /*n*/, char * /*mat*/, Newsgroup_List **);
 extern int Aff_arbre(int,int,Article_List *, int, int, int, unsigned char **, int);
 
 /* tty_keyboard.c */
@@ -177,6 +177,7 @@ extern Liste_Menu *ajoute_menu(Liste_Menu * /*base*/, char * /*nom*/,
     void * /*lobjet*/);
 extern Liste_Menu *ajoute_menu_ordre(Liste_Menu *, char *, void *, int);
 extern int Bind_command_menu(char *, int, char *);
+extern void init_Flcmd_menu_rev(void);
 
 /* rfc2047.c */
 extern void rfc2047_encode_string (char *, unsigned char *, size_t);

@@ -97,6 +97,7 @@ int main(int argc, char *argv[])
 #endif
   init_Flcmd_rev();
   init_Flcmd_pager_rev();
+  init_Flcmd_menu_rev();
   init_options();
   init_kill_file();
   if (debug) fprintf(stderr,"Serveur : %s\n",Options.serveur_name);

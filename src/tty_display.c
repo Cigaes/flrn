@@ -209,7 +209,6 @@ int chg_grp_in(void *value, char **nom, int i, char *name, int len, int key) {
    int zapped=(choisi==Newsgroup_courant);
       /* On ne peut pas zapper le groupe courant */
 
-   if (key==' ') return 1;
    *name='\0'; /* ça on en est sur */
    if (key==13) {
      Cursor_gotorc(Screen_Rows-2,0);
@@ -229,6 +228,8 @@ int chg_grp_in(void *value, char **nom, int i, char *name, int len, int key) {
                 break;
      case FLCMD_UNSU : choisi->flags|=GROUP_UNSUBSCRIBED;
                 break;
+     case FLCMD_GOTO : 
+     case FLCMD_GGTO : return 1;
      case FLCMD_REMOVE_KILL : choisi->flags&=~GROUP_IN_MAIN_LIST_FLAG;
          	remove_from_main_list(choisi->name);
                 break;
@@ -245,14 +246,15 @@ int chg_grp_in(void *value, char **nom, int i, char *name, int len, int key) {
    return 0;
 }
 
+/* Cette fonction DOIT renvoyer 0 si on veut éviter une horreur de typage */
 int chg_grp_not_in(void *value, char **nom, int i, char *name, int len, int key) {
    char *nom_groupe=(char *)value;
    Newsgroup_List *creation;
 
-   if (key==' ') return 1; 
    if (**nom=='A') return 0; 
    	/* Tant pis... on ne peut se désabonner aussi sec */
    creation=cherche_newsgroup(nom_groupe, 1, 0);
+   if (!creation) return 0;
    Cursor_gotorc(Screen_Rows-2,0);
    Screen_erase_eol();
    Screen_write_string(" S'(a)bonner à ce groupe  ? ");
@@ -279,10 +281,11 @@ int chg_grp_not_in(void *value, char **nom, int i, char *name, int len, int key)
 /* flags=2 -> on affiche tout */
 /* On essaie une manip a coup de regexp... */
 /* renvoie -1 en cas de pb avec les regexp */
+/* renvoie 1 : on a choisi un groupe */
 /* TODO : remplacer l'affichage brut (sans menu) par un scrolling, et */
 /* tout mettre dans group.c */
 
-int Liste_groupe (int flags, char *mat) {
+int Liste_groupe (int flags, char *mat, Newsgroup_List **retour) {
    int row=0;
    int res, code, key;
    char *buf[2], *ptr, *nom=NULL, une_ligne[80], flag;
@@ -311,11 +314,16 @@ int Liste_groupe (int flags, char *mat) {
 	        return 0;
 	      }
 	    } else if ((menu) && (passage!=0)) {
-	      Menu_simple(menu,start,NULL,
+	      *retour=(passage<2 ? Menu_simple(menu,start,NULL,
 	     		            (passage<2 ? chg_grp_in :
 	     					 chg_grp_not_in),
-			  nom);
+			  nom) : NULL);
 	      Libere_menu_noms(menu);
+	      if (*retour) {
+	         free(buf[0]);
+		 if (Options.use_regexp) regfree(&reg);
+		 return 0;
+	      }
 	      menu=start=courant=NULL;
 	    }
 	 }
@@ -467,10 +475,10 @@ int Liste_groupe (int flags, char *mat) {
       row++;
    }
    if ((menu) && (Options.use_menus)) {
-      Menu_simple(menu,start,NULL,
+      *retour=(passage<2 ? Menu_simple(menu,start,NULL,
    		            (passage<2 ? chg_grp_in :
     					 chg_grp_not_in),
-		  nom);
+		  nom) : NULL);
       Libere_menu_noms(menu);
    }
    free(buf[0]);

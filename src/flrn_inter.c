@@ -1809,10 +1809,16 @@ int do_neth(int res) {  /* Très pratique, cette fonction, pour les tests idiots 
 /* res=FLCMD_GLIS -> liste tout */
 int do_list(int res) {
    char *gpe=Arg_str;
+   Newsgroup_List *retour=NULL;
    int ret;
 
-   ret=Liste_groupe((res==FLCMD_GLIS)?2:0, gpe);
+   ret=Liste_groupe((res==FLCMD_GLIS)?2:0, gpe, &retour);
    if (ret<0) { etat_loop.etat=2; etat_loop.num_message=-10; }
+   else if (retour) {
+      etat_loop.Newsgroup_nouveau=retour;
+      etat_loop.num_futur_article=0;
+      return 1;
+   }
    else etat_loop.etat=3;
    etat_loop.hors_struct |= 1;
    return 0;
