@@ -162,7 +162,7 @@ int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
 		     break;
 		  }
 	       }
-	       if (ligne==NULL) { ligne=""; tofree=0; }
+	       if (ligne==NULL) { ligne=fl_static(""); tofree=0; }
 	   } else if (std_hdr!=-1) {
 	       ligne=((parcours->headers) &&
 	       (parcours->headers->k_headers[cond->header_ns.header_num]) ?

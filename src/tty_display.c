@@ -372,8 +372,8 @@ static void raw_Aff_summary_line(Article_List *article, int row,
   }
   /* TODO : changer ça : on ne peut pas prévoir la taille des
    * lignes, il va donc falloir s'y prendre autrement */
-  buf=Prepare_summary_line(article,previous_subject, level, buf, Screen_Cols*2,
-	  Screen_Cols, 0, 0, 1);
+  Prepare_summary_line(article,previous_subject, level, buf, Screen_Cols*2,
+	  Screen_Cols, 0, 1, 1);
   Cursor_gotorc(row,0);
   create_Color_line(&aff_line,FIELD_SUMMARY,buf,fl_strlen(buf),FIELD_SUMMARY);
   free(buf);
