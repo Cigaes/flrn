@@ -129,64 +129,6 @@ int bind_comp(char *str, int len)
   return 0;
 }
 
-
-
-#if 0
-
-  int lettre;
-  char *buf, *buf2, *buf3;
-  int res, mode=-1; /* mode=0 : commande mode=1 : menu mode=2 : pager */
-  int add=0;
-
-  buf=strtok(str,delim);
-  if (!buf) return -1;
-  if (strcasecmp(buf,"add")==0) {
-    add =1;
-    buf=strtok(NULL,delim);
-    if (!buf) return -1;
-  }
-  if (strcasecmp(buf,"menu")==0) mode=CONTEXT_MENU; else
-    if (strcasecmp(buf,"pager")==0) mode=CONTEXT_PAGER; else
-      if (strcasecmp(buf,"command")==0) mode=CONTEXT_COMMAND;
-  if (mode!=-1) buf=strtok(NULL,delim); else
-    mode=0;
-  if (!buf) return -1;
-  if (strcasecmp(buf,"add")==0) {
-    add =1;
-    buf=strtok(NULL,delim);
-    if (!buf) return -1;
-  }
-  lettre = *buf;
-  if (buf[1]) {
-    if (*buf == '\\') buf++;
-    if (isdigit((int) *buf))
-      lettre = strtol(buf,NULL,0);
-    else
-      lettre = parse_key_name(buf);
-    if (lettre <0) lettre =0;
-    if (lettre >=MAX_FL_KEY) lettre = MAX_FL_KEY-1;
-  }
-  buf2=strtok(NULL,delim);
-  if (!buf2) return -1;
-  if (*buf2=='\\') buf2++;
-  buf3=strtok(NULL,"\n");
-  if (buf3) 
-    buf3+=strspn(buf3, delim);
-
-  res=(mode==CONTEXT_MENU ? Bind_command_menu(buf2,lettre,buf3,add) :
-	mode==CONTEXT_PAGER ? Bind_command_pager(buf2,lettre,buf3,add) : 
-		  Bind_command_explicite(buf2,lettre,buf3,add));
-  if (res <0) {
-    if (flag) Aff_error_fin("Echec de la commande bind.",1); else
-    {
-      fprintf(stderr,"Echec du bind : %s\n",option_ligne);
-      sleep(1);
-    }
-  }
-  return (res <0) ? -1 : 0;
-}
-#endif
-
 /* ajout d'un header, éventuellement a unknown_header */
 int Le_header(char *buf) {
   int i,l;
