@@ -573,8 +573,9 @@ size_t fl_conv_to_flstring_ce (struct conversion_etat *ce,
        /* on alloue 4*la taille standard. C'est bourrin mais bon */
        *outbl=4*strlen(*inbuf);
        *outbuf=safe_malloc(*outbl+1);
+       *outptr=*outbuf;
     }
-    *outptr=*outbuf;
+    if (*outptr==NULL) *outptr=*outbuf;
     /* problème : outbuf est modifié par iconv, donc on a plus
      * le début de la chaîne */
     iconv(ce->cd_in,NULL,NULL,NULL,NULL);
@@ -605,7 +606,7 @@ size_t fl_appconv_to_flstring_ce (struct conversion_etat *ce,
 #else
 	    /* on suppose qu'on est en locale utf8, ce qui est la norme */
 	    **outptr=fl_static('?'); (*outptr)++; (*outbl)--;
-	    (*inbl)--; (inbuf)++;
+	    (*inbl)--; (*inbuf)++;
 	    if (*inbl==0) return 0;
 #endif
 	} else return res;
