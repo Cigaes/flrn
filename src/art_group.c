@@ -177,7 +177,7 @@ int cree_liens() {
     if (!creation2->headers ||
 	!(bufptr=creation2->headers->k_headers[REFERENCES_HEADER]))
       continue;
-    if ((creation2->parent > 0)) continue;
+    if ((creation2->parent != 0)) continue; /* Pour éviter de repasser deux fois */
     /* on peut eventuellement remplacer un lien vers un article
      * exterieur bidon */
     buf2=strrchr(bufptr, '<');
