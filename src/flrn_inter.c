@@ -37,6 +37,7 @@
 #include "flrn_color.h"
 #include "flrn_messages.h"
 #include "flrn_xover.h"
+#include "flrn_func.h"
 
 /* On va définir ici des structures et des variables qui seront utilisées */
 /* pour loop, et les fonctions qui y sont associés. Il faudrait en fait   */
@@ -49,6 +50,7 @@ struct etat_var {
 		       4 et 5  : under_group  ( => hors_limite )
 		       8 et 11 : hors_newsgroup ( => end_of_groupe ) */
    int etat, num_message; 
+   /* etat=0 : afficher, etat=1 : message, etat=3 : rien, etat=4 : commande */
    /* Le système num_message est probablement insuffisant pour des messages */
    /* explicites...							    */
    Newsgroup_List *Newsgroup_nouveau; /* Pour les changement de newsgroup */
@@ -57,12 +59,6 @@ struct etat_var {
    Article_List *Article_nouveau; /* utilisé si num_futur_article == -1 */
 } etat_loop, etat_save;
 
-/* Ces variables correspondent simplement aux arguments des fonctions  */
-/* Ici pour un numéro ou un article */
-union element {
-  int num;
-  Article_List *article; 
-};
 typedef struct Num_lists
 {
    struct Num_lists *next;
@@ -399,7 +395,7 @@ int loop(char *opt) {
            change=-prochain_non_lu(etat_loop.etat>0,&Article_courant,1,0);
 	  else {
 	    if (etat_loop.num_futur_article !=-1) {
-	      Arg_do_funcs.elem1.num=etat_loop.num_futur_article;
+	      Arg_do_funcs.elem1.number=etat_loop.num_futur_article;
 	      Arg_do_funcs.num2=0;
 	      Arg_do_funcs.flags=2;
 	      if (Arg_do_funcs.next) Arg_do_funcs.next->flags=0;
@@ -627,36 +623,36 @@ static union element Decode_numero(char *str, union element defaut, int *flag) {
            parcours=Article_courant;
    } else 
        if (*ptr=='.') { if (*flag) res.article=Article_courant; else
-                                  { res.num=0;  parcours=Article_courant; }
+                                  { res.number=0; parcours=Article_courant; }
 		        ptr++; } 
    else {
      nombre=strtol(ptr, &ptr, 10);
      if (nombre) Recherche_article (nombre, &parcours, 0); else
          parcours=Article_courant;
-     if (*flag==0) res.num=nombre; else 
+     if (*flag==0) res.number=nombre; else 
          res.article=parcours;
    }
    if (*ptr==',') ptr++;
    if ((!trouve_inf) && (*ptr=='<')) { ptr++; trouve_inf=1; 
      				       if (*ptr==',') ptr++; }
    if (*ptr!='\0') {
-      if (*flag==0) res.num=-1; else res.article=NULL;
+      if (*flag==0) res.number=-1; else res.article=NULL;
       return res; /* On doit etre au bout */
    }
    if (trouve_inf) {
       if (parcours==NULL) {
-         if (*flag==0) res.num=-1; else res.article=NULL;
+         if (*flag==0) res.number=-1; else res.article=NULL;
 	 return res;
       }
       if (*flag) 
          res.article=root_of_thread(parcours,1); else {
 	   parcours=root_of_thread(parcours,0);
-	   if (parcours) res.num=parcours->numero; else res.num=-1;
+	   if (parcours) res.number=parcours->numero; else res.number=-1;
 	 }
   } else if ((*flag==2) && (nombre)) {
      /* On a juste trouve un nombre, on le garde */
      *flag=0;
-     res.num=nombre;
+     res.number=nombre;
   }
   return res;
 }
@@ -693,13 +689,13 @@ static void Parse_nums_article(char *str, char **sortie, int flags) {
          flag=0;
          *ptrsign='\0';
          courant->flags=32;
-	 defaut.num=1;
+	 defaut.number=1;
          courant->elem1=Decode_numero(ptr,defaut,&flag);
-         if (courant->elem1.num==-1) reussi=0;
+         if (courant->elem1.number==-1) reussi=0;
          *ptrsign='-';
-	 defaut.num=(Newsgroup_courant ? Newsgroup_courant->max : 1);
+	 defaut.number=(Newsgroup_courant ? Newsgroup_courant->max : 1);
          defaut=Decode_numero(ptrsign+1,defaut,&flag);
-	 courant->num2=defaut.num;
+	 courant->num2=defaut.number;
          if (courant->num2==-1) reussi=0;
        } else { /* ce n'est pas '-' */
          flag=1;
@@ -721,15 +717,15 @@ static void Parse_nums_article(char *str, char **sortie, int flags) {
          if (flag) { if (courant->elem1.article==NULL) reussi=0; }  else 
 	 {
 	    courant->flags=2;
-	    if (courant->elem1.num==-1) reussi=0; 
+	    if (courant->elem1.number==-1) reussi=0; 
 	 }
          if (ptrsign!=NULL) *ptrsign=save_char;
        }
      }
-     if ((flag==0) && (Article_courant && (courant->elem1.num==0))) 
-        courant->elem1.num=Article_courant->numero;
-     if ((flag==0) && (Article_deb && (courant->elem1.num==1))) 
-        courant->elem1.num=Article_deb->numero;
+     if ((flag==0) && (Article_courant && (courant->elem1.number==0))) 
+        courant->elem1.number=Article_courant->numero;
+     if ((flag==0) && (Article_deb && (courant->elem1.number==1))) 
+        courant->elem1.number=Article_deb->numero;
      if (Article_courant && (courant->num2==0)) 
         courant->num2=Article_courant->numero;
      if (Article_deb && (courant->num2==1)) 
@@ -897,7 +893,7 @@ int do_deplace(int res) {
    } else {
    /* on cheche Arg_do_funcs.num1 */
      if (Arg_do_funcs.flags & 34) {
-        ret=Recherche_article(Arg_do_funcs.elem1.num, &parcours, 
+        ret=Recherche_article(Arg_do_funcs.elem1.number, &parcours, 
 	   (res==FLCMD_PREC ? -1 : (res==FLCMD_SUIV ? 1 : 0)));
         if (ret==-2) {
           etat_loop.hors_struct=1;
@@ -1000,49 +996,27 @@ int do_deplace(int res) {
 
 static int my_goto_tag (int tag) {
   int ret;
+  union element ret_article;
+  Newsgroup_List *ret_group;
 
-  if (tag >= MAX_TAGS) return -1;
-  if (tag <0 ) return -1;
-  if (tags[tag].article_deb_key) { /* le tag existe */
-    if (tags[tag].article_deb_key==-1) {
-       if (Newsgroup_courant && (strcmp(Newsgroup_courant->name,tags[tag].newsgroup_name)==0)) 
-         tags[tag].article_deb_key=Newsgroup_courant->article_deb_key;
-    }
-    if (Newsgroup_courant && (tags[tag].article_deb_key == Newsgroup_courant->article_deb_key)) {
-      if (tags[tag].article==NULL) {
-        ret=Recherche_article(tags[tag].numero,&(tags[tag].article),0);
-	if (ret<0) {
-           etat_loop.etat=1;
-           etat_loop.hors_struct|=1;
-           etat_loop.num_message=3;
-	   return 0;
-	}
-      }
-      Article_courant=tags[tag].article;
-      etat_loop.etat=0;
-    } else {
-       /* faut changer de groupe */
-      etat_loop.Newsgroup_nouveau =
-	cherche_newsgroup(tags[tag].newsgroup_name,1,0);
-      if(etat_loop.Newsgroup_nouveau == NULL) {
-	etat_loop.etat=1; etat_loop.num_message=-8;
-        etat_loop.hors_struct|=1;
-	return 0;
-      }
-      /* si le pointeur est valide, c'est gagné ! */
-      if (tags[tag].article_deb_key ==
-	  etat_loop.Newsgroup_nouveau->article_deb_key) {
-	etat_loop.Article_nouveau=tags[tag].article;
-        etat_loop.num_futur_article=-1;
-      } else
-        etat_loop.num_futur_article=tags[tag].numero;
-      return 1;
-    }
-  } else { /* le tag n'existe pas */
-    etat_loop.etat=2;
-    etat_loop.num_message=-13;
+  ret=goto_tag(tag,&ret_article,&ret_group);
+  etat_loop.etat = (ret>=0 ? 0 : 1);
+  if (ret<0) etat_loop.hors_struct|=1;
+  if (ret>0) etat_loop.Newsgroup_nouveau=ret_group;
+  switch (ret) {
+     case 0 : Article_courant=ret_article.article;
+              return 0;
+     case 1 : etat_loop.Article_nouveau=ret_article.article;
+              return 1;
+     case 2 : etat_loop.num_futur_article=ret_article.number;
+     	      return 1;
+     case -1 : etat_loop.num_message=3;
+	       return 0;
+     case -2 : etat_loop.num_message=-8;
+	       return 0;
+     default : etat_loop.num_message=-13;
+               return 0;
   }
-  return 0;
 }
 
 int do_goto_tag(int res) {
@@ -1051,21 +1025,8 @@ int do_goto_tag(int res) {
   return (ret > 0 ? 1 : 0);
 }
 
-/* Attention, je suppose que Newsgroup_courant->name
- * va rester valide   */
-static int my_tag (Article_List *article,int tag) {
-  if (tag >= MAX_TAGS) return -1;
-  if (tag < 0) return -1;
-  tags[tag].article_deb_key = Newsgroup_courant->article_deb_key;
-  tags[tag].article = Article_courant;
-  tags[tag].numero = Article_courant->numero;
-/*  strcpy(tags[tag].newsgroup_name,Newsgroup_courant->name); */
-  tags[tag].newsgroup_name=Newsgroup_courant->name;
-  return 0;
-}
-
 static int my_tag_void(Article_List *article,void *vtag) {
-  return my_tag(article, (int)(long) vtag);
+  return put_tag(article, (int)(long) vtag);
 }
 
 int do_tag (int res) {
@@ -1096,7 +1057,7 @@ static int push_tag() {
   max_tags_ptr++;
   max_tags_ptr%=NUM_SPECIAL_TAGS;
   tags_ptr=max_tags_ptr;
-  res=my_tag(Article_courant,tags_ptr);
+  res=put_tag(Article_courant,tags_ptr);
   return res;
 }
 
@@ -1118,24 +1079,11 @@ int do_back(int res) {
   return my_goto_tag(tags_ptr);
 }
 
-static int validate_tag_ptr(Flrn_Tag *tag) {
-  Newsgroup_List *tmp=NULL;
-  if (Newsgroup_courant && (Newsgroup_courant->article_deb_key == tag->article_deb_key))
-    return 1;
-  tmp = cherche_newsgroup(tag->newsgroup_name,1,0);
-  if ((tmp==Newsgroup_courant) && (tag->article_deb_key==-1)) {
-     if (Recherche_article(tag->numero, &(tag->article), 0)==0) return 1;
-     return 0;
-  }
-  if (tmp && (tmp->article_deb_key == tag->article_deb_key))
-    return 1;
-  return 0;
-}
-
 static void hist_menu_summary(void *item, char *line, int length) {
   Flrn_Tag *tag = &tags[((int)(long)item)-1];
+  Newsgroup_List *group;
   *line='\0';
-  if (validate_tag_ptr(tag)) {
+  if (is_tag_valid(tag,&group)==2) {
     Prepare_summary_line(tag->article,NULL,0,line,length,1);
   }
 }
@@ -1206,7 +1154,7 @@ int do_goto (int res) {
                            Arg_str);
    }
    if ((ret==0) && (Arg_do_funcs.flags & 34))
-   	etat_loop.num_futur_article= Arg_do_funcs.elem1.num;
+   	etat_loop.num_futur_article= Arg_do_funcs.elem1.number;
    if (ret>=0) return 1; else 
      if (ret==-1)  etat_loop.etat=3; else
    { etat_loop.etat=2; etat_loop.num_message=-8; 
@@ -1227,6 +1175,10 @@ int do_unsubscribe(int res) {
    if (ret==-2) 
    { etat_loop.etat=2; etat_loop.num_message=-8;
      etat_loop.hors_struct|=1; return 0; }
+   if (ret==-1) {
+      etat_loop.etat=3;
+      return 0;
+   }
    if (newsgroup==NULL) {
       etat_loop.etat=2; etat_loop.num_message=-3;
       return 0;
@@ -1247,6 +1199,10 @@ int do_abonne(int res) {
    if (ret==-2) 
    { etat_loop.etat=2; etat_loop.num_message=-8;
      etat_loop.hors_struct|=1; return 0; }
+   if (ret==-1) {
+      etat_loop.etat=3;
+      return 0;
+   }
    if (newsgroup==NULL) {
       etat_loop.etat=2; etat_loop.num_message=-3;
       return 0;
@@ -1254,7 +1210,7 @@ int do_abonne(int res) {
    newsgroup->flags &= ~GROUP_UNSUBSCRIBED;
    if (Options.auto_kill) {
      add_to_main_list(newsgroup->name);
-     Newsgroup_courant->flags|=GROUP_IN_MAIN_LIST_FLAG;
+     newsgroup->flags|=GROUP_IN_MAIN_LIST_FLAG;
    }
    if (newsgroup==Newsgroup_courant) Aff_newsgroup_name(0);
    etat_loop.etat=1; etat_loop.num_message=9;
@@ -1271,6 +1227,10 @@ int do_add_kill(int res) {
   if (ret==-2) 
   { etat_loop.etat=2; etat_loop.num_message=-8;
     etat_loop.hors_struct|=1; return 0; }
+   if (ret==-1) {
+      etat_loop.etat=3;
+      return 0;
+   }
   if (newsgroup==NULL) {
      etat_loop.etat=2; etat_loop.num_message=-3;
      return 0;
@@ -1292,6 +1252,10 @@ int do_remove_kill(int res) {
    if (ret==-2) 
    { etat_loop.etat=2; etat_loop.num_message=-8;
      etat_loop.hors_struct|=1; return 0; }
+   if (ret==-1) {
+      etat_loop.etat=3;
+      return 0;
+   }
    if (newsgroup==NULL) {
       etat_loop.etat=2; etat_loop.num_message=-3;
       return 0;
@@ -1515,7 +1479,7 @@ int do_zap_group(int res) {
   int flag=FLAG_READ;
   Thread_List *parcours=Thread_deb;
 
-  blah.next=NULL; blah.flags=32; blah.elem1.num=1;
+  blah.next=NULL; blah.flags=32; blah.elem1.number=1;
   blah.num2=Newsgroup_courant->max;
   distribue_action(&blah,tag_article,NULL,&flag);
   flag=~FLAG_IMPORTANT;
@@ -2292,7 +2256,7 @@ int do_post(int res) {
   if ((res==FLCMD_ANSW) || (res==FLCMD_MAIL) || (res==FLCMD_SUPERSEDES)) {
      origine=Article_courant;
      if (Arg_do_funcs.flags & 34)
-       ret=Recherche_article(Arg_do_funcs.elem1.num,&origine,0);
+       ret=Recherche_article(Arg_do_funcs.elem1.number,&origine,0);
      else if (Arg_do_funcs.flags & 63) {
        origine=Arg_do_funcs.elem1.article;
        ret=(origine ? 0 : -2);
@@ -2591,7 +2555,7 @@ int do_swap_grp(int res) {
   while ((*gpe) && (isblank(*gpe))) gpe++;
   article_considere=Article_courant;
   if (Arg_do_funcs.flags & 34) 
-    Recherche_article(Arg_do_funcs.elem1.num, &article_considere, 0); else
+    Recherche_article(Arg_do_funcs.elem1.number, &article_considere, 0); else
   if (Arg_do_funcs.flags & 63) article_considere=Arg_do_funcs.elem1.article;
   if (article_considere==NULL) {
      etat_loop.etat=1; etat_loop.num_message=3; return 0;
@@ -2833,139 +2797,15 @@ void Get_option_line(char *argument)
 /* est vide. */
 int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 {
-   char *gpe=gpe_tab;
-   Newsgroup_List *mygroup=Newsgroup_courant, *tmpmygroup=NULL;
-   regex_t reg;
-   int avec_un_menu=Options.use_menus, correct, order=-1, best_order=-1;
-   Liste_Menu *lemenu=NULL, *courant=NULL;
-   char *tmp_name=NULL;
+   int ret;
 
-   while (*gpe==' ') gpe++;
-   if (*gpe=='\0') return 1;
-
-   if (Options.use_regexp) {
-      if(regcomp(&reg,gpe,REG_EXTENDED)) {return -2;} }
-
-   /* Si on a GGTO et qu'en plus on utilise les menus, on fait tout de suite */
-   /* une requete...							     */
-   if ((flags & 1) && avec_un_menu) {
-     if (Options.use_regexp) {
-        char *mustmatch;
-	mustmatch=reg_string(gpe,1);
-	if (mustmatch!=NULL) lemenu=menu_newsgroup_re(mustmatch, reg,1+(flags & 2));
-	else {
-	   regfree(&reg);
-	   return -2;
-	}
-	free(mustmatch);
-     } else lemenu=menu_newsgroup_re(gpe,reg,(flags & 2)); 
-     	/* On copie n'importe quoi pour reg et c'est pas bo */
-   } else {
-     /* premiere passe pour voir si on trouve ca apres */
-     if (mygroup)
-     do { 
-       mygroup=mygroup->next;
-       /* On sépare les tests du while pour éviter une ligne trop longue */
-       if (mygroup==NULL) break;
-       if (flags & 2) tmp_name=truncate_group(mygroup->name,0); else
-         tmp_name=mygroup->name;
-       correct=((Options.use_regexp && 
-                    ((order=calcul_order_re(tmp_name,&reg))!=-1))
-	   || (!Options.use_regexp && 
-	            ((order=calcul_order(tmp_name,gpe))!=-1))) &&
-	   ((flags & 1) || !(mygroup->flags & GROUP_UNSUBSCRIBED));
-       if (correct) {
-         if (avec_un_menu) 
-            courant=ajoute_menu_ordre(&lemenu,tmp_name,mygroup,-1,order);
-	 else 
-	   if ((best_order==-1) || (order<best_order)) {
-	      best_order=order;
-	      tmpmygroup=mygroup;
-	   }
-       }
-     } while (1); 
-
-     /* mygroup=NULL */
-     mygroup=Newsgroup_deb;
-     /* deuxieme passe en repartant du debut si on n'a pas trouve */
-     while (mygroup!=Newsgroup_courant) {
-       if (flags & 2) tmp_name=truncate_group(mygroup->name,0); else
-         tmp_name=mygroup->name;
-       correct=((Options.use_regexp && 
-                    ((order=calcul_order_re(tmp_name,&reg))!=-1))
-	   || (!Options.use_regexp && 
-	            ((order=calcul_order(tmp_name,gpe))!=-1))) &&
-	   ((flags & 1) || !(mygroup->flags & GROUP_UNSUBSCRIBED));
-       if (correct) {
-         if (avec_un_menu) 
-           courant=ajoute_menu_ordre(&lemenu,tmp_name,mygroup,-1,order);
-	 else
-	   if ((best_order==-1) || (order<best_order)) {
-	      best_order=order;
-	      tmpmygroup=mygroup;
-	   }
-       }
-       mygroup=mygroup->next;
-     }
-     /* mygroup=Newsgroup_courant */
-
-     if (mygroup) {
-       if (flags & 2) tmp_name=truncate_group(mygroup->name,0); else
-         tmp_name=mygroup->name;
-     }
-     if (!avec_un_menu) {
-        if (tmpmygroup) mygroup=tmpmygroup;
-	else 
-        if (flags & 1) { 
-           /* on recupere la chaine minimale de la regexp */
-           if (Options.use_regexp) {
-	     char *mustmatch;
-	     mustmatch=reg_string(gpe,1);
-	     if (mustmatch!=NULL) {
-	       if ((mygroup=cherche_newsgroup_re(mustmatch,reg,(flags & 2)?1:0))==NULL) {
-	         free(mustmatch);
-	         regfree(&reg);
-	         return -2;
-	       }
-	     } else {
-	       *newgroup=mygroup;
-	       regfree(&reg);
-	       return 0;
-	     }
-	     free(mustmatch);
-           } else {
-	     if ((mygroup=cherche_newsgroup(gpe,0,(flags & 2)?1:0))==NULL) {
-	       return -2;
-	     } else {
-	       *newgroup=mygroup;
-	       return 0;
-	     }
-           }
-        } else {
-	  if (Options.use_regexp) regfree(&reg);
-	  return -2;
-        }
-     }
-   }
-   if (lemenu) {
-     if (lemenu->suiv==NULL) mygroup=lemenu->lobjet;
-     else {
-       num_help_line=10;
-       mygroup=Menu_simple(lemenu,NULL,Ligne_carac_du_groupe,NULL,"Quel groupe ?");
-     }
-     if (mygroup==NULL) mygroup=Newsgroup_courant;
-     Libere_menu(lemenu); /* on est bien d'accord qu'on ne libere PAS les noms*/
-     			  /* CAR action_select vaut NULL */
-   } else if (avec_un_menu) {
-     if (Options.use_regexp) regfree(&reg);
-     return -2;
-   }
-
-   *newgroup=mygroup;
-   if (debug && *newgroup) 
-       fprintf(stderr, "Nouveau groupe : %s\n", (*newgroup)->name);
-   if (Options.use_regexp) regfree(&reg);
-   return (mygroup==Newsgroup_courant ? -1 : 0); /* on a bien fait le changement */
+   ret=get_group(newgroup, flags | (Options.use_menus ? 8 : 0) |
+   				   (Options.use_regexp ? 4 : 0),
+			gpe_tab);
+   if (ret==-1) *newgroup=Newsgroup_courant;
+   if (ret==-3) ret=1;
+   if (ret==-4) ret=-2;
+   return ret;
 }
 
 
@@ -3213,13 +3053,13 @@ int distribue_action(Numeros_List *num, Action action, Action special,
     return action(Article_courant,param);
   } else if (num->flags==64) {
       if (!Article_courant) return -1;
-      num->flags=96; num->elem1.num=1;
+      num->flags=96; num->elem1.number=1;
       num->num2=Newsgroup_courant->max;
   }
   while (num) {
     if (num->flags==0) {return 0;}
     if (num->flags & 34) 
-       res=Recherche_article(num->elem1.num,&parcours,1);
+       res=Recherche_article(num->elem1.number,&parcours,1);
     else {
        parcours=num->elem1.article;
        res=(parcours ? 0 : -2);

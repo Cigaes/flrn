@@ -168,7 +168,13 @@ static Newsgroup_List *un_nouveau_newsgroup (char *la_ligne)
     char *buf;
 
     buf=strchr(la_ligne,' ');
-    *(buf++)='\0';
+    if (buf) *(buf++)='\0'; else {
+       /* Le serveur ne respecte pas la RFC. Tant pis */
+       buf=strchr(la_ligne,'\r');
+       if (buf) *buf='\0';
+       buf=NULL;
+    }
+
 
     actuel=Newsgroup_deb;
     if (actuel) {
@@ -180,9 +186,13 @@ static Newsgroup_List *un_nouveau_newsgroup (char *la_ligne)
     }
     creation=add_group(&actuel);
     strncpy(creation->name, la_ligne, MAX_NEWSGROUP_LEN);
-    creation->max = strtol(buf, &buf, 10); /* Beuh !!!!, parfois ça commence */
-    					   /* par 0 !!!!!		     */
-    creation->min = strtol(buf, &buf, 10); 
+    if (buf) {
+      creation->max = strtol(buf, &buf, 10); 
+      creation->min = strtol(buf, &buf, 10); 
+    } else {
+      creation->max=0;
+      creation->min=1;
+    }
     creation->not_read=-1;
     creation->virtual_in_not_read=0;
     creation->read= NULL;
@@ -190,14 +200,16 @@ static Newsgroup_List *un_nouveau_newsgroup (char *la_ligne)
     creation->flags=GROUP_UNSUBSCRIBED | GROUP_NEW_GROUP_FLAG;
     if (in_main_list(creation->name)) 
       creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
-    while (*buf && (isblank(*buf))) buf++;
-/* TODO : améliorer ce test */
-    switch (*buf) {
-      case 'n' :
-      case 'j' :
-      case '=' :
-      case 'x' : creation->flags |=GROUP_READONLY_FLAG;
-      		 break;
+    if (buf) {
+      while (*buf && (isblank(*buf))) buf++;
+      /* TODO : améliorer ce test */
+      switch (*buf) {
+        case 'n' :
+        case 'j' :
+        case '=' :
+        case 'x' : creation->flags |=GROUP_READONLY_FLAG;
+      		   break;
+      }
     }
     creation->flags |= GROUP_READONLY_TESTED;
     return creation;
@@ -444,6 +456,7 @@ void free_groups(int save_flnewsrc) {
 /* L'ajoute à la liste des newsgroup existants (en fin)  */
 /* name contient deja s'il y a lieu les *... */
 /* flag=1 : avec prefixe_groupe */
+/* name doit etre non NULL */
 Newsgroup_List *cherche_newsgroup_re (char *name, regex_t reg, int flag)
 {
     int res, code, order, best_order=-1;
@@ -480,6 +493,7 @@ Newsgroup_List *cherche_newsgroup_re (char *name, regex_t reg, int flag)
     return NULL;
 }
 
+/* name doit être non NULL */
 Newsgroup_List *cherche_newsgroup (char *name, int exact, int flag) {
     int res, code, order, best_order=-1;
     char *buf, *buf2, *buf3=NULL;
@@ -521,6 +535,7 @@ Newsgroup_List *cherche_newsgroup (char *name, int exact, int flag) {
 /*  La fonction est semblable à cherche_newsgroup_re, mais elle créée un */
 /* menu au lieu de renvoyer le premier newsgroup obtenu */
 /* si avec_reg & 2, on utilise options.prefixe_groupe */
+/* name peut être NULL */
 Liste_Menu *menu_newsgroup_re (char *name, regex_t reg, int avec_reg)
 {
     Liste_Menu *lemenu=NULL, *courant=NULL;
@@ -531,8 +546,10 @@ Liste_Menu *menu_newsgroup_re (char *name, regex_t reg, int avec_reg)
     strcpy(buf, "active ");
     if (avec_reg & 2) strcat(buf,Options.prefixe_groupe);
     if (!(avec_reg & 1)) strcat(buf,"*");
-    strcat(buf, name);
-    if (!(avec_reg & 1)) strcat(buf,"*");
+    if (name) {
+      strcat(buf, name);
+      if (!(avec_reg & 1)) strcat(buf,"*");
+    }
     res=write_command(CMD_LIST, 1, &buf);
     free(buf);
     if (res<1) return NULL;

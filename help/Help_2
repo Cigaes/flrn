@@ -31,7 +31,7 @@ On peut aussi inclure directement un fichier en tapant en début de ligne
 (~r <nom-de-fichier>).
 
 Pour poster votre message, entrez à la fin de celui-ci une ligne nme
-comportant que '.', ou tapez ^D (Control-D).
+comportant que '.', ou tapez ^D (Control-D) _en début de ligne_.
 Enfin, ^C (Control-C) tapé à tout moment du message annule le post.
 
 Modifier les entêtes

@@ -48,8 +48,8 @@ De façon générale, une commande se présente sous la forme suivante :
 	[chaine1] <nom_de_la_commande> [chaine2]
 
 L'interprétation de [chaine1] et [chaine2] dépend du contexte courant.
-La règle d'entrée des commandes impose que [chaine1] ne contiennent que
-des caractères parmi les suivants "0123456789<>.,_*-" et ne commence pas
+La règle d'entrée des commandes impose que [chaine1] ne contienne que
+des caractères parmi les suivants "0123456789<>.,_*" et ne commence pas
 par '-'.
 
 ------------------------------------

@@ -1465,7 +1465,7 @@ int post_message (Article_List *origine, char *name_file,int flag) {
         return -1;
       }
     }
-    if (flag==-1) supersedes=1;
+    supersedes=(flag==-1);
     Pere_post=origine;
     sigwinch_received=0;
     Deb_article=Deb_body=NULL;

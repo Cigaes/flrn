@@ -40,17 +40,17 @@ helpdir = $(flrndir)/help
 
 Y_FILES = getdate.y
 
-C_FILES = flrn_tcp.c options.c flrn_files.c group.c art_group.c tty_display.c tty_keyboard.c flrn_inter.c post.c flrn_string.c main.c rfc2047.c flrn_help.c flrn_regexp.c flrn_slang.c flrn_xover.c flrn_menus.c flrn_color.c compatibility.c flrn_shell.c flrn_pager.c flrn_format.c flrn_filter.c flrn_lists.c flrn_tags.c flrn_command.c flrn_comp.c flrn_messages.c
+C_FILES = flrn_tcp.c options.c flrn_files.c group.c art_group.c tty_display.c tty_keyboard.c flrn_inter.c post.c flrn_string.c main.c rfc2047.c flrn_help.c flrn_regexp.c flrn_slang.c flrn_xover.c flrn_menus.c flrn_color.c compatibility.c flrn_shell.c flrn_pager.c flrn_format.c flrn_filter.c flrn_lists.c flrn_tags.c flrn_command.c flrn_comp.c flrn_messages.c flrn_func.c
 
 VC_FILES = `echo $(C_FILES) $(Y_FILES) | sed s'&\ \|^& '$(SRCDIR)'/&'g`
 
 #Headers
 
-HDRS = flrn.h options.h flrn_config.h flrn_glob.h group.h art_group.h post.h flrn_string.h rfc2047.h pathdef.h version.h site_config.h flrn_slang.h flrn_menus.h flrn_filter.h flrn_pager.h flrn_lists.h flrn_tags.h flrn_tcp.h flrn_macros.h flrn_command.h compatibility.h config.h flrn_color.h flrn_files.h flrn_format.h flrn_help.h flrn_inter.h flrn_regexp.h flrn_shell.h flrn_xover.h tty_display.h tty_keyboard.h flrn_comp.h flrn_messages.h getdate.h
+HDRS = flrn.h options.h flrn_config.h flrn_glob.h group.h art_group.h post.h flrn_string.h rfc2047.h pathdef.h version.h site_config.h flrn_slang.h flrn_menus.h flrn_filter.h flrn_pager.h flrn_lists.h flrn_tags.h flrn_tcp.h flrn_macros.h flrn_command.h compatibility.h config.h flrn_color.h flrn_files.h flrn_format.h flrn_help.h flrn_inter.h flrn_regexp.h flrn_shell.h flrn_xover.h tty_display.h tty_keyboard.h flrn_comp.h flrn_messages.h getdate.h flrn_func.h
 
 #Objets
 
-OBJS = art_group.o compatibility.o flrn_color.o flrn_files.o flrn_format.o flrn_help.o flrn_inter.o flrn_menus.o flrn_pager.o flrn_regexp.o flrn_shell.o flrn_slang.o flrn_string.o flrn_tcp.o flrn_xover.o group.o main.o options.o post.o rfc2047.o tty_display.o tty_keyboard.o flrn_filter.o flrn_lists.o flrn_tags.o flrn_command.o flrn_comp.o flrn_messages.o getdate.o
+OBJS = art_group.o compatibility.o flrn_color.o flrn_files.o flrn_format.o flrn_help.o flrn_inter.o flrn_menus.o flrn_pager.o flrn_regexp.o flrn_shell.o flrn_slang.o flrn_string.o flrn_tcp.o flrn_xover.o group.o main.o options.o post.o rfc2047.o tty_display.o tty_keyboard.o flrn_filter.o flrn_lists.o flrn_tags.o flrn_command.o flrn_comp.o flrn_messages.o getdate.o flrn_func.o
 
 # Suite a modifier au cas où
 
