@@ -345,9 +345,9 @@ void rfc2047_decode (char *d, const char *s, size_t dlen)
   int found_encoded = 0;
 
   dlen--; /* save room for the terminal nul */
-  if ((dlen==0) && (d != s)) {
-     strfcpy (d, s, dlen + 1);
-     return;
+  if (dlen==0) {
+    if (d != s) strfcpy (d, s, 1);
+    return;
   }
 
   while (*s && dlen > 0)
