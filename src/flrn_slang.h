@@ -25,10 +25,10 @@
 
 extern void Screen_suspend(void);
 extern void Screen_resume(void);
-extern void Screen_get_size(void);
+extern void Screen_get_size(int hl);
 extern int Screen_init_smg(void);
 extern void Screen_reset(void);
-extern void Get_terminfo(void);
+extern void Get_terminfo(int hl);
 extern void Set_term_cannot_scroll(int);
 extern void Screen_write_char(char /*c*/);
 extern void Screen_write_string(char * /*s*/);

@@ -57,6 +57,7 @@ struct _Optcmd {
 #define MAX_HEADER_LIST 31
 extern Known_Headers unknown_Headers[MAX_HEADER_LIST];
 	/* on va les reperer en négatif de -2 à -MAX_HEADER_LIST-1 */
+extern const char *Help_Lines[17];
 
 /* pour les my_hdr */
 typedef struct string_list {
@@ -117,6 +118,8 @@ struct Option_struct {
   int  warn_if_new;
   char *default_flnewsfile;
   int short_errors;
+  int help_line;
+  char *help_lines_file;
 };
 
 extern struct Option_struct Options;
@@ -189,6 +192,8 @@ static struct {
   MAKE_STRING_OPT_L(flnews_ext,"Extension sur le nom du .flnewsrc."),
   MAKE_OPT(forum_mode,"Mode de commande forum-like."),
   MAKE_OPT(headers_scroll,"Les headers scrollent avec le reste des messages."),
+  MAKE_OPT(help_line,"Ajoute une ligne d'aide en fin d'écran."),
+  MAKE_STRING_OPT_L(help_lines_file,"Fichier où trouver les lignes d'aides."),
   MAKE_STRING_OPT(hist_file_name,"Nom de fichier pour sauvegarder l'historique."),
   MAKE_OPT(include_in_edit,"Lorsque auto_edit est défini, inclut automatiquement le message d'origine."),
   MAKE_STRING_OPT(index_string,"Caractères précédents un quote."),
@@ -228,5 +233,6 @@ extern void dump_flrnrc(FILE * /*file*/);
 extern int  options_comp(char * /*option*/, int /*len*/, Liste_Chaine *);
 extern void free_options(void);
 extern void menu_config_variables(void);
+extern void load_help_line_file(void);
 
 #endif

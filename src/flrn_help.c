@@ -23,6 +23,7 @@ void Aide () {
    FILE *file;
    char key='m';
 
+   num_help_line=4;
    while (key!='q') {
       file=open_flhelpfile(key);
       key='\0';
@@ -33,6 +34,8 @@ void Aide () {
          key=Aff_file(file,hl_chars,hl_mesgs);
          fclose(file);
       }
+      num_help_line=16;
+      Aff_help_line(Screen_Rows-1);
       if (key==0) Aff_fin(hl_mesgs);
       while ((key==0) || (!strchr(hl_chars,key))) {
          key=(char)Attend_touche();

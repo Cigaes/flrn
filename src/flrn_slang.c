@@ -14,20 +14,22 @@
 #include "flrn_color.h"
 
 int KeyBoard_Quit;
-int Screen_Rows, Screen_Cols;
+int Screen_Rows, Screen_Cols, Screen_Rows2;
 int Screen_Tab_Width;
 
 void Screen_suspend() { SLsmg_suspend_smg(); }
 void Screen_resume() { SLsmg_resume_smg(); }
-void Screen_get_size() { SLtt_get_screen_size(); 
-			 Screen_Rows=SLtt_Screen_Rows;
+void Screen_get_size(int hl) { SLtt_get_screen_size(); 
+			 Screen_Rows=SLtt_Screen_Rows-hl;
+			 Screen_Rows2=SLtt_Screen_Rows;
 			 Screen_Cols=SLtt_Screen_Cols;
 		       }
 int Screen_init_smg() { int a; a=SLsmg_init_smg(); Screen_Tab_Width=SLsmg_Tab_Width; return a; }
 void Screen_reset() {  SLsmg_reset_smg(); }
 
-void Get_terminfo() { SLtt_get_terminfo();
-		      Screen_Rows=SLtt_Screen_Rows;
+void Get_terminfo(int hl) { SLtt_get_terminfo();
+		      Screen_Rows=SLtt_Screen_Rows-hl;
+		      Screen_Rows2=SLtt_Screen_Rows;
 		      Screen_Cols=SLtt_Screen_Cols;
 		    }
 void Set_term_cannot_scroll (int a) { SLtt_Term_Cannot_Scroll=a; }

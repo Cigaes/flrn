@@ -321,7 +321,8 @@ int opt_do_set(char *str, int flag)
   for (i=0; i< NUM_OPTIONS; i++){
     found=0;
     /* on cherche le nom de la variable */
-    if (strncmp(buf, All_options[i].name, strlen(All_options[i].name))==0){
+    if ((strncmp(buf, All_options[i].name, strlen(All_options[i].name))==0)
+     && (!isalpha((int)*(buf+strlen(All_options[i].name))))) {
       if(flag && All_options[i].flags.lock) {
 	Aff_error_fin("On ne peut changer cette variable",1,-1);
 	return -1;
@@ -868,6 +869,7 @@ void menu_config_variables() {
     courant=ajoute_menu(courant,safe_strdup(buf),(void *)i);
     if (!menu) menu=courant;
   }
+  num_help_line=13;
   valeur = (int *) Menu_simple(menu, NULL, aff_desc_option, change_value, "<entrée> pour changer une option, q pour quitter.");
   Libere_menu_noms(menu);
   return;
@@ -886,6 +888,33 @@ static int parse_option_file (char *name, int flags, int flag_option) {
     parse_options_line(buf1,flag_option);
   fclose(flrnfile);
   return 0;
+}
+
+const char *Help_Lines[17];
+const char *menu_default_help_line=" Menu: \\quit : quitter le menu     \\select : selectionner un element";
+
+void load_help_line_file() {
+  int i;
+  FILE *flrnfile;
+  char buf1[80];
+
+  for (i=0;i<14;i++) Help_Lines[i]=menu_default_help_line;
+  Help_Lines[0]=Help_Lines[3]=" ? : aide   \\quit : quitter flrn   \\next-unread : article suivant";
+  Help_Lines[1]=" ? : aide   \\quit : quitter flrn   \\show-tree pour revenir à l'affichage normal";
+  Help_Lines[2]=" ? : aide   ^C : quitter le pager   \\pgdown : descend d'une page";
+  Help_Lines[4]=" ^C ou \\quit : quitter le pager     \\pgdown : descend d'une page";
+  Help_Lines[14]=" ^C : sortir du défilement       autre touche : page suivante ";
+  Help_Lines[15]=" Appuyez sur une touche pour continuer ... ";
+  Help_Lines[16]="   q : quitter l'aide         m : menu      0-9 : rubriques de l'aide ";
+  if (Options.help_lines_file==NULL) return;
+  flrnfile=open_flrnfile(Options.help_lines_file,"r",0,NULL);
+  if (flrnfile==NULL) return;
+  for (i=0;i<17;i++) {
+      if (fgets(buf1,80,flrnfile)==NULL) break;
+      Help_Lines[i]=safe_strdup(buf1);
+      /* TODO : corriger le memory leak */
+  }
+  fclose(flrnfile);
 }
 
 

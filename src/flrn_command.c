@@ -1,4 +1,4 @@
-/* flrn
+/*
  * Gestion des bindings de touches
  * Commun a tous les contextes */
 /* On y ajoute aussi, commum a tous les contextes, l'entrées de commandes 
@@ -469,7 +469,7 @@ int get_command_explicite(char *start, int col, int princip, int second, Cmd_ret
    do {
      Aff_ligne_comp_cmd(str,strlen(str),col);
      if ((res=magic_getline(str+prefix_len,MAX_CHAR_STRING-prefix_len,
-         Screen_Rows-1,col+prefix_len,"\011",0,ret))<0)
+         Screen_Rows2-1,col+prefix_len,"\011",0,ret))<0)
        return -2;
      ret=0;
      if (res>0) ret=Comp_general_command(str+prefix_len,MAX_CHAR_STRING-prefix_len,col+prefix_len,Comp_cmd_explicite, Aff_ligne_comp_cmd);
@@ -494,7 +494,7 @@ int get_command_nocbreak(int asked,int col, int princip, int second, Cmd_return 
    if (asked && (asked!=fl_key_nocbreak))  *(str++)=asked;
    *str='\0';
    str=cmd_line;
-   if ((res=getline(str,MAX_CHAR_STRING,Screen_Rows-1,
+   if ((res=getline(str,MAX_CHAR_STRING,Screen_Rows2-1,
                       col+(asked && (asked==fl_key_nocbreak))))<0)
      return -2;
    while(*str==fl_key_nocbreak) str++;
@@ -526,7 +526,7 @@ int get_command_newmode(int key,int col, int princip, int second, Cmd_return *la
    cmd_line[0]=key; cmd_line[1]='\0';
    Screen_write_char(key);
    /* On appelle magic_getline avec flag=1 */
-   if ((key=magic_getline(str,MAX_CHAR_STRING,Screen_Rows-1,col,DENIED_CHARS,1,0))<0)
+   if ((key=magic_getline(str,MAX_CHAR_STRING,Screen_Rows2-1,col,DENIED_CHARS,1,0))<0)
       return -2;
    if (*str) la_commande->before=safe_strdup(str);
    if (key==fl_key_explicite) 

@@ -35,6 +35,7 @@
 /* place des objets de la barre */
 int screen_inited;
 int name_news_col, num_art_col, num_rest_col, num_col_num, name_fin_col;
+int num_help_line=0;
 /* place des messages d'erreur */
 int row_erreur, col_erreur;
 int error_fin_displayed=0;
@@ -101,7 +102,7 @@ static int Size_Window(int flag, int col_num) {
 /* SIGWINCH */
 void sig_winch(int sig) {
    
-   Screen_get_size();
+   Screen_get_size(Options.help_line);
    Screen_init_smg ();
    if (Size_Window(0,0)) {
      if (Newsgroup_courant) { Aff_newsgroup_name(0); Aff_newsgroup_courant(); }
@@ -122,7 +123,7 @@ int Init_screen(int stupid_term) {
    table_petit_arbre=safe_malloc(7*sizeof(char *));
    for (res=0;res<7;res++)
      table_petit_arbre[res]=safe_malloc(11);
-   Get_terminfo ();
+   Get_terminfo (Options.help_line);
    if (stupid_term) Set_term_cannot_scroll(1);
    res=Screen_init_smg ();
   
@@ -155,7 +156,7 @@ void Reset_screen() {
 /* renvoie la colonne d'arrivée */
 int Aff_fin(const char *str) {
    int col=0;
-   Cursor_gotorc(Screen_Rows-1,0);
+   Cursor_gotorc(Screen_Rows2-1,0);
 #ifdef CHECK_MAIL
    Screen_set_color(FIELD_NORMAL);
    if (Options.check_mail && newmail(mailbox)) {
@@ -167,7 +168,7 @@ int Aff_fin(const char *str) {
    Screen_write_string((char *)str);
    Screen_set_color(FIELD_NORMAL);
    Screen_erase_eol();
-   Cursor_gotorc(Screen_Rows-1, col+strlen(str)); /* En changeant l'objet */
+   Cursor_gotorc(Screen_Rows2-1, col+strlen(str)); /* En changeant l'objet */
     				                  /* on change la pos du  */
    					          /* curseur.		  */
    return (col+strlen(str));
@@ -177,6 +178,8 @@ int Aff_fin(const char *str) {
 int Aff_error(const char *str) {
    Cursor_gotorc(1,0);
    Screen_erase_eos();
+   Aff_help_line(Screen_Rows-1);
+   Cursor_gotorc(1,0);
    Screen_set_color(FIELD_ERROR);
    Cursor_gotorc(row_erreur,col_erreur); 
    Screen_write_string((char *)str);
@@ -189,7 +192,7 @@ int Aff_error(const char *str) {
 int Aff_error_fin(const char *str, int s_beep, int short_e) {
    int col=0;
    if (short_e==-1) short_e=Options.short_errors;
-   Cursor_gotorc(Screen_Rows-1,0);
+   Cursor_gotorc(Screen_Rows2-1,0);
 #ifdef CHECK_MAIL
    Screen_set_color(FIELD_NORMAL);
    if (Options.check_mail && newmail(mailbox)) {
@@ -204,7 +207,7 @@ int Aff_error_fin(const char *str, int s_beep, int short_e) {
 /* après le message...						    */
    Screen_set_color(FIELD_NORMAL);
    Screen_erase_eol();
-   Cursor_gotorc(Screen_Rows-1, Screen_Cols-1); 
+   Cursor_gotorc(Screen_Rows2-1, Screen_Cols-1); 
    Screen_refresh();
    if (short_e) sleep(1); else error_fin_displayed=1;
    return 0;
@@ -243,6 +246,9 @@ int Aff_summary_line(Article_List *art, int *row,
     if (KeyBoard_Quit) return 1;
     Cursor_gotorc(1,0);
     Screen_erase_eos();
+    num_help_line=14;
+    Aff_help_line(Screen_Rows-1);
+    Cursor_gotorc(1,0);
     *row=1+Options.skip_line;
     previous_subject=NULL;
   } 
@@ -440,6 +446,8 @@ int ajoute_elem_not_menu (void *element, int passage) {
       row=1+Options.skip_line;
       Cursor_gotorc(1,0);
       Screen_erase_eos();
+      num_help_line=4;
+      Aff_help_line(Screen_Rows-1);
       Cursor_gotorc(row++,0);
       Screen_write_string(passage == 0 ? chaine0 : 
                          (passage==1 ? chaine1 : chaine2));
@@ -453,6 +461,8 @@ int ajoute_elem_not_menu (void *element, int passage) {
       if (KeyBoard_Quit) return -1;
       Cursor_gotorc(1,0);
       Screen_erase_eos();
+      num_help_line=4;
+      Aff_help_line(Screen_Rows-1);
       row=1+Options.skip_line;
    }
    Cursor_gotorc(row,(passage<2 ? 2 : 4));
@@ -511,6 +521,7 @@ int ajoute_elem_menu (void *element, int passage) {
 int fin_passage_menu (void **retour, int passage, int flags) {
    
    if ((passage==0) && (flags>0)) return 0;
+   num_help_line=12;
    *retour=Menu_simple(menu_liste, start_liste,
    		(passage<2 ? Ligne_carac_du_groupe : NULL),
 		    (passage<2 ? chg_grp_in : chg_grp_not_in),
@@ -1311,6 +1322,8 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
             sprintf(buf3,"(%d%%)",percent);
 	 } else buf3[0]='\0';
 	 strcat(buf3,"-More-");
+	 num_help_line=(from_file ? 4 : 2);
+         Aff_help_line(Screen_Rows-1);
 	 Aff_fin(buf3);
 	 Screen_refresh(); /* CAS particulier */
 	 en_deca=0;
@@ -1420,6 +1433,7 @@ int Gere_Scroll_Message (int row_act, int row_deb,
   Cursor_gotorc(1,0);
   Screen_set_color(FIELD_NORMAL);
   Screen_erase_eos();
+  Aff_help_line(Screen_Rows-1);
   if (scroll_headers==0) act_row=Aff_headers(1)+1; else
       act_row=1+Options.skip_line;
   Init_Scroll_window(num_elem,act_row,Screen_Rows-act_row-1);
@@ -1465,6 +1479,8 @@ void Aff_newsgroup_name(int erase_scr) {
      Screen_set_color(FIELD_NORMAL);
      Cursor_gotorc(1,0);
      Screen_erase_eos();
+     num_help_line=0;
+     Aff_help_line(Screen_Rows-1);
      Screen_refresh(); 
           /* Cas particulier : pour le temps que ça prend parfois */
    }
@@ -1512,6 +1528,15 @@ void Aff_not_read_newsgroup_courant() {
    Screen_set_color(FIELD_NORMAL);
 }
 
+void Aff_help_line(int ligne) {
+   if (Options.help_line==0) return;
+   Cursor_gotorc(ligne,0);
+   Screen_set_color(FIELD_STATUS);
+   Screen_erase_eol();
+   Screen_write_string((char *)Help_Lines[num_help_line]);
+   Screen_set_color(FIELD_NORMAL);
+}
+
 static int base_Aff_article(int to_build) {
    char buf[10];
 
@@ -1546,7 +1571,8 @@ int Aff_grand_thread(int to_build) {
    int i;
 
    if (base_Aff_article(to_build)==-1) return 0;
-   Screen_write_string("Mode thread (\\show-tree pour revenir au mode normal)");
+   num_help_line=1;
+   Aff_help_line(Screen_Rows-1);
    grande_table=safe_malloc((Screen_Rows-4)*sizeof(char *));
    for (i=0;i<Screen_Rows-4;i++)
      grande_table[i]=safe_malloc(Screen_Cols);
@@ -1567,6 +1593,8 @@ int Aff_article_courant(int to_build) {
    
    if (debug) fprintf(stderr, "Appel a Aff_article_courant\n");
    if (base_Aff_article(to_build)==-1) return 0;
+   num_help_line=0;
+   Aff_help_line(Screen_Rows-1);
 
    Cursor_gotorc(1+Options.skip_line,0);
 
@@ -1664,8 +1692,8 @@ int Aff_article_courant(int to_build) {
       read_line++;
    } while (actual_row>0);
    if (actual_row<0)  /* On entame un scrolling */
-      res=Gere_Scroll_Message(actual_row,
-   	(scroll_headers ? 1+Options.skip_line : first_line), scroll_headers, to_build);
+	  res=Gere_Scroll_Message(actual_row,
+	    (scroll_headers ? 1+Options.skip_line : first_line), scroll_headers, to_build);
    else res=0;
    free_text_scroll();
    if (res>=0)  
@@ -1675,20 +1703,22 @@ int Aff_article_courant(int to_build) {
    return ((res==1) || (res==-2));
 }
 
-       
-/* Affichage d'un fichier. */
+	   
+    /* Affichage d'un fichier. */
 int Aff_file (FILE *file, char *exit_chars, char *end_mesg) {
    int row=1,read_line=1;
    int key=0;
-  
+     
    saved_field=FIELD_NORMAL;
    saved_space=0;
    en_deca=1;
    Cursor_gotorc(1,0);
    Screen_erase_eos();
+   num_help_line=4;
+   Aff_help_line(Screen_Rows-1);
    while (fgets(tcp_line_read, MAX_READ_SIZE-1, file)) {
-      row=Ajoute_aff_formated_line(row, read_line, 1);
-      read_line++;
+     row=Ajoute_aff_formated_line(row, read_line, 1);
+     read_line++;
    }
    if (row>Screen_Rows-1) {  /* On entame un scrolling */
       key=Attend_touche();

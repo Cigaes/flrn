@@ -58,6 +58,8 @@ struct Option_struct Options = {
   0,			/* warn_if_new */
   NULL,			/* get_ext_flnewsfile */
   0,			/* short_errors */
+  1,			/* help_line */
+  NULL,			/* help_line_file */
   };
 
 #endif

@@ -35,8 +35,9 @@ volatile int sigwinch_received; /* Pour stoper les posts */
 typedef unsigned long FL_Char_Type;
 
 extern int KeyBoard_Quit; 		/* ^C */
-extern int Screen_Rows, Screen_Cols;	/* Taille de l'écran */
+extern int Screen_Rows, Screen_Cols, Screen_Rows2; /* Taille de l'écran */
 extern int Screen_Tab_Width;		/* Taille du tab (8) */
+extern int num_help_line;
 
 /* Gestion des scrolls */
 typedef struct _File_Line_Type

@@ -423,7 +423,7 @@ static int get_Body_post() {
 	lecture_courant->lu[place]='\0';
         if (res==0) 
 	  while (res==0) {
-  	    Cursor_gotorc(Screen_Rows-1,0);
+  	    Cursor_gotorc(Screen_Rows2-1,0);
 	    Screen_write_string("(P)oster, (E)diter, (A)nnuler ? ");
             key=Attend_touche();
 	    key=toupper(key);
@@ -711,13 +711,13 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
        Cursor_gotorc(1,0);
        Screen_erase_eos();
      }
-     Cursor_gotorc(Screen_Rows-2,0);
+     Cursor_gotorc(Screen_Rows2-2,0);
      Screen_erase_eol();
      Screen_write_string("Groupe inconnu dans ");
      Screen_write_string(header);
      Screen_write_string(" : ");
      Screen_write_string(nom2);
-     Cursor_gotorc(Screen_Rows-1,0);
+     Cursor_gotorc(Screen_Rows2-1,0);
      Screen_erase_eol();
      Screen_write_string("(L)aisser,(S)upprimer,(R)emplacer,(M)enu ? ");
      key=Attend_touche();
@@ -729,7 +729,7 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
      if (key=='L') 
         return nom2;
      if ((key=='R') || (key=='M')) {
-        Cursor_gotorc(Screen_Rows-1,0);
+        Cursor_gotorc(Screen_Rows2-1,0);
 	if (!alloue) {
 	  nom2=safe_malloc(MAX_NEWSGROUP_LEN);
 	  alloue=1;
@@ -740,7 +740,7 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
 	  if (*copy_pre) strcpy(nom2,Options.prefixe_groupe);
 	  Screen_write_string("Nom du groupe : ");
 	  Screen_write_string(nom2);
-	  ret=getline(nom2,MAX_NEWSGROUP_LEN,Screen_Rows-1,16);
+	  ret=getline(nom2,MAX_NEWSGROUP_LEN,Screen_Rows2-1,16);
 	  if (ret<0) {
 	     strcpy(nom2,nom);
 	     to_test=0;
@@ -751,7 +751,7 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
 	col=(Options.use_regexp ? 9 : 14);
 	Screen_write_string(Options.use_regexp ? "Regexp : " :
 						 "Sous-chaîne : ");
-	ret=getline(nom2,MAX_NEWSGROUP_LEN,Screen_Rows-1,col);
+	ret=getline(nom2,MAX_NEWSGROUP_LEN,Screen_Rows2-1,col);
 	if (ret<0) {
 	   strcpy(nom2,nom);
 	   to_test=0;
@@ -782,8 +782,10 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
 	     strcpy(nom2,((Newsgroup_List *) (lemenu->lobjet))->name);
 	     return nom2;
 	  }
-	  else
+	  else {
+	    num_help_line=11;
 	    groupe=Menu_simple(lemenu,NULL,Ligne_carac_du_groupe,NULL,"Quel groupe ?");
+	  }
 	  Libere_menu(lemenu); /* On ne libere PAS les noms */
 	  	/* voir à prendre change_group ici, c'est la même fonction */
 	} else groupe=NULL;
@@ -1170,7 +1172,7 @@ static int Get_base_headers(int flag, Article_List *article) {
       if ((flag==0) && (Pere_post->headers->k_headers[FOLLOWUP_TO_HEADER])) {
         if  (strcasecmp(Pere_post->headers->k_headers[FOLLOWUP_TO_HEADER],"poster")==0) {
 	  while (flag==0) {
-	    Cursor_gotorc(Screen_Rows-1,0);
+	    Cursor_gotorc(Screen_Rows2-1,0);
 	    Screen_write_string("Répondre par mail (O/N/A) ? ");
 	    key=Attend_touche();
 	    key=toupper(key);
@@ -1182,7 +1184,7 @@ static int Get_base_headers(int flag, Article_List *article) {
         } else if (strcasecmp(Newsgroup_courant->name,Pere_post->headers->k_headers[FOLLOWUP_TO_HEADER])!=0) { 
 			/* On ne demande rien si on est dans le bon groupe */
 	  while (1) {
-	    Cursor_gotorc(Screen_Rows-1,0);
+	    Cursor_gotorc(Screen_Rows2-1,0);
 	    Screen_write_string("Suivre le followup (O/N/A) ? ");
 	    key=Attend_touche();
 	    key=toupper(key);
@@ -1348,12 +1350,12 @@ int cancel_message (Article_List *origine) {
    /* On pourrait demander confirmation */
    /* L'équivalent d'un Aff_fin */
    sprintf(line,"Canceler le message %d (O/N) : ",origine->numero);
-   Cursor_gotorc(Screen_Rows-1,0);
+   Cursor_gotorc(Screen_Rows2-1,0);
    Screen_set_color(FIELD_ERROR);
    Screen_write_string(line);
    Screen_set_color(FIELD_NORMAL);
    Screen_erase_eol();
-   Cursor_gotorc(Screen_Rows-1, strlen(line));
+   Cursor_gotorc(Screen_Rows2-1, strlen(line));
    key=Attend_touche();
    key=toupper(key);
    if (key!='O') return 0;

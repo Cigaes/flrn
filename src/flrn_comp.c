@@ -12,7 +12,7 @@
 #include "tty_keyboard.h"
 
 void Aff_ligne_comp_cmd (char *str, int len, int col) {
-  Cursor_gotorc(Screen_Rows-1,col); Screen_erase_eol();
+  Cursor_gotorc(Screen_Rows2-1,col); Screen_erase_eol();
   Screen_write_nstring(str,len);
 }
 

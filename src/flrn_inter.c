@@ -764,7 +764,7 @@ static int get_str_arg(int res, char *beg) {
      ret2=0;
      do {
         Aff_ligne_comp_cmd(str,strlen(str),col);
-	if ((ret=magic_getline(str,MAX_CHAR_STRING,Screen_Rows-1,col,
+	if ((ret=magic_getline(str,MAX_CHAR_STRING,Screen_Rows2-1,col,
 			"\011",0,ret2))<0) return -1;
 	ret2=0;
 	if (ret>0) ret2=Comp_general_command(str, MAX_CHAR_STRING,col,
@@ -772,7 +772,7 @@ static int get_str_arg(int res, char *beg) {
 	if (ret2<0) ret2=0;
      } while (ret!=0);
    } else {
-     ret=getline(str, MAX_CHAR_STRING, Screen_Rows-1, col);
+     ret=getline(str, MAX_CHAR_STRING, Screen_Rows2-1, col);
      if (ret<0) return -1;
    }
    if (Flcmds[res].flags & 2) 
@@ -1145,6 +1145,7 @@ int do_hist_menu(int res) {
     etat_loop.etat=2; etat_loop.num_message=-15; 
     return 0;
   }
+  num_help_line=5;
   valeur = (int)(long) Menu_simple(menu, start, hist_menu_summary, NULL, "Historique. <entrée> pour choisir, q pour quitter...");
   if (!valeur) {
     etat_loop.etat=3;
@@ -1378,7 +1379,7 @@ int do_omet(int res) {
        use_argstr=1;
        name=safe_malloc(30*sizeof(char));
        col=Aff_fin("Flag : ");
-       if ((ret=getline(name, MAX_PATH_LEN, Screen_Rows-1,col)<0)) {
+       if ((ret=getline(name, MAX_PATH_LEN, Screen_Rows2-1,col)<0)) {
           free(name);
 	  etat_loop.etat=3;
 	  return 0;
@@ -1650,7 +1651,11 @@ static Article_List * raw_Do_summary (int deb, int fin, int thread,
   Liste_Menu *courant=NULL, *menu=NULL, *start=NULL;
 
   /* On DOIT effacer l'écran pour les commandes summary de base... */
-  Cursor_gotorc(1,0); Screen_erase_eos();
+  Cursor_gotorc(1,0); 
+  Screen_erase_eos();
+  num_help_line=6;
+  Aff_help_line(Screen_Rows-1);
+  Cursor_gotorc(1,0); 
   /* find first article */
   parcours=Article_deb;
   while (parcours && (parcours->numero<deb)) parcours=parcours->next;
@@ -1823,6 +1828,7 @@ static int Menu_selector (Thread_List **retour) {
    }
     
    if (menu) {
+      num_help_line=7;
       (*retour)=(Thread_List *)Menu_simple(menu,start,NULL,thread_menu,"<total> <non lus>. q pour quitter.");
       Libere_menu_noms(menu);
    } else return -1;
@@ -2017,7 +2023,7 @@ int do_save(int res) {
     name[0]=toupper(name[0]);
     col=Aff_fin("Sauver dans : ");
     Screen_write_string(name);
-    if ((ret=getline(name, MAX_PATH_LEN, Screen_Rows-1,col)<0)) {
+    if ((ret=getline(name, MAX_PATH_LEN, Screen_Rows2-1,col)<0)) {
       free(name);
       etat_loop.etat=3;
       return 0;
@@ -2117,8 +2123,12 @@ int display_filter_file(char *cmd, int flag) {
   strcat(prettycmd," : ");
   Aff_file(file,NULL,NULL); /* c'est tres moche */
   fclose(file);
+  num_help_line=15;
+  Aff_help_line(Screen_Rows-1);
   Aff_fin(prettycmd);
   Attend_touche();
+  num_help_line=thread_view;
+  Aff_help_line(Screen_Rows-1);
   etat_loop.etat=3;
   etat_loop.hors_struct|=1;
   return 0;
@@ -2158,7 +2168,7 @@ int do_pipe(int res) {
     name=safe_malloc(MAX_PATH_LEN*sizeof(char));
     name[0]='\0';
     col=Aff_fin("Piper dans : ");
-    if ((ret=getline(name, MAX_PATH_LEN, Screen_Rows-1,col)<0)) {
+    if ((ret=getline(name, MAX_PATH_LEN, Screen_Rows2-1,col)<0)) {
       free(name);
       etat_loop.etat=3;
       return 0;
@@ -2261,7 +2271,13 @@ int do_opt(int res) {
 }
 
 int do_opt_menu(int res) {
+  int sav_color_opt=Options.color;
   menu_config_variables();
+  if (Options.color!=sav_color_opt) {
+       Init_couleurs();
+       Screen_touch_lines (0, Screen_Rows2-1);
+  }
+  Screen_Rows=Screen_Rows2-Options.help_line;
   etat_loop.etat=3;
   etat_loop.hors_struct|=1;
   return 0;
@@ -2283,6 +2299,9 @@ int do_neth(int res) {  /* Très pratique, cette fonction, pour les tests idiots 
 
   Cursor_gotorc(1,0);
   Screen_erase_eos();
+  num_help_line=1;
+  Aff_help_line(Screen_Rows-1);
+  Cursor_gotorc(1,0);
   grande_table=safe_malloc((Screen_Rows-1)*sizeof(char *));
   for (i=0;i<Screen_Rows-1;i++)
     grande_table[i]=safe_malloc(Screen_Cols);
@@ -2460,6 +2479,7 @@ static int art_swap_grp(char *xref, char *arg, Newsgroup_List *exclu) {
 	    return 1;
 	 }
      } else {
+         num_help_line=8;
          objet=(Flrn_Reference_swap *)Menu_simple(lemenu,NULL,NULL,NULL,
 	     "Quel groupe ?");
 	 if ((objet==NULL) || (objet->gpe==Newsgroup_courant)) {
@@ -2596,6 +2616,7 @@ int do_keybindings(int res) {
       key=Page_message(row-1,1,0,1,1,NULL,NULL,NULL);
       free_text_scroll();
    } else {
+      num_help_line=9;
       Menu_simple(menu,menu,NULL,NULL,Noms_contextes[context]);
       Libere_menu_noms(menu);
    }
@@ -2712,7 +2733,7 @@ void Get_option_line(char *argument)
     col=Aff_fin("Option: ");
     do {
       if (res>0) Aff_ligne_comp_cmd(buf,strlen(buf),col);
-      if ((res=magic_getline(buf,MAX_BUF_SIZE,Screen_Rows-1,col,
+      if ((res=magic_getline(buf,MAX_BUF_SIZE,Screen_Rows2-1,col,
 	  "\011",0,ret))<0) {
         free(buf);
         return;
@@ -2728,8 +2749,9 @@ void Get_option_line(char *argument)
   parse_options_line(buf,1);
   if (color) {
        Init_couleurs();
-       Screen_touch_lines (0, Screen_Rows-1);
+       Screen_touch_lines (0, Screen_Rows2-1);
   }
+  Screen_Rows=Screen_Rows2-Options.help_line;
   if (!use_arg) free(buf);
   return;
 }
@@ -2859,8 +2881,10 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
    }
    if (lemenu) {
      if (lemenu->suiv==NULL) mygroup=lemenu->lobjet;
-     else
+     else {
+       num_help_line=10;
        mygroup=Menu_simple(lemenu,NULL,Ligne_carac_du_groupe,NULL,"Quel groupe ?");
+     }
      if (mygroup==NULL) mygroup=Newsgroup_courant;
      Libere_menu(lemenu); /* on est bien d'accord qu'on ne libere PAS les noms*/
      			  /* CAR action_select vaut NULL */

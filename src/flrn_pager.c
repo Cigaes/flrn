@@ -34,7 +34,7 @@ int get_new_pattern() {
    char line[SIZE_PATTERN_SEARCH];
    col=Aff_fin("Search : ");
    line[0]='\0';
-   ret=getline(line,SIZE_PATTERN_SEARCH-1,Screen_Rows-1,col);
+   ret=getline(line,SIZE_PATTERN_SEARCH-1,Screen_Rows2-1,col);
    if ((ret==0) && (*line)) strcpy(pattern_search,line);
    return ret;
 }
@@ -207,6 +207,8 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
     if (deb || le_scroll) {
       nll=Number_current_line_scroll()+Screen_Rows-act_row-2;
       if (nll>=num_elem) {
+        num_help_line=(short_exit ? 3 : 4);
+        Aff_help_line(Screen_Rows-1);
 	if ((!short_exit) && (exit_chars==NULL)) {
 	   if (Macro_pager_bef) free(Macro_pager_bef);
       	   if (Macro_pager_aft) free(Macro_pager_aft);
@@ -223,6 +225,8 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
 	at_end=1;
       } 
       else {
+        num_help_line=(((exit_chars==NULL) && (short_exit)) ? 2 : 4);
+        Aff_help_line(Screen_Rows-1);
         at_end=0;
 	if (to_wait) {
 	   Aff_fin("Patientez...");

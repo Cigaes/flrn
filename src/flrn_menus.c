@@ -208,6 +208,7 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
 /* Sans oublier d'effacer l'écran d'abord... 				*/
   Cursor_gotorc(1,0);
   Screen_erase_eos();
+  Aff_help_line(Screen_Rows-1);
   if (act_row<Screen_Rows-1-Options.skip_line) Do_Scroll_Window(0,1);
   else {
     Do_Scroll_Window(act_row-(Screen_Rows-1)/2,1);

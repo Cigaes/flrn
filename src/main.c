@@ -130,6 +130,7 @@ int main(int argc, char *argv[])
      fprintf(stdout,"Serveur : %s    port : %i\n",Options.serveur_name,
         Options.port);
   }
+  load_help_line_file();
   init_kill_file();
   if (debug) fprintf(stderr,"Serveur : %s\n",Options.serveur_name);
   code=connect_server(Options.serveur_name, 0);
