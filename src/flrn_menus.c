@@ -630,7 +630,6 @@ static void remplit_ajout_menu(Liste_Menu *creation,
   size_t reallen;
   creation->lobjet=lobjet;
   creation->format=format;
-  creation->order=0;
   creation->laligne.flags=0;
   for (i=0;i<format->nbelem;i++) {
       if (format->tab[i].stoaff) reallen=format->tab[i].stoaff;
@@ -658,6 +657,7 @@ Liste_Menu *ajoute_menu(Liste_Menu *base, struct format_menu *format,
   creation=safe_malloc(sizeof(Liste_Menu));
   creation->suiv=NULL;
   creation->prec=base;
+  creation->order=0;
   if (base) 
     base->suiv=creation;
   remplit_ajout_menu(creation,format,lelem,lobjet,-1);
@@ -720,6 +720,7 @@ Liste_Menu *ajoute_menu_ordre(Liste_Menu **menu, struct format_menu *format,
      creation->suiv=parcours;
      if (parcours) parcours->prec=creation;
   }
+  creation->order=order;
   remplit_ajout_menu(creation, format, lelem, lobjet, place);
   if ((*menu==NULL) || (creation->suiv==(*menu))) *menu=creation;
   return creation;

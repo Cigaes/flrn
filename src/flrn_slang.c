@@ -602,6 +602,7 @@ int Do_Scroll_Window(int n, int ob_update) {
 int Do_Search(int just_do, int *le_scroll, int from_top) {
    int i;
    File_Line_Type *line=Line_Window.top_window_line;
+   Line_Elem_Type *lline;
    for (i=0;i<from_top;i++) {
       if (line->next==NULL) break;
       line=line->next;
@@ -621,7 +622,13 @@ int Do_Search(int just_do, int *le_scroll, int from_top) {
 	 i=-Line_Window.line_num+1-from_top;
       }
    }
-   while (line->line->data_save==NULL) {
+   while (1) {
+      lline=line->line;
+      while (lline) {
+	  if (lline->data_save!=NULL) break;
+	  lline=lline->next;
+      }
+      if (lline) break;
       if (line->next) {
          line=line->next;
          i++;
@@ -632,7 +639,7 @@ int Do_Search(int just_do, int *le_scroll, int from_top) {
       if (i==0) break;
    }
    *le_scroll=i;
-   if (line->line->data_save==NULL) return -2;
+   if (lline==NULL) return -2;
    return 0;
 }
 

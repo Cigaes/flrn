@@ -24,44 +24,44 @@ const char *Messages[NB_MESSAGES] = {
     N_("Rien de nouveau."),                         /* 1 */
     N_("Fin du newsgroup."),                        /* 2 */
     N_("Message(s) inexistant(s)."),                /* 3 */
-    N_("Les messages sont marqués non lus."),       /* 4 */
-    N_("Post envoyé."),                             /* 5 */
-    N_("Post annulé."),                             /* 6 */
-    N_("Article(s) sauvé(s)."),                     /* 7 */
-    N_("Abonnement effectué."),                     /* 8 */
-    N_("Désabonnement effectué."),			/* 9 */
-    N_("Pas de thread sélectionné."),               /* 10 */
-    N_("Groupe zappé."),                            /* 11 */
+    N_("Les messages sont marquÃ©s non lus."),       /* 4 */
+    N_("Post envoyÃ©."),                             /* 5 */
+    N_("Post annulÃ©."),                             /* 6 */
+    N_("Article(s) sauvÃ©(s)."),                     /* 7 */
+    N_("Abonnement effectuÃ©."),                     /* 8 */
+    N_("Désabonnement effectuÃ©."),			/* 9 */
+    N_("Pas de thread sÃ©lectionnÃ©."),               /* 10 */
+    N_("Groupe zappÃ©."),                            /* 11 */
     N_("Pas d'autres newsgroups."),                 /* 12 */
-    N_("Xref non trouvé !"),                        /* 13 */
+    N_("Xref non trouvÃ© !"),                        /* 13 */
     N_("(continue)"),                               /* 14 */
     N_("Tag mis"),                                  /* 15 */
-    N_("Cancel annulé"),                            /* 16 */
-    N_("Article(s) cancelé(s)"),                    /* 17 */
-    N_("Opération effectuée"),                      /* 18 */
-    N_("Mail envoyé"),                              /* 19 */
-    N_("Mail envoyé, article posté"),               /* 20 */
+    N_("Cancel annulÃ©"),                            /* 16 */
+    N_("Article(s) cancelÃ©(s)"),                    /* 17 */
+    N_("Opération effectuÃ©e"),                      /* 18 */
+    N_("Mail envoyÃ©"),                              /* 19 */
+    N_("Mail envoyÃ©, article postÃ©"),               /* 20 */
     N_("Article(s) lu(s) temporairement."),         /* 21 */
-    N_("Vous n'êtes abonné à aucun groupe"),        /* 22 */
+    N_("Vous n'Ãªtes abonnÃ© Ã  aucun groupe"),    /* 22 */
     N_("Newsgroup vide"),                           /* 23 */
-    N_("Vous n'êtes dans aucun groupe"),            /* 24 */
-    N_("Pas d'article négatif"),                    /* 25 */
+    N_("Vous n'Ãªtes dans aucun groupe"),            /* 24 */
+    N_("Pas d'article nÃ©gatif"),                    /* 25 */
     N_("Echec de la sauvegarde."),                  /* 26 */
-    N_("Newsgroup inconnu, supprimé !"),            /* 27 */
-    N_("Pas de newsgroup trouvé"),                  /* 28 */
+    N_("Newsgroup inconnu, supprimÃ© !"),            /* 27 */
+    N_("Pas de newsgroup trouvÃ©"),                  /* 28 */
     N_("Regexp invalide !"),                        /* 29 */
     N_("Echec du pipe..."),                         /* 30 */
     N_("L'article n'est plus dans le groupe"),      /* 31 */
     N_("Tag invalide"),                             /* 32 */
-    N_("Cancel refusé"),                            /* 33 */
+    N_("Cancel refusÃ©"),                            /* 33 */
     N_("Historique vide."),                         /* 34 */
     N_("Pas de header !"),                          /* 35 */
-    N_("Header refusé !"),                          /* 36 */
+    N_("Header refusÃ© !"),                          /* 36 */
     N_("Erreur fatale !!!"),                        /* 37 */
     N_("Pas de recherche."),			/* 38 */ /* pager, menus */
-    N_("Rien trouvé."),				/* 39 */ /* pager, menus */
+    N_("Rien trouvÃ©."),			/* 39 */ /* pager, menus */
     N_("Flag invalide."),			/* 40 */
-    N_("Flag appliqué."),			/* 41 */ /* pager, menus */
+    N_("Flag appliquÃ©."),			/* 41 */ /* pager, menus */
     N_("Macro interdite."),			/* 42 */
     N_("Message-ID inconnu."),			/* 43 */
     N_("Passage en mode thread."),		/* 44 */

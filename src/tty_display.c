@@ -807,7 +807,7 @@ int Liste_groupe (int flags, flrn_char *mat, Newsgroup_List **retour) {
 	   if (fl_strcmp(param, parcours->name)==0) break;
 	   parcours=parcours->next;
        }
-       if (parcours)
+       if (parcours==NULL)
           if (Options.use_menus) ret=ajoute_elem_menu((void *)trad, 2); 
 	  else ret=ajoute_elem_not_menu ((void *)trad, 2);
        else ret=0;
@@ -1810,7 +1810,7 @@ int Aff_headers (int flag) {
            Cursor_gotorc(row,0);
 	   col=0;
 	   /* FIXME : français */
-	   if (flag) { Screen_write_string(fl_static("(suite)Â ")); col+=8; }
+	   if (flag) { Screen_write_string(fl_static("(suite) ")); col+=8; }
 	      /* pas besoin d'allouer : add_to_scroll =0  dans Aff_header */
 	   flags_header=Recupere_user_flags(Article_courant);
 	   une_ligne=safe_malloc((9+fl_strlen(Article_courant->headers->k_headers[SUBJECT_HEADER])+(flags_header ? fl_strlen(flags_header) : 0))*sizeof(flrn_char));

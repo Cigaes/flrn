@@ -1138,7 +1138,7 @@ int conversion_to_terminal(const flrn_char *flstr, char **resbuf, size_t len,
 	size_t fllen) {
     size_t res2, resl, lenflstr;
     char *resptr;
-    flrn_char *sflstr;
+    flrn_char *sflstr,*ssflstr;
     int tof=0;
     if ((len==0) && (fllen==(size_t)(-1)) && 
 	    ((conv_base[TERM_CONV].status==2) || 
@@ -1157,9 +1157,10 @@ int conversion_to_terminal(const flrn_char *flstr, char **resbuf, size_t len,
 	sflstr=safe_flstrdup(flstr);
 	tof=1;
     } else sflstr=(flrn_char *)flstr;
+    ssflstr=sflstr;
     res2 = fl_approximate_conv(&sflstr,
 	    &lenflstr, resbuf,&resptr,&resl);
-    if ((res2!=(size_t)(-3)) && (tof)) free(sflstr);
+    if ((res2!=(size_t)(-3)) && (tof)) free(ssflstr);
     if ((res2!=(size_t)(-3)) && (resptr)) *resptr='\0';
     if ((res2==(size_t)(-1)) || (res2==(size_t)(-2))) return -1;
     /* return ((int)res2==-3 ? 1 : 0); */ return 0;

@@ -888,11 +888,14 @@ static int get_str_arg(int res, Cmd_return *cmd, int tosave) {
 	if ((ret=magic_flrn_getline(str,MAX_CHAR_STRING,
 			affline,MAX_CHAR_STRING,Screen_Rows2-1,col,
 			"\011",0,keyp,NULL))<0) return -1;
-	if (ret>0) ret2=Comp_general_command(str, MAX_CHAR_STRING,col,
-	   Flcmds[res].comp, Aff_ligne_comp_cmd, &key);
-	keyp=&key;
-	if (ret2<0) ret2=0;
+	if (ret>0) {
+	    ret2=Comp_general_command(str, MAX_CHAR_STRING,col,
+	       Flcmds[res].comp, Aff_ligne_comp_cmd, &key);
+	    if (ret2>0) keyp=&key; else keyp=NULL;
+	    if (ret2<0) ret2=0;
+	}
      } while (ret!=0);
+     Free_key_entry(&key);
    } else {
      ret=flrn_getline(str, MAX_CHAR_STRING, affline,
 	     MAX_CHAR_STRING, Screen_Rows2-1, col);
@@ -3113,9 +3116,10 @@ void Get_option_line(flrn_char *argument)
       if (res>0)
         ret=Comp_general_command(buf,MAX_READ_SIZE,col,options_comp,Aff_ligne_comp_cmd,&key);
       if (ret<0) ret=0;
-      k=&key;
+      if (ret>0) k=&key; else k=NULL;
     } while (res!=0);
     free(affbuf);
+    Free_key_entry(&key);
   }
   /* hack pour reconstruir les couleurs au besoin */
   color=(fl_strstr(buf,"color"))?1:0;
