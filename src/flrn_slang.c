@@ -68,6 +68,7 @@ int Keyboard_getkey() { int n; SLKeyBoard_Quit=KeyBoard_Quit;
   			n=SLkp_getkey(); 
   			KeyBoard_Quit=SLKeyBoard_Quit; return n; }
 void Reset_keyboard() { SLang_reset_tty(); }
+void Screen_beep() { SLtt_beep(); }
 
 
 

@@ -1234,13 +1234,13 @@ int post_message (Article_List *origine, char *name_file,int flag) {
     char *str=name_file;
 
     if (origine && (origine->numero<0)) {
-       Aff_error("L'article est hors du newsgroup !");
+       Aff_error_fin("L'article est hors du newsgroup !",1);
        return -1;
     }
     if (flag==-1) {
       res=Est_proprietaire(origine);
       if (res!=1) {
-	Aff_error("Supersedes interdit !");
+	Aff_error_fin("Supersedes interdit !",1);
         return -1;
       }
     }

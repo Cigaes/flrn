@@ -34,6 +34,7 @@
 int name_news_col, num_art_col, num_rest_col, num_col_num, name_fin_col;
 /* place des messages d'erreur */
 int row_erreur, col_erreur;
+int error_fin_displayed=0;
 /* pour l'arbre */
 unsigned char **table_petit_arbre;
 
@@ -100,7 +101,7 @@ void sig_winch(int sig) {
    Screen_get_size();
    Screen_init_smg ();
    if (Size_Window(0,0)) {
-     if (Newsgroup_courant) { Aff_newsgroup_name(); Aff_newsgroup_courant(); }
+     if (Newsgroup_courant) { Aff_newsgroup_name(0); Aff_newsgroup_courant(); }
      Aff_error ("Changement de taille de la fenêtre");
    } else Aff_error ("Fenetre trop petite !!!");
    Screen_refresh();
@@ -178,6 +179,29 @@ int Aff_error(const char *str) {
    return 0;
 }
 
+/* Affiche un message d'erreur en fin... */
+int Aff_error_fin(const char *str, int s_beep) {
+   int col=0;
+   Cursor_gotorc(Screen_Rows-1,0);
+#ifdef CHECK_MAIL
+   Screen_set_color(FIELD_NORMAL);
+   if (Options.check_mail && newmail(mailbox)) {
+      Screen_write_string("(Mail)");
+      col=6;
+   }
+#endif
+   Screen_set_color(FIELD_ERROR);
+   Screen_write_string((char *)str);
+   if (s_beep) Screen_beep();
+/* Contrairement à Aff_fin, on ne cherche pas à afficher le curseur */
+/* après le message...						    */
+   Screen_set_color(FIELD_NORMAL);
+   Screen_erase_eol();
+   Cursor_gotorc(Screen_Rows-1, Screen_Cols-1); 
+   Screen_refresh();
+   error_fin_displayed=1;
+   return 0;
+}
 
 /* Affichage de la ligne résumé d'un article */
 /* NE FAIT PAS LE REFRESH, heureusement ! */
@@ -1275,7 +1299,7 @@ int Gere_Scroll_Message (int *key_int, int row_act, int row_deb,
 }
 
 /* Affichage du nom du newsgroup */
-void Aff_newsgroup_name() {
+void Aff_newsgroup_name(int erase_scr) {
    char *buf=NULL, *tmp_name;
    int buf_to_free=0;
    char flag_aff=0;
@@ -1304,10 +1328,13 @@ void Aff_newsgroup_name() {
      }
      Screen_write_nstring(buf, name_fin_col-name_news_col+1-((flag_aff ? 1 : 0)*3));
    }
-   Screen_set_color(FIELD_NORMAL);
-   Cursor_gotorc(1,0);
-   Screen_erase_eos();
-   Screen_refresh(); /* Cas particulier : pour le temps que ça prend parfois */
+   if (erase_scr) {
+     Screen_set_color(FIELD_NORMAL);
+     Cursor_gotorc(1,0);
+     Screen_erase_eos();
+     Screen_refresh(); 
+          /* Cas particulier : pour le temps que ça prend parfois */
+   }
    if(buf_to_free) free(buf);
 }
      

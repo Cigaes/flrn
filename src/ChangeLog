@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. modif des messages d'erreur. Ça semble mieux.
 . modif de la sélection. commande art-to-return
 . reprise du code des macros... memory leaks, bug fixes.
 . corrections de memory leaks

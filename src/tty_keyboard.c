@@ -94,7 +94,9 @@ int Init_keyboard() {
 int Attend_touche() {
    int key;
 
-   Screen_refresh(); /* Quasiment le seul endroit où on le met */
+   if (error_fin_displayed==0)
+      Screen_refresh(); /* Quasiment le seul endroit où on le met */
+   error_fin_displayed=0; /* en particulier, ^L élimine le message d'erreur */
    KeyBoard_Quit=0;
    /* ^L n'est pas une commande autre que refresh */
    while((key=Keyboard_getkey())==12) {

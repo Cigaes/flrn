@@ -170,25 +170,25 @@ static void Aff_message(int type, int num)
     case 2 : Aff_error("Fin du newsgroup."); break;
     case 3 : Aff_error("Message(s) inexistant(s)."); break;
     case 4 : 
-    case 5 : Aff_error("Les messages sont marqués non lus."); break;
+    case 5 : Aff_error_fin("Les messages sont marqués non lus.",0); break;
     case 6 : Aff_error("Post envoyé."); break;
     case 7 : Aff_error("Post annulé."); break;
-    case 8 : Aff_error("Article(s) sauvé(s)."); break;
-    case 9 : Aff_error("Vous êtes abonné à ce newsgroup."); break;
+    case 8 : Aff_error_fin("Article(s) sauvé(s).",0); break;
+    case 9 : Aff_error_fin("Vous êtes abonné à ce newsgroup.",0); break;
     case 10 : Aff_error("Pas d'autre thread non lu."); break;
-    case 11 : Aff_error("Tous les articles sont marqués lus.");
+    case 11 : Aff_error_fin("Tous les articles sont marqués lus.",0);
 	      break;
     case 12 : Aff_error("Pas d'autres newsgroups."); break;
-    case 13 : Aff_error("Xref non trouvé."); break;
-    case 14 : Aff_error("(continue)"); break;
-    case 15 : Aff_error("Tag mis"); break;
-    case 16 : Aff_error("Cancel annulé"); break;
+    case 13 : Aff_error_fin("Xref non trouvé.",1); break;
+    case 14 : Aff_error_fin("(continue)",0); break;
+    case 15 : Aff_error_fin("Tag mis",0); break;
+    case 16 : Aff_error_fin("Cancel annulé",0); break;
     case 17 : Aff_error("Article(s) cancelé(s)"); break;
-    case 18 : Aff_error("Groupe ajouté."); break;
-    case 19 : Aff_error("Groupe retiré."); break;
+    case 18 : Aff_error_fin("Groupe ajouté.",0); break;
+    case 19 : Aff_error_fin("Groupe retiré.",0); break;
     case 20 : Aff_error("Mail envoyé."); break;
     case 21 : Aff_error("Mail envoyé, article posté."); break;
-    case 22 : Aff_error("Article(s) marqué(s) lu(s) temporairement."); break;
+    case 22 : Aff_error_fin("Article(s) marqué(s) lu(s) temporairement.",0); break;
  /* Message d'erreur */
     case -1 : Aff_error("Vous n'êtes abonné à aucun groupe."); 
 	       break;
@@ -198,7 +198,7 @@ static void Aff_message(int type, int num)
 	       break;
 /*	        case -4 : Aff_error("Post refusé.");
 	       break;   */
-    case -5 : Aff_error("Pas d'article négatif.");
+    case -5 : Aff_error_fin("Pas d'article négatif.",1);
 	       break;
     case -6 : Aff_error("Echec de la sauvegarde.");
 	       break;
@@ -206,15 +206,15 @@ static void Aff_message(int type, int num)
 	       break;
     case -8 : Aff_error("Newsgroup non trouvé.");
 	       break;
-    case -9 : Aff_error("Commande inconnue...");
+    case -9 : Aff_error_fin("Commande inconnue. (? pour obtenir l'aide)",1);
 	       break;
     case -10 : Aff_error("Regexp invalide..."); break;
     case -11 : Aff_error("Echec du pipe..."); break;
     case -12 : Aff_error("L'article n'est plus dans le newsgroup cherché...");
 	       break;
-    case -13 : Aff_error("Tag invalide."); break;
-    case -14 : Aff_error("Cancel refusé."); break;
-    case -15 : Aff_error("Historique vide."); break;
+    case -13 : Aff_error_fin("Tag invalide.",1); break;
+    case -14 : Aff_error_fin("Cancel refusé.",1); break;
+    case -15 : Aff_error_fin("Historique vide.",1); break;
 /*    case -16 : Aff_error("Vous ne pouvez pas poster ici."); break; */
 /* ce message est idiot : rien n'empêche de faire un followup, sauf à */
 /* la rigueur si le serveur refuse tout...			      */
@@ -293,7 +293,7 @@ int loop(char *opt) {
    /* Maintenant on cherche quelque chose à lire */
    
    while ((Newsgroup_deb) && (!quit)) {
-      Aff_newsgroup_name();
+      Aff_newsgroup_name(1);
       if (to_build) { 
 	res = etat_loop.num_futur_article>0?etat_loop.num_futur_article:
 	  (Newsgroup_courant->read?Newsgroup_courant->read->max[0]:1);
@@ -997,7 +997,6 @@ static int my_goto_tag (int tag) {
     }
   } else { /* le tag n'existe pas */
     etat_loop.etat=2;
-    etat_loop.hors_struct|=1;
     etat_loop.num_message=-13;
   }
   return 0;
@@ -1201,7 +1200,7 @@ int do_abonne(int res) {
      add_to_main_list(newsgroup->name);
      Newsgroup_courant->flags|=GROUP_IN_MAIN_LIST_FLAG;
    }
-   if (newsgroup==Newsgroup_courant) Aff_newsgroup_name();
+   if (newsgroup==Newsgroup_courant) Aff_newsgroup_name(0);
    etat_loop.etat=1; etat_loop.num_message=9;
    return 0;
 }
@@ -1210,7 +1209,7 @@ int do_add_kill(int res) {
   char *str=Arg_str;
   add_to_main_list(str[0]?str:Newsgroup_courant->name);
   Newsgroup_courant->flags|=GROUP_IN_MAIN_LIST_FLAG;
-  Aff_newsgroup_name();
+  Aff_newsgroup_name(0);
   etat_loop.etat=1; etat_loop.num_message=18;
   return 0;
 }
@@ -1219,7 +1218,7 @@ int do_remove_kill(int res) {
   char *str=Arg_str;
   remove_from_main_list(str[0]?str:Newsgroup_courant->name);
   Newsgroup_courant->flags&=~GROUP_IN_MAIN_LIST_FLAG;
-  Aff_newsgroup_name();
+  Aff_newsgroup_name(0);
   etat_loop.etat=1; etat_loop.num_message=19;
   return 0;
 }
