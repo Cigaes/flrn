@@ -698,7 +698,10 @@ static int get_Body_post() {
    } while (!fin);
    lecture_courant->lu[lecture_courant->size]='\0';
    free_text_scroll();
-   if (lecture_courant->suivant) free_chaine(lecture_courant->suivant);
+   if (lecture_courant->suivant) {
+     free_chaine(lecture_courant->suivant);
+     lecture_courant->suivant=NULL;
+   }
    free(ligne_courante);
    return (empty)?0:1;
 }
@@ -943,6 +946,7 @@ static int Format_article(char *to_cancel) {
    Header_List *liste;
 
    if (debug) fprintf(stderr, "Appel a format_article\n");
+   lecture_courant=Deb_body;
    ecriture_courant=Deb_article=alloue_chaine();
   /* Ecriture des headers */
   /* Attention : ici les headers sont plutôt buggués : il faudrait */
