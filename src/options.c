@@ -31,6 +31,7 @@
 #include "options.h"
 #include "site_config.h"
 #include "slang_flrn.h"
+#include "version.h"
 #include "tty_keyboard.h"
 #include "enc/enc_strings.h"
 
@@ -769,9 +770,9 @@ int opt_do_autocmd(flrn_char *str, int flag)
    if (!buf) return -1;
    newautocmd=safe_calloc(1,sizeof(autocmd_list_type));
    if (fl_strcasecmp(buf,fl_static("enter"))==0) 
-       newautocmd->flag=AUTOCMD_ENTER;
+       newautocmd->autocmd_flags=AUTOCMD_ENTER;
       else if (fl_strcasecmp(buf,fl_static("leave"))==0)
-	  newautocmd->flag=AUTOCMD_LEAVE;
+	  newautocmd->autocmd_flags=AUTOCMD_LEAVE;
         else {
 	  if (flag) Aff_error_fin(fl_static("autocmd invalide."),1,-1); else
 	  {
@@ -843,9 +844,56 @@ int opt_do_autocmd(flrn_char *str, int flag)
    return -1;
 }
 
+static const flrn_char *delim_cond=fl_static(" <>=\t");
+static int parse_conditionnelle (flrn_char *ligne, int flag)
+{
+    int len;
+    len=fl_strlen(ligne);
+    if (len==0) return 1;
+    if (ligne[len-1]==fl_static('\n')) ligne[len-1]='\0';
+    len=fl_strcspn(ligne,delim_cond);
+    if (fl_strncmp(ligne,fl_static("name"),len)==0) {
+	ligne+=len;
+	ligne+=fl_strspn(ligne,delim_cond);
+
+	return (fl_strstr(name_program,ligne)!=NULL);
+    }
+    if (fl_strncmp(ligne,fl_static("version"),len)==0) {
+	int cp=0,nb;
+	ligne+=len;
+	while (1) {
+	   while ((*ligne) && (fl_strchr(" \t",*ligne))) ligne++;
+	   if (*ligne==fl_static('\0')) return 1;
+	   if (*ligne=='=') cp|=1;
+	   else if (*ligne=='<') cp|=2;
+	   else if (*ligne=='>') cp|=4;
+	   else break;
+	   *ligne++;
+	}
+	nb=fl_strtol(ligne,NULL,10);
+	return (((cp | 1) && (nb==version_number)) ||
+		((cp | 2) && (nb>version_number)) ||
+		((cp | 4) && (nb<version_number)));
+    }
+    if (fl_strncmp(ligne,fl_static("has"),len)==0) {
+	ligne+=len;
+	while ((*ligne) && (fl_strchr(" \t",*ligne))) ligne++;
+	return version_has(ligne);
+    }
+    if (fl_strncmp(ligne,fl_static("hasnot"),len)==0) {
+	ligne+=len;
+	while ((*ligne) && (fl_strchr(" \t",*ligne))) ligne++;
+	return 1-version_has(fl_static_rev(ligne));
+    }
+    return 0;
+}
+
+
+
 /* Analyse d'une ligne d'option. Prend en argument la ligne en question */
 /* on fait maintenant appel aux fonctions do_opt_* pour faire le boulot */
-static void raw_parse_options_line (flrn_char *ligne, int flag)
+static void raw_parse_options_line (flrn_char *ligne, int flag, int *actif,
+	  int *inactif)
 {
   flrn_char *buf;
   flrn_char *eol;
@@ -857,6 +905,31 @@ static void raw_parse_options_line (flrn_char *ligne, int flag)
 
   buf=fl_strtok_r(ligne,delim,&dummy);
   if (buf==NULL) return;
+
+  /* tests des conditionnelles */
+  if (actif) 
+  {
+    if (fl_strcmp(buf,fl_static("endif"))==0) {
+	if (*inactif) (*inactif)--; else
+	    if (*actif) (*actif)--; else
+	        if (!flag) { fprintf(stderr,"endif sans correspondant\n");
+		                sleep(1);}
+
+	return;
+    }
+    if (fl_strcmp(buf,fl_static("if"))==0) {
+	eol=fl_strtok_r(NULL,"\n",&dummy);
+        if (eol) eol += fl_strspn(eol,delim);
+	if ((*inactif) || 
+		(parse_conditionnelle (eol, flag)==0))
+           (*inactif)++;
+        else
+   	   (*actif)++;
+	return;
+    }
+
+    if (*inactif) return;
+  }
 /* recherche du name * */
   if (fl_strcmp(buf,fl_static(WORD_NAME_PROG))==0) {
      buf=fl_strtok_r(NULL,delim,&dummy);
@@ -898,11 +971,12 @@ static void raw_parse_options_line (flrn_char *ligne, int flag)
 /* pour afficher des messages plus clairs */
 /* seul "truc" : avec des includes, il ne faut pas oublier le free AVANT
    un nouveau strdup, pour éviter deux free sur le meme pointeur */
-void parse_options_line (flrn_char *ligne, int flag)
+void parse_options_line (flrn_char *ligne, int flag, int *actif, 
+	int *inactif)
 {
   if (option_ligne) free(option_ligne);
   option_ligne = safe_flstrdup(ligne);
-  raw_parse_options_line (ligne, flag);
+  raw_parse_options_line (ligne, flag, actif, inactif);
   free(option_ligne);
   option_ligne=NULL;
   return;
@@ -914,7 +988,8 @@ static flrn_char * print_option(int i, flrn_char *buf, size_t buflen) {
     if (*All_options[i].value.integer == All_options[i].flags.reverse) {
       fl_snprintf(buf,buflen,fl_static("no%s"),All_options[i].name);
     } else {
-      if ((All_options[i].type==OPT_TYPE_BOOLEAN) ||
+      if (((All_options[i].type==OPT_TYPE_BOOLEAN) && 
+		   (*All_options[i].value.integer!=-1))  ||
 	  (*All_options[i].value.integer == !All_options[i].flags.reverse)) {
 	fl_snprintf(buf,buflen,fl_static("%s"),All_options[i].name);
     } else
@@ -966,7 +1041,7 @@ void dump_variables(FILE *file) {
     if (!All_options[i].flags.obsolete) {
 	resc=conversion_to_file(
 		print_option(i,buf,80),&trad,0,(size_t)(-1));
-        fprintf(file,"set %s",trad);
+        fprintf(file,"set %s\n",trad);
 	if (resc==0) free(trad);
     }
   }
@@ -1191,6 +1266,10 @@ void menu_config_variables() {
   return;
 }
 
+
+
+
+
 /* Ouvre et parse un fichier... Renvoie -1 si pas de fichier */
 /* flags = flags d'appel de open_flrnfile (2 si config initiale, 0 sinon */
 /* flag_option = flag d'appel pour parse_option_line */
@@ -1198,7 +1277,7 @@ static int parse_option_file (char *name, int flags, int flag_option) {
   char buf1[MAX_BUF_SIZE];
   flrn_char *traduction=NULL;
   FILE *flrnfile;
-  int res;
+  int res, actif=0, inactif=0;
 
   flrnfile=open_flrnfile(name,"r",flags,NULL);
   if (flrnfile==NULL) return -1;
@@ -1206,7 +1285,7 @@ static int parse_option_file (char *name, int flags, int flag_option) {
     /* traduction -> flrn_char */
     res=conversion_from_file(buf1,&traduction,0,(size_t)(-1));
     if (traduction) {
-      parse_options_line(traduction,flag_option);
+      parse_options_line(traduction,flag_option,&actif,&inactif);
       if (res==0) free(traduction);
     }
   }
@@ -1216,7 +1295,29 @@ static int parse_option_file (char *name, int flags, int flag_option) {
 
 int get_and_push_option(flrn_char *param,
 	  void (push_string)(flrn_char *), void (push_int)(int)) {
-    return 0;
+    /* on commence par reconnaitre une variable */
+    flrn_char *buf,*dummy;
+    int i;
+
+    buf=fl_strtok_r(param,delim,&dummy);
+    if (buf==NULL) return (-1);
+    for (i=0; i< NUM_OPTIONS; i++){
+	if ((fl_strncmp(buf, fl_static_tran(All_options[i].name),
+			strlen(All_options[i].name))==0)
+	   && (!fl_isalpha((int)*(buf+strlen(All_options[i].name))))) {
+	    if ((All_options[i].type==OPT_TYPE_BOOLEAN) ||
+		(All_options[i].type==OPT_TYPE_INTEGER)) {
+	        push_int(*All_options[i].value.integer);
+		return 0;
+	    }
+	    if (All_options[i].type==OPT_TYPE_STRING) {
+		push_string(*All_options[i].value.string);
+		return 1;
+	    }
+	    return (-2);
+	}
+    }
+    return -1;
 }
 
 const flrn_char *Help_Lines[17];

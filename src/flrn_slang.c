@@ -103,7 +103,7 @@ File_Line_Type *Text_scroll=NULL;
 /* on s'inspire de slang, amis on change les types et on simplifie */
 typedef struct
 {
-  unsigned int flags;
+  unsigned int swt_flags;
   File_Line_Type *top_window_line; /* list element at top of window */
   File_Line_Type *lines;           /* first list element */
   unsigned int nrows;             /* number of rows in window */

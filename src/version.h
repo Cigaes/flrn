@@ -15,6 +15,8 @@
 
 extern char version_string[];
 extern char short_version_string[];
-extern void print_version_info(FILE *out, char *program_name);
+extern int version_number;
+extern void print_version_info(FILE * /* out */, char * /*program_name*/);
+extern int version_has(char * /* request */);
 
 #endif

@@ -623,14 +623,14 @@ static flrn_char *check_group_in_header(flrn_char *nom, int *copy_pre,
      if (to_test) {
        groupe=cherche_newsgroup(nom2,1,*copy_pre);
        if (groupe!=NULL) {
-         if (in_newsgroup && (groupe->flags & GROUP_MODERATED_FLAG)) 
+         if (in_newsgroup && (groupe->grp_flags & GROUP_MODERATED_FLAG)) 
 	     in_moderated_group=1;
          return nom2;
        }
        if (*copy_pre) {
          groupe=cherche_newsgroup(nom2,1,0);
          if (groupe!=NULL) {
-            if (in_newsgroup && (groupe->flags & GROUP_MODERATED_FLAG)) 
+            if (in_newsgroup && (groupe->grp_flags & GROUP_MODERATED_FLAG)) 
 	        in_moderated_group=1;
             *copy_pre=0;
 	    return nom2;
@@ -709,7 +709,7 @@ static flrn_char *check_group_in_header(flrn_char *nom, int *copy_pre,
 	     ret=get_group(&groupe,1+(*copy_pre)*2+Options.use_regexp*4+8,
 		     nom2);
 	     if ((ret==0) && (groupe)) {
-		 if (in_newsgroup && (groupe->flags & GROUP_MODERATED_FLAG))
+		 if (in_newsgroup && (groupe->grp_flags & GROUP_MODERATED_FLAG))
 		     in_moderated_group=1;
 		 fl_strcpy(nom2,groupe->name);
 		 *copy_pre=0;
@@ -1536,7 +1536,7 @@ static int Get_base_headers(int flag, Article_List *article) {
       }
       strcat(Header_post->k_raw_header[REFERENCES_HEADER], Pere_post->msgid);
       /* Sujet */
-      if (Pere_post->headers->k_headers[SUBJECT_HEADER]) {
+      /* if (Pere_post->headers->k_headers[SUBJECT_HEADER]) { */
 	  len1=fl_strlen(Pere_post->headers->k_headers[SUBJECT_HEADER]);
 	  if (fl_strncasecmp(Pere_post->headers->k_headers[SUBJECT_HEADER],
 		      fl_static("re: "),4)!=0)
@@ -1549,7 +1549,7 @@ static int Get_base_headers(int flag, Article_List *article) {
 	      Header_post->k_header[SUBJECT_HEADER][0]=fl_static('\0');
 	  fl_strcat(Header_post->k_header[SUBJECT_HEADER],
 	      Pere_post->headers->k_headers[SUBJECT_HEADER]);
-      }
+      /* } */
    }
    /* Newsgroups */
    if (Header_post->k_header[NEWSGROUPS_HEADER]==NULL) {
@@ -1558,7 +1558,7 @@ static int Get_base_headers(int flag, Article_List *article) {
 	         (!(Pere_post->headers->k_headers[NEWSGROUPS_HEADER])))
 #endif
          {
-	    if (Newsgroup_courant->flags & GROUP_READONLY_FLAG) 
+	    if (Newsgroup_courant->grp_flags & GROUP_READONLY_FLAG) 
 	        Header_post->k_header[NEWSGROUPS_HEADER]=safe_flstrdup(
 			fl_static("junk"));
 	    else

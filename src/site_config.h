@@ -62,7 +62,7 @@ struct Option_struct Options = {
   1,			/* smart_quote */
   0,			/* zap_change_group */
   0,			/* scroll_after_end */
-  "%n, dans son post %i, a écrit :",	/* attribution */
+  "%n, dans son post %i, a Ã©crit :",	/* attribution */
   0,			/* small_tree */
   ".flrnkill",		/* kill_file_name */
   1,			/* auto_kill */

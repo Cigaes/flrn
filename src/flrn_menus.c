@@ -276,14 +276,16 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
       for (deb=act_row;deb<Screen_Rows-2-Options.skip_line;deb++) {
 	 if (parcours==NULL) break;
 	 Cursor_gotorc(deb,1);
-	 Screen_write_char((parcours->laligne.flags & 2) ? '*' : ' ');
+	 Screen_write_char((parcours->laligne.lmenu_flags & LMENU_TOGGLED) ?
+		 '*' : ' ');
 	 parcours=parcours->suiv;
       }
       parcours=courant->prec;
       for (deb=act_row-1;deb>Options.skip_line;deb--) {
 	 if (parcours==NULL) break;
 	 Cursor_gotorc(deb,1);
-	 Screen_write_char((parcours->laligne.flags & 2) ? '*' : ' ');
+	 Screen_write_char((parcours->laligne.lmenu_flags & LMENU_TOGGLED) ?
+		 '*' : ' ');
 	 parcours=parcours->prec;
       }
       deb=0;
@@ -492,16 +494,19 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
 				    for (;parcours;
 				            parcours=parcours->suiv) {
 				       if (number==-2) {
-					  parcours->laligne.flags ^= 2;
+					  parcours->laligne.lmenu_flags ^= 
+					      LMENU_TOGGLED;
 					  continue;
 				       }
 				       if (number==-3) {
 				          if (r) 
-					      parcours->laligne.flags ^= 2;
+					      parcours->laligne.lmenu_flags ^= 
+						 LMENU_TOGGLED;
 					  r=Parcours_du_menu(1);
 					  continue;
 				       }
-				       parcours->laligne.flags ^= 2;
+				       parcours->laligne.lmenu_flags ^= 
+					   LMENU_TOGGLED;
 				       if (number>0) {
 					  if (courant->suiv==NULL) break;
 					  courant=courant->suiv;
@@ -532,7 +537,7 @@ int distribue_action_in_menu(flrn_char *arg_prev, flrn_char *arg_suiv,
    else if (arg_suiv) {
      number=get_menu_signification(arg_suiv);
      arg=fl_strrchr(arg_suiv,fl_static(','));
-     if (arg==NULL) arg=arg_suiv;
+     if (arg==NULL) arg=arg_suiv; else arg++;
    } else number=1;
    if (arg) {
       while ((*arg) && (fl_isblank(*arg))) arg++;
@@ -544,7 +549,7 @@ int distribue_action_in_menu(flrn_char *arg_prev, flrn_char *arg_suiv,
       if (res2==-1) return -1;
       if (res2>res) res=res2;
       if (number==-2) {
-          if (parcours->laligne.flags & 2) 
+          if (parcours->laligne.lmenu_flags & LMENU_TOGGLED) 
 	     res2=action(parcours, arg);
           continue;
       }
@@ -630,7 +635,7 @@ static void remplit_ajout_menu(Liste_Menu *creation,
   size_t reallen;
   creation->lobjet=lobjet;
   creation->format=format;
-  creation->laligne.flags=0;
+  creation->laligne.lmenu_flags=0;
   for (i=0;i<format->nbelem;i++) {
       if (format->tab[i].stoaff) reallen=format->tab[i].stoaff;
       else reallen=(fl_strlen(lelem[i])+1)*4;
@@ -642,7 +647,8 @@ static void remplit_ajout_menu(Liste_Menu *creation,
 	      reallen, format->tab[i].justify);
       line=Ajoute_formated_line
 	  (lelem[i],toaff,format->tab[i].sbase,format->tab[i].stoaff,
-	   ((format->tab[i].flags & 4)==0),format->tab[i].coldeb,0,place,line);
+	   ((format->tab[i].emenu_flags & EMENU_REALLOC_ABASE)==0),
+	   format->tab[i].coldeb,0,place,line);
       free(toaff);
   }
   creation->laligne.line=line;

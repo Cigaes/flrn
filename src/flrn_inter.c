@@ -73,9 +73,17 @@ struct etat_var {
 typedef struct Num_lists
 {
    struct Num_lists *next;
-   int flags; /* 0 : rien   1 : article       2 : num1
-                 4 : _article  8 : article>   16 : big_thread(*) 
-		 32 : num1-num2  64(flag) : selected */
+   int numlst_flags; /* 0 : rien   1 : article       2 : num1
+                        4 : _article  8 : article>   16 : big_thread(*) 
+	               32 : num1-num2  64(flag) : selected */
+#define NUMLST_ART 1
+#define NUMLST_NUM 2
+#define NUMLST_ASC 4
+#define NUMLST_DES 8
+#define NUMLST_THR 16
+#define NUMLST_RNG 32
+#define NUMLST_ALL 63
+#define NUMLST_SEL 64
    union element elem1;
    int num2;
 } Numeros_List;
@@ -190,7 +198,8 @@ int aff_opt_c(flrn_char *newsgroup, int with_abon) {
    
    Newsgroup_courant=Newsgroup_deb;
    while (Newsgroup_courant) {
-      if (((with_abon) && (Newsgroup_courant->flags & GROUP_UNSUBSCRIBED)) ||
+      if (((with_abon) && 
+		  (Newsgroup_courant->grp_flags & GROUP_UNSUBSCRIBED)) ||
           (newsgroup && (fl_strstr(truncate_group(Newsgroup_courant->name,0),newsgroup)==NULL))) {
          Newsgroup_courant=Newsgroup_courant->next;
 	 continue;
@@ -216,7 +225,7 @@ int aff_opt_c(flrn_char *newsgroup, int with_abon) {
 	    if (rc==0) free(trad);
 	    Article_courant=Article_deb;
 	    while (Article_courant) {
-	       if (!(Article_courant->flag & FLAG_READ)) {
+	       if (!(Article_courant->art_flags & FLAG_READ)) {
 		  Prepare_summary_line(Article_courant,
 			  NULL,0,ligne,99,80,0,0,0);
 		  rc=conversion_to_terminal (ligne,&trad,0,(size_t)(-1));
@@ -425,8 +434,8 @@ int loop(flrn_char *opt) {
 	    if (etat_loop.num_futur_article !=-1) {
 	      Arg_do_funcs.elem1.number=etat_loop.num_futur_article;
 	      Arg_do_funcs.num2=0;
-	      Arg_do_funcs.flags=2;
-	      if (Arg_do_funcs.next) Arg_do_funcs.next->flags=0;
+	      Arg_do_funcs.numlst_flags=NUMLST_NUM;
+	      if (Arg_do_funcs.next) Arg_do_funcs.next->numlst_flags=0;
 	      do_deplace(FLCMD_VIEW);
 	    }
 	    change=0;
@@ -474,8 +483,8 @@ int loop(flrn_char *opt) {
 	     res=etat_loop.next_cmd;
 	     etat_loop.next_cmd=-1; /* remis à jour ensuite */
 	     fl_strncpy(Arg_str,Str_macro,99);
-	     if (fin_de_param==NULL) Arg_do_funcs.flags=0; else
-	     if (fin_de_param->next) fin_de_param->next->flags=0;
+	     if (fin_de_param==NULL) Arg_do_funcs.numlst_flags=0; else
+	     if (fin_de_param->next) fin_de_param->next->numlst_flags=0;
 	   } else {
 #ifdef USE_SLANG_LANGUAGE
 	     res=get_command_command(ret-1,&slang_fun);
@@ -485,9 +494,10 @@ int loop(flrn_char *opt) {
 	     if ((res>0) && (res & FLCMD_MACRO)) {
 	        fl_strncpy(Str_macro,Arg_str,99);
 	        fin_de_param=&Arg_do_funcs;
-		if (fin_de_param->flags==0) fin_de_param=NULL;
+		if (fin_de_param->numlst_flags==0) fin_de_param=NULL;
 		else
-		  while ((fin_de_param->next) && (fin_de_param->next->flags))
+		  while ((fin_de_param->next) && 
+			  (fin_de_param->next->numlst_flags))
 		      fin_de_param=fin_de_param->next;
  	     }
 	   }
@@ -507,7 +517,7 @@ int loop(flrn_char *opt) {
 	   else
 #endif
 	   {
-	     if ((Flcmds[res].flags & CMD_NEED_GROUP) &&
+	     if ((Flcmds[res].cmd_flags & CMD_NEED_GROUP) &&
 		 (etat_loop.hors_struct & 8)) {
 	       etat_loop.etat=2; etat_loop.num_message=-3; change=0;
 	     } else
@@ -536,7 +546,7 @@ int loop(flrn_char *opt) {
 	   to_build=0;
 	   etat_loop.etat=1; etat_loop.num_message=1;
 	   if (!(etat_loop.hors_struct & 8) && Article_courant) {
-	     if (Newsgroup_courant->flags & GROUP_UNSUBSCRIBED) {
+	     if (Newsgroup_courant->grp_flags & GROUP_UNSUBSCRIBED) {
 	       detruit_liste(0);
 	       Newsgroup_courant=NULL;
 	       Article_deb=&Article_bidon;
@@ -609,7 +619,7 @@ int fonction_to_number(char *nom) {
 int call_func(int number, flrn_char *arg) {
   int res;
   *Arg_str='\0';
-  Arg_do_funcs.flags=0;
+  Arg_do_funcs.numlst_flags=0;
   res=number;
   res=parse_arg_string(arg,res,0);
   return (*Flcmds[res].appel)(res);
@@ -618,7 +628,7 @@ int call_func(int number, flrn_char *arg) {
 void apply_autocmd(int flag, flrn_char *name) {
   autocmd_list_type *parcours=Options.user_autocmd;
   while (parcours) {
-     if (flag & parcours->flag) {
+     if (flag & parcours->autocmd_flags) {
         if (fl_regexec(&(parcours->match),name,0,NULL,0)==0) {
 	   call_func(parcours->cmd,parcours->arg);
 	}
@@ -734,6 +744,7 @@ static union element Decode_numero(flrn_char *str, union element defaut,
  * On arrete des qu'il y a un problème.
  * On a deux règles spéciales : 0 est l'article courant,
  * 1 le premier article du groupe */
+/* flags est du type cmd_flags */
 static void Parse_nums_article(flrn_char *str, flrn_char **sortie, int flags) {
    flrn_char *ptr=str, *ptr2=NULL, *ptrsign;
    int reussi=1, flag;
@@ -741,25 +752,25 @@ static void Parse_nums_article(flrn_char *str, flrn_char **sortie, int flags) {
    union element defaut;
    Numeros_List *courant=&Arg_do_funcs;
    /* on conserve le debut de la liste. Pour les commandes explicites */
-   while (courant->flags != 0) courant = courant->next;
+   while (courant->numlst_flags != 0) courant = courant->next;
 
    while (ptr && reussi) {
      ptr2=fl_strchr(ptr,fl_static(','));
      if (ptr2!=NULL) *ptr2=fl_static('\0'); else
-        if (flags & 16) {
-	   courant->flags=0;
+        if (flags & CMD_LAST_IS_STR) {
+	   courant->numlst_flags=0;
 	   if (sortie) *sortie=ptr;
 	   return;
 	}
      if (*ptr==fl_static('\0')) {
-	courant->flags=0;
+	courant->numlst_flags=0;
      } else {
        ptrsign=fl_strchr(ptr,fl_static('-'));
        if (ptrsign!=NULL) 
        { 
          flag=0;
          *ptrsign=fl_static('\0');
-         courant->flags=32;
+         courant->numlst_flags=NUMLST_RNG;
 	 defaut.number=1;
          courant->elem1=Decode_numero(ptr,defaut,&flag);
          if (courant->elem1.number==-1) reussi=0;
@@ -772,27 +783,27 @@ static void Parse_nums_article(flrn_char *str, flrn_char **sortie, int flags) {
          flag=1;
          ptrsign=fl_strchr(ptr,fl_static('_'));
          if (ptrsign!=NULL) { 
-	     save_char=fl_static('_'); courant->flags=4; 
+	     save_char=fl_static('_'); courant->numlst_flags=NUMLST_ASC; 
 	     *ptrsign=fl_static(','); 
 	 } else {
   	     ptrsign=fl_strchr(ptr,fl_static('>'));
   	     if (ptrsign!=NULL) { 
-		 save_char=fl_static('>'); courant->flags=8;
+		 save_char=fl_static('>'); courant->numlst_flags=NUMLST_DES;
 		 *ptrsign=fl_static(','); 
 	     } else {
 	       ptrsign=strchr(ptr,'*');
 	       if (ptrsign!=NULL)  {
-		   save_char=fl_static('*'); courant->flags=16; 
+		   save_char=fl_static('*'); courant->numlst_flags=NUMLST_THR; 
 		   *ptrsign=fl_static(','); 
 	       }
-	       else { courant->flags=1; flag=2; }
+	       else { courant->numlst_flags=NUMLST_ART; flag=2; }
 	     }
 	   }
 	 defaut.article=Article_courant;
          courant->elem1=Decode_numero(ptr, defaut,&flag);
          if (flag) { if (courant->elem1.article==NULL) reussi=0; }  else 
 	 {
-	    courant->flags=2;
+	    courant->numlst_flags=NUMLST_NUM;
 	    if (courant->elem1.number==-1) reussi=0; 
 	 }
          if (ptrsign!=NULL) *ptrsign=save_char;
@@ -801,7 +812,8 @@ static void Parse_nums_article(flrn_char *str, flrn_char **sortie, int flags) {
      if ((flag==0) && (Article_courant && (courant->elem1.number==0))) 
         courant->elem1.number=Article_courant->numero;
      if ((flag==0) && (Article_deb && (courant->elem1.number==1))) {
-	if (Newsgroup_courant->flags & GROUP_NOT_EXHAUSTED) {
+	if ((Newsgroup_courant) &&
+		  (Newsgroup_courant->grp_flags & GROUP_NOT_EXHAUSTED)) {
 	    int ff=2;
 	    cree_liste(1,&ff);
 	}
@@ -817,12 +829,12 @@ static void Parse_nums_article(flrn_char *str, flrn_char **sortie, int flags) {
 	{ courant->next=safe_calloc(1,sizeof(Numeros_List));
 	  courant=courant->next;
 	}
-	courant->flags=0;
+	courant->numlst_flags=0;
      }
    }
    if (!reussi) {
      if (ptr2) *ptr2=fl_static(',');
-     courant->flags=0;
+     courant->numlst_flags=0;
    }
    if (sortie) *sortie=ptr;
 }
@@ -846,12 +858,13 @@ int parse_arg_string(flrn_char *str,int command, int annu16)
       flag=cmd-NB_FLCMD;
    else
 #endif
-      flag=Flcmds[cmd].flags & 19; /* c'est crade... */
+      flag=Flcmds[cmd].cmd_flags & CMD_PARSE_FILTER;
    /* un truc quand même : le flag 16 n'a pas de valeur si macro et appele */
    /* depuis get_command_command */
-   if ((annu16) && (command & FLCMD_MACRO)) flag=flag & 3;
-   if (flag==0) return command;
-   Parse_nums_article(str, &str, flag);
+   if ((annu16) && (command & FLCMD_MACRO)) 
+       flag=flag & (CMD_TAKE_ARTICLES|CMD_TAKE_STRING);
+   if ((flag & (CMD_TAKE_ARTICLES|CMD_TAKE_STRING))==0) return command;
+   if (flag & CMD_TAKE_ARTICLES) Parse_nums_article(str, &str, flag);
    if (str) fl_strncpy(Arg_str, str, MAX_CHAR_STRING-1);
    return command;
 }
@@ -909,8 +922,8 @@ static int get_str_arg(int res, Cmd_return *cmd, int tosave) {
       cmd->after=str;
       save_command(cmd);
    }
-   if (Flcmds[res].flags & 2) 
-     Parse_nums_article(str,&str,Flcmds[res].flags & 19);
+   if (Flcmds[res].cmd_flags & CMD_TAKE_ARTICLES) 
+     Parse_nums_article(str,&str,Flcmds[res].cmd_flags & CMD_PARSE_FILTER);
    if (str) fl_strcpy(Arg_str, str); else Arg_str[0]=fl_static('\0');
    return 0;
 }
@@ -933,7 +946,7 @@ int get_command_command(int get_com
 #endif
 
    key.entry=ENTRY_ERROR_KEY;
-   Arg_do_funcs.flags=0;
+   Arg_do_funcs.numlst_flags=0;
    Arg_str[0]=fl_static('\0');
 
    if (get_com==-1) {
@@ -945,7 +958,7 @@ int get_command_command(int get_com
      res=get_command(&key,CONTEXT_COMMAND,-1,&une_commande);
    } else res=get_com;
    if (res<0) {
-      if ((res==-1) && (une_commande.flags & 2)) {
+      if ((res==-1) && (une_commande.cmd_ret_flags & CMD_RET_KEEP_DESC)) {
 	  save_command(&une_commande);
       }
       if (une_commande.before) free(une_commande.before);
@@ -960,7 +973,7 @@ int get_command_command(int get_com
       free(une_commande.fun_slang);
       une_commande.fun_slang=NULL;
       if (*slang_fun==NULL) {
-         if (une_commande.flags & 2) {
+         if (une_commande.cmd_ret_flags & CMD_RET_KEEP_DESC) {
 	    save_command(&une_commande);
          }
          if (une_commande.before) free(une_commande.before);
@@ -969,7 +982,7 @@ int get_command_command(int get_com
       }
       res2=NB_FLCMD+a; /* pour signifier une fonction slang ,
                     on pourra éventuellement penser à modifier ça, ensuite */
-      une_commande.flags &= ~1;
+      une_commande.cmd_ret_flags &= ~CMD_RET_MAYBE_AFTER;
    } else
 #endif
    res2=une_commande.cmd[CONTEXT_COMMAND];
@@ -977,7 +990,7 @@ int get_command_command(int get_com
       Parse_nums_article(une_commande.before,NULL,0);
    if (une_commande.after) {
       save_command(&une_commande);
-      une_commande.flags &= ~2;
+      une_commande.cmd_ret_flags &= ~CMD_RET_KEEP_DESC;
       res2=parse_arg_string(une_commande.after,res2,1);
       free(une_commande.after);
    }
@@ -1002,9 +1015,9 @@ int get_command_command(int get_com
 #endif
    if ((res2!=FLCMD_UNDEF) && ((res2 & FLCMD_MACRO)==0)) {
    /* Testons si on a besoin d'un (ou plusieurs) parametres */
-     if ((une_commande.flags & 1) && 
-         ( ((!Options.forum_mode) && (Flcmds[res2].flags & 8))
-         || ((Options.forum_mode) && (Flcmds[res2].flags & 4)) )) {
+     if ((une_commande.cmd_ret_flags & CMD_RET_MAYBE_AFTER) && 
+         ( (Flcmds[res2].cmd_flags & (Options.forum_mode ? CMD_STR_FORUM :
+				  CMD_STR_NOFORUM)) )) {
        res=get_str_arg(res2,&une_commande,1);
        if (res==-1) res2=-2;
      }
@@ -1014,9 +1027,9 @@ int get_command_command(int get_com
 }
 
 static int tag_article(Article_List *art, void * flag)
-{art->flag |= *(int *)flag; return 0;}
+{art->art_flags |= *(int *)flag; return 0;}
 static int untag_article(Article_List *art, void * flag)
-{art->flag &= *(int *)flag; return 0;}
+{art->art_flags &= *(int *)flag; return 0;}
 
 /* do_deplace : deplacement */
 int do_deplace(int res) {
@@ -1040,7 +1053,7 @@ int do_deplace(int res) {
    /* dans le cas ou on est hors limite et num1=Article_courant->numero */
    /* on reaffiche Article_courant, a condition que ce ne soit ni - ni '\n' */
    /* ni un ' ' (sauf cas particuliers) */
-   if (Article_courant && ((Arg_do_funcs.flags | 64)==64)) {
+   if (Article_courant && ((Arg_do_funcs.numlst_flags | NUMLST_SEL)==64)) {
       parc_eq_cour=1;
       if ((etat_loop.hors_struct & 1) && (res!=FLCMD_SPACE) &&
 	  ((res!=FLCMD_PREC) || !(etat_loop.hors_struct & 4)) &&
@@ -1051,7 +1064,7 @@ int do_deplace(int res) {
       }
    } else {
    /* on cheche Arg_do_funcs.num1 */
-     if (Arg_do_funcs.flags & 34) {
+     if (Arg_do_funcs.numlst_flags & (NUMLST_RNG|NUMLST_NUM)) {
         ret=Recherche_article(Arg_do_funcs.elem1.number, &parcours, 
 	   (res==FLCMD_PREC ? -1 : (res==FLCMD_SUIV ? 1 : 0)));
         if (ret==-2) {
@@ -1075,7 +1088,8 @@ int do_deplace(int res) {
 			   } else
 			   do {
 			     parcours=parcours->prev;
-			   } while(parcours && (parcours->flag & FLAG_KILLED));
+			   } while(parcours && (parcours->art_flags 
+				       & FLAG_KILLED));
 			 }
 			 break;
      case FLCMD_SUIV : if (ret!=-1) {
@@ -1087,7 +1101,8 @@ int do_deplace(int res) {
 			    break;
 			 }
 			 parcours2=parcours->next; 
-			 while(parcours2 && (parcours2->flag & FLAG_KILLED)) {
+			 while(parcours2 && (parcours2->art_flags
+				     & FLAG_KILLED)) {
 			   parcours=parcours2;
 			   parcours2=parcours2->next;
 			 }
@@ -1106,7 +1121,8 @@ int do_deplace(int res) {
 				 return 1;
 			       } else if (ret>0) {parcours2=parcours->next;
 				 while(parcours2 &&
-				     (parcours2->flag & FLAG_KILLED))
+				     (parcours2->art_flags &
+				         FLAG_KILLED))
 				   parcours2=parcours2->next;
 			       }
 			     }
@@ -1347,7 +1363,7 @@ int do_goto (int res) {
        ret=change_group(&(etat_loop.Newsgroup_nouveau), (res==FLCMD_GGTO),
                            Arg_str);
    }
-   if ((ret==0) && (Arg_do_funcs.flags & 34))
+   if ((ret==0) && (Arg_do_funcs.numlst_flags & (NUMLST_RNG|NUMLST_NUM)))
    	etat_loop.num_futur_article= Arg_do_funcs.elem1.number;
    if (ret>=0) return 1; else 
      if (ret==-1)  etat_loop.etat=3; else
@@ -1377,7 +1393,7 @@ int do_unsubscribe(int res) {
       etat_loop.etat=2; etat_loop.num_message=-3;
       return 0;
    }
-   newsgroup->flags |= GROUP_UNSUBSCRIBED;
+   newsgroup->grp_flags |= GROUP_UNSUBSCRIBED;
    return (newsgroup==Newsgroup_courant);
 }
 
@@ -1401,10 +1417,10 @@ int do_abonne(int res) {
       etat_loop.etat=2; etat_loop.num_message=-3;
       return 0;
    }
-   newsgroup->flags &= ~GROUP_UNSUBSCRIBED;
+   newsgroup->grp_flags &= ~GROUP_UNSUBSCRIBED;
    if (Options.auto_kill) {
      add_to_main_list(newsgroup->name);
-     newsgroup->flags|=GROUP_IN_MAIN_LIST_FLAG;
+     newsgroup->grp_flags|=GROUP_IN_MAIN_LIST_FLAG;
    }
    if (newsgroup==Newsgroup_courant) Aff_newsgroup_name(0);
    etat_loop.etat=1; etat_loop.num_message=9;
@@ -1430,7 +1446,7 @@ int do_add_kill(int res) {
      return 0;
   }
   add_to_main_list(newsgroup->name);
-  newsgroup->flags|=GROUP_IN_MAIN_LIST_FLAG;
+  newsgroup->grp_flags|=GROUP_IN_MAIN_LIST_FLAG;
   if (newsgroup==Newsgroup_courant) Aff_newsgroup_name(0);
   etat_loop.etat=1; etat_loop.num_message=18;
   return 0;
@@ -1455,7 +1471,7 @@ int do_remove_kill(int res) {
       return 0;
    }
    remove_from_main_list(newsgroup->name);
-   newsgroup->flags&=~GROUP_IN_MAIN_LIST_FLAG;
+   newsgroup->grp_flags&=~GROUP_IN_MAIN_LIST_FLAG;
    if (newsgroup==Newsgroup_courant) Aff_newsgroup_name(0);
    etat_loop.etat=1; etat_loop.num_message=19;
    return 0;
@@ -1490,44 +1506,44 @@ int gthread_distribue(Article_List *article, void * beurk) {
 }
 
 static int omet_article(Article_List *article, void * toto)
-{  if (article->flag & FLAG_KILLED) return 0;
-   if ((article->numero>0) && (article->flag & FLAG_READ) &&
+{  if (article->art_flags & FLAG_KILLED) return 0;
+   if ((article->numero>0) && (article->art_flags & FLAG_READ) &&
       (Newsgroup_courant->not_read!=-1)) {
         Newsgroup_courant->not_read++;
 	article->thread->non_lu++;
       }
-      article->flag &= ~FLAG_READ; return 0; }
+      article->art_flags &= ~FLAG_READ; return 0; }
 
 /* Contrairement à article_read, on ne s'occupe pas des crossposts */
 static int mark_article_read(Article_List *article, void  *toto)
 { 
    int flag=*((int *)toto);
-   if ((article->numero>0) && (!(article->flag & FLAG_READ)) &&
+   if ((article->numero>0) && (!(article->art_flags & FLAG_READ)) &&
       (Newsgroup_courant->not_read>0)) {
         Newsgroup_courant->not_read--;
 	article->thread->non_lu--;
       }
-   article->flag |= FLAG_READ; 
-   if (article->flag & FLAG_IMPORTANT) {
+   article->art_flags |= FLAG_READ; 
+   if (article->art_flags & FLAG_IMPORTANT) {
       Newsgroup_courant->important--;
-      article->flag &= ~FLAG_IMPORTANT;
+      article->art_flags &= ~FLAG_IMPORTANT;
    }
-   article->flag |= flag; /* Si flag est FLAG_KILLED */
+   article->art_flags |= flag; /* Si flag est FLAG_KILLED */
    return 0; 
 }
 static int mark_article_important(Article_List *article, void  *toto)
 { 
    int flag=*((int *)toto);
-   if (article->flag & FLAG_READ) return 0;
-   if (!(article->flag & FLAG_IMPORTANT)) Newsgroup_courant->important++;
-   article->flag |= flag; 
+   if (article->art_flags & FLAG_READ) return 0;
+   if (!(article->art_flags & FLAG_IMPORTANT)) Newsgroup_courant->important++;
+   article->art_flags |= flag; 
    return 0; 
 }
 static int mark_article_unimportant(Article_List *article, void  *toto)
 { 
    int flag=*((int *)toto);
-   if (article->flag & FLAG_IMPORTANT) Newsgroup_courant->important--;
-   article->flag &= flag; 
+   if (article->art_flags & FLAG_IMPORTANT) Newsgroup_courant->important--;
+   article->art_flags &= flag; 
    return 0; 
 }
 
@@ -1535,21 +1551,21 @@ static void transforme_selection() {
    Article_List *parcours=Article_deb;
 
    while (parcours) {
-      if (parcours->flag & FLAG_IS_SELECTED) 
-              parcours->flag&= ~FLAG_IS_SELECTED;
-      if (parcours->flag & FLAG_SUMMARY) {
-          parcours->flag|=FLAG_IS_SELECTED;
-	  parcours->flag&=~FLAG_SUMMARY;
+      if (parcours->art_flags & FLAG_IS_SELECTED) 
+              parcours->art_flags&= ~FLAG_IS_SELECTED;
+      if (parcours->art_flags & FLAG_SUMMARY) {
+          parcours->art_flags|=FLAG_IS_SELECTED;
+	  parcours->art_flags&=~FLAG_SUMMARY;
       }
       parcours=parcours->next;
    }
    parcours=Article_exte_deb;
    while (parcours) {
-      if (parcours->flag & FLAG_IS_SELECTED) 
-              parcours->flag&= ~FLAG_IS_SELECTED;
-      if (parcours->flag & FLAG_SUMMARY) {
-          parcours->flag|=FLAG_IS_SELECTED;
-	  parcours->flag&=~FLAG_SUMMARY;
+      if (parcours->art_flags & FLAG_IS_SELECTED) 
+              parcours->art_flags&= ~FLAG_IS_SELECTED;
+      if (parcours->art_flags & FLAG_SUMMARY) {
+          parcours->art_flags|=FLAG_IS_SELECTED;
+	  parcours->art_flags&=~FLAG_SUMMARY;
       }
       parcours=parcours->next;
    }
@@ -1621,7 +1637,8 @@ int do_omet(int res) {
      }
      if (toset==0) flag=~flag;
   }
-  if ((flag==FLAG_IS_SELECTED) && (toset) && (courant->flags & 64)) {
+  if ((flag==FLAG_IS_SELECTED) && (toset) && 
+	  (courant->numlst_flags & NUMLST_SEL)) {
       flag=FLAG_SUMMARY;
       use_summary=1;
   }
@@ -1643,7 +1660,7 @@ static int kill_article(Article_List *article, void * toto)
 { article_read(article); return 0; }
 static int temp_kill_article(Article_List *article, void * toto)
 { article_read(article); 
-  article->flag|=FLAG_WILL_BE_OMITTED;
+  article->art_flags|=FLAG_WILL_BE_OMITTED;
   return 0; }
 int do_kill(int res) {
   Numeros_List *courant=&Arg_do_funcs;
@@ -1668,14 +1685,14 @@ int do_kill(int res) {
       distribue_action(courant,thread_distribue,NULL,&beurk, 0);
   }
   /* Est-ce un hack trop crade ? */
-  courant->flags=0;
+  courant->numlst_flags=0;
   Aff_not_read_newsgroup_courant();
   if (res==FLCMD_ART_TO_RETURN) {
      etat_loop.etat=1;
      etat_loop.num_message=22;
      return 0;
   }
-  if (Article_courant->flag & FLAG_READ) {
+  if (Article_courant->art_flags & FLAG_READ) {
      etat_loop.hors_struct&=~2; /* Ceci sert à empêcher un changement */
      do_deplace(FLCMD_SPACE);
   }
@@ -1691,7 +1708,7 @@ int do_zap_group(int res) {
   int flag=FLAG_READ;
   Thread_List *parcours=Thread_deb;
 
-  blah.next=NULL; blah.flags=32; blah.elem1.number=1;
+  blah.next=NULL; blah.numlst_flags=NUMLST_RNG; blah.elem1.number=1;
   blah.num2=Newsgroup_courant->max;
   distribue_action(&blah,mark_article_read,NULL, &flag, FLAG_TOREAD);
   Recherche_article(Newsgroup_courant->max,&Article_courant,-1);
@@ -1718,7 +1735,7 @@ int do_quit(int res) {
 
 static int tag_and_minmax_article(Article_List *article, void *blah)
 {
-   article->flag|=FLAG_TMP_KILL;
+   article->art_flags|=FLAG_TMP_KILL;
    if ((article->numero<min_kill_l) || (min_kill_l==-1))
      min_kill_l=article->numero;
    if (article->numero>max_kill_l) max_kill_l=article->numero;
@@ -1729,7 +1746,7 @@ static int check_and_tag_article(Article_List *article, void *blah)
 {
   flrn_filter *arg = (flrn_filter *) blah;
   if (check_article(article,arg,1)<=0)
-  { tag_article(article,& arg->action.flag); return 1; }
+  { tag_article(article,& arg->action.art_flag); return 1; }
   else return 0;
 }
 
@@ -1750,7 +1767,7 @@ static int Do_menu_summary_line(Article_List *art, int *row,
     flrn_char *previous_subject, int level, Liste_Menu **courant) {
   flrn_char *lelem[2];
   lelem[1]=safe_calloc(2*Screen_Cols,sizeof(flrn_char));
-  lelem[0]=((art->flag & FLAG_READ) ? fl_static("") : fl_static("*"));
+  lelem[0]=((art->art_flags & FLAG_READ) ? fl_static("") : fl_static("*"));
   Prepare_summary_line(art,previous_subject,level, lelem[1],2*Screen_Cols,
 	  Screen_Cols-2,4,0,0);
   *courant=ajoute_menu(*courant,&fmt_summ_menu,&(lelem[0]),art);
@@ -1761,19 +1778,19 @@ static int flags_summ_article (void *letruc, flrn_char **lachaine) {
    Article_List *larticle=letruc;
    flrn_char *buf;
    *lachaine=buf=safe_calloc(80,sizeof(flrn_char));
-   fl_strcpy(buf,((larticle->flag & FLAG_READ) ? 
+   fl_strcpy(buf,((larticle->art_flags & FLAG_READ) ? 
 	       fl_static("  ") : fl_static("un")));
    fl_strcat(buf,fl_static("read"));
-   fl_strcat(buf,((larticle->flag & FLAG_KILLED) ? 
+   fl_strcat(buf,((larticle->art_flags & FLAG_KILLED) ? 
 	       fl_static("   ") : fl_static(" un")));
    fl_strcat(buf,fl_static("killed"));
-   fl_strcat(buf,((larticle->flag & FLAG_IS_SELECTED) ? 
+   fl_strcat(buf,((larticle->art_flags & FLAG_IS_SELECTED) ? 
 	       fl_static("   ") : fl_static(" un")));
    fl_strcat(buf,fl_static("selected"));
-   fl_strcat(buf,((larticle->flag & FLAG_IMPORTANT) ?
+   fl_strcat(buf,((larticle->art_flags & FLAG_IMPORTANT) ?
 	       fl_static("   ") : fl_static(" un")));
    fl_strcat(buf,fl_static("interesting"));
-   fl_strcat(buf,((larticle->flag & FLAG_TOREAD) ? 
+   fl_strcat(buf,((larticle->art_flags & FLAG_TOREAD) ? 
 	       fl_static("   ") : fl_static(" un")));
    fl_strcat(buf,fl_static("toread"));
    if (larticle->headers==NULL) return 1;
@@ -1792,10 +1809,15 @@ static int flags_summ_article (void *letruc, flrn_char **lachaine) {
 static int tag_article_summ (Liste_Menu *courant, char *arg) {
    Article_List *larticle=courant->lobjet;
    int ret, toset, flag;
-   int flag_base=larticle->flag;
+   int flag_base=larticle->art_flags;
 
-   ret=parse_flags(arg,&toset,&flag);
-   if (ret<0) return 0;
+   if ((arg==NULL) || ((ret=parse_flags(arg,&toset,&flag))<0)) 
+       return 0;
+        /* FIXME : reprendre put_flag, et/ou
+         *         demander à rentrer un autre flag */
+        /* TODO : après réflexion ce truc est à chier : le parse
+	 *         du flag est fait, fait et refait autant de fois que
+	 *         demandé. C'est trop ! */
    if (toset==0) ret=~flag;
    switch (flag) {
    	case FLAG_READ :
@@ -1818,11 +1840,11 @@ static int tag_article_summ (Liste_Menu *courant, char *arg) {
 	       else untag_article(larticle,&ret);
 	    break;
    }
-   if (flag_base!=larticle->flag) {
-       change_menu_line(courant,0,(larticle->flag & FLAG_READ ? 
+   if (flag_base!=larticle->art_flags) {
+       change_menu_line(courant,0,(larticle->art_flags & FLAG_READ ? 
 		   fl_static(" ") : fl_static("*")));
    }
-   return (flag_base!=larticle->flag);
+   return (flag_base!=larticle->art_flags);
 }
 
 static int summary_menu (Liste_Menu *debut_menu, Liste_Menu **courant,
@@ -1874,11 +1896,11 @@ static Article_List * raw_Do_summary (int deb, int fin, int thread,
   /* find first article */
   parcours=Article_deb;
   while (parcours && (parcours->numero<deb)) parcours=parcours->next;
-  while (parcours && !(parcours->flag & FLAG_SUMMARY))
+  while (parcours && !(parcours->art_flags & FLAG_SUMMARY))
     parcours=parcours->next;
   if (parcours && (thread || !Options.ordered_summary)) {
     parcours=root_of_thread(parcours,1);
-    if (!(parcours->flag & FLAG_SUMMARY))
+    if (!(parcours->art_flags & FLAG_SUMMARY))
        parcours=next_in_thread(parcours,FLAG_SUMMARY,&level,deb,fin,
 	   FLAG_SUMMARY,1);
   }
@@ -1893,18 +1915,18 @@ static Article_List * raw_Do_summary (int deb, int fin, int thread,
     if ((courant) && (!start) && (parcours==Article_courant)) start=courant;
     if ((!Options.duplicate_subject) && (parcours->headers))
       previous_subject=parcours->headers->k_headers[SUBJECT_HEADER];
-    parcours->flag &= ~FLAG_SUMMARY;
+    parcours->art_flags &= ~FLAG_SUMMARY;
     if (thread || !Options.ordered_summary) {
       parcours=next_in_thread(parcours,FLAG_SUMMARY,&level,deb,fin,
 	  FLAG_SUMMARY,1);
     }
-    if (!parcours || !(parcours->flag & FLAG_SUMMARY)) {
-      while(parcours2 && (!(parcours2->flag & FLAG_SUMMARY)))
+    if (!parcours || !(parcours->art_flags & FLAG_SUMMARY)) {
+      while(parcours2 && (!(parcours2->art_flags & FLAG_SUMMARY)))
 	parcours2=parcours2->next;
       parcours=parcours2; level=1;
       if (parcours && (thread || !Options.ordered_summary)) {
         parcours=root_of_thread(parcours,1);
-        if (!(parcours->flag & FLAG_SUMMARY))
+        if (!(parcours->art_flags & FLAG_SUMMARY))
           parcours=next_in_thread(parcours,FLAG_SUMMARY,&level,deb,fin,
 	     FLAG_SUMMARY,1);
       }
@@ -1943,41 +1965,41 @@ Article_List * Menu_summary (int deb, int fin, int thread) {
 static int tag_thread_in (Liste_Menu *courant, flrn_char *arg) {
    Thread_List *thr=(Thread_List *)(courant->lobjet);
    int ret, toset, flag;
-   int oldflags=thr->flags;
+   int oldflags=thr->thr_flags;
    
    ret=parse_flags(arg,&toset,&flag);
    if (ret<0) return 0;
    switch (flag) {
       case FLAG_KILLED :
       case FLAG_READ : if (toset) {
-       			  if (thr->flags & FLAG_THREAD_UNREAD) 
-      				thr->flags&=~FLAG_THREAD_UNREAD;
-			  else thr->flags|=FLAG_THREAD_READ;
+       			  if (thr->thr_flags & FLAG_THREAD_UNREAD) 
+      				thr->thr_flags&=~FLAG_THREAD_UNREAD;
+			  else thr->thr_flags|=FLAG_THREAD_READ;
 		       } else {
-       			  if (thr->flags & FLAG_THREAD_READ) 
-      				thr->flags&=~FLAG_THREAD_READ;
-			  else thr->flags|=FLAG_THREAD_UNREAD;
+       			  if (thr->thr_flags & FLAG_THREAD_READ) 
+      				thr->thr_flags&=~FLAG_THREAD_READ;
+			  else thr->thr_flags|=FLAG_THREAD_UNREAD;
 		       }
 		       break;
       case FLAG_IMPORTANT : 
       		       if (toset) 
-			  thr->flags|=FLAG_THREAD_IMPORTANT;
+			  thr->thr_flags|=FLAG_THREAD_IMPORTANT;
 		       else
-      			  thr->flags&=~FLAG_THREAD_IMPORTANT;
+      			  thr->thr_flags&=~FLAG_THREAD_IMPORTANT;
 		       break;
        case FLAG_IS_SELECTED :
       		       if (toset) 
-			  thr->flags|=FLAG_THREAD_BESELECTED;
+			  thr->thr_flags|=FLAG_THREAD_BESELECTED;
 		       else
-      			  thr->flags&=~FLAG_THREAD_BESELECTED;
+      			  thr->thr_flags&=~FLAG_THREAD_BESELECTED;
 		       break;
    }
-   if (oldflags!=thr->flags) { 
+   if (oldflags!=thr->thr_flags) { 
        change_menu_line(courant,0,
-	       (thr->flags & FLAG_THREAD_READ ? fl_static("-") :
-		(thr->flags & FLAG_THREAD_UNREAD ? fl_static("+") : 
-		 (thr->flags & FLAG_THREAD_IMPORTANT ? fl_static("I") :
-		  (thr->flags & FLAG_THREAD_BESELECTED ? fl_static("s")
+	       (thr->thr_flags & FLAG_THREAD_READ ? fl_static("-") :
+		(thr->thr_flags & FLAG_THREAD_UNREAD ? fl_static("+") : 
+		 (thr->thr_flags & FLAG_THREAD_IMPORTANT ? fl_static("I") :
+		  (thr->thr_flags & FLAG_THREAD_BESELECTED ? fl_static("s")
 		   : fl_static(" "))))));
        return 1;
    }
@@ -2038,11 +2060,11 @@ static int Menu_selector (Thread_List **retour) {
    } else fmtm=&fmt_thread2_menu;
    lelem[0]=fl_static("");
    for (;parcours;parcours=parcours->next_thread) {
-      parcours->flags&=~FLAG_THREAD_READ;
-      parcours->flags&=~FLAG_THREAD_UNREAD;
-      parcours->flags&=~FLAG_THREAD_IMPORTANT;
-      parcours->flags&=~FLAG_THREAD_BESELECTED;
-      if (!(parcours->flags & FLAG_THREAD_SELECTED)) continue;
+      parcours->thr_flags&=~FLAG_THREAD_READ;
+      parcours->thr_flags&=~FLAG_THREAD_UNREAD;
+      parcours->thr_flags&=~FLAG_THREAD_IMPORTANT;
+      parcours->thr_flags&=~FLAG_THREAD_BESELECTED;
+      if (!(parcours->thr_flags & FLAG_THREAD_SELECTED)) continue;
       hash_parc=parcours->premier_hash;
       while ((hash_parc) && ((hash_parc->article==NULL) 
                          || (hash_parc->article->numero<=0)))
@@ -2087,23 +2109,25 @@ static int Menu_selector (Thread_List **retour) {
    } else return -1;
    parcours=Thread_deb;
    for (;parcours;parcours=parcours->next_thread) {
-       if (parcours->flags & (FLAG_THREAD_UNREAD | FLAG_THREAD_READ | FLAG_THREAD_IMPORTANT | FLAG_THREAD_BESELECTED)) {
-         non_lu=parcours->flags & FLAG_THREAD_UNREAD;
-         lu=parcours->flags & FLAG_THREAD_READ;
-	 impor=parcours->flags & FLAG_THREAD_IMPORTANT;
-	 selec=parcours->flags & FLAG_THREAD_BESELECTED;
+       if (parcours->thr_flags &
+	       (FLAG_THREAD_UNREAD | FLAG_THREAD_READ |
+		FLAG_THREAD_IMPORTANT | FLAG_THREAD_BESELECTED)) {
+         non_lu=parcours->thr_flags & FLAG_THREAD_UNREAD;
+         lu=parcours->thr_flags & FLAG_THREAD_READ;
+	 impor=parcours->thr_flags & FLAG_THREAD_IMPORTANT;
+	 selec=parcours->thr_flags & FLAG_THREAD_BESELECTED;
          for (hash_parc=parcours->premier_hash;hash_parc;
 	      hash_parc=hash_parc->next_in_thread) 
 	    if (hash_parc->article) {
 	       if (non_lu) omet_article(hash_parc->article,NULL);
 	       else if ((lu) && ((hash_parc->article->numero>0) &&
-	                (!(hash_parc->article->flag && FLAG_READ))))
+	                (!(hash_parc->article->art_flags && FLAG_READ))))
 	           kill_article(hash_parc->article,NULL);
 	/* On évite de faire des requetes superflues et lourdes */
 	       if (impor)
 	          mark_article_important(hash_parc->article,(void *)(&flag));
 	       if (selec)
-	          hash_parc->article->flag|=FLAG_IS_SELECTED;
+	          hash_parc->article->art_flags|=FLAG_IS_SELECTED;
 	    }
        }
    }
@@ -2115,7 +2139,7 @@ static int default_thread(Article_List *article, void *flag)
 {
   Numeros_List blah;
   blah.next=NULL;
-  blah.flags=8;
+  blah.numlst_flags=NUMLST_DES;
   blah.elem1.article=article;
   distribue_action(&blah,(Action) tag_and_minmax_article,NULL,flag, 0);
   return 1;
@@ -2129,7 +2153,7 @@ static int default_summary(Article_List *article, void *flag)
   Article_List *parcours, *parcours2;
   int count=Screen_Rows - 2* Options.skip_line - 3;
   blah.next=NULL;
-  blah.flags=2;
+  blah.numlst_flags=NUMLST_NUM;
   parcours=article;
   parcours2=article;
   if (check_and_tag_article(parcours,flag)) count --;
@@ -2162,7 +2186,7 @@ int do_summary(int res) {
   }
   min_kill_l=max_kill_l=-1;
   filt=new_filter();
-  filt->action.flag=FLAG_SUMMARY;
+  filt->action.art_flag=FLAG_SUMMARY;
   act=tag_and_minmax_article;
   if (Arg_str && *Arg_str) {
     while(*buf==fl_static(' ')) buf++;
@@ -2186,9 +2210,9 @@ int do_summary(int res) {
   if (result) {
      ret=Article_deb;
      while ((ret) && (ret->numero<=max_kill_l)) {
-       if (ret->flag & FLAG_TMP_KILL) {
-          ret->flag |= FLAG_SUMMARY;
-          ret->flag &= ~FLAG_TMP_KILL;
+       if (ret->art_flags & FLAG_TMP_KILL) {
+          ret->art_flags |= FLAG_SUMMARY;
+          ret->art_flags &= ~FLAG_TMP_KILL;
        }
        ret=ret->next;
      }
@@ -2242,9 +2266,9 @@ int do_select(int res) {
   if (result) {
      art_ret=Article_deb;
      while ((art_ret) && (art_ret->numero<=max_kill_l)) {
-       if (art_ret->flag & FLAG_TMP_KILL) {
-          art_ret->thread->flags|=FLAG_THREAD_SELECTED;
-          art_ret->flag &= ~FLAG_TMP_KILL;
+       if (art_ret->art_flags & FLAG_TMP_KILL) {
+          art_ret->thread->thr_flags|=FLAG_THREAD_SELECTED;
+          art_ret->art_flags &= ~FLAG_TMP_KILL;
        }
        art_ret=art_ret->next;
      }
@@ -2259,25 +2283,26 @@ int do_select(int res) {
      return 0;
   }
   while (parcours) {
-    parcours->flags &= ~FLAG_THREAD_SELECTED;
+    parcours->thr_flags &= ~FLAG_THREAD_SELECTED;
     parcours=parcours->next_thread;
   }
   etat_loop.etat=0;
   /* Est-ce un hack trop crade ? */
-  courant->flags=0;
+  courant->numlst_flags=0;
   Aff_not_read_newsgroup_courant();
   if (retour) {
       for (hash_parc=retour->premier_hash; hash_parc;
               hash_parc=hash_parc->next_in_thread) {
 	 if (!hash_parc->article) continue;
-	 if ((art_ret==NULL) || (!(hash_parc->article->flag & FLAG_READ))) 
+	 if ((art_ret==NULL) || (!(hash_parc->article->art_flags & FLAG_READ))) 
 	     art_ret=hash_parc->article; else continue;
-	 if ((art_ret) && (!(art_ret->flag & FLAG_READ))) break;
+	 if ((art_ret) && (!(art_ret->art_flags & FLAG_READ))) break;
       }
       if (art_ret) {
          Article_courant=root_of_thread(art_ret,1);
-	 if ((!(art_ret->flag & FLAG_READ)) && 
-	       ((Article_courant->flag & FLAG_READ) || (Article_courant->numero<0))) {
+	 if ((!(art_ret->art_flags & FLAG_READ)) && 
+	       ((Article_courant->art_flags & FLAG_READ) ||
+		(Article_courant->numero<0))) {
 	    Article_List *myarticle=Article_courant;
 	    while (myarticle && (myarticle->numero<0)) {
 	       myarticle=myarticle->prem_fils;
@@ -2290,7 +2315,7 @@ int do_select(int res) {
 	 }
       }
   } else
-  if (Article_courant->flag & FLAG_READ) {
+  if (Article_courant->art_flags & FLAG_READ) {
      etat_loop.hors_struct&=~2;
      do_deplace(FLCMD_SPACE);
   }
@@ -2568,9 +2593,9 @@ int do_post(int res) {
 
   if ((res==FLCMD_ANSW) || (res==FLCMD_MAIL) || (res==FLCMD_SUPERSEDES)) {
      origine=Article_courant;
-     if (Arg_do_funcs.flags & 34)
+     if (Arg_do_funcs.numlst_flags & (NUMLST_RNG|NUMLST_NUM))
        ret=Recherche_article(Arg_do_funcs.elem1.number,&origine,0);
-     else if (Arg_do_funcs.flags & 63) {
+     else if (Arg_do_funcs.numlst_flags & NUMLST_ALL) {
        origine=Arg_do_funcs.elem1.article;
        ret=(origine ? 0 : -2);
      }
@@ -2900,9 +2925,10 @@ int do_swap_grp(int res) {
   }
   while ((*gpe) && (isblank(*gpe))) gpe++;
   article_considere=Article_courant;
-  if (Arg_do_funcs.flags & 34) 
+  if (Arg_do_funcs.numlst_flags & (NUMLST_RNG|NUMLST_NUM)) 
     Recherche_article(Arg_do_funcs.elem1.number, &article_considere, 0); else
-  if (Arg_do_funcs.flags & 63) article_considere=Arg_do_funcs.elem1.article;
+  if (Arg_do_funcs.numlst_flags & NUMLST_ALL)
+      article_considere=Arg_do_funcs.elem1.article;
   if (article_considere==NULL) {
      etat_loop.etat=1; etat_loop.num_message=3; return 0;
   }
@@ -2932,17 +2958,19 @@ int do_art_msgid(int res) {
 
    rc=conversion_to_utf8(flgpe,&gpe,0,(size_t)(-1));
    while ((*gpe) && (isblank(*gpe))) gpe++;
-   article_temp.numero=-1;
-   article_temp.msgid=gpe;
    article_temp.headers=NULL;
-   cree_header(&article_temp,0,0,1);
-   if ((article_temp.headers==NULL) && (strncasecmp(gpe,"<news:",6)==0)) { 
-      if (strncasecmp(gpe,"<news:",6)==0) {
-         gpe+=5;
-	 *gpe='<';
-      }
-      article_temp.msgid=gpe;
-      cree_header(&article_temp,0,0,1);
+   if (*gpe) { /* TODO : peut-être, si *gpe est nul, demander un msgid */
+     article_temp.numero=-1;
+     article_temp.msgid=gpe;
+     cree_header(&article_temp,0,0,1);
+     if ((article_temp.headers==NULL) && (strncasecmp(gpe,"<news:",6)==0)) { 
+        if (strncasecmp(gpe,"<news:",6)==0) {
+           gpe+=5;
+	   *gpe='<';
+        }
+        article_temp.msgid=gpe;
+        cree_header(&article_temp,0,0,1);
+     }
    }
    if (article_temp.headers==NULL) {
       if (rc==0) free(gpe);
@@ -3050,7 +3078,7 @@ int do_on_selected (int res) {
   } else { 
     size_t b=next_flch(name,0);
     if ((int)b<=0) b=0;
-    une_commande.flags &= ~1;
+    une_commande.cmd_ret_flags &= ~CMD_RET_MAYBE_AFTER;
     if ((name[b]==fl_static('\0')) || (fl_isblank(name[b]))) {
 	buf=name;
 	une_commande.before=NULL;
@@ -3087,9 +3115,9 @@ int do_on_selected (int res) {
      free(une_commande.after);
   }
   if ((res2 & FLCMD_MACRO)==0) {
-     if ((une_commande.flags & 1) && 
-         ( ((!Options.forum_mode) && (Flcmds[res2].flags & 8))
-	 || ((Options.forum_mode) && (Flcmds[res2].flags & 4)) )) {
+     if ((une_commande.cmd_ret_flags & CMD_RET_MAYBE_AFTER) && 
+	 (Flcmds[res2].cmd_flags & (Options.forum_mode ? 
+			CMD_STR_FORUM : CMD_STR_NOFORUM))) {
        ret=get_str_arg(res2,&une_commande,0);
        if (ret==-1) {
           if (une_commande.before) free(une_commande.before);
@@ -3105,12 +3133,10 @@ int do_on_selected (int res) {
   }
   if (une_commande.before) free(une_commande.before);
   /* On ne teste pas CMD_NEED_GROUP, ça a déjà été testé :-) */
-  courant->flags|=64;
-  courant=courant->next;
-  while ((courant) && (courant->flags)) {
-     courant->flags|=64;
-     courant = courant->next;
-  }
+  do {
+    courant->numlst_flags|=NUMLST_SEL;
+    courant=courant->next;
+  } while ((courant) && (courant->numlst_flags));
   return (*Flcmds[res2].appel)(res2);
 }
 
@@ -3155,7 +3181,7 @@ void Get_option_line(flrn_char *argument)
   /* hack pour reconstruir les couleurs au besoin */
   color=(fl_strstr(buf,"color"))?1:0;
   color=(fl_strstr(buf,"mono"))?1:color;
-  parse_options_line(buf,1);
+  parse_options_line(buf,1,NULL,NULL);
   if (color) {
        Init_couleurs();
        Screen_touch_lines (0, Screen_Rows2-1);
@@ -3203,7 +3229,7 @@ static int raw_prochain_non_lu(int force_reste, Article_List **debut, int just_e
    flag_mask=(important ? (FLAG_IMPORTANT | FLAG_READ) : FLAG_READ);
    flag_res=(important ? FLAG_IMPORTANT : 0);
    /* on regarde si l'article courant est lu */
-   if (myarticle && ((myarticle->flag & flag_mask)==flag_res))
+   if (myarticle && ((myarticle->art_flags & flag_mask)==flag_res))
      return 0; 
 
    /* On essaie d'abord de chercher dans la thread */
@@ -3213,19 +3239,20 @@ static int raw_prochain_non_lu(int force_reste, Article_List **debut, int just_e
      myarticle=*debut;
    }
    /* On teste d'abord ce qu'on trouve après Article_courant */
-   while (myarticle && ((myarticle->flag & flag_mask)!=flag_res))
+   while (myarticle && ((myarticle->art_flags & flag_mask)!=flag_res))
       myarticle=myarticle->next;
    if (myarticle==NULL) { 
      /* Puis on repart de Article_deb */
      myarticle=Article_deb;
-     while (myarticle && (myarticle!=*debut) && ((myarticle->flag & flag_mask)!=flag_res))
+     while (myarticle && (myarticle!=*debut) && ((myarticle->art_flags &
+		     flag_mask)!=flag_res))
         myarticle=myarticle->next;
      if (myarticle==NULL) myarticle=Article_deb;
    }
-   if (myarticle && ((myarticle->flag & flag_mask)==flag_res)) {
+   if (myarticle && ((myarticle->art_flags & flag_mask)==flag_res)) {
      if (Options.threaded_next) {
        myarticle=root_of_thread(myarticle,1);
-       if ((myarticle->flag & flag_mask)!=flag_res)
+       if ((myarticle->art_flags & flag_mask)!=flag_res)
          myarticle=next_in_thread(myarticle,flag_mask,NULL,0,0,flag_res,0);
         /* En théorie, on est SUR de trouver quelque chose */
      }
@@ -3258,10 +3285,10 @@ int prochain_non_lu(int force_reste, Article_List **debut, int just_entered, int
   Article_List *save=NULL;
   if (debut) save=*debut;
   if (pas_courant) {
-     old_flag=save->flag;
-     save->flag |= FLAG_READ;
-     if (save->flag & FLAG_IMPORTANT) {
-        save->flag &= ~FLAG_IMPORTANT;
+     old_flag=save->art_flags;
+     save->art_flags |= FLAG_READ;
+     if (save->art_flags & FLAG_IMPORTANT) {
+        save->art_flags &= ~FLAG_IMPORTANT;
 	Newsgroup_courant->important--;
      }
   }
@@ -3273,13 +3300,13 @@ int prochain_non_lu(int force_reste, Article_List **debut, int just_entered, int
     res=raw_prochain_non_lu(force_reste,debut,just_entered,0);
   }
   if (pas_courant) {
-     save->flag=old_flag;
-     if (save->flag & FLAG_IMPORTANT)
+     save->art_flags=old_flag;
+     if (save->art_flags & FLAG_IMPORTANT)
 	Newsgroup_courant->important++;
   }
-  if (((*debut)->flag & FLAG_READ) == 0) {
+  if (((*debut)->art_flags & FLAG_READ) == 0) {
     check_kill_article(*debut,1); /* le kill_file_avec création des headers */
-    if (((*debut)->flag & FLAG_READ) != 0)
+    if (((*debut)->art_flags & FLAG_READ) != 0)
       return prochain_non_lu(force_reste,debut,just_entered,pas_courant);
   }
   return res;
@@ -3298,7 +3325,7 @@ int prochain_newsgroup(Newsgroup_List **newgroup ) {
      mygroup=mygroup->next;
    while (mygroup) {
       res=0;
-      if (!(mygroup->flags & GROUP_UNSUBSCRIBED )) {
+      if (!(mygroup->grp_flags & GROUP_UNSUBSCRIBED )) {
           res=NoArt_non_lus(mygroup,1);
 	  if (res>0) break;
       }
@@ -3316,7 +3343,7 @@ int prochain_newsgroup(Newsgroup_List **newgroup ) {
    mygroup=Newsgroup_deb;
    while (mygroup!=Newsgroup_courant) {
       res=0;
-      if (!(mygroup->flags & GROUP_UNSUBSCRIBED)) {
+      if (!(mygroup->grp_flags & GROUP_UNSUBSCRIBED)) {
           res=NoArt_non_lus(mygroup,1);
           if (res>0) break;
       }
@@ -3335,18 +3362,18 @@ int prochain_newsgroup(Newsgroup_List **newgroup ) {
 int parents_action(Article_List *article,int all, Action action, void *param, int flags, int flags_to_omit) {
   Article_List *racine=article;
   int res=0, res2=0;
-  while(racine->pere && !(racine->pere->flag & FLAG_INTERNE2)) {
-    racine->flag |= FLAG_INTERNE2;
+  while(racine->pere && !(racine->pere->art_flags & FLAG_INTERNE2)) {
+    racine->art_flags |= FLAG_INTERNE2;
     racine=racine->pere;
   }
   do {
-    if ((!(flags & 64)) || (racine->flag & FLAG_IS_SELECTED)) {
-        if(racine->flag & flags_to_omit)
+    if ((!(flags & NUMLST_SEL)) || (racine->art_flags & FLAG_IS_SELECTED)) {
+        if(racine->art_flags & flags_to_omit)
 	    res2 = 0;
 	else
             res2=action(racine,param);
     }
-    racine->flag &= ~FLAG_INTERNE2;
+    racine->art_flags &= ~FLAG_INTERNE2;
     if (res<res2) res=res2;
   } while((racine=next_in_thread(racine,FLAG_INTERNE2,NULL,0,0,
       FLAG_INTERNE2,0)));
@@ -3373,21 +3400,22 @@ int thread_action(Article_List *article,int all, Action action, void *param, int
   /* On retire le FLAG_INTERNE1 a tout ceux qui l'ont dans le thread
    * C'est oblige car l'etat par defaut n'est pas defini
    * On le change dans la boucle pour que next_in_thread ne cycle pas */
-  racine->flag &= ~FLAG_INTERNE1;
+  racine->art_flags &= ~FLAG_INTERNE1;
   while((racine=next_in_thread(racine,FLAG_INTERNE1,&level,-1,0,
       FLAG_INTERNE1,0)))
-    racine->flag &= ~FLAG_INTERNE1;
+    racine->art_flags &= ~FLAG_INTERNE1;
   racine=racine2;
   /* Et la on peut faire ce qu'il faut */
   do { if (racine->numero!=-1) 
-         if ((!(flags & 64)) || (racine->flag & FLAG_IS_SELECTED)) {
-	  if(racine->flag & flags_to_omit)
+         if ((!(flags & NUMLST_SEL)) || (racine->art_flags &
+		     FLAG_IS_SELECTED)) {
+	  if(racine->art_flags & flags_to_omit)
 	   res2=0;
 	  else
            res2=action(racine,param);
 	 }
     if (res<res2) res=res2;
-    racine->flag |= FLAG_INTERNE1;
+    racine->art_flags |= FLAG_INTERNE1;
   } while ((racine=next_in_thread(racine,FLAG_INTERNE1,&level,-1,0,
             0,0)));
   return res; 
@@ -3410,21 +3438,22 @@ int gthread_action(Article_List *article,int all, Action action, void *param, in
   /* On retire le FLAG_INTERNE1 a tout ceux qui l'ont dans le thread
    * C'est oblige car l'etat par defaut n'est pas defini
    * On le change dans la boucle pour que next_in_thread ne cycle pas */
-  racine->flag &= ~FLAG_INTERNE1;
+  racine->art_flags &= ~FLAG_INTERNE1;
   while((racine=next_in_thread(racine,FLAG_INTERNE1,&level,-1,0,
       FLAG_INTERNE1,1)))
-    racine->flag &= ~FLAG_INTERNE1;
+    racine->art_flags &= ~FLAG_INTERNE1;
   racine=racine2;
   /* Et la on peut faire ce qu'il faut */
   do { if (racine->numero!=-1)
-         if ((!(flags & 64)) || (racine->flag & FLAG_IS_SELECTED)) {
-	  if(racine->flag & flags_to_omit)
+         if ((!(flags & NUMLST_SEL)) || 
+		 (racine->art_flags & FLAG_IS_SELECTED)) {
+	  if(racine->art_flags & flags_to_omit)
 	   res2 = 0;
 	  else
            res2=action(racine,param);
 	 }
     if (res<res2) res=res2;
-    racine->flag |= FLAG_INTERNE1;
+    racine->art_flags |= FLAG_INTERNE1;
   } while ((racine=next_in_thread(racine,FLAG_INTERNE1,&level,-1,0,
             0,1)));
   return res; 
@@ -3436,48 +3465,54 @@ int distribue_action(Numeros_List *num, Action action, Action special,
     void *param, int flags_to_omit) {
   Article_List *parcours=NULL;
   int res,result=0,res2;
-  if (num->flags==0) {
+  if (num->numlst_flags==0) {
     if (!Article_courant) return -1;
-    if (Article_courant->flag & flags_to_omit) return 0;
+    if (Article_courant->art_flags & flags_to_omit) return 0;
     if (special) return special(Article_courant,param);
     return action(Article_courant,param);
-  } else if (num->flags==64) {
+  } else if (num->numlst_flags==NUMLST_SEL) {
       if (!Article_courant) return -1;
-      num->flags=96; num->elem1.number=1;
+      /* Selected + aucun paramètre : on prend tous les articles du groupe */
+      num->numlst_flags=(NUMLST_SEL|NUMLST_RNG); num->elem1.number=1;
       num->num2=Newsgroup_courant->max;
   }
   while (num) {
-    if (num->flags==0) {return 0;}
-    if (num->flags & 34) 
+    if (num->numlst_flags==0) {return 0;}
+    if (num->numlst_flags & (NUMLST_RNG|NUMLST_NUM)) 
        res=Recherche_article(num->elem1.number,&parcours,1);
     else {
        parcours=num->elem1.article;
        res=(parcours ? 0 : -2);
     }
     res2=0;
-    switch (num->flags & 63) {
-      case 1: case 2 : if (num->flags & 64) {
-                           if ((res==0) && (!(parcours->flag & FLAG_IS_SELECTED)))
+    switch (num->numlst_flags & (~NUMLST_SEL)) { 
+      case NUMLST_ART: case NUMLST_NUM : if (num->numlst_flags & NUMLST_SEL) {
+                           if ((res==0) && (!(parcours->art_flags &
+					   FLAG_IS_SELECTED)))
 			        res=-1;
 		       }
                   if (res==0) {
-		   if(parcours->flag & flags_to_omit)
+		   if(parcours->art_flags & flags_to_omit)
 		    res2=0;
 		   else
 		    res2=action(parcours,param);
 		  }
 	      break;
-      case 4: if (res==0) res2=parents_action(parcours,0,action,param, num->flags, flags_to_omit);
+      case NUMLST_ASC: if (res==0) res2=parents_action(parcours,0,action,param,
+		      num->numlst_flags, flags_to_omit);
 		break;
-      case 8: if (res==0) res2=thread_action(parcours,0,action,param, num->flags, flags_to_omit);
+      case NUMLST_DES: if (res==0) res2=thread_action(parcours,0,action,param,
+			       num->numlst_flags, flags_to_omit);
 		break;
-      case 16: if (res==0) res2=gthread_action(parcours,0,action,param,num->flags, flags_to_omit);
+      case NUMLST_THR: if (res==0) res2=gthread_action(parcours,0,action,param,
+			       num->numlst_flags, flags_to_omit);
 		break;
-      case 32: if ((res==0) || (res==-1)) {
+      case NUMLST_RNG: if ((res==0) || (res==-1)) {
 		while(parcours) {
 		  if (parcours->numero > num->num2) break;
-		  if ((num->flags==32) || (parcours->flag & FLAG_IS_SELECTED)) {
-		       if(parcours->flag & flags_to_omit)
+		  if ((num->numlst_flags==NUMLST_RNG) ||
+			  (parcours->art_flags & FLAG_IS_SELECTED)) {
+		       if(parcours->art_flags & flags_to_omit)
 			   res2 = 0;
 		       else
 		           res2=action(parcours,param);

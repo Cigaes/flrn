@@ -31,6 +31,8 @@ avec le langage de script.
 #include "tty_display.h"
 #include "tty_keyboard.h"
 #include "flrn_inter.h"
+#include "version.h"
+#include "options.h"
 #include "enc/enc_strings.h"
 
 int flrn_SLang_inited=0;
@@ -88,7 +90,7 @@ int Push_newsgroup_on_stack (Newsgroup_List *groupe) {
 /* flags de la fonction */
 int intrin_get_flags_group (Newsgroup_List *group) {
    /* group = (&dummy_group) ? */
-   return (int)(group->flags);
+   return (int)(group->grp_flags);
 }
 /* description */
 char *intrin_get_description_group (Newsgroup_List *group) {
@@ -106,7 +108,7 @@ char *intrin_get_description_group (Newsgroup_List *group) {
 
 /* Liste des groupes. Pour l'instant on ignore l'argument entier. On
  * renvoie le nombre de groupes trouvés */
-int intrin_get_groupes (char *nom, int *flags) {  
+int intrin_get_groups (char *nom, int *flags) {  
     int number=0;
     regex_t reg;
     void *bla=NULL;
@@ -254,12 +256,36 @@ char *intrin_get_program_name() {
     return name_program;
 }
 
+int intrin_get_version_number() {
+    return version_number;
+}
+
 int intrin_get_option(char *param) {
     /* on distingue deux cas :
-     * 1) param commence par "var " (ou rien) : c'est une variable
-     * 2) autres cas : on duplique les lignes de chaînes 
+     * 1) param commence par rien : c'est une variable
+     * 2) autres cas : on duplique les lignes de chaînes  (TODO)
      */
-    return 0;
+    void i_push_int(int v) {
+	SLang_push_integer(v);
+    }
+    void i_push_string(flrn_char *val) {
+	int rc;
+	char *trad;
+	if (val==NULL) trad=safe_strdup("(null)");
+	else {
+	    rc=conversion_to_file(val,&trad,0,(size_t)(-1));
+	    if (rc!=0) trad=safe_strdup(trad);
+	}
+	SLang_push_malloced_string(trad); /* *** FREE trad *** */
+    }
+
+    int rc,ret;
+    flrn_char *trad;
+
+    rc=conversion_from_file(param,&trad,0,(size_t)(-1));
+    ret=get_and_push_option(trad,&i_push_string,&i_push_int);
+    if (rc==0) free(trad);
+    return ret;
 }
 
 
@@ -277,7 +303,7 @@ SLang_Intrin_Fun_Type flrn_Intrin_Fun [] =
    MAKE_INTRINSIC_1("get_description_group", intrin_get_description_group,
 	        SLANG_STRING_TYPE, NEWSGROUP_TYPE_NUMBER),
 /* 3) recherche de groupes */
-   MAKE_INTRINSIC_2("get_groupes", intrin_get_groupes,
+   MAKE_INTRINSIC_2("get_groups", intrin_get_groups,
 	        SLANG_INT_TYPE, SLANG_STRING_TYPE, SLANG_INT_TYPE), 
 /* 4) menu sur des groupes */
    MAKE_INTRINSIC_2("menu_groups", intrin_menu_groups, SLANG_INT_TYPE,
@@ -289,7 +315,10 @@ SLang_Intrin_Fun_Type flrn_Intrin_Fun [] =
 /* 2) nom du programme */
    MAKE_INTRINSIC_0("get_program_name", intrin_get_program_name,
 	             SLANG_STRING_TYPE),
-/* 3) set option */
+/* 3) version number */
+   MAKE_INTRINSIC_0("get_version_number", intrin_get_version_number,
+	             SLANG_INT_TYPE),
+/* 4) set option */
 /*   MAKE_INTRINSIC_2("set_option", intrin_set_option, SLANG_INT_TYPE,
 	             SLANG_STRING_TYPE, SLANG_INT_TYPE), */
    SLANG_END_TABLE
@@ -415,12 +444,13 @@ int flrn_init_SLang(void) {
 
 /* lecture d'une chaîne, utilisée dans certains cas. */
 /* retour de -1 si erreur */
-int source_SLang_string(flrn_char *str, flrn_char **result)
+/* On prend le pseudo-article_courant en argument */
+int source_SLang_string(Article_List *arti, flrn_char *str, flrn_char **result)
 {
    int rc;
    char *trad;
    char **rst=NULL;
-   flrn_SLang_article_courant.article=Article_courant;
+   flrn_SLang_article_courant.article=arti;
    flrn_SLang_article_courant.groupe=Newsgroup_courant;
    flrn_SLang_newsgroup_courant=(Newsgroup_courant ?
 	                             Newsgroup_courant : &dummy_group);

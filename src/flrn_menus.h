@@ -25,7 +25,9 @@
 struct ligne_menu {
     /* struct elem_ligne_menu *tab; */
     File_Line_Type *line;
-    int flags; /* 1 : changed   2 : toggled  */
+    int lmenu_flags; /* 1 : changed   2 : toggled  */
+#define LMENU_CHANGED 1
+#define LMENU_TOGGLED 2
 };
 struct format_elem_menu {
    size_t sbase;  /* 0 : non modifiable */
@@ -33,8 +35,11 @@ struct format_elem_menu {
    int maxwidth;
    int coldeb;
    int justify; /* 0 : left.  1 : right.  2 : center */
-   int flags;  /* 1 : free toaff     2 : free affbase
+   int emenu_flags;  /* 1 : free toaff     2 : free affbase
                 * 4 : reallocate affbase */
+#define EMENU_FREE_TOAFF 1
+#define EMENU_FREE_ABASE 2
+#define EMENU_REALLOC_ABASE 4
 };
 struct format_menu {
    int nbelem;

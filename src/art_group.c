@@ -93,10 +93,10 @@ static int calcul_hash(char *id) {
   return ((int)toto);
 }
 
-void free_one_article(Article_List *article,int flag) {
+void free_one_article(Article_List *article,int whole) {
   if (!article) return;
   free_article_headers(article->headers);
-  if (flag) {
+  if (whole) {
     if (article->msgid) free(article->msgid);
     free(article);
   } else {
@@ -161,7 +161,7 @@ static Thread_List *fusionne_thread(Thread_List *thread1, Thread_List *thread2) 
    if (thread2==NULL) return thread1;
    thread1->non_lu+=thread2->non_lu;
    thread1->number+=thread2->number;
-   thread1->flags|=thread2->flags;
+   thread1->thr_flags|=thread2->thr_flags;
    for (parcours=thread2->premier_hash; ;
         parcours=parcours->next_in_thread) 
    {
@@ -240,7 +240,7 @@ int cree_liens() {
 	  /* helas oui... */
 	  if (Article_courant==parcours) Article_courant=creation;
 	  /* on doit même tester, pour le Quisar serveur, les non-lus */
-	  if ((parcours->numero!=-1) && (!(parcours->flag & FLAG_READ))) {
+	  if ((parcours->numero!=-1) && (!(parcours->art_flags & FLAG_READ))) {
 	      Newsgroup_courant->not_read--;
 	      parcours->thread->non_lu--;
 	  }
@@ -260,7 +260,7 @@ int cree_liens() {
        parcours_hash->article=creation;
        thread_creation=parcours_hash->thread;
        thread_creation->number++;
-       if (!(creation->flag & FLAG_READ)) thread_creation->non_lu++;
+       if (!(creation->art_flags & FLAG_READ)) thread_creation->non_lu++;
     } else {
        parcours_hash=safe_calloc(1,sizeof(Hash_List));
        parcours_hash->prev_hash=(*Hash_table)[hash];
@@ -270,7 +270,7 @@ int cree_liens() {
        parcours_hash->thread=thread_creation=safe_calloc(1,sizeof(Thread_List));
        thread_creation->next_thread=Thread_deb;
        Thread_deb=thread_creation;
-       if (!(creation->flag & FLAG_READ)) thread_creation->non_lu=1;
+       if (!(creation->art_flags & FLAG_READ)) thread_creation->non_lu=1;
        thread_creation->number=1;
        thread_creation->premier_hash=parcours_hash;
        parcours_hash->next_in_thread=NULL;
@@ -308,7 +308,7 @@ int cree_liens() {
 	       creation2 = safe_calloc (1,sizeof(Article_List));
 	       creation2->numero=-1; /* c'est un article bidon ou ext */
 	       creation2->next=Article_exte_deb;
-	       creation2->flag=FLAG_READ;
+	       creation2->art_flags=FLAG_READ;
 	       if (Article_exte_deb) Article_exte_deb->prev=creation2;
 	       Article_exte_deb=creation2;
 	       creation2->msgid = safe_flstrdup(buf2);
@@ -334,7 +334,7 @@ int cree_liens() {
 	  if (premier) {
 	     creation2 = safe_calloc (1,sizeof(Article_List));
 	     creation2->numero=-1; /* c'est un article bidon ou ext */
-	     creation2->flag=FLAG_READ;
+	     creation2->art_flags=FLAG_READ;
 	     creation2->next=Article_exte_deb;
 	     if (Article_exte_deb) Article_exte_deb->prev=creation2;
 	     Article_exte_deb=creation2;
@@ -567,6 +567,10 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others, in
   /* Parsing de la date */
    if (creation->k_headers[DATE_HEADER]) 
      creation->date_gmt=parse_date(creation->k_headers[DATE_HEADER]);
+   /* un article doit avoir un sujet */
+   if (creation->k_headers[SUBJECT_HEADER]==NULL) {
+       creation->k_headers[SUBJECT_HEADER]=safe_flstrdup(fl_static(""));
+   }
    return creation;
 }
 
@@ -671,7 +675,7 @@ static Article_List *ajoute_message_fin(Article_List *creation) {
    if (Newsgroup_courant->virtual_in_not_read)
       Newsgroup_courant->virtual_in_not_read--; else
       Newsgroup_courant->not_read++;
-   creation->flag |= FLAG_NEW;
+   creation->art_flags |= FLAG_NEW;
    check_kill_article(creation,1);
    return creation;
 }
@@ -704,8 +708,7 @@ Article_List *ajoute_message (char *msgid, int *should_retry) {
       free(creation);
       *should_retry=1;
       return NULL;
-   } else if ((creation->headers->k_headers[FROM_HEADER]==NULL) ||
-		(creation->headers->k_headers[SUBJECT_HEADER]==NULL))
+   } else if (creation->headers->k_headers[FROM_HEADER]==NULL) 
    {
      free_article_headers(creation->headers);
      free(creation->msgid);
@@ -760,8 +763,7 @@ Article_List *ajoute_message_par_num (int min, int max) {
       free(creation->msgid);
       free(creation);
       return NULL;
-   } else if ((creation->headers->k_headers[FROM_HEADER]==NULL) ||
-		(creation->headers->k_headers[SUBJECT_HEADER]==NULL))
+   } else if (creation->headers->k_headers[FROM_HEADER]==NULL) 
    {
      free_article_headers(creation->headers);
      free(creation->msgid);
@@ -795,25 +797,26 @@ void detruit_liste(int flag) {
    } 
    /* attention au premier article... */
    if(Article_deb && (Article_deb->numero==1) &&
-       (!(Article_deb->flag & FLAG_READ) || 
-         (Article_deb->flag & FLAG_WILL_BE_OMITTED)))
+       (!(Article_deb->art_flags & FLAG_READ) || 
+         (Article_deb->art_flags & FLAG_WILL_BE_OMITTED)))
      min=0; 
     
    tmparticle=Article_courant=Article_deb;
    for (;Article_courant; Article_courant=tmparticle) {
        tmparticle=Article_courant->next;
-       if (Article_courant && (Article_courant->flag & FLAG_WILL_BE_OMITTED)) {
-         if (Article_courant->flag & FLAG_READ) {
+       if (Article_courant && (Article_courant->art_flags &
+		   FLAG_WILL_BE_OMITTED)) {
+         if (Article_courant->art_flags & FLAG_READ) {
             if (Newsgroup_courant->not_read!=-1) Newsgroup_courant->not_read++;
 	    Article_courant->thread->non_lu++;
 	 }
-         Article_courant->flag&=~(FLAG_READ | FLAG_WILL_BE_OMITTED);
+         Article_courant->art_flags&=~(FLAG_READ | FLAG_WILL_BE_OMITTED);
        }
-       if ((Article_courant->flag & FLAG_READ) && (!min))
+       if ((Article_courant->art_flags & FLAG_READ) && (!min))
        {
 	   min = Article_courant->numero;
        }
-       if ((!(Article_courant->flag & FLAG_READ)) && min)
+       if ((!(Article_courant->art_flags & FLAG_READ)) && min)
        {
 	   msg_lus->min[lus_index] = min;
 	   msg_lus->max[lus_index] = Article_courant->numero -1;
@@ -841,7 +844,7 @@ void detruit_liste(int flag) {
     * rien, comme ça en cas de non-abonnement la ligne sera supprimée
     * du .flnewsrc (cf save_groups) */
    if ((lus_index==1) && (Newsgroup_courant->read==msg_lus) &&
-	   (Newsgroup_courant->flags & GROUP_UNSUBSCRIBED) &&
+	   (Newsgroup_courant->grp_flags & GROUP_UNSUBSCRIBED) &&
 	   (Newsgroup_courant->Article_deb!=NULL) &&
 	   (Newsgroup_courant->Article_deb->numero>msg_lus->max[0])) {
        msg_lus->min[0] = msg_lus->max[0] =0;
@@ -979,7 +982,7 @@ Article_List * next_in_thread(Article_List *start, long flag, int *level,
     famille = raw_next_in_thread(famille,&mylevel);
     if (famille2) famille2 = raw_next_in_thread(famille2,&mylevel2);
     if (famille2) famille2 = raw_next_in_thread(famille2,&mylevel2);
-    if ((famille) && ((famille->flag & flag)==set) &&
+    if ((famille) && ((famille->art_flags & flag)==set) &&
        (famille->numero<=fin) && (famille->numero>=deb)) { 
       if (level) *level=mylevel;
       return famille;
@@ -1008,7 +1011,7 @@ Article_List * next_in_thread(Article_List *start, long flag, int *level,
            famille3=famille->frere_prev;
 	   /* famille3 est hors du cycle */
 	   while (famille3 && (famille3!=famille)) {
-	     if ((famille3) && ((famille3->flag & flag)==set) &&
+	     if ((famille3) && ((famille3->art_flags & flag)==set) &&
                 (famille3->numero<=fin) && (famille3->numero>=deb)) {
                 if (level) *level=mylevel;
                 return famille3;
@@ -1030,7 +1033,7 @@ Article_List * next_in_thread(Article_List *start, long flag, int *level,
     famille=famille->frere_suiv;
     famille2=famille;
     do {
-      if ((famille) && ((famille->flag & flag)==set) &&
+      if ((famille) && ((famille->art_flags & flag)==set) &&
 	 (famille->numero<=fin) && (famille->numero>=deb)) { 
 	if (level) *level=mylevel;
 	return famille;
@@ -1046,14 +1049,14 @@ Article_List * next_in_thread(Article_List *start, long flag, int *level,
      Hash_List *parcours=start->thread->premier_hash;
      while (1) {
        while (parcours && ((parcours->article==NULL) || 
-     			   ((parcours->article->flag & flag)!=set) ||
+     			   ((parcours->article->art_flags & flag)!=set) ||
      			   (parcours->article->numero<deb) ||
 			   (parcours->article->numero>fin)))
 	  parcours=parcours->next_in_thread;
        if (parcours) {
           famille=root_of_thread(parcours->article,1);
 	  if (level) *level=1;
-          if (((famille->flag & flag)==set) &&
+          if (((famille->art_flags & flag)==set) &&
               (famille->numero<=fin) && (famille->numero>=deb)) return famille;
 	  famille2=next_in_thread(famille,flag,level,deb,fin,set,0);
 	  if (famille2) return famille2;
@@ -1161,16 +1164,16 @@ void article_read(Article_List *article)
   if ((article->headers==NULL) ||
       (article->headers->k_headers_checked[XREF_HEADER]==0))
     cree_header(article,0,0,0); 
-  if (!(article->flag & FLAG_READ) && (article->numero>0) &&
+  if (!(article->art_flags & FLAG_READ) && (article->numero>0) &&
   	(Newsgroup_courant->not_read>0)) {
   		Newsgroup_courant->not_read--;
 		article->thread->non_lu--;
   }
-  if (article->flag & FLAG_IMPORTANT) {
+  if (article->art_flags & FLAG_IMPORTANT) {
      Newsgroup_courant->important--;
-     article->flag &= ~FLAG_IMPORTANT;
+     article->art_flags &= ~FLAG_IMPORTANT;
   }
-  article->flag |= FLAG_READ;
+  article->art_flags |= FLAG_READ;
   if ((article->headers==NULL) ||
       (article->headers->k_headers[XREF_HEADER]==0)) return;
     /* Eviter un segfault quand le serveur est Bipesque */

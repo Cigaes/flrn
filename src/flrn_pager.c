@@ -83,7 +83,8 @@ int get_command_pager(struct key_entry *une_touche,
    /* on autorise les macros pour le CONTEXT_COMMAND, ca ne pose aucun 
       probleme, contrairement a ce qui se passe dans le menu */
    if (res==-1) {
-      if (une_commande.flags & 2) save_command(&une_commande);
+      if (une_commande.cmd_ret_flags & CMD_RET_KEEP_DESC)
+	  save_command(&une_commande);
       /* FIXME  : conversion ? */
       Aff_error_fin_utf8(_(Messages[MES_UNKNOWN_CMD]),1,1);
    }

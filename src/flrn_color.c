@@ -71,7 +71,7 @@ static flrn_char *delim = fl_static("=: \t\n");
 /* la structure pour un objet a highlighter */
 struct Highlight {
   regex_t regexp;
-  int flags;
+  int high_flags;
   struct Obj_color_struct colors; /* la couleur à utiliser */
   int pat_num;		/* le numéro du pattern de la regexp a colorier */
   int col_num;		/* le numéro de la couleur */
@@ -87,7 +87,7 @@ struct Highlight {
 #define HIGH_FLAGS_CASE 4
 /* etre case sensitive */
 #define NUM_FLAGS 3
-static char *flags_names[]={"exclude","line","case"};
+static char *high_flags_names[]={"exclude","line","case"};
 
 /* les "couleurs" */
 static const char *bold_str="bold";
@@ -174,8 +174,8 @@ int parse_option_color(int func, flrn_char *line)
     if (buf == NULL) { free(new_pat); return -1;}
     /* le deuxième champ, ce sont les flags */
     for (i=0;i<NUM_FLAGS;i++) {
-      if (fl_strstr(buf,fl_static_tran(flags_names[i])))
-	  new_pat->flags |= 1<<i; 
+      if (fl_strstr(buf,fl_static_tran(high_flags_names[i])))
+	  new_pat->high_flags |= 1<<i; 
     }
     if ((buf2=fl_strpbrk(buf,fl_static("0123456789")))) {
       new_pat->pat_num = fl_strtol(buf2,NULL,10);
@@ -246,13 +246,13 @@ int parse_option_color(int func, flrn_char *line)
 
     /* le 6eme champ : regexp */
     res = fl_regcomp(&new_pat->regexp,buf,REG_EXTENDED|
-      ((new_pat->flags&HIGH_FLAGS_LINE)?REG_NOSUB:0) |
-      ((new_pat->flags&HIGH_FLAGS_CASE)?0:REG_ICASE));
+      ((new_pat->high_flags&HIGH_FLAGS_LINE)?REG_NOSUB:0) |
+      ((new_pat->high_flags&HIGH_FLAGS_CASE)?0:REG_ICASE));
     if (res !=0) {
       free(new_pat); return -4;
     }
     /* On est presque arrivé... Juste le cas des sous-exp à traiter... */
-    if (!(new_pat->flags&HIGH_FLAGS_LINE) && 
+    if (!(new_pat->high_flags&HIGH_FLAGS_LINE) && 
     		(new_pat->pat_num>(new_pat->regexp).re_nsub)) {
       fl_regfree(&new_pat->regexp); free(new_pat); return -6;
     }
@@ -364,11 +364,11 @@ int create_Color_line (add_line_fun add_line,
 	  (fl_regexec(&current->regexp,pline,REG_MAX_SUB,
 		   pmatch,(pline==line)?0:REG_NOTBOL)==0))
        {
-          if (current->flags & HIGH_FLAGS_LINE) {
+          if (current->high_flags & HIGH_FLAGS_LINE) {
 	/* on garde que le premier match ligne */
 	    if ((!matched_line) && (pline==line)) {
 	       color_line=current->col_num;
-	       excl_line = (current->flags & HIGH_FLAGS_EXCLUDE)?1:0;
+	       excl_line = (current->high_flags & HIGH_FLAGS_EXCLUDE)?1:0;
 	       if (excl_line) break;
 	       matched_line=1;
 	    }
@@ -653,13 +653,13 @@ void dump_colors_in_flrnrc (FILE *file) {
        fprintf(file," %d",current->pat_num);
        comma=1;
     }
-    mask=current->flags;
+    mask=current->high_flags;
     if (mask==0) {
       if (current->pat_num==0) fprintf(file," -");
     } else
     for (i=0;i<NUM_FLAGS;i++) {
       if (mask%2) {
-        fprintf(file,"%c%s",(comma ? ',' : ' '),flags_names[i]);
+        fprintf(file,"%c%s",(comma ? ',' : ' '),high_flags_names[i]);
 	comma=1;
       }
       mask>>=1;

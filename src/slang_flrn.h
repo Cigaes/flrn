@@ -24,7 +24,7 @@
 extern int flrn_SLang_inited;
 
 extern int flrn_init_SLang(void);
-extern int source_SLang_string(flrn_char *, flrn_char **);
+extern int source_SLang_string(Article_List *, flrn_char *, flrn_char **);
 extern int source_SLang_file (char *);
 extern int change_SLang_Error_Hook(int);
 extern SLang_Name_Type *Parse_fun_slang (flrn_char *, int *);

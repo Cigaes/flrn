@@ -112,6 +112,9 @@ int main(int argc, char *argv[])
     sigaction(SIGPIPE,&ign,NULL);
   }
 
+  init_charsets (); /* sert avec --show-config, donc on le met avant
+		       l'interpretation des options */
+  init_conv_base ();
   for (i=1; i<argc; i++)
   {
     if ((strncmp(argv[i],"-d",2)==0)||(strcmp(argv[i],"--debug")==0))
@@ -152,8 +155,6 @@ int main(int argc, char *argv[])
      strcat(mailbox,flrn_user->pw_gecos);
   }
 #endif
-  init_charsets ();
-  init_conv_base ();
   res=conversion_from_terminal(tmp_name_program, &name_program,0,(size_t)(-1));
   if (res>0) name_program=safe_flstrdup(name_program);
   res=0;

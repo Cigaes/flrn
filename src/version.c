@@ -20,11 +20,12 @@
 static UNUSED char rcsid[]="$Id$";
 
 char version_string[]=
-"Flrn version 0.9.0pre1 par Damien et Jo, 10/2003.";
+"Flrn version 0.9.0pre1 par Damien et Jo, 06/2004.";
 
 char short_version_string[]=
-"Flrn (0.9.0pre1 - 03/10)";
+"Flrn (0.9.0pre1 - 04/06)";
 
+int version_number=90;
 
 void print_version_defines(FILE *out)
 {
@@ -50,11 +51,6 @@ void print_version_defines(FILE *out)
          "+MODE_EXPERT  "
 #else
          "-MODE_EXPERT  "
-#endif
-#ifdef WITH_CHARACTER_SETS
-         "+WITH_CHARACTER_SETS  "
-#else
-         "-WITH_CHARACTER_SETS  "
 #endif
 #ifdef USE_SLANG_LANGUAGE
          "+USE_SLANG_LANGUAGE\n"
@@ -169,3 +165,24 @@ void print_version_info(FILE *out, char *program_name)
 #endif
    }
 
+int version_has(char *request) {
+    if (strcmp(request,"sendmail")==0) 
+#ifdef SENDMAIL
+       return 1;
+#else
+       return 0;
+#endif
+   if (strcmp(request,"slang_language")==0)
+#ifdef USE_SLANG_LANGUAGE
+       return 1;
+#else
+       return 0;
+#endif
+   if (strcmp(request,"check_mail")==0)
+#ifdef CHECK_MAIL
+       return 1;
+#else
+       return 0;
+#endif
+   return 0;
+}

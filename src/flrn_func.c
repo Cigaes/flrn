@@ -160,7 +160,7 @@ int get_group (Newsgroup_List **group, int flags, flrn_char *name) {
 	 	     ((order=calcul_order_re(tmp_name,&reg))!=-1))
 	    || (!(flags & 4) &&
 	             ((order=calcul_order(tmp_name,gpe))!=-1))) &&
-		 ((flags & 1) || !(my_group->flags & GROUP_UNSUBSCRIBED));
+		 ((flags & 1) || !(my_group->grp_flags & GROUP_UNSUBSCRIBED));
          if (correct) {
 	    if (flags & 8)
 	       courant=ajoute_menu_ordre(&lemenu,&fmt_getgrp_menu,
@@ -183,7 +183,7 @@ int get_group (Newsgroup_List **group, int flags, flrn_char *name) {
 	           ((order=calcul_order_re(tmp_name,&reg))!=-1))
 	       || (!(flags & 4) &&
 		   ((order=calcul_order(tmp_name,gpe))!=-1))) &&
-		((flags & 1) || !(my_group->flags & GROUP_UNSUBSCRIBED));
+		((flags & 1) || !(my_group->grp_flags & GROUP_UNSUBSCRIBED));
          if (correct) {
 	    if (flags & 8)
 	       courant=ajoute_menu_ordre(&lemenu,&fmt_getgrp_menu,

@@ -643,7 +643,7 @@ int get_command(struct key_entry *key_depart, int princip, int second,
    la_commande->description=safe_malloc(MAX_CHAR_STRING*sizeof(flrn_char));
    la_commande->len_desc=MAX_CHAR_STRING;
    la_commande->before=la_commande->after=NULL;
-   la_commande->flags=0;
+   la_commande->cmd_ret_flags=0;
    la_commande->description[0]=fl_static('\0');
    for (i=0; i<NUMBER_OF_CONTEXTS; i++) 
       la_commande->cmd[i]=FLCMD_UNDEF;
@@ -665,14 +665,19 @@ int get_command(struct key_entry *key_depart, int princip, int second,
         res= get_command_nocbreak(&key,col,princip,second, la_commande);
      } else
      if (slk==fl_key_explicite) {
+        flrn_char bla[2];
         col=aff_context(princip, second);
+        bla[0]=(flrn_char)fl_key_explicite;
+        bla[1]=fl_static('\0');
+        add_str_to_description(bla,la_commande);
         res=get_command_explicite(NULL,col,princip,second,la_commande);
      } else {
         /* Beurk pour '-' */
         if ((slk==-1) || (slk==(int)'-') || 
 		(strchr(DENIED_CHARS,slk)==NULL)) {
                    res=Lit_cmd_key(&key,princip,second,la_commande);
-		   if ((res>=0) && (slk!='\r')) la_commande->flags|=1;
+		   if ((res>=0) && (slk!='\r'))
+		       la_commande->cmd_ret_flags|=CMD_RET_MAYBE_AFTER;
         } else {
            col=aff_context(princip, second);
            res=get_command_newmode(&key,col,princip,second,la_commande);
@@ -721,7 +726,7 @@ int Lit_cmd_explicite(flrn_char *str, int princip, int second,
    int i, j, res=-1, ini, final, context;
    flrn_char *flncmd;
      
-   la_commande->flags|=2;
+   la_commande->cmd_ret_flags|=CMD_RET_KEEP_DESC;
    /* Hack pour les touches fleches en no-cbreak */
    if (fl_strncmp(str, "key-", 4)==0) {
        flrn_char *buf;
@@ -809,7 +814,7 @@ int get_command_explicite(flrn_char *start, int col, int princip, int second, Cm
    size_t prefix_len=0, prefix_afflen=0;
 
    key.entry=ENTRY_ERROR_KEY;
-   la_commande->flags |= 2;
+   la_commande->cmd_ret_flags |= CMD_RET_KEEP_DESC;
    flcmd_line[0]=fl_static('\0');
    if (start) {
      prefix_len = fl_strlen(start);
@@ -888,7 +893,7 @@ int get_command_nocbreak(struct key_entry *asked,int col, int princip, int secon
        return -2;
      }
      chang=0;
-     if (res>1) { 
+     if (res>0) { 
 	 if (key.entry==ENTRY_SLANG_KEY) res=key.value.slang_key;
 	   /* en théorie c'est obligatoire */
          Free_key_entry(&key);
@@ -897,7 +902,7 @@ int get_command_nocbreak(struct key_entry *asked,int col, int princip, int secon
 	 if (cmd_hist_max>=0) {
 	     if (hist_chosen==-1) {
 		 hist_chosen=cmd_hist_curr;
-		 save_str=safe_flstrdup(str);
+		 save_str=safe_flstrdup(flstr);
 		 fl_strcpy(flstr,cmd_historique[hist_chosen]);
              } else { 
 		 hist_chosen--;
@@ -909,14 +914,14 @@ int get_command_nocbreak(struct key_entry *asked,int col, int princip, int secon
      } else if (res==FL_KEY_DOWN) {
 	 if ((cmd_hist_max>=0) && (hist_chosen!=-1)) {
 	     if (hist_chosen==cmd_hist_curr) {
-		 fl_strcpy(str,save_str);
+		 fl_strcpy(flstr,save_str);
 		 hist_chosen=-1;
 		 free(save_str);
 		 save_str=NULL;
              } else {
 		 hist_chosen++;
 		 if (hist_chosen>cmd_hist_max) hist_chosen=0;
-		 fl_strcpy(str,cmd_historique[hist_chosen]);
+		 fl_strcpy(flstr,cmd_historique[hist_chosen]);
              }
 	     chang=1;
 	 }
@@ -990,7 +995,7 @@ int get_command_newmode(struct key_entry *key_ini,int col, int princip, int seco
       return -2;
    if (*flstr) { 
        la_commande->before=safe_strdup(flstr);
-       la_commande->flags|=2;
+       la_commande->cmd_ret_flags|=CMD_RET_KEEP_DESC;
    }
    if ((res==1) && (key.entry==ENTRY_SLANG_KEY) && 
 	   (key.value.slang_key==fl_key_explicite)) {
@@ -1005,7 +1010,7 @@ int get_command_newmode(struct key_entry *key_ini,int col, int princip, int seco
        res=Lit_cmd_key(&key,princip,second,la_commande);
    if ((res>=0) && ((key.entry!=ENTRY_SLANG_KEY) || 
 	             (key.value.slang_key!=(int)'\r')))
-       la_commande->flags |=1;
+       la_commande->cmd_ret_flags |=CMD_RET_MAYBE_AFTER;
    Free_key_entry(&key);
    return res;
 }

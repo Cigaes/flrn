@@ -105,7 +105,7 @@ typedef struct Flrn_art_list
    /* flag utilisé en kill-file */
    /* en état normal à 0 	*/
 #define FLAG_TMP_KILL		0x0800
-   int flag;  
+   int art_flags;
 
    char *msgid;
    Article_Header *headers;
@@ -113,7 +113,7 @@ typedef struct Flrn_art_list
 } Article_List;
 
 typedef struct Flrn_thread_list {
-   int non_lu, number, flags;
+   int non_lu, number, thr_flags;
 #define FLAG_THREAD_SELECTED 1
 #define FLAG_THREAD_READ 2
 #define FLAG_THREAD_UNREAD 4
@@ -171,12 +171,12 @@ extern Article_List *ajoute_message_par_num(int , int);
 extern void detruit_liste(int);
 extern void libere_liste(void);
 extern Article_List *next_in_thread(Article_List * /*start*/,
-    long /*flag*/, int * /*level*/,
+    long , int * /*level*/,
     int /*deb*/, int /*fin*/, int /*set*/, int);
-extern Article_List *root_of_thread(Article_List * /*article*/, int /*flag*/);
+extern Article_List *root_of_thread(Article_List * /*article*/, int );
 extern void article_read(Article_List * /*article*/);
 extern int Recherche_article (int /*num*/, Article_List ** /*retour*/,
-    int /*flags*/);
+    int );
 extern Article_Header *new_header(void);
 extern int Est_proprietaire(Article_List * /*article*/, int);
 extern void apply_kill_file(int, int);

@@ -122,9 +122,6 @@
 #define DEFAULT_MAIL_PATH "/var/spool/mail" 
 #endif
 
-/* Défini à 1 si on veut pouvoir utiliser les jeux de caractères */
-#define WITH_CHARACTER_SETS 1
-
 /* Options de lancement de sendmail (le lieu où trouver sendmail est 
    défini via configure dans config.h */
 #define MAILER_CMD SENDMAIL " -t"
@@ -229,135 +226,166 @@ extern int flag_header_comp(flrn_char *, size_t, Liste_Chaine *);
 #include "flrn_slang.h"
 
 Flcmd Flcmds[NB_FLCMD] = {
-   { "previous", 'p' , '-', 2, &do_deplace, NULL },
+   { "previous", 'p' , '-', CMD_TAKE_ARTICLES, &do_deplace, NULL },
 #define FLCMD_PREC 0
-   { "next-article", '\n', '\r', 2, &do_deplace, NULL },
+   { "next-article", '\n', '\r', CMD_TAKE_ARTICLES, &do_deplace, NULL },
 #define FLCMD_SUIV 1
-   { "article", 'v', 0, 6, &do_deplace, NULL },
+   { "article", 'v', 0, CMD_TAKE_ARTICLES|CMD_STR_FORUM, &do_deplace, NULL },
 #define FLCMD_VIEW 2
-   { "goto", 'g', 0, 31, &do_goto, NULL },
+   { "goto", 'g', 0, CMD_STRING_AND_ARTICLE, &do_goto, NULL },
 #define FLCMD_GOTO 3
-   { "GOTO", 'G', 0, 31, &do_goto, NULL },
+   { "GOTO", 'G', 0, CMD_STRING_AND_ARTICLE, &do_goto, NULL },
 #define FLCMD_GGTO 4
-   { "unsubscribe", 'u', 0, 5, &do_unsubscribe, NULL },
+   { "unsubscribe", 'u', 0, CMD_TAKE_STRING|CMD_STR_FORUM, &do_unsubscribe, NULL },
 #define FLCMD_UNSU 5
-   { "subscribe", 'a', 0, 5, &do_abonne, NULL },
+   { "subscribe", 'a', 0, CMD_TAKE_STRING|CMD_STR_FORUM, &do_abonne, NULL },
 #define FLCMD_ABON 6
-   { "omit", 'o', 0, 6|CMD_NEED_GROUP, &do_omet, NULL },
+   { "omit", 'o', 0, CMD_TAKE_ARTICLES|CMD_STR_FORUM|CMD_NEED_GROUP, &do_omet, NULL },
 #define FLCMD_OMET 7
-   { "OMIT", 'O', 0, 6|CMD_NEED_GROUP, &do_omet, NULL },
+   { "OMIT", 'O', 0, CMD_TAKE_ARTICLES|CMD_STR_FORUM|CMD_NEED_GROUP, &do_omet, NULL },
 #define FLCMD_GOMT 8
-   { "zap" , 'z', 0 ,13|CMD_NEED_GROUP, &do_zap_group, NULL },
+   { "zap" , 'z', 0 , 0, &do_zap_group, NULL },
 #define FLCMD_ZAP  9
-   { "help" , 'h', fl_key_nm_help ,1, &do_help, NULL },
+   { "help" , 'h', fl_key_nm_help ,0, &do_help, NULL },
 #define FLCMD_HELP 10
    { "quit" , 'q', 0 ,0, &do_quit, NULL },
 #define FLCMD_QUIT 11
    { "QUIT" , 'Q', 0 ,0, &do_quit, NULL },
 #define FLCMD_GQUT 12
-   { "kill-thread" , 'J', 0 ,2|CMD_NEED_GROUP, &do_kill, NULL },
+   { "kill-thread" , 'J', 0 ,CMD_TAKE_ARTICLES|CMD_NEED_GROUP, &do_kill, NULL },
 #define FLCMD_GKIL 13
-   { "kill-replies" , 'K', 0 ,2|CMD_NEED_GROUP, &do_kill, NULL },
+   { "kill-replies" , 'K', 0 ,CMD_TAKE_ARTICLES|CMD_NEED_GROUP,
+       &do_kill, NULL },
 #define FLCMD_KILL 14
-   { "kill" , 'k', 0 ,2|CMD_NEED_GROUP, &do_kill, NULL },
+   { "kill" , 'k', 0 ,CMD_TAKE_ARTICLES|CMD_NEED_GROUP, &do_kill, NULL },
 #define FLCMD_PKIL 15
-   { "summary" , 'r', 0 ,6|CMD_NEED_GROUP, &do_summary, NULL },
+   { "summary" , 'r', 0 ,CMD_TAKE_ARTICLES|CMD_STR_FORUM|CMD_NEED_GROUP,
+       &do_summary, NULL },
 #define FLCMD_SUMM 16
-   { "post", 'm', 0, 5|CMD_NEED_GROUP, &do_post, NULL },
+   { "post", 'm', 0, CMD_TAKE_STRING|CMD_STR_FORUM|CMD_NEED_GROUP,
+       &do_post, NULL },
 #define FLCMD_POST 17
-   { "reply", 'R', 0, 7|CMD_NEED_GROUP, &do_post, NULL },
+   { "reply", 'R', 0, CMD_TAKE_BOTH|CMD_STR_FORUM|CMD_NEED_GROUP,
+       &do_post, NULL },
 #define FLCMD_ANSW 18
-   { "view", 'V', 0, 2|CMD_NEED_GROUP, &do_launch_pager, NULL },
+   { "view", 'V', 0, CMD_TAKE_ARTICLES|CMD_NEED_GROUP, &do_launch_pager, NULL },
 #define FLCMD_PAGE 19
-   { "save", 's', 0, 7|CMD_NEED_GROUP, &do_save, NULL },
+   { "save", 's', 0, CMD_TAKE_BOTH|CMD_STR_FORUM|CMD_NEED_GROUP,
+       &do_save, NULL },
 #define FLCMD_SAVE 20
-   { "SAVE", 'S', 0, 7|CMD_NEED_GROUP, &do_save, NULL },
+   { "SAVE", 'S', 0, CMD_TAKE_BOTH|CMD_STR_FORUM|CMD_NEED_GROUP,
+       &do_save, NULL },
 #define FLCMD_GSAV 21
-   { "list", 'l', 0, 13, &do_list, NULL },
+   { "list", 'l', 0, CMD_TAKE_STRING|CMD_STR_ALWAYS, &do_list, NULL },
 #define FLCMD_LIST 22
-   { "LIST", 'L', 0, 13, &do_list, NULL },
+   { "LIST", 'L', 0, CMD_TAKE_STRING|CMD_STR_ALWAYS, &do_list, NULL },
 #define FLCMD_GLIS 23
-   { "summ-replies", 't', 0, 6|CMD_NEED_GROUP, &do_summary, NULL },
+   { "summ-replies", 't', 0, CMD_TAKE_ARTICLES|CMD_STR_FORUM|CMD_NEED_GROUP,
+       &do_summary, NULL },
 #define FLCMD_THRE 24
-   { "summ-thread", 'T', 0, 6|CMD_NEED_GROUP, &do_summary, NULL },
+   { "summ-thread", 'T', 0, CMD_TAKE_ARTICLES|CMD_STR_FORUM|CMD_NEED_GROUP,
+       &do_summary, NULL },
 #define FLCMD_GTHR 25
-   { "option", 0, fl_key_nm_opt, 1, &do_opt, &options_comp }, 
+   { "option", 0, fl_key_nm_opt, CMD_TAKE_STRING|CMD_STR_ALWAYS,
+       &do_opt, &options_comp }, 
 #define FLCMD_OPT 26
-   { "up", FL_KEY_UP, 0, 2, &do_deplace, NULL },
+   { "up", FL_KEY_UP, 0, CMD_TAKE_ARTICLES, &do_deplace, NULL },
 #define FLCMD_UP 27
-   { "down", FL_KEY_DOWN, 0, 2, &do_deplace, NULL },
+   { "down", FL_KEY_DOWN, 0, CMD_TAKE_ARTICLES, &do_deplace, NULL },
 #define FLCMD_DOWN 28
-   { "left", FL_KEY_LEFT, 0, 2, &do_deplace, NULL },
+   { "left", FL_KEY_LEFT, 0, CMD_TAKE_ARTICLES, &do_deplace, NULL },
 #define FLCMD_LEFT 29
-   { "right", FL_KEY_RIGHT, 0, 2, &do_deplace, NULL },
+   { "right", FL_KEY_RIGHT, 0, CMD_TAKE_ARTICLES, &do_deplace, NULL },
 #define FLCMD_RIGHT 30
-   { "next-unread", ' ', 0, 2, &do_deplace, NULL },
+   { "next-unread", ' ', 0, CMD_TAKE_ARTICLES, &do_deplace, NULL },
 #define FLCMD_SPACE 31
-   { "show-tree", 'N', 0, 2|CMD_NEED_GROUP, &do_neth, NULL },
+   { "show-tree", 'N', 0, 0, &do_neth, NULL },
 #define FLCMD_NETH 32
-   { "swap-grp", 0, 0, 15|CMD_NEED_GROUP, &do_swap_grp, NULL },
+   { "swap-grp", 0, 0, CMD_TAKE_BOTH|CMD_STR_ALWAYS|CMD_NEED_GROUP,
+       &do_swap_grp, NULL },
 #define FLCMD_SWAP_GRP 33
-   { "prem-grp", 0, 0, 13|CMD_NEED_GROUP, &do_prem_grp, NULL },
+   { "prem-grp", 0, 0, CMD_NEED_GROUP, &do_prem_grp, NULL },
 #define FLCMD_PREM_GRP 34
-   { "pipe", '|', 0, 15|CMD_NEED_GROUP, &do_pipe, NULL },
+   { "pipe", '|', 0, CMD_TAKE_BOTH|CMD_STR_ALWAYS|CMD_NEED_GROUP,
+       &do_pipe, NULL },
 #define FLCMD_PIPE 35 
-   { "PIPE", 0, 0, 15|CMD_NEED_GROUP, &do_pipe, NULL },
+   { "PIPE", 0, 0, CMD_TAKE_BOTH|CMD_STR_ALWAYS|CMD_NEED_GROUP,
+       &do_pipe, NULL },
 #define FLCMD_GPIPE 36
-   { "filter", '%', 0, 15|CMD_NEED_GROUP, &do_pipe, NULL },
+   { "filter", '%', 0, CMD_TAKE_BOTH|CMD_STR_ALWAYS|CMD_NEED_GROUP,
+       &do_pipe, NULL },
 #define FLCMD_FILTER 37 
-   { "FILTER", 0, 0, 15|CMD_NEED_GROUP, &do_pipe, NULL },
+   { "FILTER", 0, 0, CMD_TAKE_BOTH|CMD_STR_ALWAYS|CMD_NEED_GROUP,
+       &do_pipe, NULL },
 #define FLCMD_GFILTER 38
-   { "shell", 0, 0, 13, &do_pipe, NULL },
+   { "shell", 0, 0, CMD_TAKE_STRING|CMD_STR_ALWAYS, &do_pipe, NULL },
 #define FLCMD_SHELL 39
-   { "shin", '!', 0, 13, &do_pipe, NULL },
+   { "shin", '!', 0, CMD_TAKE_STRING|CMD_STR_ALWAYS, &do_pipe, NULL },
 #define FLCMD_SHELLIN 40
-   { "config", 0, 0, 1,&do_opt_menu, NULL },
+   { "config", 0, 0, 0,&do_opt_menu, NULL },
 #define FLCMD_OPTMENU 41
-   { "mail-answer", 0, 0, 3|CMD_NEED_GROUP,&do_post, NULL },
+   { "mail-answer", 0, 0, CMD_TAKE_BOTH|CMD_NEED_GROUP,&do_post, NULL },
 #define FLCMD_MAIL 42
-   { "tag", '"', 0, 2|CMD_NEED_GROUP,&do_tag, NULL },
+   { "tag", '"', 0, 
+       CMD_TAKE_BOTH|CMD_STR_FORUM|CMD_LAST_IS_STR|CMD_NEED_GROUP,
+       &do_tag, NULL },
 #define FLCMD_TAG 43
-   { "go-tag", '\'', 0, 2,&do_goto_tag, NULL },
+   { "go-tag", '\'', 0, CMD_TAKE_STRING|CMD_STR_FORUM|CMD_LAST_IS_STR,
+       &do_goto_tag, NULL },
 #define FLCMD_GOTO_TAG 44
-   { "cancel", 'e', 0, 2|CMD_NEED_GROUP, &do_cancel, NULL },
+   { "cancel", 'e', 0, CMD_TAKE_ARTICLES|CMD_NEED_GROUP, &do_cancel, NULL },
 #define FLCMD_CANCEL 45
-   { "hist-prev", 'B', 0, 2, &do_back, NULL },
+   { "hist-prev", 'B', 0, 0, &do_back, NULL },
 #define FLCMD_HPREV 46
-   { "hist-next", 'F', 0, 2, &do_next, NULL },
+   { "hist-next", 'F', 0, 0, &do_next, NULL },
 #define FLCMD_HSUIV 47
-   { "history", 'H', 0, 2, &do_hist_menu, NULL },
+   { "history", 'H', 0, 0, &do_hist_menu, NULL },
 #define FLCMD_HMENU 48
-   { "supersedes", 0, 0, 3|CMD_NEED_GROUP, &do_post, NULL },
+   { "supersedes", 0, 0, CMD_TAKE_BOTH|CMD_NEED_GROUP, &do_post, NULL },
 #define FLCMD_SUPERSEDES 49
-   { "summ-search" , 0, 0 ,14|CMD_NEED_GROUP, &do_summary, &flag_header_comp },
+   { "summ-search" , 0, 0 ,CMD_TAKE_BOTH|CMD_STR_ALWAYS|CMD_NEED_GROUP,
+       &do_summary, &flag_header_comp },
 #define FLCMD_SUMM_SEARCH 50
-   { "menu-summary" , 0, 0 ,6|CMD_NEED_GROUP, &do_summary, NULL },
+   { "menu-summary" , 0, 0 ,CMD_TAKE_ARTICLES|CMD_STR_FORUM|CMD_NEED_GROUP,
+       &do_summary, NULL },
 #define FLCMD_MENUSUMM 51
-   { "menu-replies" , 0, 0 ,6|CMD_NEED_GROUP, &do_summary, NULL },
+   { "menu-replies" , 0, 0 ,CMD_TAKE_ARTICLES|CMD_STR_FORUM|CMD_NEED_GROUP,
+       &do_summary, NULL },
 #define FLCMD_MENUTHRE 52
-   { "menu-thread" , 0, 0 ,6|CMD_NEED_GROUP, &do_summary, NULL },
+   { "menu-thread" , 0, 0 ,CMD_TAKE_ARTICLES|CMD_STR_FORUM|CMD_NEED_GROUP,
+       &do_summary, NULL },
 #define FLCMD_MENUGTHR 53
-   { "menu-search" , '/', 0 ,14|CMD_NEED_GROUP, &do_summary, &flag_header_comp },
+   { "menu-search" , '/', 0 ,CMD_TAKE_BOTH|CMD_STR_ALWAYS|CMD_NEED_GROUP,
+       &do_summary, &flag_header_comp },
 #define FLCMD_MENUSUMMS 54
-   { "save-options", 0, 0, 1, &do_save, NULL },
+   { "save-options", 0, 0, CMD_TAKE_STRING|CMD_STR_ALWAYS,
+       &do_save, NULL },
 #define FLCMD_SAVE_OPT 55
-   { "add-kill", 0, 0, 5, &do_add_kill, NULL },
+   { "add-kill", 0, 0, CMD_TAKE_STRING|CMD_STR_FORUM, &do_add_kill, NULL },
 #define FLCMD_ADD_KILL 56
-   { "remove-kill", 0, 0, 5, &do_remove_kill, NULL },
+   { "remove-kill", 0, 0, CMD_TAKE_STRING|CMD_STR_FORUM,
+       &do_remove_kill, NULL },
 #define FLCMD_REMOVE_KILL 57
-   { "pipe-header", 0, 0, 15|CMD_NEED_GROUP, &do_pipe, &header_comp },
+   { "pipe-header", 0, 0, CMD_TAKE_BOTH|CMD_STR_ALWAYS|CMD_NEED_GROUP,
+       &do_pipe, &header_comp },
 #define FLCMD_PIPE_HEADER 58
-   { "select", 0, 0, 14|CMD_NEED_GROUP, &do_select, &flag_header_comp },
+   { "select", 0, 0, CMD_TAKE_ARTICLES|CMD_STR_ALWAYS|CMD_NEED_GROUP,
+       &do_select, &flag_header_comp },
 #define FLCMD_SELECT 59
-   { "art-to-return", 'x', 0, 2|CMD_NEED_GROUP, &do_kill, NULL },
+   { "art-to-return", 'x', 0, CMD_TAKE_ARTICLES|CMD_NEED_GROUP,
+       &do_kill, NULL },
 #define FLCMD_ART_TO_RETURN 60
-   { "keybindings", 0, 0, 17, &do_keybindings, &keybindings_comp },
+   { "keybindings", 0, 0, CMD_TAKE_STRING|CMD_STR_FORUM,
+       &do_keybindings, &keybindings_comp },
 #define FLCMD_KEYBINDINGS 61
-   { "put-flag", 0, 0, 15|CMD_NEED_GROUP, &do_omet, &flags_comp },
+   { "put-flag", 0, 0, CMD_TAKE_BOTH|CMD_STR_ALWAYS|CMD_NEED_GROUP,
+       &do_omet, &flags_comp },
 #define FLCMD_PUT_FLAG 62
-   { "on-selected", 0, 0, 15|CMD_NEED_GROUP, &do_on_selected, NULL },
+   { "on-selected", 0, 0, CMD_TAKE_BOTH|CMD_STR_ALWAYS|CMD_NEED_GROUP,
+       &do_on_selected, NULL },
 #define FLCMD_ON_SELECTED 63
-   { "art-msgid", 0, 0, 29, &do_art_msgid, NULL },
+   { "art-msgid", 0, 0, CMD_TAKE_STRING|CMD_STR_ALWAYS,
+       &do_art_msgid, NULL },
 #define FLCMD_ART_MSGID 64
 };
 

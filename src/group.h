@@ -38,7 +38,7 @@ typedef struct Group_List
 {
    struct Group_List *next;
    struct Group_List *prev;
-   unsigned int flags;
+   unsigned int grp_flags;
 #define GROUP_UNSUBSCRIBED              0x001
 #define GROUP_NEW_GROUP_FLAG            0x002
 #define GROUP_IN_MAIN_LIST_FLAG		0x004

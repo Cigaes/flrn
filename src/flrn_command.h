@@ -65,7 +65,9 @@ typedef struct command_return {
 #endif
    flrn_char *before;
    flrn_char *after;
-   int flags;  /* 1 : maybe_after, 2 : keep description */
+   int cmd_ret_flags;  /* 1 : maybe_after, 2 : keep description */
+#define CMD_RET_MAYBE_AFTER 1
+#define CMD_RET_KEEP_DESC 2
    flrn_char *description;
    size_t len_desc;
 } Cmd_return;

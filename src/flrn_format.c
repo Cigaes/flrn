@@ -616,7 +616,7 @@ void Copy_format (FILE *tmp_file, flrn_char *chaine, Article_List *article,
 #ifdef USE_SLANG_LANGUAGE
 		         flrn_char *str=NULL;
 			 *ptr_att=fl_static('\0');
-			 source_SLang_string(buf, &str);
+			 source_SLang_string(article,buf, &str);
 			 *ptr_att=fl_static(']');
 			 ptr_att++;
 			 if (str!=NULL) {
@@ -676,7 +676,6 @@ flrn_char * Prepare_summary_line(Article_List *article,
       cree_header(article,0,0,by_msgid);
     if (article->headers==NULL) return NULL;
     if (article->headers->k_headers[FROM_HEADER]==NULL) return out;
-    if (article->headers->k_headers[SUBJECT_HEADER]==NULL) return out;
     deb_num=ini_col; deb_nom=6+with_flag+ini_col;
     deb_rep=out_width-8;
     if(Options.date_in_summary)
@@ -688,7 +687,7 @@ flrn_char * Prepare_summary_line(Article_List *article,
     
     if (with_flag)
         sprintf(buf2,"%c%5d",
-	      (article->flag&FLAG_READ)?' ':'*', article->numero);
+	      (article->art_flags&FLAG_READ)?' ':'*', article->numero);
     else
 	sprintf(buf2,"%5d",article->numero);
     tmplen=(size_t)fl_snprintf(out_ptr,8,fl_static("%-*.*s "),6,

@@ -21,7 +21,7 @@
 #include "flrn_command.h"
 
 typedef struct _flrn_condition {
-  int flags;
+  int cond_flags;
 #define FLRN_COND_REV 1
 #define FLRN_COND_STRING 2
 #define FLRN_COND_U_HEAD 4
@@ -49,9 +49,9 @@ typedef struct _flrn_filter {
   time_t date_before;
   time_t date_after;
   flrn_condition *condition;
-  int flag; /* est-ce flag ou action ? */
+  int fltr_flag; /* est-ce flag ou action ? */
   union {
-    long flag;
+    long art_flag;
     flrn_action *action;
   } action;
 } flrn_filter;

@@ -406,9 +406,9 @@ static flrn_char *calcul_flag (Newsgroup_List *groupe) {
    int num_flag;
    size_t bla, ltmp;
 
-   num_flag=(groupe->flags & GROUP_READONLY_FLAG ? 4 : 0)+
-   		(groupe->flags & GROUP_UNSUBSCRIBED ? 2 : 0)+
-		(groupe->flags & GROUP_IN_MAIN_LIST_FLAG ? 0 : 1);
+   num_flag=(groupe->grp_flags & GROUP_READONLY_FLAG ? 4 : 0)+
+   		(groupe->grp_flags & GROUP_UNSUBSCRIBED ? 2 : 0)+
+		(groupe->grp_flags & GROUP_IN_MAIN_LIST_FLAG ? 0 : 1);
    if (Options.flags_group) {
        bla=0;
        while ((num_flag>0) && (Options.flags_group[bla])) {
@@ -435,8 +435,8 @@ static int abon_group_in (Liste_Menu *courant, char *arg) {
    Newsgroup_List *choisi=(Newsgroup_List *)(courant->lobjet);
    flrn_char *flag;
 
-   if (!(choisi->flags & GROUP_UNSUBSCRIBED)) return 0;
-   choisi->flags&=~GROUP_UNSUBSCRIBED;
+   if (!(choisi->grp_flags & GROUP_UNSUBSCRIBED)) return 0;
+   choisi->grp_flags&=~GROUP_UNSUBSCRIBED;
    if (choisi!=Newsgroup_courant) {
        flag=calcul_flag(choisi);
        change_menu_line(courant,0,flag);
@@ -448,8 +448,8 @@ static int unsu_group_in (Liste_Menu *courant, char *arg) {
    Newsgroup_List *choisi=(Newsgroup_List *)(courant->lobjet);
    flrn_char *flag;
 
-   if (choisi->flags & GROUP_UNSUBSCRIBED) return 0;
-   choisi->flags|=GROUP_UNSUBSCRIBED;
+   if (choisi->grp_flags & GROUP_UNSUBSCRIBED) return 0;
+   choisi->grp_flags|=GROUP_UNSUBSCRIBED;
    if (choisi!=Newsgroup_courant) {
        flag=calcul_flag(choisi);
        change_menu_line(courant,0,(flag ? flag : 
@@ -467,8 +467,8 @@ static int remov_group_in (Liste_Menu *courant, char *arg) {
    Newsgroup_List *choisi=(Newsgroup_List *)(courant->lobjet);
    flrn_char *flag;
 
-   if (!(choisi->flags & GROUP_IN_MAIN_LIST_FLAG)) return 0;
-   choisi->flags&=~GROUP_IN_MAIN_LIST_FLAG;
+   if (!(choisi->grp_flags & GROUP_IN_MAIN_LIST_FLAG)) return 0;
+   choisi->grp_flags&=~GROUP_IN_MAIN_LIST_FLAG;
    remove_from_main_list(choisi->name);
    if (choisi!=Newsgroup_courant) {
        flag=calcul_flag(choisi);
@@ -484,8 +484,8 @@ static int add_group_in (Liste_Menu *courant, char *arg) {
    Newsgroup_List *choisi=(Newsgroup_List *)(courant->lobjet);
    flrn_char *flag;
 
-   if (choisi->flags & GROUP_IN_MAIN_LIST_FLAG) return 0;
-   choisi->flags|=GROUP_IN_MAIN_LIST_FLAG;
+   if (choisi->grp_flags & GROUP_IN_MAIN_LIST_FLAG) return 0;
+   choisi->grp_flags|=GROUP_IN_MAIN_LIST_FLAG;
    add_to_main_list(choisi->name);
    if (choisi!=Newsgroup_courant) {
        flag=calcul_flag(choisi);
@@ -562,9 +562,9 @@ static int abon_group_not_in (Liste_Menu *courant, char *arg) {
 
    creation=cherche_newsgroup(nom_groupe, 1, 0);
    if (!creation) return -2;
-   creation->flags&=~GROUP_UNSUBSCRIBED;
+   creation->grp_flags&=~GROUP_UNSUBSCRIBED;
    if ((Options.auto_kill) && (!in_main_list(creation->name))) {
-     creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
+     creation->grp_flags|=GROUP_IN_MAIN_LIST_FLAG;
      add_to_main_list(creation->name);
    }
    change_menu_line(courant,0,fl_static("A"));
@@ -580,7 +580,7 @@ static int unsu_group_not_in (Liste_Menu *courant, char *arg) {
       creation=creation->next;
    }
    if (!creation) return -2;
-   creation->flags|=GROUP_UNSUBSCRIBED;
+   creation->grp_flags|=GROUP_UNSUBSCRIBED;
    change_menu_line(courant,0,fl_static(""));
    return 1;
 }
@@ -765,7 +765,7 @@ int fin_passage_menu (void **retour, int passage, int flags) {
       *retour=creation;
       if ((creation) && 
            (Options.auto_kill) && (!in_main_list(creation->name))) {
-        creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
+        creation->grp_flags|=GROUP_IN_MAIN_LIST_FLAG;
         add_to_main_list(creation->name);
       }
    }
@@ -921,7 +921,7 @@ int Aff_arbre (int row, int col, Article_List *init,
       for (left=0;left<(to_left+to_right)*2+3; left++) 
         table[up][left]=symb_space;
 #define field_for_art(x) ((Est_proprietaire(x,0)>0) ? FIELD_AT_MINE : FIELD_AT_OTH)
-#define char_for_art(x) (x->numero== -1 ? SYMB_ART_UNK : (x->flag & FLAG_READ ? SYMB_ART_READ : SYMB_ART_UNR))
+#define char_for_art(x) (x->numero== -1 ? SYMB_ART_UNK : (x->art_flags & FLAG_READ ? SYMB_ART_READ : SYMB_ART_UNR))
   /* Enfin, on va commencer "modifier" to_left et to_right... */
   left=up=down=act_right=act_right_deb=0;
   while (parcours->pere) {
@@ -1631,7 +1631,7 @@ static flrn_char *Recupere_user_flags (Article_List *article) {
    parcours=Options.user_flags;
    while (parcours) {
      memset(filt,0,sizeof(flrn_filter));
-     filt->action.flag=FLAG_SUMMARY;
+     filt->action.art_flag=FLAG_SUMMARY;
      buf=parcours->str;
      parcours=parcours->next;
      sl=next_flch(buf,0);
@@ -2031,136 +2031,6 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
    }
    add_line_aff_line(NULL,0,0);
 
-
-#if 0 
-
-   while (1) {
-#ifdef WITH_CHARACTER_SETS
-      if ((must_decode) && (!deja_decode)) {
-        char *buf2;
-        int ret;
-        ret=Decode_ligne_message(buf,&buf2);
-        if (ret==0) {
-           buf=buf2;
-	   mustfree=buf2;
-        }
-      }
-      deja_decode=0;
-#endif
-      if ((act_row>Screen_Rows-2) && (en_deca)) {  /* Fin de l'ecran */
-
-	 if ((!from_file) && (Article_courant->headers->nb_lines!=0)) {
-	    percent=((read_line-saved_space-1)*100)/(Article_courant->headers->nb_lines+1);
-            sprintf(buf3,"(%d%%)",percent);
-	 } else buf3[0]='\0';
-	 strcat(buf3,"-More-");
-	 num_help_line=(from_file ? 4 : 2);
-         Aff_help_line(Screen_Rows-1);
-	 Aff_fin(buf3);
-	 Screen_refresh(); /* CAS particulier */
-	 en_deca=0;
-      }
-      while (saved_space>0) { /* Alors une_ligne[0]='\0' */
-	Ajoute_form_Ligne(une_ligne, saved_field);
-        saved_space--;
-      }
-      if (buf[0]=='\0') {
-	if (act_row<Screen_Rows-1) {
-	  Cursor_gotorc(act_row,0);
-	}
-	last_color=Aff_color_line((act_row<Screen_Rows-1),une_belle_ligne,
-	    &length,saved_field, une_ligne, Screen_Cols, bol,last_color);
-	bol=0;
-	Ajoute_color_Line(une_belle_ligne,length,0);
-	free(une_ligne); free(une_belle_ligne);
-#ifdef WITH_CHARACTER_SETS
-        if (mustfree) free(mustfree);
-#endif
-	return (act_row+1); /* Fin de ligne */
-      }
-      len_to_write=to_make_len(buf,Screen_Cols,tmp_col);
-      if (len_to_write==0) { 
-	if (act_row<Screen_Rows-1) {
-	  Cursor_gotorc(act_row,0);
-	}
-	last_color=Aff_color_line((act_row<Screen_Rows-1),une_belle_ligne,
-	    &length,saved_field, une_ligne, Screen_Cols, bol,last_color);
-	bol=0;
-	Ajoute_color_Line(une_belle_ligne,length,0);
-	une_ligne[0]='\0';
-	act_row++; tmp_col=0; 
-	continue; 
-      } /* on a deja elimine le cas fin de ligne */
-
-      strncat(une_ligne,buf,len_to_write);
-      if ((!from_file) &&
-       ((!buf2) || (buf2-tcp_line_read==MAX_READ_SIZE-1)))    /* ouille ! */
-      {
-         if (strlen(buf)<=len_to_write) {
-             tmp_col=str_estime_len(buf,tmp_col,-1);
-             res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
-#ifdef WITH_CHARACTER_SETS
-             if (mustfree) free(mustfree);
-	     mustfree=NULL;
-#endif
-             if (res<1) {free(une_ligne); free(une_belle_ligne);
-	       return act_row; }
-             buf=tcp_line_read;
-           /* le cas ou buf2 est défini correspond a un \r en fin de lecture */
-           /* dans ce cas, on est sur de lire simplement \n */
-             if (!buf2) buf2=strchr(buf,'\r'); else buf2=tcp_line_read;
-             if (buf2) *buf2='\0';
-             continue;
-          } else { 
-	    buf+=len_to_write;
-	    tmp_col=str_estime_len(buf,tmp_col,len_to_write);
-	    if (str_estime_len(buf,0,-1)<Screen_Cols-1) {
-	       strcpy(tcp_line_read,buf); /* A priori, cols < 1024 */
-	       buf=tcp_line_read;
-               res=read_server(buf+strlen(buf), 1, MAX_READ_SIZE-strlen(buf)-1);
-           /* le cas ou buf2 est défini correspond a un \r en fin de lecture */
-           /* dans ce cas, on est sur de lire simplement \n */
-               if (!buf2) buf2=strchr(buf,'\r'); else buf2=tcp_line_read;
-               if (buf2) *buf2='\0';
-#ifdef WITH_CHARACTER_SETS
-               if (mustfree) free(mustfree);
-               mustfree=NULL;
-#endif
-	       continue;
-	    } /* sinon, on se contente de changer de ligne */
-	 }
-      }
-      else 
-      if (strlen(buf)<=len_to_write) { /* fini */
-	  if (act_row<Screen_Rows-1) {
-	    Cursor_gotorc(act_row,0);
-	  }
-	  last_color=Aff_color_line((act_row<Screen_Rows-1),une_belle_ligne,
-	      &length,saved_field, une_ligne, Screen_Cols, bol,last_color);
-	  bol=0;
-	  Ajoute_color_Line(une_belle_ligne,length,0);
-	  free(une_ligne); free(une_belle_ligne);
-#ifdef WITH_CHARACTER_SETS
-          if (mustfree) free(mustfree);
-#endif
-          return (act_row+1);
-      }
-      else buf+=len_to_write;
-      if (act_row<Screen_Rows-1) {
-        Cursor_gotorc(act_row,0);
-      }
-      last_color=Aff_color_line((act_row<Screen_Rows-1),une_belle_ligne,
-	  &length,saved_field, une_ligne, Screen_Cols, bol,last_color);
-      bol=0;
-      Ajoute_color_Line(une_belle_ligne,length,0);
-      une_ligne[0]='\0';
-      tmp_col=0;
-      act_row++;
-   }
-#ifdef WITH_CHARACTER_SETS
-   if (mustfree) free(mustfree);
-#endif
-#endif
    return (cf.row+1);
 }      
 
@@ -2229,7 +2099,7 @@ void Aff_newsgroup_name(int erase_scr) {
      if (used_slang==0) {
 #endif
        if (Newsgroup_courant) {
-         if (!(Newsgroup_courant->flags & GROUP_MODE_TESTED))
+         if (!(Newsgroup_courant->grp_flags & GROUP_MODE_TESTED))
             test_readonly(Newsgroup_courant);
          flag_aff=calcul_flag(Newsgroup_courant);
 	 if (flag_aff) {
@@ -2405,17 +2275,17 @@ int Aff_article_courant(int to_build) {
 	       put_string_utf8(_("Article indisponible.")); else
 	       put_string_utf8(_("Article incomprÃ©hensible."));
 	    Screen_set_color(FIELD_NORMAL);
-	    if (!(Article_courant->flag & FLAG_READ) && (Article_courant->numero>0) &&
+	    if (!(Article_courant->art_flags & FLAG_READ) && (Article_courant->numero>0) &&
 	           (Newsgroup_courant->not_read>0)) {
 		      Newsgroup_courant->not_read--;
 		      Article_courant->thread->non_lu--;
 	    }
-	    if (Article_courant->flag & FLAG_IMPORTANT) {
+	    if (Article_courant->art_flags & FLAG_IMPORTANT) {
               Newsgroup_courant->important--;
-	      Article_courant->flag &= ~FLAG_IMPORTANT;
+	      Article_courant->art_flags &= ~FLAG_IMPORTANT;
             }
-	    Article_courant->flag |= FLAG_READ;
-	    Article_courant->flag |= FLAG_KILLED;
+	    Article_courant->art_flags |= FLAG_READ;
+	    Article_courant->art_flags |= FLAG_KILLED;
 	    return -1;
 	}
         /* On suppose ca provisoire */
@@ -2477,17 +2347,17 @@ int Aff_article_courant(int to_build) {
      Cursor_gotorc(row_erreur,col_erreur); 
      put_string_utf8(_("Article indisponible."));
      Screen_set_color(FIELD_NORMAL);
-     if (!(Article_courant->flag & FLAG_READ) && (Article_courant->numero>0) &&
+     if (!(Article_courant->art_flags & FLAG_READ) && (Article_courant->numero>0) &&
            (Newsgroup_courant->not_read>0)) {
 	      Newsgroup_courant->not_read--;
 	      Article_courant->thread->non_lu--;
      }
-     if (Article_courant->flag & FLAG_IMPORTANT) {
+     if (Article_courant->art_flags & FLAG_IMPORTANT) {
         Newsgroup_courant->important--;
-        Article_courant->flag &= ~FLAG_IMPORTANT;
+        Article_courant->art_flags &= ~FLAG_IMPORTANT;
      }
-     Article_courant->flag |= FLAG_READ;
-     Article_courant->flag |= FLAG_KILLED;
+     Article_courant->art_flags |= FLAG_READ;
+     Article_courant->art_flags |= FLAG_KILLED;
      free_text_scroll(); 
      return -1;
    }
@@ -2505,7 +2375,7 @@ int Aff_article_courant(int to_build) {
    else res=0;
    free_text_scroll();
    if (res>=0)  
-     article_read(Article_courant); /*Article_courant->flag |= FLAG_READ;*/
+     article_read(Article_courant); /*Article_courant->art_flags |= FLAG_READ;*/
    Aff_not_read_newsgroup_courant();
    if (debug) fprintf(stderr,"Fin d'affichage \n");
    return ((res==1) || (res==-2));

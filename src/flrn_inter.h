@@ -20,12 +20,21 @@ typedef struct command_desc {
    char *nom;
    int  key;
    int  key_nm;
-   int  flags; /* 1 : chaine de caractère a prendre
+   int  cmd_flags; /* 1 : chaine de caractère a prendre
    		  2 : possibilites d'articles       
                   4 : demande une chaine dans le mode forum (numéros ou autre)
                   8 : demande une chaine dans le nouveau mode
 		  16: si il y a des tokens, le dernier doit etre la chaine
 		  32: demande à avoir un groupe valide */
+#define CMD_TAKE_STRING 1
+#define CMD_TAKE_ARTICLES 2
+#define CMD_TAKE_BOTH 3
+#define CMD_STR_FORUM 4
+#define CMD_STR_NOFORUM 8
+#define CMD_STR_ALWAYS 12
+#define CMD_LAST_IS_STR 16
+#define CMD_PARSE_FILTER 19
+#define CMD_STRING_AND_ARTICLE 31
 #define CMD_NEED_GROUP 32
    int (*appel)(int);
    int (*comp)(flrn_char *, size_t, Liste_Chaine *);

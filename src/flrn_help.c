@@ -26,7 +26,7 @@ static UNUSED char rcsid[]="$Id$";
 
 /* TODO : à revoir pour cause des entrées */
 static char hl_chars[]="0123456789mq";
-static char hl_mesgs[]=N_("Aide de flrn, à vous [0-9qm] :");
+static char hl_mesgs[]=N_("Aide de flrn, Ã  vous [0-9qm] :");
 
 void Aide () {
    FILE *file;
@@ -47,6 +47,7 @@ void Aide () {
 	   _("Erreur : ne trouve pas le fichier d'aide cherchÃ©.")); 
 	 if (key==(int)'m') break;
       } else {
+         Free_key_entry(&ke);
          Aff_file(file,hl_chars,trad,&ke);
 	 if (ke.entry!=ENTRY_SLANG_KEY) key=-1;
 	    else key=ke.value.slang_key;
@@ -54,7 +55,7 @@ void Aide () {
          num_help_line=16;
          Aff_help_line(Screen_Rows-1);
       }
-      if (key==0) Aff_fin(trad);
+      if ((key==0) || (!strchr(hl_chars,key))) Aff_fin(trad);
       while ((key==0) || (!strchr(hl_chars,key))) {
          Attend_touche(&ke);
 	 if (ke.entry!=ENTRY_SLANG_KEY) key=-1;

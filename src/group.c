@@ -170,9 +170,9 @@ void init_groups() {
 	      MAX_NEWSGROUP_LEN,strlen(ptr)-1);
 /*      if (name2!=&(creation->name[0])) fl_strncpy(&(creation->name[0]),
 	      name2,MAX_NEWSGROUP_LEN);  */
-      creation->flags=(ptr[strlen(ptr)-1]==':' ? 0 : GROUP_UNSUBSCRIBED);
+      creation->grp_flags=(ptr[strlen(ptr)-1]==':' ? 0 : GROUP_UNSUBSCRIBED);
       if (in_main_list(creation->name)) 
-        creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
+        creation->grp_flags|=GROUP_IN_MAIN_LIST_FLAG;
       creation->min=1;
       creation->max=0;
       creation->not_read=-1;
@@ -236,9 +236,9 @@ static Newsgroup_List *un_nouveau_newsgroup (char *la_ligne)
     creation->virtual_in_not_read=0;
     creation->read= NULL;
     creation->description= NULL;
-    creation->flags=GROUP_UNSUBSCRIBED | GROUP_NEW_GROUP_FLAG;
+    creation->grp_flags=GROUP_UNSUBSCRIBED | GROUP_NEW_GROUP_FLAG;
     if (in_main_list(creation->name)) 
-      creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
+      creation->grp_flags|=GROUP_IN_MAIN_LIST_FLAG;
     if (buf) {
       while (*buf && (isblank(*buf))) buf++;
       /* TODO : améliorer ce test */
@@ -246,13 +246,13 @@ static Newsgroup_List *un_nouveau_newsgroup (char *la_ligne)
         case 'n' :
         case 'j' :
         case '=' :
-        case 'x' : creation->flags |=GROUP_READONLY_FLAG;
+        case 'x' : creation->grp_flags |=GROUP_READONLY_FLAG;
       		   break;
-        case 'm' : creation->flags |=GROUP_MODERATED_FLAG;
+        case 'm' : creation->grp_flags |=GROUP_MODERATED_FLAG;
 	           break;
       }
     }
-    creation->flags |= GROUP_MODE_TESTED;
+    creation->grp_flags |= GROUP_MODE_TESTED;
     return creation;
 }
 
@@ -332,7 +332,7 @@ void new_groups(int opt_c) {
    /* on vire les flags GROUP_NEW_GROUP_FLAG */
    Newsgroup_courant=Newsgroup_deb;
    while (Newsgroup_courant) {
-     Newsgroup_courant->flags &= ~GROUP_NEW_GROUP_FLAG;
+     Newsgroup_courant->grp_flags &= ~GROUP_NEW_GROUP_FLAG;
      Newsgroup_courant=Newsgroup_courant->next;
    }
 
@@ -347,7 +347,7 @@ void new_groups(int opt_c) {
       /* On parcourt à chaque fois l'ensemble des newsgroup pour vérifier */
       /* qu'on ne recrée pas un newsgroup.				  */
       creation=un_nouveau_newsgroup(tcp_line_read);
-      if ((creation->flags & GROUP_NEW_GROUP_FLAG)==0) {
+      if ((creation->grp_flags & GROUP_NEW_GROUP_FLAG)==0) {
 	res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
 	continue;
       }
@@ -361,15 +361,15 @@ void new_groups(int opt_c) {
         good=(fl_regexec(&goodreg,creation->name,0,NULL,0)==0)?1:0;
       if (good) {
 	  if ((!bad) || (!Options.subscribe_first)) 
-	      creation->flags &= ~GROUP_UNSUBSCRIBED;
+	      creation->grp_flags &= ~GROUP_UNSUBSCRIBED;
       } else {
 	  if ((!bad) && (Options.default_subscribe))
-	      creation->flags &= ~GROUP_UNSUBSCRIBED;
+	      creation->grp_flags &= ~GROUP_UNSUBSCRIBED;
       }
 
       if (Options.auto_kill) {
 	add_to_main_list(creation->name);
-	creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
+	creation->grp_flags|=GROUP_IN_MAIN_LIST_FLAG;
       }
       if ((opt_c) || (Options.warn_if_new && (wait_for_key!=-1))) {
 	  int rc,rc2,rc3;
@@ -385,10 +385,10 @@ void new_groups(int opt_c) {
 	  if (rc2==0) free(trad2);
 	  if (rc==0) free(trad);
 	  if (opt_c==0) {
-	     if (creation->flags & GROUP_UNSUBSCRIBED) 
+	     if (creation->grp_flags & GROUP_UNSUBSCRIBED) 
 		special=_("Non abonnÃ©");
 	     else
-	     if (creation->flags & GROUP_IN_MAIN_LIST_FLAG) 
+	     if (creation->grp_flags & GROUP_IN_MAIN_LIST_FLAG) 
 		special=_("AbonnÃ©, dans le kill-file");
 	     else special=_("AbonnÃ©");
 	     rc=conversion_from_utf8(special,&trad,0,(size_t)(-1));
@@ -453,7 +453,7 @@ int save_groups() {
      /* et qu'on a rien lu...						 */
      msg_lus=courant->read;
      first=1;
-     if (!(courant->flags & GROUP_UNSUBSCRIBED)) {
+     if (!(courant->grp_flags & GROUP_UNSUBSCRIBED)) {
        failed|=(fprintf(flnews_file,"%s: ",trad)<0);
        name_written=1;
      } else name_written=0;
@@ -611,7 +611,7 @@ int cnr_ajoute_elem (char *param, int flag, int order, void **retour)
 
     if (param==NULL) {  /* retour */
 	if (name) {
-	    (Newsgroup_List *) *retour = un_nouveau_newsgroup(name);
+	    *retour = (void *) un_nouveau_newsgroup(name);
 	    free(name);
 	    return 1;
         }
@@ -659,7 +659,7 @@ Liste_Menu *menu_newsgroup_re (flrn_char *name, regex_t reg, int avec_reg)
        flrn_char *name;
 
        if (param==NULL) {  /* retour */
-	  (Liste_Menu *) *retour = lemenu;
+	  *retour = (void *) lemenu;
           return 1;
        } 
 
@@ -694,11 +694,11 @@ int cherche_newsgroups_in_list (flrn_char *name, regex_t reg, int flag,
 
     parcours=Newsgroup_deb;
     while (parcours) {
-      if ((flag & 8) && (parcours->flags & GROUP_UNSUBSCRIBED)) {
+      if ((flag & 8) && (parcours->grp_flags & GROUP_UNSUBSCRIBED)) {
 	  parcours=parcours->next;
 	  continue;
       }
-      if ((flag & 16) && !(parcours->flags & GROUP_UNSUBSCRIBED)) {
+      if ((flag & 16) && !(parcours->grp_flags & GROUP_UNSUBSCRIBED)) {
 	  parcours=parcours->next;
 	  continue;
       }
@@ -839,12 +839,12 @@ int NoArt_non_lus(Newsgroup_List *group, int force_check) {
      case 'n' :
      case 'j' :
      case '=' :
-     case 'x' : group->flags |=GROUP_READONLY_FLAG;
+     case 'x' : group->grp_flags |=GROUP_READONLY_FLAG;
                 break;
-     case 'm' : group->flags |=GROUP_MODERATED_FLAG;
+     case 'm' : group->grp_flags |=GROUP_MODERATED_FLAG;
                 break;
    }
-   group->flags |= GROUP_MODE_TESTED;
+   group->grp_flags |= GROUP_MODE_TESTED;
    discard_server(); /* Si il y a plusieurs newsgroups, BEURK */
    
    non_lus=max-min+1;
@@ -901,12 +901,12 @@ void test_readonly(Newsgroup_List *groupe) {
      case 'n' :
      case 'j' :
      case '=' :
-     case 'x' : groupe->flags |=GROUP_READONLY_FLAG;
+     case 'x' : groupe->grp_flags |=GROUP_READONLY_FLAG;
                 break;
-     case 'm' : groupe->flags |=GROUP_MODERATED_FLAG;
+     case 'm' : groupe->grp_flags |=GROUP_MODERATED_FLAG;
                 break;
    }
-   groupe->flags |= GROUP_MODE_TESTED;
+   groupe->grp_flags |= GROUP_MODE_TESTED;
    discard_server(); /* Si il y a plusieurs newsgroups, BEURK */
 }
 
@@ -1010,10 +1010,10 @@ void add_read_article(Newsgroup_List *mygroup, int article)
       Article_List *parcours=mygroup->Article_deb;
       while (parcours && (parcours->numero<article)) parcours=parcours->next;
       if (parcours && (parcours->numero==article)) {
-         parcours->flag|=FLAG_READ;
-	 if (parcours->flag & FLAG_IMPORTANT) {
+         parcours->art_flags|=FLAG_READ;
+	 if (parcours->art_flags & FLAG_IMPORTANT) {
 	   mygroup->important--;
-	   parcours->flag &= ~FLAG_IMPORTANT;
+	   parcours->art_flags &= ~FLAG_IMPORTANT;
 	 }
 	 virtuel=0;
       }
@@ -1190,8 +1190,8 @@ void zap_group_non_courant (Newsgroup_List *group) {
    group->read->next=NULL;
    art=group->Article_deb;
    while (art) {
-     art->flag|=FLAG_READ;
-     art->flag&= ~FLAG_IMPORTANT;
+     art->art_flags|=FLAG_READ;
+     art->art_flags&= ~FLAG_IMPORTANT;
      art=art->next;
    }
    thr=group->Thread_deb;

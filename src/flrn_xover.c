@@ -150,7 +150,7 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin, 
 	      progress++;
 	      Manage_progress_bar(NULL,0);
 	 }
-	 creation->flag=FLAG_NEW; /* pour le kill_file */
+	 creation->art_flags=FLAG_NEW; /* pour le kill_file */
 	 /* on le recherche */
 	 if ((article) && (article->numero > creation->numero)) {
 	   /* on insère avant article - sans danger le serveur répond
@@ -204,7 +204,7 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin, 
 	   }
 	/* on verifie que le min est <= au numero */
 	   if ((msg_lus) && (msg_lus->min[lus_index] <= creation->numero)) {
-	     creation->flag |= FLAG_READ;
+	     creation->art_flags |= FLAG_READ;
 	   } else if (Newsgroup_courant->virtual_in_not_read>0) 
 	       Newsgroup_courant->virtual_in_not_read--; else 
 	       Newsgroup_courant->not_read++;
@@ -287,6 +287,10 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin, 
 	 if (article->headers->k_headers[DATE_HEADER])
 	    article->headers->date_gmt=
 	      parse_date(article->headers->k_headers[DATE_HEADER]);
+	 if ((article->headers->k_headers[SUBJECT_HEADER]==NULL) &&
+		 (article->headers->k_headers_checked[SUBJECT_HEADER]))
+	     article->headers->k_headers[SUBJECT_HEADER]=
+		 safe_flstrdup(fl_static(""));
 	 if ((article->msgid==NULL) || (strlen(article->msgid)==0)) { 
 	          /* y'a eu une erreur grave */
             if (article->prev) article->prev->next=article->next; else
@@ -373,7 +377,7 @@ int cree_liste_noxover(int min, int max, Article_List *start_article, int *newmi
 	      Manage_progress_bar(NULL,0);
       }
 
-      creation->flag = FLAG_NEW;
+      creation->art_flags = FLAG_NEW;
       /* on regarde si le message est lu */
       /* on recherche dans la table un max >= au numero de message */
       while ((msg_lus) && (msg_lus->max[lus_index] < creation->numero))
@@ -385,7 +389,7 @@ int cree_liste_noxover(int min, int max, Article_List *start_article, int *newmi
       }
       /* on verifie que le min est <= au numero */
       if ((msg_lus) && (msg_lus->min[lus_index] <= creation->numero)) {
-         creation->flag |= FLAG_READ;
+         creation->art_flags |= FLAG_READ;
       } else if (Newsgroup_courant->virtual_in_not_read>0) 
 	       Newsgroup_courant->virtual_in_not_read--; else 
 	       Newsgroup_courant->not_read++;
@@ -475,14 +479,14 @@ int cree_liste(int art_num, int *part) {
    strtol(buf, &buf, 10);
    min=strtol(buf, &buf, 10);
    max=strtol(buf, &buf, 10);
-   Newsgroup_courant->flags &= ~GROUP_NOT_EXHAUSTED;
+   Newsgroup_courant->grp_flags &= ~GROUP_NOT_EXHAUSTED;
    if ((Options.max_group_size>=0) && (exhaust==0)) {
       Newsgroup_courant->min=
              (art_num>max ? max : art_num)-Options.max_group_size;
       if (Newsgroup_courant->min<min) Newsgroup_courant->min=min; else
       {
             min=Newsgroup_courant->min;
-	    Newsgroup_courant->flags |= GROUP_NOT_EXHAUSTED;
+	    Newsgroup_courant->grp_flags |= GROUP_NOT_EXHAUSTED;
       }
    } else Newsgroup_courant->min=min;
    if (exhaust) {

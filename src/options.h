@@ -85,7 +85,7 @@ typedef struct string_list {
 } string_list_type;
 
 typedef struct autocmd_list {
-  int flag;
+  int autocmd_flags;
 #define AUTOCMD_ENTER 0x01
 #define AUTOCMD_LEAVE 0x02
   regex_t match;
@@ -307,7 +307,8 @@ static struct {
 /* les fonctions */
 
 extern void init_options(void);
-extern void parse_options_line(flrn_char * /*ligne*/, int /*flag*/);
+extern void parse_options_line(flrn_char * /*ligne*/, int /*flag*/,
+	                      int *, int *);
 extern void dump_variables(FILE * /*file*/);
 extern void dump_flrnrc(FILE * /*file*/);
 extern int  options_comp(flrn_char * , size_t , Liste_Chaine *);
