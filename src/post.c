@@ -169,7 +169,7 @@ int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
    int taille;
    Lecture_List *lecture_courant;
    int headers=1,read_something=0, i;
-   Header_List *liste, *last_liste=NULL, **unk_header_courant=NULL;
+   Header_List *liste, *last_liste, **unk_header_courant=NULL;
 
    lecture_courant=Deb_body;
    lecture_courant->size=0;
@@ -213,6 +213,7 @@ int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
 		   header_connu=0;
 		   taille=buf2-buf;
                    liste=Header_post->autres;
+		   last_liste=NULL;
 		   while (liste) {
 		      if (strncasecmp(buf, liste->header, taille)==0) break;
 		      last_liste=liste;
