@@ -3229,12 +3229,57 @@ void restore_etat_loop() {
 }
 
 #ifdef USE_SLANG_LANGUAGE
-int Execute_function_slang_command(int type_fun, SLang_Name_Type *slang_fun)
+
+int Push_article(Article_List *a_sauver, void *groupe) {
+   Newsgroup_List *gr = (Newsgroup_List *)groupe;
+   return Push_article_on_stack (a_sauver, gr);
+}
+
+struct slang_fun_with_type {
+   SLang_Name_Type *slang_fun;
+   int type_fun;
+};
+
+int Exec_function_on_article(Article_List *a_sauver, void *la_fun) 
 {
-  /* TODO : faire un truc plus correct... */
-  if (SLexecute_function(slang_fun)==-1) {
+  char *name=Arg_str;
+  struct slang_fun_with_type *fonction=(struct slang_fun_with_type *)la_fun;
+  SLang_start_arg_list ();
+  Push_article_on_stack(a_sauver, Newsgroup_courant);
+  if (fonction->type_fun & 1) 
+    SLang_push_string(name);
+  SLang_end_arg_list ();
+  if (SLexecute_function(fonction->slang_fun)==-1) {
      SLang_restart (1);
      SLang_Error = 0;
+  }
+  /* TODO : faire attention à l'état de la pile dans ce genre de cas */
+  return 0;
+}
+
+int Execute_function_slang_command(int type_fun, SLang_Name_Type *slang_fun)
+{
+  char *name=Arg_str;
+  Numeros_List *courant=&Arg_do_funcs;
+
+  if ((type_fun & 4)==0) {
+    SLang_start_arg_list ();
+    if (type_fun & 2) 
+      distribue_action(courant, Push_article, NULL, Newsgroup_courant);
+    if (type_fun & 1) 
+       SLang_push_string(name);
+    SLang_end_arg_list ();
+
+    if (SLexecute_function(slang_fun)==-1) {
+       SLang_restart (1);
+       SLang_Error = 0;
+    }
+  /* TODO : faire attention à l'état de la pile dans ce genre de cas */
+  } else {
+    struct slang_fun_with_type fonction;
+    fonction.slang_fun=slang_fun;
+    fonction.type_fun=type_fun;
+    distribue_action(courant, Exec_function_on_article, NULL, &fonction);
   }
   return 0;
 }

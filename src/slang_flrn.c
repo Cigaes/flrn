@@ -49,7 +49,7 @@ static SLang_Class_Type *flrn_SLang_Article_Type;
 
 static char *Newsgroup_Type_string_callback(unsigned char type, VOID_STAR addr)
 {
-   Newsgroup_List *legroupe = (Newsgroup_List *)addr;
+   Newsgroup_List *legroupe = **((Newsgroup_List ***)addr);
    if ((legroupe==NULL) || (legroupe->name==NULL)) return SLmake_string("");
    return SLmake_string(legroupe->name);
 }
@@ -69,7 +69,8 @@ static int Newsgroup_Type_pop_callback(unsigned char type, VOID_STAR addr)
 
 static char *Article_Type_string_callback(unsigned char type, VOID_STAR addr)
 {
-   Article_and_Group *larticle = (Article_and_Group *)addr;
+   SLang_MMT_Type *bla = *((SLang_MMT_Type **)addr);
+   Article_and_Group *larticle = (Article_and_Group *)SLang_object_from_mmt(bla);
    if ((larticle==NULL) || (larticle->article==NULL) ||
        (larticle->article->msgid==NULL)) return SLmake_string("");
    return SLmake_string(larticle->article->msgid);
@@ -88,12 +89,12 @@ int Push_article_on_stack (Article_List *article, Newsgroup_List *groupe) {
    larticle=safe_malloc(sizeof(Article_and_Group));
    larticle->article=article;
    larticle->groupe=groupe;
-   bla = SLang_create_mmt(ARTICLE_TYPE_NUMBER,VOID_STAR larticle);
-   if (SLang_push_mmt(bla)) return 0;
-   else {
+   bla = SLang_create_mmt(ARTICLE_TYPE_NUMBER,(VOID_STAR) larticle);
+   if (SLang_push_mmt(bla)<0)
+   {
      SLang_free_mmt(bla);
      return -1;
-   }
+   } else return 0;
 }
 
 /***************** Les variables *****************************/
