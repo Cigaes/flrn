@@ -153,6 +153,20 @@ summ_fil (défaut : t)
 summ_thr (défaut : T)
 	Même action que t, mais le comportement par défaut affiche cette fois
 	le thread complet.
+sum-search (pas de défaut)
+	A exactement la même action que la commande summary, mais demande un
+	paramètre, ce qui permet de faire des recherches. L'argument de la
+	recherche (utilisable dans toutes les commandes de résumés) est de la
+	forme <header>: <regexp>, qui demande à matcher une regexp dans le
+	<header> considéré. On ne fait pas de recherche dans le corps du
+	message.
+menu-summary (pas de défaut)
+menu-fil     (pas de défaut)
+menu-thr     (pas de défaut)
+menu-search  (défaut : /)
+	Respectivement identiques aux quatre commande précédentes, mais
+	permettent de choisir un article via un menu, au lieu d'afficher
+	simplement un résumé.
 
 * Gestion des groupes :
 

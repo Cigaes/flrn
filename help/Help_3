@@ -4,7 +4,7 @@ Help_3
 	-----------------------
 
 Les options sont aussi disponibles sur la page de manuel de flrn.
-La forme générale des options est inspirée de mutt. Il y a six commandes :
+La forme générale des options est inspirée de mutt. Il y a sept commandes :
 
 set <variable>=<valeur>
 	Permet de modifier la valeur d'une variable. On a les racourcis 
@@ -25,6 +25,14 @@ header	list|weak|hide <une suite de chiffre ou de noms>
 	première page d'un message.
 	Avec hide, on indique les headers à ne pas afficher avec others.
 	(pas de défaut)
+
+my_hdr  <nom>: <champ>
+	demande à ajouter par défaut le header <nom> avec le contenu <champ>
+	dans les messages postés. <champ> ne peut pas dépasser une ligne.
+	Dans le cas où <nom> a déjà été utilisé, l'ancien champ n'est plus
+	utilisé. Si <champ> est vide, on demande à ne plus ajouter le header
+	en question. Les headers indispensables pour le post ne peuvent être
+	modifiés (l'option post_name permet de modifier le header From:).
 
 color   <types> <n1> <n2> <p1>,<p2>,...
 mono   <types> <p1>,<p2> ...
