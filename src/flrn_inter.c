@@ -800,8 +800,13 @@ static void Parse_nums_article(flrn_char *str, flrn_char **sortie, int flags) {
      }
      if ((flag==0) && (Article_courant && (courant->elem1.number==0))) 
         courant->elem1.number=Article_courant->numero;
-     if ((flag==0) && (Article_deb && (courant->elem1.number==1))) 
+     if ((flag==0) && (Article_deb && (courant->elem1.number==1))) {
+	if (Newsgroup_courant->flags & GROUP_NOT_EXHAUSTED) {
+	    int ff=2;
+	    cree_liste(1,&ff);
+	}
         courant->elem1.number=Article_deb->numero;
+     }
      if (Article_courant && (courant->num2==0)) 
         courant->num2=Article_courant->numero;
      if (Article_deb && (courant->num2==1)) 

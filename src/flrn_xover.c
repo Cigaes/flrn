@@ -447,8 +447,10 @@ int cree_liste_noxover(int min, int max, Article_List *start_article, int *newmi
    return crees;
 }
 
+/* part=2 -> exhaust */
 int cree_liste(int art_num, int *part) {
    int min,max,res,code,newmin,newmax;
+   int exhaust=(*part==2);
    char *buf;
    /* On change le newsgroup courant pour le serveur */
    *part=0;
@@ -473,12 +475,20 @@ int cree_liste(int art_num, int *part) {
    strtol(buf, &buf, 10);
    min=strtol(buf, &buf, 10);
    max=strtol(buf, &buf, 10);
-   if (Options.max_group_size>=0) {
+   Newsgroup_courant->flags &= ~GROUP_NOT_EXHAUSTED;
+   if ((Options.max_group_size>=0) && (exhaust==0)) {
       Newsgroup_courant->min=
              (art_num>max ? max : art_num)-Options.max_group_size;
       if (Newsgroup_courant->min<min) Newsgroup_courant->min=min; else
-                                      min=Newsgroup_courant->min;
+      {
+            min=Newsgroup_courant->min;
+	    Newsgroup_courant->flags |= GROUP_NOT_EXHAUSTED;
+      }
    } else Newsgroup_courant->min=min;
+   if (exhaust) {
+       cree_liste_end();
+       return 0;
+   }
 
    if (Newsgroup_courant->Article_deb) {
      Article_deb=Newsgroup_courant->Article_deb;
