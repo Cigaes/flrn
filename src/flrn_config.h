@@ -1,33 +1,69 @@
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *      flrn_config.h : quelques define pour le programme
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
+
 #ifndef FLRN_FLRN_CONFIG_H
 #define FLRN_FLRN_CONFIG_H
 
 #include "pathdef.h"
 
-#define MAX_PATH_LEN 	1024
-#define DEFAULT_DIR_FILE	".flrn"
-/* Répertoire où chercher les fichiers de config */
-#define DEFAULT_CONFIG_FILE	".flrnrc"
-#define DEFAULT_CONFIG_SYS_FILE "flrnrc" /* si pas de .flrnrc, on ouvre celui-la */
-#define DEFAULT_FLNEWS_FILE	".flnewsrc"
+/* L'utilisateur peut modifier la valeurs qui suivent jusqu'au
+   "-- ne rien modifier ensuite --" */
+
+/* Répertoire où chercher les fichiers de config chez l'utilisateur */
+#define DEFAULT_DIR_FILE        ".flrn"
+
+/* Nom du fichier de config normalement présent chez l'utilisateur */
+#define DEFAULT_CONFIG_FILE     ".flrnrc"
+
+/* Nom du fichier de config par défaut si l'utilisateur n'a pas de .flrnrc :
+     flrn charge ce fichier dans le répertoire $datadir/flrn du Makefile 
+     (par défaut /usr/local/share/flrn) */
+#define DEFAULT_CONFIG_SYS_FILE "flrnrc"
+
+/* Nom du fichier qui contient les messages lus par l'utilisateur 
+   (équivalent du .newsrc) */
+#define DEFAULT_FLNEWS_FILE     ".flnewsrc"
+
+/* Nom du fichier temporaire utilisé pour les posts */
 #define TMP_POST_FILE           ".article"
+
+/* Nom du fichier temporaire utilisé pour obtenir la sortie standard
+   d'un programme (lancé via \shin par exemple) */
 #define TMP_PIPE_FILE		".pipe_flrn"
-  /* en fait fichier temporaire utilisé partout */
+
+/* Lieu où sauver un message qui a été refusé par le serveur */
 #define TMP_REJECT_POST_FILE    "dead.article"
+
+/* Défini à 1 si on veut que flrn vérifie la présence de nouveaux mails */
+#define CHECK_MAIL	1
+#ifdef CHECK_MAIL
+/* Répertoire où flrn suppose que se trouve la mailbox de l'utilisateur. */
+#define DEFAULT_MAIL_PATH "/var/spool/mail" 
+#endif
+
+/* Options de lancement de sendmail (le lieu où trouver sendmail est 
+   défini via configure dans config.h */
+#define MAILER_CMD SENDMAIL " -U -t"
+
+
+/* -- ne rien modifier ensuite, normalement -- */
+
+#define MAX_PATH_LEN 	1024
+  /* en fait fichier temporaire utilisé partout */
 #define DEFAULT_HELP_DIRECTORY	PATH_HELP_DIRECTORY /* defined in pathdef.h */
 #define DEFAULT_HELP_FILES	"Help_"
 #define DEFAULT_NNTP_PORT 119
-#define CHECK_MAIL	1
-#ifdef CHECK_MAIL
-/* peut-être à mettre dans le configure... */
-#define DEFAULT_MAIL_PATH "/var/spool/mail" 
-#endif
 #define MAX_BUF_SIZE    8192  /* taille maximum de lecture brute */
 #define MAX_READ_SIZE   2048  /* taille maximum de lecture raffinee */
 #define MAX_REGEXP_SIZE 1024  /* taille max d'une regexp */
 
-#define MAILER_CMD SENDMAIL " -U -t"
-/* #define DOMAIN "ens.fr" */
-/* #define DEFAULT_HOST "naoned" */ /* maintenant, ça se fait avec configure */
 #define MAX_SERVER_LEN  128
 #define MAX_NEWSGROUP_LEN 128
 

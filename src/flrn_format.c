@@ -1,9 +1,12 @@
-/* flrn v 0.3                                                           */
-/*              flrn_format.c            22/06/98                       */
-/*                                                                      */
-/* Formatage des headers... Sert pour le parsing de la date, les	*/
-/* attributions, etc etc...						*/
-/*                                                                      */
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *      flrn_format.c : formatage de lignes, date (vieux code)
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,9 +23,11 @@
 #include "getdate.h"
 
 
+/* On ne parse plus la date ici, on utilise getdate.y (cf GNU date) */
 #if 0
 /* Parsing de la date */
-/* Pompé sur mutt...  */
+/* ce code est tiré de celui de mutt, placé aussi sous GPL */
+/* cf ftp://ftp.lip6.fr/pub/unix/mail/mutt/ */
 const char *Months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug",
  "Sep", "Oct", "Nov", "Dec", "ERR" };
 

@@ -1,9 +1,12 @@
-/* flrn v 0.1                                                           */
-/*             tty_keyboard.c         27/11/97                          */
-/*                                                                      */
-/*  Programme de gestion du clavier.					*/
-/*  Essentiellement de betes appels des fontions de la lib.             */
-/*                                                                      */
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *      tty_keyboard.c : gestion du clavier
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,6 +1,9 @@
 /*
+ *
  * Copyright (C) 1996,1997 Michael R. Elkins <me@cs.hmc.edu>
- * Adapte a flrn...
+ * ce code est repris à mutt et adapté à flrn
+ *
+ * Ce code est soumis à la GNU General Public License
  */ 
 
 /* Attention, il faudra definir proprement Charset, et le renommer

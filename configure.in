@@ -15,6 +15,9 @@ AC_CHECK_PROGS(MAKEDEPEND,gccmakedep makedepend, echo)
 
 AC_PATH_PROG(SENDMAIL, sendmail, no, `echo $PATH`:/usr/sbin:/usr/lib)
 AC_DEFINE_UNQUOTED(SENDMAIL, "$ac_cv_path_SENDMAIL")
+if test "$ac_cv_path_SENDMAIL" = no; then
+   AC_MSG_WARN(no sendmail found. \\mail-answer will not work !)
+fi
 
 AC_ARG_WITH(default-host, [  --with-default-host[=MACHINE]   default host for adresses],
   AC_DEFINE_UNQUOTED(DEFAULT_HOST, "$withval")

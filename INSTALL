@@ -1,0 +1,37 @@
+Installation de flrn
+====================
+
+pour installer flrn, le plus simple est de taper :
+./configure --with-default-domain=DOMAIN
+make
+make install   (avec des droits acceptables, donc souvent en super-utilisateur)
+
+configure
+=========
+
+configure dipose d'un certain nombre d'options. Entre autres :
+
+--prefix=DIR : précise où flrn doit être installé
+
+--with-rx=DIR : demande l'utilisation de la bibliothèque rx et précise ou
+		trouver cette bibliothèque
+
+--with-slang=DIR : précise où trouver slang, s'il n'est pas à la place
+		   habituelle
+
+--with-default-host=DIR : précise le nom de la machine d'où sont censés
+			  provenir les posts (indispensable si gethostname
+			  n'existe pas)
+--with-default-domain=DOMAIN : précise le nom de domaine, indispensable si
+			       on ne veut pas ens.fr  ;-)
+
+Il faut d'autre part que configure puisse trouver sendmail, soit dans
+le chemin d'accès courant, soit dans /usr/lib ou /usr/sbin.
+Faute de quoi flrn sera incapable d'envoyer des mails.
+
+
+Après le configure, vous pouvez regarder les différents fichiers
+Makefile, ainsi que src/config.h .
+Il est aussi possible de modifier src/site_config.h (et quelques
+passages de src/flrn_config.h), voir le fichier INSTALL.site pour plus
+de détails.

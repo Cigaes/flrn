@@ -1,9 +1,12 @@
-/* flrn v 0.1                                                           */
-/*              options.h             22/11/97                          */
-/*                                                                      */
-/* Fichier de headers pour options.c : contient la syntaxe des options  */
-/* de flrn.                                                             */
-/*                                                                      */
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *      options.h
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
 
 #ifndef FLRN_OPTIONS_H
 #define FLRN_OPTIONS_H

@@ -1,8 +1,12 @@
-/* flrn v 0.3								*/
-/*		flrn_tcp.c        22/06/98				*/
-/*									*/
-/* Communication avec le serveur... Essentiellement tout ce qui se      */
-/* rapporte a la gestion d'une socket...				*/
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *      flrn_tcp.c : communications avec le serveur
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
 
 
 #include <ctype.h>      /* a voir */

@@ -1,7 +1,13 @@
-/* flrn v 3.0								   */
-/*									   */ 
-/*		flrn_slang.c						   */
-/*									   */
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *      flrn_slang.c : liens avec les fonction slang
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
+
 /*  Liens avec les fonctions slang					   */
 /*  Ce fichier ne devrait pas être indispensable... si on passe à ncurses  */
 

@@ -1,9 +1,12 @@
-/* flrn v 0.1                                                           */
-/*              flrn_inter.c          27/11/97                          */
-/*                                                                      */
-/*  La boucle principale de flrn.                                       */
-/*                                                                      */
-/*                                                                      */
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *      flrn_inter.c : mode commande de flrn, boucle principale
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
 
 #define IN_FLRN_INTER_C
 #include <stdio.h>

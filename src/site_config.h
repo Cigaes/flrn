@@ -1,3 +1,8 @@
+/* flrn : lecteur de news en mode texte
+ *
+ *      site_config.h : configuration par défaut de flrn
+ *
+ */
 #ifndef FLRN_SITE_CONFIG_H
 #define FLRN_SITE_CONFIG_H
 /* On définit ici la configuration par défaut
@@ -7,8 +12,8 @@
 #ifdef IN_OPTION_C
 
 struct Option_struct Options = {
-  "news.rezo.ens.fr",   /* server */
-  DEFAULT_NNTP_PORT,    /* port */
+  "news.rezo.ens.fr",   /* server    "news" est conseillé */
+  DEFAULT_NNTP_PORT,    /* port (DEFAULT_NNTP_PORT = 119) */
   NULL,			/* flnews_ext */
   NULL, 		/* Post name - doit rester NULL */
   {REFERENCES_HEADER,FROM_HEADER,DATE_HEADER,SUBJECT_HEADER,-1}, /* header */
@@ -25,8 +30,8 @@ struct Option_struct Options = {
 #endif
   0,			/* forum_mode */
   0,			/* space_is_return */
-  0,			/* cool_arrows, inversé ! */
-  0,			/* edit_all_headers */
+  0,			/* cool_arrows, inversé (0 : activé, 1 : désactivé)  */
+  0,			/* edit_all_headers (1 conseillé) */
   0,			/* include_in_edit */
   1,			/* date_in_summary */
   0,			/* duplicate_subject */
@@ -35,7 +40,7 @@ struct Option_struct Options = {
   0,			/* threaded_space */
   0,			/* auto_edit */
   0,			/* use_regexp */
-  0,			/* use_menus (très alpha) */
+  0,			/* use_menus */
   0,			/* with_cousins */
   0,			/* quit_if_nothing */
   0,			/* parse_from */
@@ -48,7 +53,7 @@ struct Option_struct Options = {
   0,			/* zap_change_group */
   0,			/* scroll_after_end */
   "%n, dans son post %i, a écrit :",	/* attribution */
-  0,			/* alpha_tree, temporaire */
+  0,			/* alpha_tree */
   ".flrnkill",		/* kill_file_name */
   1,			/* auto_kill */
   "",			/* savepath */
@@ -56,7 +61,7 @@ struct Option_struct Options = {
   " TDD*tdd",		/* flags_group */
   NULL,			/* hist_file_name */
   0,			/* warn_if_new */
-  NULL,			/* get_ext_flnewsfile */
+  NULL,			/* default_flnewsfile */
   0,			/* short_errors */
   1,			/* help_line */
   NULL,			/* help_line_file */

@@ -1,7 +1,12 @@
-/* flrn v 0.1                                                           */
-/*              art_group.h         25/11/97                            */
-/*                                                                      */
-/* Headers pour la gestion d'une liste d'article au sein du newsgroup.  */
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *	art_group.h
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
 
 #ifndef FLRN_ART_GROUP_H
 #define FLRN_ART_GROUP_H

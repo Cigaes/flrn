@@ -1,9 +1,12 @@
-/* flrn v 0.1                                                           */
-/*              flrn_menus.c        15/05/98                            */
-/*                                                                      */
-/* Routines de manipulation de menus pour une interface méga-torche.    */
-/* C'est très proche des librairies I/O, mais on va essayer de faire    */
-/* un truc indépendant desdites librairies.				*/
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *      flrn_menus.c : gestion des menus
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
 
 #define IN_FLRN_MENUS_C
 

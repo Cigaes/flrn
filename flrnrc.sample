@@ -1,0 +1,87 @@
+# Exemple de flrnrc standard pour lire les news de Usenet.
+
+# Nom du serveur
+set server news
+
+# Nom de post
+# set post_name "Moi"
+
+###########
+# entêtes #
+###########
+# cette ligne donne l'ordre. others signifie "tout autre entête dans
+#   l'ordre d'apparition"
+header list Newsgroups References From Reply-To others Followup-To Subject
+
+# cette ligne donne les entêtes à ne jamais afficher (malgré le others dans
+#   la première ligne). L'ordre est indifférent.
+header hide Message-Id Path NNTP-Posting-Host X-Trace X-Complaints-To NNTP-Posting-Date X-Face X-Server-Date X-Original-Received
+
+# cette ligne donne les entêtes qui ne doivent plus être rappelés lorsque
+# le message fait plusieurs pages (les autres restant affichés). L'ordre
+# est indifférent
+header weak others
+
+# On marque d'un '-' les messages déjà lus
+my_flag - read
+
+
+# mettre cette ligne si vous voulez que les entêtes défilent avec le
+# reste du message
+# set headers_scroll
+
+# lignes blanches sous la barre de statut
+set noskip_line
+# on ne veut pas utiliser l'éditeur intégré dans flrn
+set auto_edit
+# on veut pouvoir éditer toutes les entêtes
+set edit_all_headers
+# on veut inclure le message dans les réponses (utile si auto_edit est défini)
+set include_in_edit
+
+# \next-unread est "threadé"
+set threaded_space
+# on utilise les expressions régulières
+set use_regexp
+# on utilise les menus
+set use_menus
+# on peut se déplacer loin dans l'arbre de la discussion
+set with_cousins
+# on ne s'abonne à rien automatiquement
+set auto_subscribe ""
+set auto_ignore "^control|^[^.]+$"
+set subscribe_first
+set nodefault_subscribe
+
+# on veut voir l'arbre de la discussion
+set alpha_tree
+
+# option pour le kill-file (voir l'aide pour plus de détails)
+set noauto_kill
+
+# chemin pour les sauvegardes
+set savepath News
+
+# avec noauto_kill, on préfère ces drapeaux
+set flags_groups "M DDm*dd"
+
+# sauvegarde de l'historique
+set hist_file_name ".flrnhist"
+
+# on veut être averti des nouveaux groupes
+set warn_if_new
+
+# on veut avoir un .flnewsrc par défaut
+set default_flnewsrc flnewsrc
+
+# la ligne d'aide est plutôt limitée. Mieux vaut la supprimer
+set nohelp_line
+# set help_line_file "help_lines"
+
+##########
+# ces options servent si on utilise une authentification avec le
+# serveur (authinfo de innd)
+##########
+# set auth_user "monlogin"
+# set auth_pass "monpassword"
+##########

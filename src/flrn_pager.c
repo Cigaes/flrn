@@ -1,8 +1,12 @@
-/* flrn v 0.3                                                           */
-/*              flrn_pager.c            22/06/98                        */
-/*                                                                      */
-/* 	Un VRAI pager pour flrn, un jour...				*/
-/*                                                                      */
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *      flrn_pager.c : pager pour flrn
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>

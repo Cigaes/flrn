@@ -1,0 +1,71 @@
+Configurer flrn pour un site donné
+==================================
+
+0) modifier flrn_config.h  (avant la compilation)
+   ----------------------
+
+Le début de flrn_config.h contient quelques définitions que vous pouvez
+modifier... à vos risques et périls.
+
+1) modifier site_config.h  (avant la compilation)
+   ----------------------
+
+site_config.h donne la configuration par défaut (qui est modifié par
+le .flrnrc de l'utilisateur, ou le flrnrc par défaut de l'installation
+si l'utilisateur n'a pas de .flrnrc).
+
+Comme flrn a été prévu pour un serveur local, certaines valeurs ne
+sont pas compatibles avec une installation pour les news extérieures.
+On conseille particulièrement de changer :
+     (cf le manuel pour plus d'explications sur ces variables)
+
+_ server : mieux vaut mettre "news", ou le nom de votre serveur préféré.
+  (cette variable est de toute façon écrasée par $NNTPSERVER)
+_ header, weak_headers, hidden_headers : on peut faire quelques
+  modifications, mais cela ne permet hélas pas d'avoir ce que l'on
+  peut obtenir avec un vrai flrnrc (faute de pouvoir introduire des
+  headers non "connus" de flrn).
+_ edit_all_headers : dans une configuration pour des news extérieures, il 
+  FAUT mettre 1.
+_ include_in_edit : mis à 0 pour éviter la présence de quote dans les
+  réponses (les messages n'expirant pas), il faut mettre 1 pour des
+  news extérieures, surtout si auto_edit est égal à 1.
+_ threaded_space : il faut mettre 1. Ce sera 1 dans les futures versions.
+_ auto_edit : il est préférable de mettre 1, sauf si votre éditeur favori
+  est (x)emacs et qu'il prend trop de temps à se lancer. :-)
+_ auto_kill : cette option spéciale est mieux à 0
+_ use_regexp, use_menus, with_cousins : mieux vaut mettre 1
+_ default_subscribe : 0 est peut-être préférable
+_ alpha_tree (quel nom idiot !) : il faut mettre 1
+_ flags_group : la chaine "M DDm*dd" est probablement meilleure
+_ hist_file_name : mettre ".flrnhist" n'est pas plus mal
+_ warn_if_new : mettre 1 n'est pas plus mal non plus
+_ default_flnewsfile : mettre "flnewsrc" n'est pas plus mal
+_ help_line : vu la gueule des lignes d'aide, on peut mettre 0 sans risque
+
+
+Comme ces modifications sont un peu lourde, on peut tout simplement ne
+rien faire, et installer un flrnrc par défaut qui sera chargé si 
+l'utilisateur n'en a pas dans son répertoire. Mais un utilisateur
+qui désirerait personnaliser sa configuration devra alors inclure la
+configuration par défaut par un "include ..." au début de son .flrnrc
+(ou alors il peut reprendre le flrnrc par défaut et le modifier).
+
+2) faire un flrnrc par défaut (après l'installation)
+   --------------------------
+
+Un exemple de flrnrc est le flrnrc.sample donné dans ce répertoire.
+On pourra avantageusement le copier dans  $datadir/flrn pour
+avoir une configuration par défaut.
+
+3) faire un flnewsrc par défaut (après l'installation)
+   ----------------------------
+
+On pourra rajouter un flnewsrc dans $datadir/flrn qui servira si
+lorsque l'utilisateur lance flrn pour la première fois (si la
+configuration est bien prévue pour). Ce flnewsrc a le format d'un
+.newsrc normal.
+On pourra par exemple y mettre la simple ligne :
+fr.bienvenue:
+
+afin que l'utilisateur soit par défaut abonné à un groupe utile.

@@ -1,9 +1,12 @@
-/* flrn v 0.3                                                           */
-/*              flrn_tags.c           08/11/98                          */
-/*                                                                      */
-/*  Gestion des tags et de l'historique.                                */
-/*                                                                      */
-/*                                                                      */
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *      flrn_tags.c : tags et historique
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
 
 
 #include <strings.h>

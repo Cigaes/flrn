@@ -1,9 +1,13 @@
-/* flrn v 0.1                                                           */
-/*              art_group.c         25/11/97                            */
-/*                                                                      */
-/* Gestion des articles au sein d'un groupe.                            */
-/*                                                                      */
-/*                                                                      */
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *	art_group.c : gestion des articles d'un groupe
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
+
 
 #include <ctype.h>
 #include <stdio.h>
@@ -230,11 +234,22 @@ int cree_liens() {
 	     derelie_article(parcours->pere,parcours);
 
 	  /* La ligne suivante peut servir un jour */
-	  /* if (Article_courant==parcours) Article_courant=creation; */
+	  /* helas oui... */
+	  if (Article_courant==parcours) Article_courant=creation;
+	  /* on doit même tester, pour le Quisar serveur, les non-lus */
+	  if ((parcours->numero!=-1) && (!(parcours->flag & FLAG_READ))) {
+	      Newsgroup_courant->not_read--;
+	      parcours->thread->non_lu--;
+	  }
 
 	  /* On efface enfin l'article vidé */
 	  if (parcours->prev) parcours->prev->next=parcours->next;
-	     else Article_exte_deb=parcours->next;
+	     else {
+	       /* n'excluons jamais le pire : un doublon dans le xover */
+	       /* (on a deja vu ca sur le serveur de Quisar) */
+	       if (parcours==Article_deb) Article_deb=parcours->next;
+	         else Article_exte_deb=parcours->next;
+             }
 	  if (parcours->next) parcours->next->prev=parcours->prev;
 	  free_one_article(parcours,1);
        }

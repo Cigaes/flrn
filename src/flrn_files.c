@@ -1,9 +1,12 @@
-/* flrn v 0.1		                                                */
-/*              flrn_files.c        22/06/98                            */
-/*									*/
-/* Des routines de gestion des fichiers (.flrn(rc?) et .flnewsrc)       */
-/* Ce fichier doit se limiter à la gestion de fichiers.			*/
-/*									*/
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *      flrn_files.c : gestion des fichiers
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
 
 #include <sys/stat.h>
 #include <unistd.h>

@@ -1,9 +1,12 @@
-/* flrn v 0.4                                                           */
-/*              flrn_comp.c          29/02/99                           */
-/*                                                                      */
-/*  Complétions dans flrn                                               */
-/*                                                                      */
-/*                                                                      */
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *      flrn_comp.c : complétion automatique dans flrn
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
 
 #include <stdlib.h>
 #include "flrn.h"

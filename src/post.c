@@ -1,9 +1,12 @@
-/* flrn v 0.4                                                           */
-/*              post.c              19/03/99                            */
-/*                                                                      */
-/* Gestion des posts...                                                 */
-/* Ce fichier ne fait pas appel à slang...				*/
-/*                                                                      */
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *      post.c : pour les posts et l'éditeur intégré
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,0 +1,100 @@
+README pour flrn en français 
+
+(désolé pour le pompeux du discours, on essaie de faire un truc sérieux)
+
+Description
+===========
+
+flrn est un lecteur de news en français développé à l'École Normale Supérieure.
+(français = franglais... les commandes par exemple ont des noms anglais)
+
+flrn dispose d'un certains nombre de features : affichage de résumés
+des messages (comme slrn), configurable sans trop de difficultés, historique
+des messages lus, passage facile d'un groupe à l'autre d'un message
+crossposté...
+Principal défaut (à mon avis) : flrn ne décode pas les messages (sauf
+éventuellement les headers en QP ou en base64), et ne gère évidemment pas
+les messages en multi-part.
+
+Les auteurs de flrn sont Joël-Yann Fourré et Damien Massé (auteur du présent
+fichier).
+
+Les discussions autour de flrn se font pour des raisons historique sur
+un groupe de discussion interne à l'ENS, mais on peut envoyer les
+suggestions et bug-reports à damien.masse@ens.fr où ils seront bien
+accueillis (en principe). Il est éventuellement envisageable de créer
+une mailing-liste si le programme se répand vraiment (heureusement,
+c'est pas encore fait).
+
+flrn a été essentiellement testé sur des serveurs de news innd (de
+différentes versions). Quelques essais ont été effectués avec leafnode
+(qui dispose d'un nombre moindre de commandes).
+
+Histoire
+========
+
+Le projet d'écrire flrn date de novembre 1997. L'objectif était d'obtenir
+un lecteur de news qui simule l'interface d'un vieux programme de news
+interne (non client-serveur) dont le nom était forum, afin de passer
+à un système client-serveur où le serveur serait un truc standard (innd).
+D'où flrn = forum-like rn.
+Par la suite les auteurs ont tenté de rendre ce programme utilisable pour
+autre chose que la lecture de groupes de discussions locaux.
+
+Systèmes supportés
+==================
+
+flrn est censé tourner sur n'importe quel Unix un peu récent, pour
+peu que slang soit installé.
+Il a été essentiellement testé sous Linux (PC et alpha) et SunOS 5,
+mais de vieilles versions ont été un peu testées sous SunOS 4 (avec la
+bibliothèque rx), NextStep (avec gcc -posix), HPUX et OpenBSD.
+Il est conseillé d'utiliser gcc, mais cc semble le plus souvent marcher.
+
+La bibliothèque slang (ftp://space.mit.edu/pub/davis/slang) est indispensable
+pour flrn. flrn a été testé avec des versions entre 0.99 et 1.2 (pas la
+1.3, il faudrait que je vérifie si rien n'a changé). flrn n'utilise que
+la partie gestion de terminal de la bibliothèque (comme mutt). Il est
+envisagé (mais non décidé) d'utiliser à terme le langage associé.
+
+La bibliothèque rx (ftp://prep.ai.mit.edu/pub/gnu/rx) est nécessaire si
+la bibliothèque C n'inclut pas la gestion des expression régulières.
+
+L'installation du programme urlview 
+(ftp://ftp.lip6.fr/pub/unix/mail/mutt/contrib/)
+est conseillée. Ça s'adapte très bien au programme.
+
+
+Installation
+============
+
+cf INSTALL pour l'installation "de base"
+Il est conseillé de regarder aussi INSTALL.site pour une
+configuration spécifique à un site donné.
+
+Documentation
+=============
+
+flrn dispose d'une page de man qui décrit les options de la ligne
+de commande et les options du fichier de configuration.
+L'aide en ligne décrit le fichier de configuration, les commandes
+de flrn et le kill-file de flrn.
+L'ensemble des fichiers de l'aide en ligne est dans le répertoire help.
+
+Bug-reports, etc...
+===================
+
+Envoyer à damien.masse@ens.fr, ou a flrn@quatramaran.ens.fr (ceci si
+on crée une mailing-list un jour, pour l'instant ça finit dans ma
+mailbox ;-) )
+cf src/README.dev pour avoir des renseignements sur l'organisation (très
+désorganisée) du code.
+
+
+Copie
+=====
+
+flrn est sous GPL
+Une petite partie du code a été reprise à mutt (ancien parsing de la
+date, codage et décodage des headers en QP pour l'iso-8859-1)
+cf COPYING pour plus de détails.

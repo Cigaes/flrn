@@ -1,10 +1,12 @@
-/* flrn v 0.1                                                           */
-/*              flrn_string.c           03/12/97                        */
-/*                                                                      */
-/*   Gestion des listes de chaines...                                   */
-/*       et de scrollings.                                              */
-/*                                                                      */
-
+/* flrn : lecteur de news en mode texte
+ * Copyright (C) 1998-1999  Damien Massé et Joël-Yann Fourré
+ *
+ *      flrn_string.c : gestion de chaines de taille importante (pour le post)
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation. See the file COPYING for details.
+ */
 
 
 #include <strings.h>
