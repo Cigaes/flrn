@@ -148,7 +148,7 @@ int parse_filter(char * istr, flrn_filter *start) {
   }
   /* on cherche le header correspondant */
   for (i=0;i<NB_KNOWN_HEADERS;i++) {
-    if (strncmp(str,Headers[i].header,Headers[i].header_len)==0) {
+    if (strncasecmp(str,Headers[i].header,Headers[i].header_len)==0) {
       cond->header_num=i; break;
     }
   }
