@@ -1173,7 +1173,7 @@ int do_add_kill(int res) {
 
 int do_remove_kill(int res) {
   char *str=Arg_str;
-  remove_from_main_list(str?str:Newsgroup_courant->name);
+  remove_from_main_list(str[0]?str:Newsgroup_courant->name);
   Newsgroup_courant->flags&=~GROUP_IN_MAIN_LIST_FLAG;
   Aff_newsgroup_name();
   etat_loop.etat=1; etat_loop.num_message=19;

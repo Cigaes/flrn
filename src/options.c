@@ -108,6 +108,16 @@ void options_comp(char *option, int len)
       strcpy(option,OPT_MY_HEADER); strcat(option," ");
     }
   } else
+  if (strncmp(buf,OPT_MY_FLAGS,used)==0) {
+    /* On ne fait pas de complétion pour my_flags */
+    if (used<OPT_MY_FLAGS_LEN) {
+      strcpy(option,OPT_MY_FLAGS); strcat(option," ");
+      free(my_option);
+      return;}
+    if (!strtok(NULL,delim)) {
+      strcpy(option,OPT_MY_FLAGS); strcat(option," ");
+    }
+  } else
   if (strncmp(buf,OPT_HEADER,used)==0) {
     if (used<OPT_HEADER_LEN) {
       strcpy(option,OPT_HEADER); strcat(option," ");
@@ -557,6 +567,12 @@ void dump_flrnrc(FILE *file) {
   parcours=Options.user_header;
   while (parcours) {
     fprintf(file,"\nmy_hdr %s",parcours->str);
+    parcours=parcours->next;
+  }
+  fprintf(file,"\n\n# Flags ajoutés pour voir les messages");
+  parcours=Options.user_flags;
+  while (parcours) {
+    fprintf(file,"\nmy_flags %s",parcours->str);
     parcours=parcours->next;
   }
   fprintf(file,"\n\n# Il reste les couleurs...\n");
