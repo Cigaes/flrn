@@ -16,7 +16,11 @@ struct Option_struct Options = {
   DEFAULT_NNTP_PORT,    /* port (DEFAULT_NNTP_PORT = 119) */
   NULL,			/* flnews_ext */
   NULL, 		/* Post name - doit rester NULL */
+#ifdef GNKSA_DISPLAY_HEADERS /* défini dans config.h ou flrn_config.h */
+  {NEWSGROUPS_HEADER,FOLLOWUP_TO_HEADER,REFERENCES_HEADER,FROM_HEADER,REPLY_TO_HEADER,DATE_HEADER,SUBJECT_HEADER,-1}, /* header */
+#else  /* configuration "forum" */
   {REFERENCES_HEADER,FROM_HEADER,DATE_HEADER,SUBJECT_HEADER,-1}, /* header */
+#endif
   {-1},			/* weak headers */
   {-1},			/* hidden headers */
   NULL,			/* user headers */

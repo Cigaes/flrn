@@ -31,7 +31,7 @@
 /* Cette option change la configuration par défaut pour afficher
  * les entêtes standards (From, Subject, Newsgroups, Followup-To,
  * Reply-To */
-/* #undef GNKSA_DISPLAY_HEADERS */
+#undef GNKSA_DISPLAY_HEADERS
 
 /* Cette option change le nom des commandes standards pour avoir
  * une terminologie "GNKSA" (française) pour les posts et cancels */
@@ -48,7 +48,7 @@
 
 /* Cette option met un champ Newsgroups conforme au GNKSA (il n'y est
  * pas par défaut car je n'aime pas cette feature */
-/* #undef GNKSA_NEWSGROUPS_HEADER */
+#undef GNKSA_NEWSGROUPS_HEADER
 
 /* Cette option vérifie les references d'un article posté, en met le
  * maximum dans la limite de 998 caractères */

@@ -435,9 +435,9 @@ post
 	le fichier <nom> SANS DEMANDER CONFIRMATION.
 reply	
 	(défaut : R) (prend éventuellement <nom> en paramètre)
-	Répond au premier article sélectionné, et à l'article courant par
-	défaut. Si <nom> existe, on poste le fichier <nom> SANS DEMANDER
-	CONFIRMATION.
+	Répond en public au premier article sélectionné, et à l'article
+	courant par défaut. Si <nom> existe, on poste le fichier <nom>
+	SANS DEMANDER CONFIRMATION.
 mail-answer
 	(pas de défaut) (prend éventuellement <nom> en paramètre)
 	Répond au premier article sélectionné par mail. Si <nom> existe, on

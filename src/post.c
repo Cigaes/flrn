@@ -1358,12 +1358,14 @@ static int Get_base_headers(int flag, Article_List *article) {
    }
    /* Newsgroups */
    if (Header_post->k_header[NEWSGROUPS_HEADER]==NULL) {
+#ifndef GNKSA_NEWSGROUPS_HEADER
 	 if (!supersedes) {
 	    if (Newsgroup_courant->flags & GROUP_READONLY_FLAG) 
 	        Header_post->k_header[NEWSGROUPS_HEADER]=safe_strdup("junk");
 	    else
 	 	Header_post->k_header[NEWSGROUPS_HEADER]=safe_strdup(Newsgroup_courant->name);
 	 } else
+#endif
 	    Header_post->k_header[NEWSGROUPS_HEADER]=safe_strdup(Pere_post->headers->k_headers[NEWSGROUPS_HEADER]);
    }
    /* Headers To: et In-Reply-To: */

@@ -12,7 +12,7 @@ La commande \post permet de poster un message dans le groupe courant.
 Il vous sera alors demandé de saisir un sujet pour votre message.
 S'il est impossible de poster dans ce groupe, le groupe proposé par
 défaut sera "junk".
-La commande \reply répond à l'article courant.
+La commande \reply répond en public à l'article courant.
 Ces deux commandes peuvent prendre un nom de fichier en argument. Le
 fichier est alors directement posté sans confirmation.
 Si aucun fichier n'est en argument, vous entrez dans l'éditeur intégré

@@ -90,7 +90,7 @@ L (\LIST) liste tous les groupes.
 * Posts :
 
 m (\post) poste un article.
-R (\reply) répond à un article, c-à-d poste un followup (une réponse)
+R (\reply) répond en public à un article, c-à-d poste un "followup"
 
 * Divers :
 
