@@ -1581,7 +1581,7 @@ int do_neth(int res) {  /* Très pratique, cette fonction, pour les tests idiots 
   for (i=0;i<Screen_Rows-1;i++)
     grande_table[i]=safe_malloc(Screen_Cols);
 
-  Aff_arbre(1,0,Article_courant,Screen_Cols/4-1,Screen_Cols/4-1,Screen_Rows-2,grande_table);
+  Aff_arbre(1,0,Article_courant,Screen_Cols/4-1,Screen_Cols/4-1,Screen_Rows-2,grande_table,0);
   for (i=0;i<Screen_Rows-1;i++)
     free(grande_table[i]);
   free(grande_table);

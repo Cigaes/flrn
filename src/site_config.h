@@ -13,7 +13,8 @@ struct Option_struct Options = {
   {REFERENCES_HEADER,FROM_HEADER,DATE_HEADER,SUBJECT_HEADER,-1}, /* header */
   {-1},			/* weak headers */
   {-1},			/* hidden headers */
-  NULL,
+  NULL,			/* user headers */
+  0,			/* headers scroll */
   1,			/* skip_line */
   -1,			/* color, -1 = autodetect */
   1,			/* cbreak */

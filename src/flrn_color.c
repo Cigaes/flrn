@@ -418,3 +418,13 @@ int Aff_color_line(int to_print, unsigned short *format_line, int *format_len,
   return raw_Aff_color_line(to_print,format_line,format_len,field,line,len,
       bol,def_color,NULL,0);
 }
+
+unsigned short *cree_chaine_mono (const char *str, int field, int len) {
+   int i;
+   unsigned short *toto;
+
+   if (len==-1) len=strlen(str);
+   toto=safe_malloc(len*sizeof(short));
+   for (i=0;i<len;i++) toto[i]=(field<<8) + (unsigned char)str[i];
+   return toto;
+}

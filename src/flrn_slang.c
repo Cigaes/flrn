@@ -122,12 +122,13 @@ static File_Line_Type *create_line (char *buf) {
 }
 
 /* on refait un malloc... */
-static File_Line_Type *create_color_line (unsigned short *buf, int len) {
+static File_Line_Type *create_color_line (unsigned short *buf, int len,
+						int a_allouer) {
    File_Line_Type *line;
    int i;
      
    line = (File_Line_Type *) safe_calloc (1,sizeof (File_Line_Type));
-   line->data = safe_malloc(sizeof(short) * len);
+   line->data = safe_malloc(sizeof(short) * a_allouer);
    for(i=0;i<len;i++) {
      line->data[i]=buf[i];
    }
@@ -158,24 +159,54 @@ File_Line_Type *Ajoute_line(char *buf) {
 
 /* Cette fonction ajoute une ligne au texte a scroller */
 /* Elle renvoie NULL en cas d'échec.                   */
-File_Line_Type *Ajoute_color_Line(unsigned short *buf, int len) {
+/* si a_allouer!=0, on veut allouer plus...	       */
+File_Line_Type *Ajoute_color_Line(unsigned short *buf, int len, 
+					int a_allouer) {
     File_Line_Type *line=Text_scroll;
 
+    if (a_allouer==0) a_allouer=len;
     if (line==NULL) {
-       Text_scroll=create_color_line(buf,len);
+       Text_scroll=create_color_line(buf,len,a_allouer);
        if (Text_scroll) {
           Line_Window.num_lines++;
        }
        return Text_scroll;
     }
     while (line->next) line=line->next;
-    line->next=create_color_line(buf,len);
+    line->next=create_color_line(buf,len,a_allouer);
     if (line->next) {
         Line_Window.num_lines++;
         line->next->prev=line;
     }
     return (line->next);
 } 
+
+/* Cette fonction rajoute un bout à la n-ième ligne du scrolling */
+/* Elle suppose que suffisammenent de place a été alloué */
+/* deb est la colonne du début du rajout (-1 si suite)	*/
+/* si n=-1, on rajoute en fin...			*/
+/* Elle renvoie NULL en cas d'échec.                   */
+File_Line_Type *Rajoute_color_Line(unsigned short *buf, int n, 
+					int len, int deb) {
+    File_Line_Type *line=Text_scroll;
+    int i=0;
+
+    if (line==NULL) return NULL; /* pas de ligne */
+    while ((i<n) || ((n==-1) && (line->next))) {
+       line=line->next;
+       if (line==NULL) return NULL; /* pas de ligne */
+       i++;
+    }
+    if (deb==-1) deb=line->data_len;
+    if (line->data_len<deb)   /* faut completer... je vais essayer :-( */
+       for (i=line->data_len;i<deb;i++) line->data[i]=(buf[0] & 256)+32;
+    for (i=0;i<len;i++) {
+       line->data[deb+i]=buf[i];
+    }
+    line->data_len=deb+len;
+    return line;
+} 
+
 
 File_Line_Type *Change_line(int n,char *buf) {
     File_Line_Type *line=Text_scroll;

@@ -2,7 +2,7 @@
 #define FLRN_EXTERN_H
 
 #include <stdio.h>
-#include <slang.h>
+/* #include <slang.h> */
 #include <sys/stat.h>
 
 #include "group.h"
@@ -116,7 +116,7 @@ extern int Aff_fin(const char * /*str*/);
 extern int Aff_error(const char * /*str*/);
 extern int Aff_file(FILE * /*file*/, char *, char *);
 extern int Liste_groupe(int /*n*/, char * /*mat*/);
-extern void Aff_arbre(int,int,Article_List *, int, int, int, unsigned char **);
+extern int Aff_arbre(int,int,Article_List *, int, int, int, unsigned char **, int);
 
 /* tty_keyboard.c */
 extern int Init_keyboard(void);
@@ -199,6 +199,7 @@ extern void Init_couleurs(void);
 extern int Aff_color_line(int /*to_print*/, unsigned short * /*format_line*/,
     int * /*format_len*/, int /*field*/, char * /*line*/, int /*len*/,
     int /*bol*/, int /*def_color*/);
+extern unsigned short *cree_chaine_mono (const char *, int, int);
 
 /* Fonctions liées avant à slang... Dans flrn_slang.c */
 extern void Screen_suspend(void);
@@ -234,7 +235,8 @@ extern void Init_Scroll_window(int /*num*/, int /*beg*/, int /*nrw*/);
 extern File_Line_Type *Ajoute_line(char * /*buf*/);
 extern File_Line_Type *Change_line(int, char * /*buf*/);
 extern File_Line_Type *Ajoute_form_Ligne(char * /*buf*/, int /*field*/);
-extern File_Line_Type *Ajoute_color_Line(unsigned short * /*buf*/, int /*len*/);
+extern File_Line_Type *Ajoute_color_Line(unsigned short *, int, int);
+extern File_Line_Type *Rajoute_color_Line(unsigned short *, int, int, int);
 extern char *Read_Line(char * /*out*/, File_Line_Type * /*line*/);
 extern void Retire_line(File_Line_Type * /*line*/);
 extern int Do_Scroll_Window(int /*n*/, int /*ob_update*/);

@@ -1,5 +1,8 @@
 ChangeLog Flrn
 
+. bugfixes dans l'arbre, centrage de l'affichage, scrolling des headers...
+    ... et ajout probable de plein de bugs
+. bugfixes dans post.c
 . option my_hdr
 . bugfix des kill-files
 . bugfix dans next_in_thread

@@ -45,9 +45,9 @@ static int Size_Window(int flag, int col_num) {
      if (num_art_col>name_news_col+28) aff_help=1;
    if (aff_help) name_news_col+=9;
    if (aff_mess==0) num_art_col+=8;
-   if (Screen_Rows<3) {
+   if (Screen_Rows<3+2*Options.skip_line) {
       row_erreur=(Screen_Rows ? 1 : 0);
-      if (debug || flag) fprintf(stderr, "Nombre de colonnes insuffisante.\n");
+      if (debug || flag) fprintf(stderr, "Nombre de lignes insuffisante.\n");
       return 0;
    } else 
       row_erreur=Screen_Rows/2;
@@ -345,11 +345,16 @@ int Liste_groupe (int flags, char *mat) {
 /* on essaie d'arranger to_left et to_right... height est la max... */
 /* table est un pointeur vers un tableau de taille ((to_left+to_right)*2+3, */
 /* height+1) ou plutôt l'inverse... il est déjà alloué... */
-void Aff_arbre (int row, int col, Article_List *init,
+/* add_to_scroll ajoute l'arbre au scrolling, en supposant que le scrolling */
+/* commence en premiere ligne...					*/
+/* on renvoie la colonne atteinte...					*/
+int Aff_arbre (int row, int col, Article_List *init,
     		int to_left, int to_right, int height,
-		unsigned char **table) {
+		unsigned char **table, int add_to_scroll) {
   Article_List *parcours=init, *parcours2, *parcours3;
   int up,down, act_right, act_right_deb, act_right_temp, left, right, initcol;
+  int row_deb=row; /* juste pour l'affichage */
+  unsigned short *toto;
 
   /* on "nettoie" table */
   for (up=0;up<height+1;up++)
@@ -383,7 +388,7 @@ void Aff_arbre (int row, int col, Article_List *init,
       parcours=parcours->prem_fils;
   }
   if (act_right_deb>to_right) {
-     (table[0])[(to_left+to_right)*2+2]='>';
+     (table[0])[(left+to_right)*2+2]='>';
      act_right_deb=to_right;
   }
   right=act_right_deb; /* right sera le max atteint à droite */
@@ -554,23 +559,50 @@ void Aff_arbre (int row, int col, Article_List *init,
   }
   /* table est correctement remplie, right est le maximum atteint a droite,
    * left celui a gauche, up en haut et down en bas... Tout le reste n'est
-   * qu'affichage */
+   * qu'affichage, mais c'est quand même mieux si c'est centré... :-) */ 
+  if (up<height/2) row=row+(height/2-up>height-up-down ? height-up-down :
+  				height/2-up);
+  if (left<to_left) col=col+2*(to_left-left<to_right-right ? 
+  			to_left-left : to_right-right);
+		/* un peu bizarre, mais left+to_right=to_left+to_right_ini */
+  				
   for (;up>0;up--) {
     Cursor_gotorc(row++,col);
     Screen_write_nstring(table[height+1-up],initcol+right*2+2);
+    if (add_to_scroll) {
+       toto=cree_chaine_mono(table[height+1-up],FIELD_NORMAL,initcol+right*2+2);
+       if (Rajoute_color_Line(toto,row-1-row_deb,initcol+right*2+2,col)==NULL) {
+          Ajoute_color_Line(NULL,0,Screen_Cols);
+	  Rajoute_color_Line(toto,-1,initcol+right*2+2,col);
+       }
+       free(toto);
+    }
   }
   for (up=0;up<=down;up++) {
     Cursor_gotorc(row++,col);
     Screen_write_nstring(table[up],initcol+right*2+2);
+    if (add_to_scroll) {
+       toto=cree_chaine_mono(table[up],FIELD_NORMAL,initcol+right*2+2);
+       if (Rajoute_color_Line(toto,row-1-row_deb,initcol+right*2+2,col)==NULL) {
+          Ajoute_color_Line(NULL,0,Screen_Cols);
+	  Rajoute_color_Line(toto,-1,initcol+right*2+2,col);
+       }
+       free(toto);
+    }
   }
+  return (row-1);
 }
      
 
 
 /* Affichage d'un header, juste appelé par Aff_headers */
 /* flag=1 : juste une ligne... flag=2 : cas particulier reponse_a */
-static int Aff_header (int flag, int row, int col, char *str, 
-    		unsigned short *to_aff) {
+/* with_arbre : on va afficher l'arbre, réserver de la place...   */
+/*    (0 : rien    1 : petites fleches     2 : arbre complet  */
+/* add_to_scroll : on ajoute au scrolling ce qu'on écrit....  */
+/* (en gros c'est a peu près comme flag sauf cas flag=2 :-(   */
+static int Aff_header (int flag, int with_arbre, int row, int col, char *str, 
+    		unsigned short *to_aff, int add_to_scroll) {
    char *buf=str, *buf2;
    unsigned short *ptr=to_aff;
    int decalage;
@@ -581,18 +613,34 @@ static int Aff_header (int flag, int row, int col, char *str,
       if (buf2==NULL) buf2=strchr(buf,'\0'); 
       decalage=flag ? 5 : 0;
       if (flag==2) decalage+=8;
-      if (row<4+Options.skip_line) decalage+=5; /* pour l'arbre */
+      if ((with_arbre==1) && (row<4+Options.skip_line)) decalage+=5; 
+      if ((with_arbre==2) && (row<8+Options.skip_line)) decalage+=12; 
+      							/* pour l'arbre */
       if (buf2-buf>Screen_Cols-col-decalage) {
 	 Screen_write_color_chars(ptr, Screen_Cols-col-decalage);
+	 if (add_to_scroll) {
+	    if (col==0) Ajoute_color_Line(ptr, Screen_Cols-decalage,
+	    					Screen_Cols);
+	    else Rajoute_color_Line(ptr,-1,Screen_Cols-col-decalage,col);
+	 }
 	 if (flag) {
-	    Screen_write_string("[...]");
+	    buf="[...]";
+	    ptr=cree_chaine_mono(buf,FIELD_HEADER,-1);
+	    if (add_to_scroll) Rajoute_color_Line(ptr,-1,5,
+	    					Screen_Cols-decalage);
+	    Screen_write_color_chars(ptr,5);
+	    free(ptr);
 	    return (row+1);
 	 }
-	 buf+=Screen_Cols-col-flag;
-	 ptr+=Screen_Cols-col-flag;
+	 buf+=Screen_Cols-col-decalage;
+	 ptr+=Screen_Cols-col-decalage;
 	 col=0; row++;
       } else {
 	 Screen_write_color_chars(ptr, buf2-buf);
+	 if (add_to_scroll) {
+	    if (col==0) Ajoute_color_Line(ptr, buf2-buf, Screen_Cols);
+	    else Rajoute_color_Line(ptr,-1,buf2-buf,col);
+	 }
 	 if (flag) col+=buf2-buf+1;
 	 else { col=0; row++; }
 	 if (*buf2) { ptr=to_aff+(buf2-str)+1; buf=buf2+1; }
@@ -605,6 +653,9 @@ static int Aff_header (int flag, int row, int col, char *str,
 
 /* Affichage des headers... Le parametre flag vaut 1 si c'est la suite d'un */
 /* message 								    */
+/* Un truc bien est maintenant d'ajouter éventuellement au scrolling les    */
+/* headers dans le cas ou flag vaut 0. On gardera ensuite ledit scrolling   */
+/* selon les options obtenues...					    */
 int Aff_headers (int flag) {
    int index=0, row, col, i, j, i0, length;
    char buf[15];
@@ -612,7 +663,10 @@ int Aff_headers (int flag) {
    char *une_ligne=NULL;
    unsigned short *une_belle_ligne=NULL;
    int flags[NB_KNOWN_HEADERS];
+   int with_arbre;
 
+/*   with_arbre=1+(Options.alpha_tree && (!flag)); */
+   with_arbre=1+Options.alpha_tree;
    row=1+Options.skip_line;
    /* On commence pas mettre le flag pour tous les headers référencés */
    for (j=0;j<NB_KNOWN_HEADERS;j++) flags[j]=-1;
@@ -682,29 +736,42 @@ int Aff_headers (int flag) {
 	     une_belle_ligne=safe_malloc((strlen(une_ligne)+1)*sizeof(short));
 	     Aff_color_line(0,une_belle_ligne, &length,
 		 FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);
-	     row=Aff_header(2, row, 0, une_ligne, une_belle_ligne);
+	     row=Aff_header(2, with_arbre, row, 0, une_ligne, une_belle_ligne,!flag);
    	     Screen_set_color(FIELD_HEADER);
 	     if (Article_courant->parent>0) {
 	        sprintf(buf," [%d]", Article_courant->parent);
 	        Screen_write_string(buf);
+		if (!flag) {
+		  free(une_belle_ligne);
+		  une_belle_ligne=cree_chaine_mono(buf,FIELD_HEADER,-1);
+		  Rajoute_color_Line(une_belle_ligne,-1,strlen(buf),-1);
+		}
 	     }
 	    /* On ne garde qu'une ligne dans tous les cas */
            } else if (Article_courant->parent!=0) {
    	      Screen_set_color(FIELD_HEADER);
-              Cursor_gotorc((row++),0);
-              Screen_write_string("Réponse à un message enlevé ou d'un autre newsgroup.");
+              Cursor_gotorc(row,0);
+	      une_ligne="Réponse à un message non disponible.";
+	      une_belle_ligne=safe_malloc((strlen(une_ligne)+1)*sizeof(short));
+	      Aff_color_line(0,une_belle_ligne, &length,
+		 FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);
+	      row=Aff_header(1, with_arbre, row, 0, une_ligne, une_belle_ligne,!flag);
+	      une_ligne=NULL; /* ne pas liberer une chaine non allouée */
            } 
          break;
          case DATE_HEADER:
-           Cursor_gotorc(row++,0);
+           Cursor_gotorc(row,0);
 	   une_ligne=safe_malloc(60);
            strcpy(une_ligne,"Date: ");
 	   if (Article_courant->headers->date_gmt) {
 	     strncat(une_ligne,ctime(&Article_courant->headers->date_gmt),53);
 	   } else
-	    strncat(une_ligne,Article_courant->headers->k_headers[DATE_HEADER],53);
-	   Aff_color_line(1,NULL, NULL,
-		FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);
+	     strncat(une_ligne,
+	              Article_courant->headers->k_headers[DATE_HEADER],53);
+	   une_belle_ligne=safe_malloc((strlen(une_ligne)+1)*sizeof(short));
+	   Aff_color_line(0,une_belle_ligne, &length,
+	          FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);
+	   row=Aff_header(1, with_arbre, row, 0, une_ligne, une_belle_ligne,!flag);
            break;
          case FROM_HEADER:
 	   une_ligne=safe_malloc(10+strlen(Article_courant->headers->k_headers[FROM_HEADER]));
@@ -713,21 +780,30 @@ int Aff_headers (int flag) {
 	   une_belle_ligne=safe_malloc((strlen(une_ligne)+1)*sizeof(short));
 	   Aff_color_line(0,une_belle_ligne, &length,
 		 FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);
-	   row=Aff_header(flag,row,0,une_ligne,une_belle_ligne);
+	   row=Aff_header(flag,with_arbre, row,0,une_ligne,une_belle_ligne,!flag);
          break;
          case SUBJECT_HEADER:
    	   Screen_set_color(FIELD_HEADER);
            Cursor_gotorc(row,0);
 	   col=0;
 	   if (flag) { Screen_write_string("(suite) "); col+=8; }
-           if (Article_courant->flag& FLAG_READ) { Screen_write_char('-'); col++; }
+	      /* pas besoin d'allouer : add_to_scroll =0  dans Aff_header */
+           if (Article_courant->flag& FLAG_READ) { 
+	  	Screen_write_char('-'); 
+		col++; 
+		if (!flag) {
+		  une_belle_ligne=cree_chaine_mono("-",FIELD_HEADER,-1);
+		  Ajoute_color_Line(une_belle_ligne,1,Screen_Cols);
+		  free(une_belle_ligne);
+		}
+	   }
 	   une_ligne=safe_malloc(9+strlen(Article_courant->headers->k_headers[SUBJECT_HEADER]));
            strcpy(une_ligne,"Sujet: ");
 	   strcat(une_ligne,Article_courant->headers->k_headers[SUBJECT_HEADER]);
 	   une_belle_ligne=safe_malloc((strlen(une_ligne)+1)*sizeof(short));
 	   Aff_color_line(0,une_belle_ligne, &length,
 		 FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);
-	   row=Aff_header(flag,row,col,une_ligne,une_belle_ligne);
+	   row=Aff_header(flag,with_arbre, row,col,une_ligne,une_belle_ligne,!flag);
          break;
          default: if (i0==NB_KNOWN_HEADERS) {
 		    tmp=Last_head_cmd.headers;
@@ -739,7 +815,8 @@ int Aff_headers (int flag) {
 			Aff_color_line(0,une_belle_ligne, &length, 
 			    FIELD_HEADER, tmp->header, strlen(tmp->header),
 			    1,FIELD_HEADER);
-	   		row=Aff_header(flag,row,0,tmp->header,une_belle_ligne);
+	   		row=Aff_header(flag,with_arbre, row,0,tmp->header,
+					une_belle_ligne,!flag);
 		      }
 		      tmp=tmp->next;
 		    }
@@ -767,7 +844,8 @@ int Aff_headers (int flag) {
 	         une_belle_ligne=safe_malloc((strlen(une_ligne)+1)*sizeof(short));
 	         Aff_color_line(0,une_belle_ligne, &length,
 		   FIELD_HEADER, une_ligne, strlen(une_ligne), 1,FIELD_HEADER);
-		 row=Aff_header(flag,row,0,une_ligne,une_belle_ligne);
+		 row=Aff_header(flag,with_arbre,row,0,une_ligne,
+		 			une_belle_ligne,!flag);
 		 if (i<0) une_ligne=NULL; /* Ne pas libérer un header */
          break;
        }
@@ -776,41 +854,46 @@ int Aff_headers (int flag) {
    if (une_ligne) free(une_ligne);
    if (une_belle_ligne) free(une_belle_ligne);
    Screen_set_color(FIELD_NORMAL);
-   if (!Options.alpha_tree) {
-   /* On affiche les petites fleches */
-   Cursor_gotorc(2+Options.skip_line, Screen_Cols-4);
-   Screen_write_char('+');
-   if (Article_courant->frere_prev) {
-      Cursor_gotorc(1+Options.skip_line, Screen_Cols-4);
-      Screen_write_char('^');
-      if (Article_courant->frere_prev->prem_fils)
-        Screen_write_char('\'');
+   if (with_arbre==1) {
+     /* On affiche les petites fleches */
+     /* provisoirement, on les ajoute pas au scrolling (ARGH !!!) */
+     Cursor_gotorc(2+Options.skip_line, Screen_Cols-4);
+     Screen_write_char('+');
+     if (Article_courant->frere_prev) {
+        Cursor_gotorc(1+Options.skip_line, Screen_Cols-4);
+        Screen_write_char('^');
+        if (Article_courant->frere_prev->prem_fils)
+          Screen_write_char('\'');
+     }
+     if (Article_courant->frere_suiv) {
+        Cursor_gotorc(3+Options.skip_line, Screen_Cols-4);
+        Screen_write_char('v');
+        if (Article_courant->frere_suiv->prem_fils)
+          Screen_write_char(',');
+     }
+     if (Article_courant->pere) {
+        Cursor_gotorc(2+Options.skip_line, Screen_Cols-5);
+        Screen_write_char('<');
+     }
+     if (Article_courant->prem_fils) {
+        int numfils=1;
+        Article_List *parcours=Article_courant->prem_fils;
+        while ((parcours->frere_prev)) parcours=parcours->frere_prev;
+        while ((parcours=parcours->frere_suiv)) numfils++;
+        Cursor_gotorc(2+Options.skip_line, Screen_Cols-3);
+        if (numfils > 9) Screen_write_char('*');
+        else if (numfils > 1) Screen_write_char('0'+numfils);
+         Screen_write_char('>');
+        if (Article_courant->prem_fils->prem_fils)
+          Screen_write_char('>');
+     }
+     if (row<4+Options.skip_line) row=4+Options.skip_line;
+   } else if (with_arbre==2) {
+     int row2;
+     row2=Aff_arbre(1+Options.skip_line,Screen_Cols-12,Article_courant,2,2,6,
+	 table_petit_arbre,!flag);
+     if (row<row2) row=row2;
    }
-   if (Article_courant->frere_suiv) {
-      Cursor_gotorc(3+Options.skip_line, Screen_Cols-4);
-      Screen_write_char('v');
-      if (Article_courant->frere_suiv->prem_fils)
-        Screen_write_char(',');
-   }
-   if (Article_courant->pere) {
-      Cursor_gotorc(2+Options.skip_line, Screen_Cols-5);
-      Screen_write_char('<');
-   }
-   if (Article_courant->prem_fils) {
-      int numfils=1;
-      Article_List *parcours=Article_courant->prem_fils;
-      while ((parcours->frere_prev)) parcours=parcours->frere_prev;
-      while ((parcours=parcours->frere_suiv)) numfils++;
-      Cursor_gotorc(2+Options.skip_line, Screen_Cols-3);
-      if (numfils > 9) Screen_write_char('*');
-      else if (numfils > 1) Screen_write_char('0'+numfils);
-       Screen_write_char('>');
-      if (Article_courant->prem_fils->prem_fils)
-        Screen_write_char('>');
-   }
-   } else
-     Aff_arbre(1+Options.skip_line,Screen_Cols-12,Article_courant,2,2,6,
-	 table_petit_arbre);
    return row;
 }
 
@@ -882,7 +965,7 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
 	last_color=Aff_color_line((act_row<Screen_Rows-1),une_belle_ligne,
 	    &length,saved_field, une_ligne, Screen_Cols, bol,last_color);
 	bol=0;
-	Ajoute_color_Line(une_belle_ligne,length);
+	Ajoute_color_Line(une_belle_ligne,length,0);
 	free(une_ligne); free(une_belle_ligne);
 	return (act_row+1); /* Fin de ligne */
       }
@@ -894,7 +977,7 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
 	last_color=Aff_color_line((act_row<Screen_Rows-1),une_belle_ligne,
 	    &length,saved_field, une_ligne, Screen_Cols, bol,last_color);
 	bol=0;
-	Ajoute_color_Line(une_belle_ligne,length);
+	Ajoute_color_Line(une_belle_ligne,length,0);
 	une_ligne[0]='\0';
 	act_row++; tmp_col=0; 
 	continue; 
@@ -932,7 +1015,7 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
 	  last_color=Aff_color_line((act_row<Screen_Rows-1),une_belle_ligne,
 	      &length,saved_field, une_ligne, Screen_Cols, bol,last_color);
 	  bol=0;
-	  Ajoute_color_Line(une_belle_ligne,length);
+	  Ajoute_color_Line(une_belle_ligne,length,0);
 	  free(une_ligne); free(une_belle_ligne);
           return (act_row+1);
       }
@@ -943,7 +1026,7 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
       last_color=Aff_color_line((act_row<Screen_Rows-1),une_belle_ligne,
 	  &length,saved_field, une_ligne, Screen_Cols, bol,last_color);
       bol=0;
-      Ajoute_color_Line(une_belle_ligne,length);
+      Ajoute_color_Line(une_belle_ligne,length,0);
       une_ligne[0]='\0';
       tmp_col=0;
       act_row++;
@@ -953,7 +1036,8 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
 
 
 /* Gestion du scrolling... */
-int Gere_Scroll_Message (int *key_int, int row_act, int row_deb) {
+int Gere_Scroll_Message (int *key_int, int row_act, int row_deb, 
+				int scroll_headers) {
   int act_row, key;
   int num_elem=-row_act-row_deb;
 
@@ -962,7 +1046,8 @@ int Gere_Scroll_Message (int *key_int, int row_act, int row_deb) {
   Cursor_gotorc(1,0);
   Screen_set_color(FIELD_NORMAL);
   Screen_erase_eos();
-  act_row=Aff_headers(1)+1;
+  if (scroll_headers==0) act_row=Aff_headers(1)+1; else
+      act_row=1+Options.skip_line;
   Init_Scroll_window(num_elem,act_row,Screen_Rows-act_row-1);
   key=Page_message(num_elem, 1, key, act_row, row_deb, NULL, NULL);
   if (key!=-1) *key_int=key; 
@@ -1029,7 +1114,7 @@ void Aff_newsgroup_courant() {
 /* comme il semble que ça marche mieux...		 */
 int Aff_article_courant() {
    int res, actual_row, read_line=1;
-   int key_interrupt, first_line;
+   int key_interrupt, first_line, scroll_headers=0;
    char *num, buf[10];
    
    if (debug) fprintf(stderr, "Appel a Aff_article_courant\n");
@@ -1066,6 +1151,10 @@ int Aff_article_courant() {
 	 * esperons que ca coincide */
    } else if ((Article_courant->pere) && (Article_courant->headers->reponse_a_checked==0)) ajoute_reponse_a(Article_courant);
    actual_row=Aff_headers(0);
+   if ((actual_row>Screen_Rows-2) || (Options.headers_scroll)) {
+      Ajoute_color_Line(NULL,0,0); /* on saute une ligne dans le vide */
+      scroll_headers=1;
+   } else free_text_scroll();
    
   /* Messages */
    saved_field=FIELD_NORMAL;
@@ -1099,7 +1188,8 @@ int Aff_article_courant() {
       read_line++;
    } while (actual_row>0);
    if (actual_row<0)  /* On entame un scrolling */
-      actual_row=Gere_Scroll_Message(&key_interrupt,actual_row,first_line);
+      actual_row=Gere_Scroll_Message(&key_interrupt,actual_row,
+   	(scroll_headers ? 1+Options.skip_line : first_line), scroll_headers);
    free_text_scroll();
    if (actual_row==0)  
      article_read(Article_courant); /*Article_courant->flag |= FLAG_READ;*/

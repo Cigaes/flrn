@@ -54,6 +54,7 @@ struct Option_struct {
   int  weak_header_list[MAX_HEADER_LIST]; /* headers "faibles" */
   int  hidden_header_list[MAX_HEADER_LIST]; /* headers a cacher */
   user_hdr_type *user_header;
+  int  headers_scroll;
   int  skip_line;                /* nombre de lignes avant le header */
   int  color;
   int  cbreak;
@@ -143,6 +144,7 @@ static struct {
   MAKE_OPT(duplicate_subject),
   MAKE_OPT(edit_all_headers),
   MAKE_OPT(forum_mode),
+  MAKE_OPT(headers_scroll),
   MAKE_OPT(include_in_edit),
   MAKE_STRING_OPT(index_string),
   MAKE_STRING_OPT(kill_file_name),
