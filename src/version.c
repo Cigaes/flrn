@@ -20,10 +20,10 @@
 static UNUSED char rcsid[]="$Id$";
 
 char version_string[]=
-"Flrn version 0.9.0 par Damien et Jo, 06/2004.";
+"Flrn version 0.9.1 par Damien et Jo, 04/2005.";
 
 char short_version_string[]=
-"Flrn (0.9.0 - 04/06)";
+"Flrn (0.9.1 - 05/04)";
 
 int version_number=90;
 
@@ -51,6 +51,11 @@ void print_version_defines(FILE *out)
          "+MODE_EXPERT  "
 #else
          "-MODE_EXPERT  "
+#endif
+#ifdef USE_CONTENT_ENCODING
+         "+USE_CONTENT_ENCODING  "
+#else
+         "-USE_CONTENT_ENCODING  "
 #endif
 #ifdef USE_SLANG_LANGUAGE
          "+USE_SLANG_LANGUAGE\n"
