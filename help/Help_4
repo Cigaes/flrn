@@ -1,24 +1,26 @@
 4: Liste des commandes
 
-       +---------------------------+
-       |flrn : Toutes les commandes|
-       +---------------------------+
+       ###########################################################
+       #       Description détaillée des commandes de flrn       #
+       ###########################################################
+
+ATTENTION : cette page est assez complète, mais difficile.
 
 flrn admet trois modes d'entrée de commandes :
-  _ le vieux mode cbreak, très semblable au mode de forum, qui sera remplacé
-rapidement par le nouveau mode (non documenté)
-  _ le nouveau mode cbreak, décrit plus bas, qui est le mode par défaut
+  _ le mode cbreak, décrit plus bas, qui est le mode par défaut
   _ le mode nocbreak, pour l'instant très imparfait.
+  _ le mode forum, qui est un mode cbreak modifié pour faire une forme
+de compatibilité. C'est le mode par défaut des configurations locales.
  
-On peut changer de mode avec les options new_mode et cbreak.
-Dans les modes cbreak, taper '@' permet de rentrer localement une commande
-en mode nocbreak.
+On peut changer de mode avec les options cbreak et forum_mode.
+Dans les modes cbreak et forum, taper '@' permet de rentrer localement une 
+commande en mode nocbreak.
 
-
+	-------------------------------
 	Syntaxe générale d'une commande
 	-------------------------------
 
-une commande se présente sous la forme suivante dans le nouveau mode :
+Une commande se présente sous la forme suivante :
 
 	[ elem_1 [ ,elem_2 [ ,... ]]]<nom_de_la_commande> [chaine]
 
@@ -59,32 +61,49 @@ article sélectionné. Il y a toutefois des exceptions.
 soit une touche correspondant à un binding (par défaut ou obtenu par une
 option), soit une commande explicite, préfixée par le caractère '\'.
 
-Enfin, certaines commandes (comme 'list' par exemple), prennent une chaine
+Enfin, certaines commandes (comme 'list' par exemple), prennent une chaîne
 de caractère comme dernier argument. Elle est demandée en fin de commande.
 Certaines commandes (comme 'post') n'en demande pas, mais en acceptent en 
-mode nocbreak.
+mode nocbreak. Une chaîne de caractère en fin de commandes peut aussi
+être interprétée comme une liste d'articles. Une virgule sépare la liste
+des articles de l'éventuelle chaîne demandée.
 
-
+	-----------------
 	Commandes de flrn
 	-----------------
+
+Mode commande (par opposition aux commandes du pager et des menus)
+-------------
 
 Chaque commande est donnée avec son nom explicite et sa touche correspondante
 par défaut. Certaines touches ont des fonctions spéciales, comme 'enter'
 et '-'. D'autres ne peuvent pas être liées à une commande : c'est le
 cas de la virgule, des chiffres, du point et des caractères '<' et '>'.
 
-* Déplacement dans les articles :
+Les commandes sont classées en catégories :
+1 Déplacement dans les articles
+2 Gestion des articles
+3 Affichage des résumés
+4 Gestion des groupes
+5 Poster
+6 Shell-escapes
+7 Divers
 
-art	(défaut : v, et aussi enter si un paramètre est donné)
+
+# Déplacement dans les articles :
+
+article	
+	(défaut : v, et aussi enter si un paramètre est donné)
 	Affiche le premier article donné en argument (ou l'article courant
 	s'il n'y a pas d'argument).
 	
-suiv	(défaut : enter, si aucun paramètre n'est donné)	
+next-article
+	(défaut : enter, si aucun paramètre n'est donné. Parfois n aussi)	
 	Passe à l'article suivant le premier article donné en argument.
 
-prev	(défaut : p, et - si c'est le PREMIER caractère de la commande)
+previous
+	(défaut : p, et - si c'est le PREMIER caractère de la commande)
 	Revient à l'article précédent le premier article donné en argument.
-	(la touche - n'est pas garantie dans les versions suivantes)
 
 up	(défaut : flèche haut)
 down	(défaut : flèche bas)
@@ -93,73 +112,106 @@ right	(défaut : flèche droite)
 	Permet de se déplacer au sein des articles de même sujet. On part
 	du premier article sélectionné, ou de l'article courant.
 
-next	(défaut : space)
+next-unread
+	(défaut : space, et parfois n selon la configuration)
 	Va au premier article non lu. Cette commande a des effets différents
 	selon les options space_is_return et threaded_space. On part dans
 	tous les cas du premier article selectionné.
 
-nxt-thr	(défaut : n)
-	Passe au thread suivant où il y a quelque chose à lire en partant du
-	premier article sélectionné ou de l'article courant. (non implémentée)
+tag
+	(défaut : ")  (prend éventuellement un caractère en argument)
+	place un "tag" sur l'article courant, c'est-à-dire demande à flrn
+	de placer un signe sur cet article pour savoir y revenir. On peut
+	fixer le nom de ce signe sous forme d'un caractère.
+go-tag
+	(défaut : ') (prend éventuellement un caractère en argument)
+	va à l'article précédemment "tagué" par le bon "tag".
+
+history
+	(défaut : H)
+	place dans un menu contenant tous les article visités, en partant
+	des plus récents.
+hist-prev
+	(défaut : B)
+	se déplace au sein de l'historique dans les sens des messages
+	visités "avant". Cette commande permet de revoir des messages
+	déjà lus.
+hist-next
+	(défaut : F)
+	se déplace au sein de l'historique dans les sens des messages
+	visités "après".
 
 
-* Gestions des articles
+# Gestions des articles
 
-view    (défaut : V)
+view   
+	(défaut : V)
 	Lance $PAGER sur les articles sélectionnés. Devrait être une macro
 	de pipe.
 
-save 	(défaut : s)
+save 
+	(défaut : s)
 	Sauve les articles sélectionnés dans un fichier (demandé en argument)
 	Une confirmation est demandé si le fichier existe déjà.
-SAVE	(défaut : S)
+SAVE
+	(défaut : S)
 	Même effet que save, mais sauve les descendants de tous les articles
 	sélectionnés, avec éventuellement plusieurs sauvegardes du même
 	article.
 
-omet	(défaut : o)
+omit
+	(défaut : o)
 	marque comme non lus les articles sélectionnés. Dans le cas où aucun
 	article n'est sélectionné, marque juste l'article courant non lu.
-OMET	(défaut : O)
+OMIT
+	(défaut : O)
 	marque comme non lus les descendants de tous les articles sélectionnés.
 	Si aucun article n'est selectionnés, on se contente de tous les
 	descendants de l'article courant.
 
-kill	(défaut : k)
+kill
+	(défaut : k)
 	marque comme lus les articles sélectionnés avec les crossposts.
 	Si aucun article n'est sélectionné, on marque le message courant comme
 	lu. On passe ensuite au premier article non lu.
-KILL	(défaut : K)
+kill-replies
+	(défaut : K)
 	marque comme lus les descendants des articles sélectionnés en prenant
 	en compte les crossposts. Si aucun article n'est selectionné, on
 	marque les descendants du message courant comme lus.
-KILL-THR (défaut : J)
+kill-thread
+	(défaut : J)
 	marque comme lus les discussions complètes des articles sélectionnés
 	avec les crossposts. Si aucun article n'est sélectionné, on marque la
 	discussion courante comme lue.
 
 
-* Affichage de résumés
+# Affichage de résumés
 
-summary (défaut : r)
+summary 
+	(défaut : r)
 	Résumé des articles sélectionnés. Dans le cas ou aucun article n'est
 	sélectionné, on affiche un écran d'articles, centré par défaut sur
 	l'article courant. Les articles sont placés dans l'ordre des leur
 	numéro ou sous une forme threadée, selon l'option ordered_summary.
-summ_fil (défaut : t)
+summ_replies
+	(défaut : t)
 	Résumé des articles sélectionnés sous une forme threadée. Dans le
 	cas où aucun article n'est sélectionné, on affiche les descendants de
 	l'article courant.
-summ_thr (défaut : T)
+summ_thread
+	(défaut : T)
 	Même action que t, mais le comportement par défaut affiche cette fois
 	le thread complet.
-sum-search (pas de défaut)
+sum-search 
+	(pas de défaut)
 	A exactement la même action que la commande summary, mais demande un
 	paramètre, ce qui permet de faire des recherches. L'argument de la
 	recherche (utilisable dans toutes les commandes de résumés) est de la
 	forme <header>: <regexp>, qui demande à matcher une regexp dans le
 	<header> considéré. On ne fait pas de recherche dans le corps du
 	message.
+
 menu-summary (pas de défaut)
 menu-fil     (pas de défaut)
 menu-thr     (pas de défaut)
@@ -168,87 +220,194 @@ menu-search  (défaut : /)
 	permettent de choisir un article via un menu, au lieu d'afficher
 	simplement un résumé.
 
-* Gestion des groupes :
 
-unsu	(défaut : u)
-	Se désabonne du groupe courant
-abon	(défaut : a)
-	S'abonne au groupe courant
-zap	(défaut : z)
+# Gestion des groupes :
+
+unsubscribe
+	(défaut : u)
+	Se désabonne du groupe courant. Peut prendre en argument une
+	sous-chaîne donnant le groupe à se désabonner.
+subscribe	
+	(défaut : a)
+	S'abonne au groupe courant. Peut là aussi prendre une sous-chaîne
+	du groupe en argument.
+zap	
+	(défaut : z)
 	Marque tous les messages du groupe comme lus, sans tenir compte des
 	crossposts.
-goto	(défaut : g) (prend <nom> comme argument)
+goto	
+	(défaut : g) (prend <nom> comme argument)
 	Va au premier groupe à partir du groupe courant comportant la chaine
 	<nom> en mode nouse_regexp, sinon au groupe dont le nom correspond
 	à l'expression régulière associée à <nom>. Si <nom> est vide, va au 
 	premier groupe comprenant des messages non lus. Cette commande se 
 	limite aux groupes auxquels on est abonné.
-GOTO	(défaut : G) (prend <nom> comme argument)
+GOTO	
+	(défaut : G) (prend <nom> comme argument)
 	Même action que goto, mais on considère ici TOUS les groupes, en
 	commençant par ceux auquels on est abonnés, puis ceux qui sont dans
 	le .flnewsrc, puis les autres.
-swap-grp (pas de défaut) (prend <nom> comme argument)
+swap-grp 
+	(pas de défaut) (prend <nom> comme argument)
 	Permet de changer de newsgroup sans changer l'article courant (pour peu
 	que celui-ci soit crossposté, ou ait été obtenu par get-father). Si
 	<nom> est non vide, on cherchera à aller dans un groupe dont le nom
 	contient <nom>. Les regexp seront gérées comme avec goto dès que
 	possible.
-list	(défaut : l) (prend <nom> comme argument)
+list	
+	(défaut : l) (prend <nom> comme argument)
 	Donne la liste des newsgroups auquel on est abonné dont le nom contient
 	<nom>, ou correspond à l'expression régulière associée à <nom> en
 	mode use_regexp.
-LIST	(défaut : L) (prend <nom> comme argument)
+LIST	
+	(défaut : L) (prend <nom> comme argument)
 	Même effet que l, mais sans restriction d'abonnement.
 
-* Posts :
 
-post	(défaut : m) (prend éventuellement <nom> en paramètre)
+# Poster :
+
+(on se reportera à la section 2 de l'aide)
+
+post	
+	(défaut : m) (prend éventuellement <nom> en paramètre)
 	Poste un article dans le newsgroup courant. Si <nom> existe, poste
 	le fichier <nom> SANS DEMANDER CONFIRMATION.
-repond	(défaut : R) (prend éventuellement <nom> en paramètre)
+reply	
+	(défaut : R) (prend éventuellement <nom> en paramètre)
 	Répond au premier article sélectionné, et à l'article courant par
 	défaut. Si <nom> existe, on poste le fichier <nom> SANS DEMANDER
 	CONFIRMATION.
-mail-ans (pas de défaut) (prend éventuellement <nom> en paramètre)
+mail-answer
+	(pas de défaut) (prend éventuellement <nom> en paramètre)
 	Répond au premier article sélectionné par mail. Si <nom> existe, on
 	envoie le fichier par mail SANS DEMANDER CONFIRMATION.
 
-* Shell-escapes :
+cancel
+	(défaut : e)
+	demande d'effacer le message courant.
+supersedes
+	(pas de défaut) (prend éventuellement <nom> en paramètre)
+	demande de "remplacer" le message courant par un autre, c'est-à-dire
+	de poster un message tout en effaçant un autre.
+
+
+# Shell-escapes :
 
 Toutes les commandes <nom> lancées sont équivalentes à sh -c <nom>.
 (cf man system(3))
 
-pipe	(défaut : '|') (prend <nom> comme argument)
+pipe	
+	(défaut : '|') (prend <nom> comme argument)
 	Lance une commande <nom> (lue par sh) avec comme entrée les articles
 	sélectionnées (par défaut l'article courant).
-PIPE	(pas de défaut) (prend <nom> comme argument)
+PIPE	
+	(pas de défaut) (prend <nom> comme argument)
 	Comme pipe, mais envoie les threads des articles sélectionnées en
 	entrée.
-filter	(défaut : '%') (prend <nom> comme argument)
+filter	
+	(défaut : '%') (prend <nom> comme argument)
 	Comme pipe, mais reprend la sortie standard et l'affiche.
-FILTER  (pas de défaut) (prend <nom> comme argument)
+FILTER  
+	(pas de défaut) (prend <nom> comme argument)
 	Comme PIPE, mais reprend la sortie standard (cf filter)
-shell	(pas de défaut) (prend <nom> comme argument)
+shell	
+	(pas de défaut) (prend <nom> comme argument)
 	Lance la commande <nom>, en laissant le contrôle du terminal.
-shin	(défaut : '!') (prend <nom> comme argument)
+shin	
+	(défaut : '!') (prend <nom> comme argument)
 	Lance la commande <nom>, récupère et affiche la sortie standard.
 	(aussi bien que cette aide est affichée)
 
-* Divers :
+pipe-header
+	(pas de défaut) (prend <header>: <nom> comme argument)
+	S'apparente à pipe, mais n'envoie que le contenu de l'entête
+	<header>: de chaque article sélectionné dans le programme <nom>.
 
-option	(défaut : ':') (prend éventuellement l'option en paramètre)
+
+# Divers :
+
+prem-grp
+	(pas de défaut)
+	demande à ce que le groupe courant soit en première place dans le
+	.flnewsrc. Cela indique que ce groupe doit être prioritaire à la
+	lecture.
+
+show-tree
+	(défaut : 'N')
+	Affiche l'arbre de la discussion sur l'écran.
+
+option	
+	(défaut : ':') (prend éventuellement l'option en paramètre)
 	permet de parser une ligne d'option, afin de modifier les options
 	au cours du programme. La touche tabulation permet de faire une
 	complétion automatique.
-config  (pas de défaut)
+config  
+	(pas de défaut)
 	permet de modifier l'ensemble de la configuration à l'aide d'un
 	menu. Encore un peu incomplet. Bugue avec l'option color.
-quit	(défaut : q)
+
+quit	
+	(défaut : q)
 	Quitte le programme en sauvant le .flnewsrc
-QUIT	(défaut : Q)
+QUIT	
+	(défaut : Q)
 	Quitte le programme sans sauver le .flnewsrc
-help	(défaut : h et ?)
+
+help	
+	(défaut : h et ?)
 	Lance cette aide.
+
+
+Mode pager
+----------
+
+Seules quelques commandes sont définies en mode pager. Ces commandes servent
+lorsque un article est en cours de défilement, ou lorsque le contenu d'un
+fichier est affiché (un fichier d'aide, ou la sortie d'un shell-escape).
+Dans le premier cas, une touche non définie sera executée comme une commande
+normale, et sortira du mode pager.
+
+up
+	(défaut : control-K)
+	revient une ligne en arrière.
+down
+	(défaut : <entrée> et control-J)
+	va une ligne en avant.
+	(<entrée> est redéfini dans les configurations par défaut)
+pgup
+	(défaut : control-B)
+	remonte d'une page.
+pgdown
+	(défaut : control-F et <espace>)
+	descend d'une page.
+quit
+	(défaut : q)
+	quitte le mode pager.
+
+
+Mode menu
+---------
+
+Aucune commande n'est pour l'instant définie.
+Les bindings des commandes 'previous', 'next-article', 'quit', 'up' et
+'down' sont utilisés.
+
+
+##################################
+##### Configurations locales #####
+##################################
+
+Certaines commandes sont bindées sous forme de macros par défaut :
+
+b et f sont respectivement bindées en "left" et "right". '[' et ']' aussi.
+'(' et ')' sont bindées en "up" et "down".
+P est bindée en "hist-prev".
+control-B est bindé en "filter urlview". Ceci permet de voir les différentes
+URL d'un message.
+Enfin, 'E' et 'U' sont bindées en 
+"pipe-header X-Censorship: /usr/local/util/bin/(u)fcens" pour la censure
+et la décensure.
+
 
 'q' permet de quitter l'aide à tout moment.
 'm' permet de revenir au menu.

@@ -1,7 +1,7 @@
 1: commandes simples
 
 Les paragraphes en retrait sont des descriptions plus détaillées qui peuvent
-être ignorés.
+être ignorées.
 
         flrn : commandes de bases
         -------------------------
@@ -15,9 +15,9 @@ Les commandes sont utilisables soit en tappant leur nom :
 Certaines commandes prennent une chaine de caractères en argument. On peut la
 mettre directement si l'on utilise la première forme : "\goto flrn".
 
-  Enfin, on peut tapper avant toutes les commandes un prefix décrivant les
+  Enfin, on peut tapper avant toutes les commandes un préfixe décrivant les
   articles auxquels elle doit s'appliquer (la sémantique varie un peu pour
-  certaines commandes particuilères). La forme générale de ce préfixe est :
+  certaines commandes particulières). La forme générale de ce préfixe est :
   elem_1,elem_2...
   où chaque élément peut être un numéro (15), une suite de numéro (10-20),
   un article et ses réponses (15>) ou l'ensemble des ancètre d'un article (15_).
@@ -25,7 +25,7 @@ mettre directement si l'on utilise la première forme : "\goto flrn".
   '5<' représente l'origine du fil de discution et '1' représente le
   premier article du groupe. Enfin, '-10' et '10-' sont utilisables, et
   représentent respectivement tous les articles de numéro inférieur à 10, 
-  et tous les articles dfe numéro supérieur à 10.
+  et tous les articles de numéro supérieur à 10.
 
   Ainsi, pour avoir le résumé de la discution en cours, on peut tapper :
   '.<>r'.
@@ -49,7 +49,7 @@ va au père, celles du haut et du bas se déplacent parmis les frères.
 (On a aussi les bindings équivalents []() comme trn, ainsi que b et f issus
 de forum).
 
-On peut encore avec B, F et H se déplacer parmis les articles que l'on vient
+On peut encore avec B, F et H se déplacer parmi les articles que l'on vient
 de lire.
 
 * Gestions des articles
@@ -70,8 +70,8 @@ T (\summ_thr) résumé de la discution. (équivalent à '.<>r')
 
 * Gestion des groupes :
 
-u (\unsu) se désabonne du groupe.
-a (\abon) s'abonne au groupe.
+u (\unsubscribe) se désabonne du groupe.
+a (\subscribe) s'abonne au groupe.
 z (\zap)  marque tous les messages du groupe lus.
 g (\goto) change de groupe parmis les groupes auxquels on est abonné.
 G (\GOTO) change de groupe.
@@ -81,7 +81,7 @@ L (\LIST) liste tous les groupes.
 * Posts :
 
 m (\post) poste un article.
-R (\repond) répond à un article, c-à-d poste un followup.
+R (\reply) répond à un article, c-à-d poste un followup.
 
 * Divers :
 

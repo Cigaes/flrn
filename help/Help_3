@@ -1,10 +1,23 @@
 Help_3
 
-	flrn : options du .flrn
-	-----------------------
+	flrn : options du .flrnrc
+	-------------------------
 
 Les options sont aussi disponibles sur la page de manuel de flrn.
-La forme générale des options est inspirée de mutt. Il y a sept commandes :
+
+Forme générale des options
+--------------------------
+
+La forme générale des options est inspirée de mutt. Il y a sept commandes.
+Chaque commande peut être préfixée par "name <nom>" qui permet de
+dire que l'option ne doit être prise en compte que si le nom de lancement
+de flrn est <nom>.
+
+include <bla>
+	demande de charger le fichier <bla>. Si <bla> commence par un '/',
+	alors le chemin d'accès à <bla> sera absolu. Sinon, on se basera
+	sur la variable d'environnement FLRNHOME ou HOME. Il est impossible
+	de faire plus de 10 inclusions imbriquées.
 
 set <variable>=<valeur>
 	Permet de modifier la valeur d'une variable. On a les racourcis 
@@ -13,13 +26,14 @@ set <variable>=<valeur>
 	"set <variable>=no" ou "set <variable>=0".
 
 header	list|weak|hide <une suite de chiffre ou de noms> 
-	donne l'ordre dans lequel les headers d'un
-        article doivent être affichés. À chaque chiffre correspond un header :
+	donne l'ordre dans lequel les entêtes d'un
+        article doivent être affichés. À chaque chiffre correspond un entête :
 	  1 : Auteur      2 : Réponse à     3 : Sujet         4 : Date
 	  5 : Newsgroups  6 : Followup-To   7 : Organization  8 : Lines  
 	  9 : Sender     10 : Reply-To     11 : Expires      12 : X-Newsreader
-	On peut mettre d'autres headers en donnant leur nom complet. 
-	On peut aussi mettre others pour signifier tous les autres headers.
+	On peut mettre d'autres entêtes en donnant leur nom complet. 
+	On peut aussi mettre others pour signifier tous les autres entêtes, qui
+	sont alors affiché dans un ordre quelconque.
 	(défaut : 2 1 4 3)
 	Avec weak, on donne ceux qui ne doivent pas être réaffichés après la
 	première page d'un message.
@@ -33,6 +47,22 @@ my_hdr  <nom>: <champ>
 	utilisé. Si <champ> est vide, on demande à ne plus ajouter le header
 	en question. Les headers indispensables pour le post ne peuvent être
 	modifiés (l'option post_name permet de modifier le header From:).
+
+my_flags <caractère> <filtre>
+my_flags clear
+	demande à rajouter le caractère <caractère> devant le champ Sujet
+	du message affiché si celui-ci vérifie des propriétés. <filtre>
+	peut être un état (read, unread, killed, unkilled, all), ou une
+	chaine de la forme <nom>: <regexp>. Dans ce cas, on teste si
+	l'entête <nom>: du message vérifie l'expression régulière <regexp>.
+	Pour l'instant, les seuls entêtes possibles sont les entêtes
+	"courants".
+   Par exemple, ces deux lignes sont frequemment utilisées :
+     my_flags - read
+     my_flags * X-Censorship: yes
+   La première demande de noter les messages lus avec un '-'.
+   La seconde demande de noter les messages censurés par une '*'.
+	
 
 color   <types> <n1> <n2> <p1>,<p2>,...
 mono   <types> <p1>,<p2> ...
@@ -66,63 +96,94 @@ regcolor   <types> <flags> <n1> <n2> <p1>,<p2>,... <regexp>
 		line : toute la ligne est mise dans la couleur choisie
 		n dans [1-9] : seule le groupe n est coloré
 	<regexp> est une expression régulière
-  Par exemple :
-    color file std-normal std-normal bold,underline
-    regcolor normal line std-quoted std-quoted std-quoted ^(»|»|<<)
-    mono status,error bold
+   Exemples :
+     color file std-normal std-normal bold,underline
+     regcolor normal line std-quoted std-quoted std-quoted ^(»|<<)
+     mono status,error bold
 
+     La première ligne affiche les fichiers en gras souligné, si la couleur
+     est utilisée.
+     La seconde ligne demande d'afficher comme des citations les lignes
+     commencant par » ou '<<'.
+     La troisième ligne demande que la ligne de statut et les messages d'erreur
+     soient en gras.
 
-
-bind	<touche> <commande>
-	Permet de changer la fonction d'une touche. La syntaxe changera
-	surement dans les versions a venir, comme les noms ou sémantiques des
-	commandes. Pour l'instant, on ne peut binder que des touches ne
-	correspondant pas à des caratères spéciaux du .flrn, et correspondant
-	à des caractères imprimables.
-  Par exemple :
+bind	[<mode>] <touche> <commande>
+	Permet de changer la fonction d'une touche. <mode> se rapporte
+	au mode d'utilisation dans lequel le binding prend effet. On
+	distingue 3 modes :
+	  _ command : mode par défaut, celui dans lequel on se trouve en
+	  	      général
+          _ pager   : lorsqu'on est en mode "défilement" d'un message, ou
+	  	      lors de la lecture de l'aide
+          _ menu    : dans un menu (mode non utilisé actuellement)
+	Les noms des commandes varient en conséquences.
+	On peut utiliser \<n> pour représenter le code ASCII <n>. <n> est
+	en base 10 normalement, en base 8 s'il commence pas un 0, et en
+	base 16 s'il commence par '0x'.
+	Les noms suivants se rapportent à des touches autres :
+	  'up' permet de désigner la flèche vers le haut
+	  'down' permet de désigner la flèche vers le bas
+	  'right' permet de désigner la flèche vers la droite
+	  'left' permet de désigner la flèche vers la gauche
+	  'pageup' désigne la touche "Page Up" du clavier
+	  'pagedown' désigne la touche "Page Down" du clavier
+	  'home' désigne la touche "Home" du clavier
+	  'end' désigne la touche "End" du clavier
+	Le nom 'F<n>' désigne la touche de fonction F<n>.
+	C<lettre>, c<lettre>, ou ^<lettre> désigne la combinaison
+	Control-<lettre>.
+	M<touche>, m<touche> désigne la combinaison Méta-touche.
+	Dans flrn, DELETE et BACKSPACE ont TOUJOURS la même fonction, afin
+	de s'affranchir de problèmes dus à de mauvaises configuration. Cette
+	fonction correspond au backspace courant et n'est pas modifiable.
+	Les touches '-', <entrée>, <espace>, ':', '.' et ',' ne sont pas 
+	modifiables non plus, pas plus que les chiffres.
+  exemple :
     bind U pipe urlview
     bind + summary unread
     bind \0x01 gotag é  # ^A
     bind A tag é
+    bind pager pageup pgup
+    bind pager pagedown pgdown
 
 
-Voici les variables utilisées :
+Variables utilisées avec l'option "set"
+---------------------------------------
 
-* Abonnement
-
-auto_subscribe=<une expression reguliere>
-	demande l'abonnement automatique aux newsgroups dont le nom
-	verifie l'expression régulière
-	(défaut : "")
+**************
+* Abonnement *
+**************
 
 auto_ignore=<une expression reguliere>
 	demande le non-abonnement automatique aux newsgroups dont le
 	nom vérifie l'expression régulière
 	(défaut : "^control|^[^.]+$", soit en gros ignorer control et junk)
 
+auto_subscribe=<une expression reguliere>
+	demande l'abonnement automatique aux newsgroups dont le nom
+	verifie l'expression régulière
+	(défaut : "")
+
 default_subscribe=yes|no
 	définit le comportement par défaut lors de la création d'un nouveau
 	groupe, quand il ne s'applique pas à auto_subscribe et auto_ignore.
 	(défaut : yes)
 
-* Affichage
-
-skip_line=<un numéro>
-	définit le nombre de lignes blanches à laisser sous la barre de status.
-	(défaut : 1)
-
-date_in_summary=yes|no
-	affiche ou non la date dans les résumés
+subscribe_first=yes|no
+	choisit si on doit ignorer un groupe accepté à la fois par
+	auto_subscribe et auto_ignore. Si la variable est égale à yes,
+	alors de tels groupes sont classés comme non-abonnés.
 	(défaut : yes)
 
-ordered_summary=yes|no
-	affiche les résumés dans l'ordre de leur numéro, et non dans un ordre
-	threadé.
-	(défaut : yes)
+*************
+* Affichage *
+*************
 
-duplicate_subject=yes|no
-	affiche le sujet à chaque ligne de résumé, même si c'est le même que
-	la ligne au-dessus.
+alpha_tree=yes|no
+	affiche de jolis petits arbres incompréhensible en haut à droite
+	du terminal, à la place des jolies petites flèches incompréhensibles
+	(sauf par l'auteur de ces lignes ;-) )
 	(défaut : no)
 
 color=yes|no|auto
@@ -130,42 +191,101 @@ color=yes|no|auto
 	détection automatique.
 	(défaut : auto)
 
-* Commandes
+date_in_summary=yes|no
+	affiche ou non la date dans les résumés
+	(défaut : yes)
+
+duplicate_subject=yes|no
+	affiche le sujet à chaque ligne de résumé, même si c'est le même que
+	la ligne au-dessus.
+	(défaut : no)
+
+flags_group=<une chaine de 8 caractères>
+	donne les drapeaux (de la forme [?], où ? est un caractère) à mettre
+	dans la barre de statut devant le nom du groupe courant, en fonction
+	des statuts de celui-ci. Si le caractère correspondant au statut est
+	un espace, aucun drapeau n'est mis. La correspondance entre place
+	du caractère et statut est la suivante :
+	 numéro du caractère    | mode censure  | abonné  |  en lecture seule
+	 	1		|     oui       |   oui   |       non
+		2		|     non       |   oui   |       non
+	 	3		|     oui       |   non   |       non
+		4		|     non       |   non   |       non
+	 	5		|     oui       |   oui   |       oui
+		6		|     non       |   oui   |       oui
+	 	7		|     oui       |   non   |       oui
+		8		|     non       |   non   |       oui
+	(défaut: " TDD*tdd")
+
+ordered_summary=yes|no
+	affiche les résumés dans l'ordre de leur numéro, et non dans un ordre
+	threadé.
+	(défaut : yes)
+
+parse_from=yes|no
+	Lorsque cette option est égales à yes, les entêtes Auteur: et
+	Réponse à: de l'affichage sont simplifiées pour ressembler dans
+	la mesure du possible à celles de l'ancien forum.
+	(défaut: no, mais yes dans les configurations pour forum)
+
+scroll_after_end=yes|no
+	Cette option permet de préciser si, avec un page-down qui mène à
+	la fin d'un défilement, on doit s'arrêter strictement à la fin
+	ou finir le page-down.
+	(défaut: no)
+
+skip_line=<un numéro>
+	définit le nombre de lignes blanches à laisser sous la barre de status.
+	(défaut : 1)
+
+*************
+* Commandes *
+*************
 	
-space_is_return=yes|no
-	empèche de changer de groupe par la commande next (qui correspond par
-	défaut à la barre d'espacement).
-	(défaut : no)
-
-return_dont_scroll=yes|no
-	si cette option est activée, la touche "enter" ne scrolle pas d'une
-	ligne dans les messages longs, mais est directement executée hors
-	du message.
-
 cbreak=yes|no
-	passe en mode cbreak. Sans cette options, on est en mode nocbreak.
+	passe en mode cbreak. Sans cette options, on est en mode nocbreak,
+	c'est-à-dire que chaque commande doit se terminer par la touche
+	<entrée>.
 	(défaut : yes)
-
-new_mode=yes|no
-	si cbreak=yes, définit le mode d'entrée des commandes. Le nouveau
-	mode est plus puissant que l'ancien, qui correspond aux commandes des
-	premières release de flrn.
-	(défaut : yes)
-
-use_menus=yes|no
-	utilise des menus interactifs avec certaines commandes. Cette option
-	est expérimentale.
-	(défaut : no pour l'instant)
-
-threaded_space=yes|no
-	permet de lire les messages en suivant la discussion (thread) ou dans
-	l'ordre des numéros. Cette option modifie l'action de la commande next.
-	(défaut : no)
 
 cool_arrows=yes|no
 	N'affiche pas de message d'erreur quand on utilise une commande de
 	déplacement dans le thread et que ce déplacement est invalide.
 	(défaut : yes)
+
+forum_mode=yes|no
+	avec cbreak=yes, tempère un mode le mode d'entrée
+	des commandes en demandant la touche <entrée> en fin de certaines
+	commandes. Cette option sert pour la compatibilité avec l'ancien
+	forum. Elle rend aussi certaines commandes plus intuitives.
+	(défaut: no, mais yes dans les configurations pour forum)
+
+quit_if_nothing=yes|no
+	dit à flrn de quitter lorsqu'il n'y a rien à lire. Cette option
+	n'est pas interessante, flrn effaçant l'écran tout de même.
+	(défaut : no)
+
+savepath=<une_chaine>
+	donne un chemin d'accès vers un répertoire où sauver les messages
+	de flrn. Sans cette option, les messages sont sauvés dans le
+	répertoire courant.
+	(défaut : "")
+
+space_is_return=yes|no
+	empèche de changer de groupe par la commande next (qui correspond par
+	défaut à la barre d'espacement).
+	(défaut : no)
+
+threaded_space=yes|no
+	permet de lire les messages en suivant la discussion (thread) ou dans
+	l'ordre des numéros. Cette option modifie l'action de la commande
+	next-unread.
+	(défaut : no, mais yes dans la config conscrit)
+
+use_menus=yes|no
+	utilise des menus interactifs avec certaines commandes (goto...).
+	Cette option est incomplète.
+	(défaut : no, mais est souvent utilisée)
 
 use_regexp=yes|no
 	permet d'utilise les expressions régulières pour les commandes list
@@ -173,54 +293,106 @@ use_regexp=yes|no
 	rx.
 	(défaut : no)
 
+with_cousins=yes|no
+	très conseillée avce l'option alpha_tree, cette option permet
+	de se déplacer entre les cousins d'une discussion avec les flèches.
+	(défaut : no)
+
 zap_change_group=yes|no
 	dit a flrn de changer de groupe si on utilise la commande zap.
 	(défaut : no)
 
-* Poster
+**********
+* Poster *
+**********
 
-include_in_edit=yes|no
-	insère automatiquement le message auquel on répond dans l'éditeur.
-	Cette option n'a de sens qu'avec auto_edit.
-	(défaut : no)
+attribution=<chaine>
+	donne la chaine à placer devant le message cité dans une réponse.
+	Dans cette chaîne, des symboles sont utilisés :
+	%n désigne le nom de l'auteur du message.
+	%i le message-ID du message.
+	%G le groupe dans lequel le message est considéré, %g le nom de ce
+	  groupe "tronqué".
+	%C le numéro du message dans le groupe
+	%% désigne enfin le caractère '%'.
+	(défaut : "%n, dans le post %i, a écrit :")
 
 auto_edit=yes|no
 	n'utilise pas l'éditeur intégré de flrn, et lance directement l'éditeur
 	extérieur quand on poste un message.
 	(défaut : no)
 
-post_name=<un nom>
-	choisis le nom utilisé dans les messages envoyés.
-	(défaut : "")
+include_in_edit=yes|no
+	insère automatiquement le message auquel on répond dans l'éditeur.
+	Cette option n'a de sens qu'avec auto_edit.
+	(défaut : no)
 
 index_string=<str>
 	donne la chaîne ajoutée au début de chaque ligne du message auquel
 	on répond pour quoter celui-ci.
 	(défaut : "> ")
 
+post_name=<un nom>
+	choisis le nom utilisé dans les messages envoyés.
+	(défaut : "")
+
+simple_post=yes|no
+	cette option activée, flrn essaie d'adapter le message pour
+	qu'il soit accepté par le serveur. Cela marche plutôt mal.
+	(défaut : yes)
+
 smart_quote=yes|no
 	si index_string commence par '>' et que la ligne à quoter commence
 	aussi par '>', quote simplement par ">" et non par index_string.
 	(défaut : yes)
 
-* Autres
+*************
+* kill-file *
+*************
+
+auto_kill=yes|no
+	demande d'ajouter à la liste principale de censure les nouveaux
+	groupes.
+	(défaut : yes)
+
+kill_fill_name=<nom>
+	donne le nom du fichier de kill-file
+	(défaut : .flrnkill)
+
+**********
+* Autres *
+**********
+
+check_mail=yes|no
+	vous informe si vous avez du courrier
+	(défaut : yes)
+
+flnews_ext=yes|no
+	donne l'extension à ajouter au .flnewsrc. Utile pour faire du
+	multiserveur.
+	(défaut : "")
+
+port=<n>
+	utilise le port donné plutôt que le port nntp.
+	(défaut : le port nntp)
+
+prefixe_groupe=<chaine>
+	donne un préfixe par défaut commun à tous les groupes utilisés.
+	Permet de simplifier l'affichage.
+	(défaut : "")
 
 quit_if_nothine=yes|no
 	Quitte directement flrn si il n'y a rien de nouveau. Malheureusement,
 	efface quand même l'écran.
 	(défaut : no, parce que ce comportement est insupportable actuellement)
 
-use_mailbox=yes|no
-	Sauve les messages au format mailbox.
-	(défaut : yes)
-
 server=<string>
 	utilise la machine correspondant à ce nom comme serveur.
 	(défaut : selon l'installation locale)
 
-port=<n>
-	utilise le port donné plutôt que le port nntp.
-	(défaut : le port nntp)
+use_mailbox=yes|no
+	Sauve les messages au format mailbox.
+	(défaut : yes)
 
 'q' permet de quitter l'aide à tout moment.
 'm' permet de revenir au menu.

@@ -3,30 +3,79 @@
 	flrn : poster des messages
 	--------------------------
 
-Pourquoi poster des messages ? N'est-ce pas mieux de lire simplement ?
-Si vous voulez vraiment, les commande post et respond permettent de poster un
-message. respond répond à un message. Si auto_edit est indéfini, vous entrez
-alors dans l'éditeur intégré de flrn (qui est très sommaire).
-Pour poster votre message, entrez à la fin de celui-ci une ligne ne 
-comportant qu'un '.' ou tapez ^D.
+Comment poster un message ?
+---------------------------
 
-Vous pouvez lancer une éditeur (défini par la variable d'environnement
-EDITOR) en entrant juste ~e ou ~E sur une ligne. En mode edit_all_headers,
-tous les headers définis seront affichés (et vous pourrez en ajouter). Dans
-le mode par défaut, seul le sujet et les groupes dans lesquels le message
-est postés sont affichés.
+Pour poster un message, vous pouvez utiliser les commande \post (bindé sur
+m) et \reply (bindé sur R).
+La commande \post permet de poster un message dans les newsgroups où
+vous êtes. Il vous sera alors demandé d'entrer un sujet pour votre message.
+La commande \reply répond à l'article où vous êtes.
+Ces deux commandes peuvent prendrent un nom de fichier en argument. Le
+fichier est alors directement posté sans confirmation.
+Si aucun fichier n'est en argument, vous entrez dans l'éditeur intégré
+de flrn, à moins que l'option auto_edit soit définie, ce qui est le
+cas dans la config conscrit.
 
-Si vous entrez ~E, le corps du message auquel vous répondez sera inclus
-dans le post avant de lancer l'éditeur, et sera quoté par la chaine
-index_string.
+Taper son message
+-----------------
 
-La commande mail-ans peut être utilisée pour envoyer un mail de réponse à
-un article. Si respond est utilisé et qu'un Followup-To est défini, il
-vous sera demandé si vous souhaitez en tenir compte. Si il est plutôt demandé
-un post dans le newsgroup, et que le message contient en champ To, Cc, ou Bcc,
-le message sera aussi envoyé par mail.
+L'éditeur de flrn est rudimentaire. Vous ne pouvez pas revenir sur
+une ligne déjà écrite par exemple.
+Pour lancer votre éditeur favori (défini par la variable d'environnement
+EDITOR) tapez ~e en début de ligne puis <Entrée>, ou ~E si vous voulez
+que soit inclu le message auquel vous répondez (si vous utilisez la commande
+\reply).
 
-Dans tous les cas, ^C annule le post.
+Pour poster votre message, entrez à la fin de celui-ci une ligne nme
+comportant que '.', ou tapez ^D (Control-D).
+Enfin, ^C (Control-C) tapé à tout moment du message annule le post.
+
+Modifier les entêtes
+--------------------
+
+Il est possible, une fois votre éditeur favori lancé, de modifier
+les entêtes de votre message. Si vous n'avez pas l'option edit_all_headers,
+vous ne voyez au lancement que deux entêtes :
+Groupes: [...]
+Sujet: [...]
+
+Vous pouvez modifier ces lignes, qui changent respectivement le(s) groupe(s)
+et le sujet de votre message. Pour faire un entête de plusieurs lignes,
+mettez des blancs (un espace ou une tabulation) en début des lignes.
+Ne mettez jamais d'espace ou de tabulation avant le début d'un entête,
+ou entre le nom de l'entête et le ':' qui suit.
+Pour simplifier le travail de flrn, laissez enfin une ligne blanche
+entre vos entêtes et le corps du message.
+
+Vous pouvez rajouter des entêtes. Par exemple :
+Followup-To: bla
+permet de dire que vous voulez que la discussion se poursuive dans
+bla. Les autres entêtes qui vous pouvez vouloir modifier sont :
+* From:  qui donne votre identité (sous forme d'une adresse mail)
+* X-Censorship: mettez 'yes' si vous voulez que votre message soit censuré
+* Reply-To:  donne l'endroit où vous souhaitez voir arriver les réponses par
+		mail (ce champ doit être une adresse e-mail)
+
+Si vous désirez enfin que les réponses à votre message vous soient plutôt
+envoyé par mail, mettez :
+Followup-To: poster
+dans vos headers.
+
+Dans le cas où l'option edit_all_headers est définie, les autres headers
+s'affichent automatiquement au lancement de l'éditeur.
+
+Poster une réponse par mail
+---------------------------
+
+On ne peut pas envoyer de mail avec flrn qui ne soit pas une réponse à
+un message.
+Si un message contient "poster" comme entête Followup-To, alors flrn
+propose automatiquement de poster une réponse par mail.
+Vous pouvez aussi utiliser la commande \mail-answer qui permet de poster
+une réponse par mail au message considéré.
+Enfin, tout message contenant des entêtes de la forme To:, Cc:, ou Bcc: sera
+aussi envoyé par mail aux personnes concernées.
 
 'q' permet de quitter l'aide à tout moment.
 'm' permet de revenir au menu
