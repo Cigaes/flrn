@@ -305,6 +305,19 @@ int opt_do_include(char *buf, int flag)
   return 0;
 }
 
+#ifdef USE_SLANG_LANGUAGE
+int opt_do_slang_parse(char *str, int flag)
+{
+   if (source_SLang_file(str)<0) {
+      if (!flag) { fprintf(stderr,"erreur du parse SLang de %s\n", str);
+                   sleep(1); }
+      return -1;
+   }
+   return 0;
+}
+#endif
+  
+
 int opt_do_set(char *str, int flag)
 {
   int reverse, found;

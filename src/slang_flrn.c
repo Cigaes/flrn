@@ -180,4 +180,16 @@ int source_SLang_string(char *str, char **result) {
    return 0;
 }
 
+/* lecture d'un fichier, utilisation de base */
+/* retour de -1 si erreur */
+int source_SLang_file (char *str) 
+{
+   if (-1 == SLang_load_file(str)) {
+      SLang_restart(1);
+      SLang_Error = 0;
+      return -1;
+   }
+   return 0;
+}
+
 #endif

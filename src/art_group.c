@@ -576,7 +576,7 @@ char *get_one_header(Article_List *article, Newsgroup_List *newsgroup,
        if (cree_header(article,0,(i==NB_KNOWN_HEADERS),
                newsgroup==Newsgroup_courant ? 0 : 1)==NULL) return "";
    }
-   if (i<NB_KNOWN_HEADERS) return article->headers->k_headers[i];
+   if (i<NB_KNOWN_HEADERS) return (article->headers->k_headers[i] ? article->headers->k_headers[i] : "");
    parcours=Last_head_cmd.headers;
    while (parcours) {
       if ((strncasecmp(parcours->header,name,len)==0) &&

@@ -36,6 +36,9 @@ int opt_do_set(char *, int);
 int opt_do_bind(char *, int);
 int opt_do_my_flags(char *, int);
 int opt_do_autocmd(char *, int);
+#ifdef USE_SLANG_LANGUAGE
+int opt_do_slang_parse(char *, int);
+#endif
 
 /* pour la comptetion automatique */
 int var_comp(char *, int, Liste_Chaine *);
@@ -56,6 +59,9 @@ struct _Optcmd {
   {"set", &opt_do_set, &var_comp},
   {"bind", &opt_do_bind, &bind_comp},
   {"autocmd", &opt_do_autocmd, NULL},
+#ifdef USE_SLANG_LANGUAGE
+  {"slang_parse", &opt_do_slang_parse, NULL},
+#endif
 };
 
 #define NUMBER_OF_OPT_CMD (sizeof(Optcmd_liste)/sizeof(Optcmd_liste[0]))
