@@ -2344,7 +2344,7 @@ rm -fr confdefs* $ac_clean_files
 test "$no_create" = yes || ${CONFIG_SHELL-/bin/sh} $CONFIG_STATUS || exit 1
 
 
-if test "x${MAKE}" == "x"; then
+if test "x${MAKE}" = "x"; then
 	MAKE=make
 fi
 

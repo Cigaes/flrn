@@ -171,7 +171,7 @@ AC_SUBST(MANISO)
 
 AC_OUTPUT(src/Makefile src/chrtrans/Makefile Makefile)
 
-if test "x${MAKE}" == "x"; then
+if test "x${MAKE}" = "x"; then
 	MAKE=make
 fi
 
