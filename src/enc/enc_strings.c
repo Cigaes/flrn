@@ -551,7 +551,7 @@ size_t fl_conv_to_flstring_ce (struct conversion_etat *ce,
     if (ce->status==2) {
        size_t maxl;
        if (*outbuf==NULL) {
-	   if (strlen(*inbuf)==*inbl) {
+	   if (strlen(*inbuf)<=*inbl) {
              *outbuf = (flrn_char *)*inbuf;
 	     *outptr = *outbuf;
 	     *inbuf = NULL;
@@ -1308,7 +1308,8 @@ int convert_termchar (const char *str, size_t len, flrn_char **res, size_t lb) {
 
 int Parse_postcharsets_line(flrn_char *str) { 
     if (post_charset_list) free(post_charset_list);
-    post_charset_list=safe_flstrdup(fl_static_tran(str));
+    if (str==NULL) post_charset_list=NULL; 
+    else post_charset_list=safe_flstrdup(fl_static_tran(str));
     return 0; 
 }
 
@@ -1360,7 +1361,8 @@ void width_termchar(char *str,int *wdt, size_t *len) {
 #ifdef HAVE_WCHAR_H
 	    mbstate_t ps;
 	    wchar_t ch;
-	    mbrtowc(NULL,NULL,0,&ps);
+	    /* mbrtowc(NULL,NULL,0,&ps); */
+	    memset(&ps,0,sizeof(mbstate_t));
 	    a = mbrtowc(&ch,str,strlen(str),&ps);
 	    if ((int)a<=0) { *wdt=1; *len=1; return; }
 	    else {
