@@ -62,7 +62,10 @@ struct _Optcmd {
 
 #endif
 
+#ifndef MAX_HEADER_LIST
 #define MAX_HEADER_LIST 31
+#endif
+
 extern Known_Headers unknown_Headers[MAX_HEADER_LIST];
 	/* on va les reperer en négatif de -2 à -MAX_HEADER_LIST-1 */
 extern const char *Help_Lines[17];

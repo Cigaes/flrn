@@ -19,12 +19,12 @@ if test "$ac_cv_path_SENDMAIL" = no; then
    AC_MSG_WARN(no sendmail found. \\mail-answer will not work !)
 fi
 
-AC_ARG_WITH(default-host, [  --with-default-host[=MACHINE]   default host for adresses],
+AC_ARG_WITH(default-host, [  --with-default-host[=MACHINE] default host for adresses],
   AC_DEFINE_UNQUOTED(DEFAULT_HOST, "$withval")
   AC_MSG_RESULT(default host : $withval)
 )
 
-AC_ARG_WITH(domain, [  --with-domain[=DOMAIN]     default domain for adresses],[
+AC_ARG_WITH(domain, [  --with-domain[=DOMAIN]   default domain for adresses],[
   AC_DEFINE_UNQUOTED(DOMAIN, "$withval")
   AC_MSG_RESULT(domain : $withval)
 ],
@@ -32,7 +32,9 @@ AC_ARG_WITH(domain, [  --with-domain[=DOMAIN]     default domain for adresses],[
   AC_MSG_WARN(domain : nodomain, use --with-domain to change this)
 )
 
-AC_ARG_ENABLE(expert, [  --enable-expert            Compile flrn in expert mode],
+AC_ARG_WITH(headers, [  --with-headers=nb        Set the number of headers that flrn can handle to nb],AC_DEFINE_UNQUOTED(MAX_HEADER_LIST,$withval))
+
+AC_ARG_ENABLE(expert, [  --enable-expert          Compile flrn in expert mode],
   AC_DEFINE_UNQUOTED(MODE_EXPERT))
 
 if test "$ac_cv_prog_CC" = gcc; then
@@ -63,7 +65,7 @@ CPPFLAGS="-I. $CPPFLAGS"
 
 
 flrn_cv_slang=no
-AC_ARG_WITH(slang, [  --with-slang[=DIR]         use S-Lang in dir DIR],
+AC_ARG_WITH(slang, [  --with-slang[=DIR]       use S-Lang in dir DIR],
         AC_MSG_CHECKING(for S-Lang)
         if test $withval = yes; then
                 if test -d $srcdir/../slang; then
@@ -119,7 +121,7 @@ dnl Replace `main' with a function in -lslang:
 dnl AC_CHECK_LIB(slang, SLkp_init)
 
 flrn_cv_rx=no
-AC_ARG_WITH(rx, [  --with-rx[=DIR]            Use GNU rx ],
+AC_ARG_WITH(rx, [  --with-rx[=DIR]          Use GNU rx ],
         [if test $withval != yes; then
                 if test -d $withval/lib; then
                         flrn_cv_rx=$withval/lib
