@@ -1546,7 +1546,10 @@ static void Menu_selector () {
 	      hash_parc=hash_parc->next_in_thread) 
 	    if (hash_parc->article) {
 	       if (non_lu) omet_article(hash_parc->article,NULL);
-	       else kill_article(hash_parc->article,NULL);
+	       else if ((hash_parc->article->numero>0) &&
+	                (!(hash_parc->article->flag && FLAG_READ)))
+	           kill_article(hash_parc->article,NULL);
+	/* On n'évite de faire des requetes superflues et lourdes */
 	    }
        }
    }
