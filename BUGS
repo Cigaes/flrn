@@ -8,3 +8,12 @@ donc on se limitera à un (ou plutôt deux) bug(s) :
 _ le man est nul
 _ l'aide n'est pas mieux.
 
+
+---------------------------------
+
+Plus sérieusement :
+
+_ le retour de la commande \select (choix de l'article à afficher) est
+foireux.
+_ erreur dans l'aide : les noms de commandes de résumé
+_ probleme de derniers messages effacés (hélas...)
