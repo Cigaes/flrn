@@ -934,7 +934,8 @@ void article_read(Article_List *article)
     if (strcmp(newsgroup,Newsgroup_courant->name)==0) continue;
     for(mygroup=Newsgroup_deb;mygroup; mygroup=mygroup->next){
       if (strcmp(mygroup->name,newsgroup)==0) {
-	add_read_article(mygroup,numero); break;
+	add_read_article(mygroup,numero); 
+	break;
       }
     }
   }

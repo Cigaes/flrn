@@ -1216,6 +1216,7 @@ int do_prem_grp (int res) {
      Newsgroup_courant->next=Newsgroup_deb;
      Newsgroup_deb->prev=Newsgroup_courant;
      Newsgroup_deb=Newsgroup_courant;
+     Newsgroup_deb->prev=NULL;
    }
    return 0;
 }

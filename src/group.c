@@ -683,39 +683,41 @@ void copy_range_list(Range_List *source, int source_index, Range_List *dest,
     int dest_index)
 {
   int delta=dest_index-source_index;
-  int start=source_index+((delta>=0)?0:-delta);
+  int start=source_index+((delta>=0)?0:delta);
   int i,j;
 
+  if (delta<0) {
+    for (i=start-delta; i<RANGE_TABLE_SIZE; i++) {
+      dest->min[i+delta] = source->min[i];
+      dest->max[i+delta] = source->max[i];
+    }  
+    if (source->next) source=source->next;
+    else {
+      for (j=RANGE_TABLE_SIZE+delta; j<RANGE_TABLE_SIZE; j++)
+         dest->min[j]=dest->max[j]=0;
+      return;
+    }
+    delta=RANGE_TABLE_SIZE+delta;
+    start=0;
+  }
+  /* A partir de maintenant, delta>=0 */
   do {
-    for (i=start+((delta>=0)?0:-delta);
-	i<RANGE_TABLE_SIZE-((delta>=0)?delta:0); i++)
+    for (i=start;
+	i<RANGE_TABLE_SIZE-delta; i++)
     {
       dest->min[i+delta] = source->min[i];
       dest->max[i+delta] = source->max[i];
     }
     if (delta>0) {
-      if (source->next) { source=source->next; }
-      else {
-        for (j=RANGE_TABLE_SIZE-delta; j<RANGE_TABLE_SIZE; j++)
-	  dest->min[j]=dest->max[j]=0;
-        return;
-      }
-      for (i=0, j=RANGE_TABLE_SIZE-delta; j<RANGE_TABLE_SIZE; i++,j++)
-      {
-        dest->min[j] = source->min[i];
-        dest->max[j] = source->max[i];
-      }
-    }
-    if (delta<0) {
+      if (source->max[RANGE_TABLE_SIZE-delta]==0) return;
       dest->next=safe_calloc(1,sizeof(Range_List));
       dest=dest->next;
-      for (i=0,j=RANGE_TABLE_SIZE+delta;j<RANGE_TABLE_SIZE;i++,j++) {
-	  dest->min[i] = source->min[j];
-	  dest->max[i] = source->max[j];
+      for (j=0,i=RANGE_TABLE_SIZE-delta;i<RANGE_TABLE_SIZE;j++,i++) {
+	  dest->min[j] = source->min[i];
+	  dest->max[j] = source->max[i];
       }
       if (source->next) { source=source->next; }
 	else return;
-
     }
     if (delta==0) {
       if (source->next) { source=source->next; }
@@ -737,6 +739,15 @@ void add_read_article(Newsgroup_List *mygroup, int article)
    pere=NULL;
    range1=mygroup->read;
    lu_index=0;
+
+   /* On commence éventuellement par mettre le flag read à l'article */
+   if (mygroup->Article_deb) {
+      Article_List *parcours=mygroup->Article_deb;
+      while (parcours && (parcours->numero<article)) parcours=parcours->next;
+      if (parcours && (parcours->numero==article))
+         parcours->flag|=FLAG_READ;
+   }
+   
    while(range1) {
      for(lu_index=0; lu_index<RANGE_TABLE_SIZE; lu_index++)
      {
@@ -745,7 +756,8 @@ void add_read_article(Newsgroup_List *mygroup, int article)
        if ((range1->max[lu_index]==0)|| (range1->min[lu_index]>article))
 	 break;
      }
-     if ((range1->max[lu_index]==0)|| (range1->min[lu_index]>article)) break;
+     if (lu_index!=RANGE_TABLE_SIZE) break;
+     lu_index=0; /* important si range1 devient NULL ensuite */
      pere=range1;
      range1=range1->next;
    }
@@ -762,7 +774,7 @@ void add_read_article(Newsgroup_List *mygroup, int article)
        borne++;
      }
    } else first=1;
-   if (borne==1) return;
+   if (borne==1) return; /* On a juste changé un numéro */
    if (borne==2) { /* Fusion de deux ranges */
    		   /* Je ne comprend pas : pourquoi faire des allocations */
      range2=safe_calloc(1,sizeof(Range_List));
@@ -771,11 +783,11 @@ void add_read_article(Newsgroup_List *mygroup, int article)
        range2->max[i]=range1->max[i];
      }
      if (lu_index==RANGE_TABLE_SIZE-1)
-     { range1=range1->next;
+     { range1=range1->next; /* qui existe car first==0 */
        range2->max[lu_index] = range1->max[0];
        range2->next=safe_calloc(1,sizeof(Range_List));
-       range2=range2->next;
-       copy_range_list(range1,1,range2,0);
+       /* Mais il FAUT conserver range2, donc pas faire range2=range2->next */
+       copy_range_list(range1,1,range2->next,0);
      } else {
        range2->max[lu_index]=range1->max[lu_index+1];
        if (lu_index==RANGE_TABLE_SIZE-2) {
@@ -795,16 +807,20 @@ void add_read_article(Newsgroup_List *mygroup, int article)
      return;
    }
 
+   /* Maintenant, borne=0, on doit insérer un élément dans la liste */
    range2=safe_calloc(1,sizeof(Range_List));
-   if (!first) lu_index++;
-   if (lu_index==RANGE_TABLE_SIZE) {
-     range1=range1->next;
-     lu_index=0;
+   if (!first) {
+     if (lu_index!=RANGE_TABLE_SIZE-1) lu_index++; else {
+       range1=range1->next;
+       lu_index=0;
+     }
    }
    range2->min[lu_index]=article;
    range2->max[lu_index]=article;
-   if (!range1) { mygroup->read=range2; return;}
-
+   if (!range1) { 
+      if (pere) pere->next=range2; else mygroup->read=range2; 
+      return;
+   }
    for (i=0;i<lu_index;i++) {
      range2->min[i]=range1->min[i];
      range2->max[i]=range1->max[i];
@@ -813,8 +829,7 @@ void add_read_article(Newsgroup_List *mygroup, int article)
    if (lu_index==RANGE_TABLE_SIZE-1)
    {
      range2->next=safe_calloc(1,sizeof(Range_List));
-     range2=range2->next;
-     copy_range_list(range1,lu_index,range2,0);
+     copy_range_list(range1,lu_index,range2->next,0);
    } else
      copy_range_list(range1,lu_index,range2,lu_index+1);
    if (pere) pere->next=range2;
