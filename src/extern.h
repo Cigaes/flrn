@@ -82,6 +82,9 @@ extern int ajoute_exte_article(Article_List * /*fils*/);
 extern Article_Header *new_header(void);
 extern int Est_proprietaire(Article_List * /*article*/);
 extern void apply_kill_file(void );
+extern Article_List *cousin_prev(Article_List *article);
+extern Article_List *cousin_next(Article_List *article);
+
 
 /* flrn_format */
 extern time_t parse_date(char * /*s*/);

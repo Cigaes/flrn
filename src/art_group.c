@@ -773,6 +773,68 @@ Article_List * next_in_thread(Article_List *start, long flag, int *level,
   return NULL;
 }
 
+/* recherche de cousins. On suppose debut->frere_prev=NULL */
+/* si il y a un cycle, zut... */
+Article_List *cousin_prev(Article_List *debut) {
+  Article_List *ancetre, *parcours=debut->pere, *parcours2;
+  int profondeur=1, remonte=1;
+
+  ancetre=root_of_thread(debut,1);
+  if (ancetre->pere) return NULL;
+  while (parcours && (parcours!=ancetre)) {
+    if (!remonte) {
+      parcours2=parcours->prem_fils;
+      if (parcours2) {
+        while (parcours2->frere_suiv) parcours2=parcours2->frere_suiv;
+        profondeur--;
+        parcours=parcours2;
+	if (profondeur==0) return parcours;
+        continue;
+      }
+    } 
+    remonte=0;
+    parcours2=parcours->frere_prev;
+    if (parcours2) {
+      parcours=parcours2;
+      continue;
+    }
+    remonte=1;
+    parcours=parcours->pere;
+    profondeur++;
+  }
+  return NULL;
+}
+Article_List *cousin_next(Article_List *debut) {
+  Article_List *ancetre, *parcours=debut->pere, *parcours2;
+  int profondeur=1, remonte=1;
+
+  ancetre=root_of_thread(debut,1);
+  if (ancetre->pere) return NULL;
+  while (parcours && (parcours!=ancetre)) {
+    if (!remonte) {
+      parcours2=parcours->prem_fils;
+      if (parcours2) {
+        while (parcours2->frere_prev) parcours2=parcours2->frere_prev;
+        profondeur--;
+        parcours=parcours2;
+	if (profondeur==0) return parcours;
+        continue;
+      }
+    } 
+    remonte=0;
+    parcours2=parcours->frere_suiv;
+    if (parcours2) {
+      parcours=parcours2;
+      continue;
+    }
+    remonte=1;
+    parcours=parcours->pere;
+    profondeur++;
+  }
+  return NULL;
+}
+
+
 /* Trouve l'ancetre de la thread */
 /* si flag=1, on admet d'aller hors de la liste principale */
 Article_List * root_of_thread(Article_List *article, int flag) {

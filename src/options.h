@@ -72,6 +72,7 @@ struct Option_struct {
   int  auto_edit;
   int  use_regexp;
   int  use_menus;
+  int  with_cousins;
   int  quit_if_nothing;
   char *auto_subscribe;
   char *auto_ignore;
@@ -98,24 +99,24 @@ extern struct Option_struct Options;
 #define OPT_TYPE_STRING 3
 
 /* les macros pour ajouter les options */
-#define MAKE_OPT(a) {#a,OPT_TYPE_BOOLEAN,{0,0,0},{&Options.a}}
-#define MAKE_OPT_NAME(a,b) {#a,OPT_TYPE_BOOLEAN,{0,0,0},{&Options.b}}
-#define MAKE_OPT_REVNAME(a,b) {#a,OPT_TYPE_BOOLEAN,{0,1,0},{&Options.b}}
-#define MAKE_OPT_L(a) {#a,OPT_TYPE_BOOLEAN,{1,0,0},{&Options.a}}
-#define MAKE_INTEGER_OPT(a) {#a,OPT_TYPE_INTEGER,{0,0,0},{&Options.a}}
-#define MAKE_INTEGER_OPT_NAME(a,b) {#a,OPT_TYPE_INTEGER,{0,0,0},{&Options.b}}
-#define MAKE_INTEGER_OPT_REVNAME(a,b) {#a,OPT_TYPE_INTEGER,{0,1,0},{&Options.b}}
-#define MAKE_INTEGER_OPT_L(a) {#a,OPT_TYPE_INTEGER,{1,0,0},{&Options.a}}
+#define MAKE_OPT(a,b) {#a,b,OPT_TYPE_BOOLEAN,{0,0,0},{&Options.a}}
+#define MAKE_OPT_NAME(a,b,c) {#a,c,OPT_TYPE_BOOLEAN,{0,0,0},{&Options.b}}
+#define MAKE_OPT_REVNAME(a,b,c) {#a,c,OPT_TYPE_BOOLEAN,{0,1,0},{&Options.b}}
+#define MAKE_OPT_L(a,b) {#a,b,OPT_TYPE_BOOLEAN,{1,0,0},{&Options.a}}
+#define MAKE_INTEGER_OPT(a,b) {#a,b,OPT_TYPE_INTEGER,{0,0,0},{&Options.a}}
+#define MAKE_INTEGER_OPT_NAME(a,b,c) {#a,c,OPT_TYPE_INTEGER,{0,0,0},{&Options.b}}
+#define MAKE_INTEGER_OPT_REVNAME(a,b,c) {#a,c,OPT_TYPE_INTEGER,{0,1,0},{&Options.b}}
+#define MAKE_INTEGER_OPT_L(a,b) {#a,b,OPT_TYPE_INTEGER,{1,0,0},{&Options.a}}
 
 #ifdef __GNUC__
   /* une extension de gcc que j'aime bien... */
-#  define MAKE_STRING_OPT(a) {#a,OPT_TYPE_STRING,{0,0,0},{string:&Options.a}}
-#  define MAKE_STRING_OPT_NAME(a,b) {#a,OPT_TYPE_STRING,{0,0,0},{string:&Options.b}}
-#  define MAKE_STRING_OPT_NAME_L(a,b) {#a,OPT_TYPE_STRING,{1,0,0},{string:&Options.b}}
+#  define MAKE_STRING_OPT(a,b) {#a,b,OPT_TYPE_STRING,{0,0,0},{string:&Options.a}}
+#  define MAKE_STRING_OPT_NAME(a,b,c) {#a,c,OPT_TYPE_STRING,{0,0,0},{string:&Options.b}}
+#  define MAKE_STRING_OPT_NAME_L(a,b,c) {#a,c,OPT_TYPE_STRING,{1,0,0},{string:&Options.b}}
 #else /* __GNUC__ */
-#  define MAKE_STRING_OPT(a) {#a,OPT_TYPE_STRING,{0,0,0},{(void *)&Options.a}}
-#  define MAKE_STRING_OPT_NAME(a,b) {#a,OPT_TYPE_STRING,{0,0,0},{(void *)&Options.b}}
-#  define MAKE_STRING_OPT_NAME_L(a,b) {#a,OPT_TYPE_STRING,{1,0,0},{(void *)&Options.b}}
+#  define MAKE_STRING_OPT(a,b) {#a,b,OPT_TYPE_STRING,{0,0,0},{(void *)&Options.a}}
+#  define MAKE_STRING_OPT_NAME(a,b,c) {#a,c,OPT_TYPE_STRING,{0,0,0},{(void *)&Options.b}}
+#  define MAKE_STRING_OPT_NAME_L(a,b,c) {#a,c,OPT_TYPE_STRING,{1,0,0},{(void *)&Options.b}}
 #endif
 /* la liste des options 
  * en ordre alphabétique... Peut-être y a-t-il mieux ?
@@ -123,6 +124,7 @@ extern struct Option_struct Options;
 
 static struct {
   char *name;
+  char *desc;
   short int type;
   struct {
     unsigned int lock :1;	/* la valeur ne peut être changée qu-au début */
@@ -131,39 +133,40 @@ static struct {
   } flags;
   union { int *integer; char **string; } value;
 } All_options[] = {
-  MAKE_OPT(alpha_tree),
-  MAKE_STRING_OPT(attribution),
-  MAKE_OPT(auto_edit),
-  MAKE_STRING_OPT(auto_ignore),
-  MAKE_STRING_OPT(auto_subscribe),
-  MAKE_OPT(cbreak),
-  MAKE_OPT(color),
-  MAKE_OPT_REVNAME(cool_arrows,inexistant_arrow),
-  MAKE_OPT(date_in_summary),
-  MAKE_OPT(default_subscribe),
-  MAKE_OPT(duplicate_subject),
-  MAKE_OPT(edit_all_headers),
-  MAKE_OPT(forum_mode),
-  MAKE_OPT(headers_scroll),
-  MAKE_OPT(include_in_edit),
-  MAKE_STRING_OPT(index_string),
-  MAKE_STRING_OPT(kill_file_name),
-  MAKE_OPT(ordered_summary),
-  MAKE_INTEGER_OPT_L(port),
-  MAKE_STRING_OPT(post_name),
-  MAKE_OPT(quit_if_nothing),
-  MAKE_OPT(scroll_after_end),
-  MAKE_STRING_OPT_NAME_L(server,serveur_name),
-  MAKE_OPT(simple_post),
-  MAKE_INTEGER_OPT(skip_line),
-  MAKE_OPT(space_is_return),
-  MAKE_OPT(smart_quote),
-  MAKE_OPT(subscribe_first),
-  MAKE_OPT(threaded_space),
-  MAKE_OPT(use_mailbox),
-  MAKE_OPT(use_menus),
-  MAKE_OPT(use_regexp),
-  MAKE_OPT(zap_change_group),
+  MAKE_OPT(alpha_tree,"Pour avoir les arbres de thread (alpha)."),
+  MAKE_STRING_OPT(attribution,"Chaine précédent les citations."),
+  MAKE_OPT(auto_edit,"Lancement automatique de l'éditeur dans les posts."),
+  MAKE_STRING_OPT(auto_ignore,"Expression régulières de newsgroups à ignorer"),
+  MAKE_STRING_OPT(auto_subscribe,"Expression régulière de newsgroups à accepter"),
+  MAKE_OPT(cbreak,"En mode nocbreak, toute commande finit par enter."),
+  MAKE_OPT(color,"Pour forcer l'utilisation des couleurs."),
+  MAKE_OPT_REVNAME(cool_arrows,inexistant_arrow,"Supprime les messages d'erreur liés aux mauvais usages des flèches."),
+  MAKE_OPT(date_in_summary,"Ajoute la date dans les résumés."),
+  MAKE_OPT(default_subscribe,"Abonnement par défaut."),
+  MAKE_OPT(duplicate_subject,"Les sujets sont réaffichés à chaque ligne dans les résumés."),
+  MAKE_OPT(edit_all_headers,"Permet d'éditer tous les headers dans un post."),
+  MAKE_OPT(forum_mode,"Mode de commande forum-like."),
+  MAKE_OPT(headers_scroll,"Les headers scrollent avec le reste des messages."),
+  MAKE_OPT(include_in_edit,"Lorsque auto_edit est défini, inclue automatiquement le message d'origine."),
+  MAKE_STRING_OPT(index_string,"Caractères précédents un quote."),
+  MAKE_STRING_OPT(kill_file_name,"Nom du fichier de kill utilisé."),
+  MAKE_OPT(ordered_summary,"Ordonne les résumés suivant leur numéro."),
+  MAKE_INTEGER_OPT_L(port,"Port d'accès au serveur (119 en général)."),
+  MAKE_STRING_OPT(post_name,"Nom de posts des messages."),
+  MAKE_OPT(quit_if_nothing,"Quitte si il n'y a rien de nouveau au lancement."),
+  MAKE_OPT(scroll_after_end,"Modifie le comportement final du scrolling."),
+  MAKE_STRING_OPT_NAME_L(server,serveur_name,"Nom du serveur de news."),
+  MAKE_OPT(simple_post,"Tente de faciliter le posts des messages."),
+  MAKE_INTEGER_OPT(skip_line,"Nombre de lignes blanches après la barre de statut."),
+  MAKE_OPT(space_is_return,"Cette option définie, la commande \next ne permet pas de changer de groupe."),
+  MAKE_OPT(smart_quote,"Permet de faire un quote \"intelligent\"."),
+  MAKE_OPT(subscribe_first,"Applique auto_subscribe avant auto_ignore."),
+  MAKE_OPT(threaded_space,"La commande \\next agit en fonction du thread, et non des numéros."),
+  MAKE_OPT(use_mailbox,"Sauve les messages au format d'une mailbox."),
+  MAKE_OPT(use_menus,"Utilisation des menus (alpha)."),
+  MAKE_OPT(use_regexp,"Utilise les expresions régulières."),
+  MAKE_OPT(with_cousins,"Permet de se déplacer entre cousins."),
+  MAKE_OPT(zap_change_group,"La commande \\zap change automatiquement de groupe courant."),
 };
 
 

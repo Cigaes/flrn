@@ -1,5 +1,7 @@
 ChangeLog Flrn
 
+. ajoute d'une description de chaque option
+. option with_cousins
 . bugfix dans do_goto
 
 ----------------------------

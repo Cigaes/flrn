@@ -866,11 +866,17 @@ int do_deplace(int res) {
 			 parcours=parcours2;
 		       }
 		       break;
-     case FLCMD_UP : parcours2=parcours->frere_prev; break;
+     case FLCMD_UP : parcours2=parcours->frere_prev; 
+     		     if ((parcours2==NULL) && (Options.with_cousins))
+		       parcours2=cousin_prev(parcours);
+		     break;
      case FLCMD_LEFT : if (parcours->pere) parcours->pere->prem_fils=parcours; 
 		  parcours2=parcours->pere; break;
      case FLCMD_RIGHT : parcours2=parcours->prem_fils; break;
-     case FLCMD_DOWN : parcours2=parcours->frere_suiv; break;
+     case FLCMD_DOWN : parcours2=parcours->frere_suiv; 
+     		       if ((parcours2==NULL) && (Options.with_cousins))
+		         parcours2=cousin_next(parcours);
+		       break;
      case FLCMD_SPACE : ret=-prochain_non_lu(0, &parcours);
 			if (ret==2) { 
 			  etat_loop.Newsgroup_nouveau=Newsgroup_courant;

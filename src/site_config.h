@@ -32,6 +32,7 @@ struct Option_struct Options = {
   0,			/* auto_edit */
   0,			/* use_regexp */
   0,			/* use_menus (très alpha) */
+  0,			/* with_cousins */
   0,			/* quit_if_nothing */
   NULL,			/* auto_subscribe */
   "^control|^[^.]+$",	/* auto_ignore */

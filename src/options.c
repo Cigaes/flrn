@@ -479,6 +479,12 @@ int change_value(void *value, char **nom, int i, char *name, int len) {
   return 0;
 }
 
+void aff_desc_option (void *value, char *ligne, int len) {
+  int num=(int)(long) value;
+
+  snprintf(ligne,len,All_options[num].desc);
+}
+
 void menu_config_variables() {
   int i;
   char buf[80];
@@ -490,7 +496,7 @@ void menu_config_variables() {
     courant=ajoute_menu(courant,safe_strdup(buf),(void *)i);
     if (!menu) menu=courant;
   }
-  valeur = (int *) Menu_simple(menu, NULL, NULL, change_value);
+  valeur = (int *) Menu_simple(menu, NULL, aff_desc_option, change_value);
   Libere_menu_noms(menu);
   return;
 }
