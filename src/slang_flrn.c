@@ -16,6 +16,12 @@
 #include <stdlib.h>
 #include <slang.h>
 
+/* on vérifie tout de suite si la version de SLang est suffisante */
+#if SLANG_VERSION < 10400
+#error slang doit être de version 1.4 ou plus pour que flrn compile \
+avec le langage de script.
+#endif
+
 #include "art_group.h"
 #include "group.h"
 #include "tty_display.h"

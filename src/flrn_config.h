@@ -87,10 +87,6 @@
  * l'option auto_edit est alors supprimée. */
 #undef NO_INTERN_EDITOR
 
-/* Cette option active le langage de script de Slang (ultra-alpha).
- * A terme, ça devrait passer dans le configure. */
-#undef USE_SLANG_LANGUAGE
-
 /* Répertoire où chercher les fichiers de config chez l'utilisateur */
 #define DEFAULT_DIR_FILE        ".flrn"
 

@@ -1,5 +1,7 @@
 ChangeLog Flrn
 
+. option default_domain
+. début du script slang
 . début des patchs GNKSA
 . meilleure gestion de la signature
 . modification du supersedes

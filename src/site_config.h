@@ -84,6 +84,9 @@ struct Option_struct Options = {
 #ifdef WITH_CHARACTER_SETS
   NULL,                 /* character_set */
 #endif
+#ifndef WITH_DOMAIN
+  NULL,                  /* default_domain */
+#endif
   };
 
 #endif

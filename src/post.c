@@ -1159,10 +1159,22 @@ void Get_user_address(char *str) {
    strcpy(str, flrn_user->pw_name);
    strcat(str, "@");
 #ifdef DEFAULT_HOST
-   strncpy(hostname, DEFAULT_HOST, 255-strlen(DOMAIN));
+   strncpy(hostname, DEFAULT_HOST, 255-
+#ifdef DOMAIN
+      strlen(DOMAIN)
+#else
+      (Options.default_domain==NULL ? 12 : strlen(Options.default_domain))
+#endif
+   );
 #else
 #ifdef HAVE_GETHOSTNAME
-   gethostname(hostname,255-strlen(DOMAIN)); /* PAS de test d'erreur */
+   gethostname(hostname,255-
+#ifdef DOMAIN
+      strlen(DOMAIN)
+#else
+      (Options.default_domain==NULL ? 12 : strlen(Options.default_domain))
+#endif
+   );  /* PAS de test d'erreur */
 #else
 #error Vous devez definir DEFAULT_HOST dans flrn_config.h
 #endif
@@ -1170,9 +1182,19 @@ void Get_user_address(char *str) {
   /* hostname, sur naoned au moins, renvoie naoned.ens.fr */
   /* Pour les autres machines, je sais pas. Ca semble pas */
   /* clair sur fregate.					  */
+#ifdef DOMAIN
    buf1=strchr(hostname,'.');
    if (buf1) *(++buf1)='\0'; else strcat(hostname,".");
    strcat(hostname, DOMAIN);  
+#else
+   if (Options.default_domain) {
+      buf1=strchr(hostname,'.');
+      if (buf1) *(++buf1)='\0'; else strcat(hostname,".");
+      strcat(hostname, Options.default_domain);
+   } else
+   if (strchr(hostname,'.')==NULL) strcat(hostname,".invalid");
+       /* hostname incorrect */
+#endif
    strcat(str, hostname);
 }
 

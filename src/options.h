@@ -157,6 +157,9 @@ struct Option_struct {
 #ifdef WITH_CHARACTER_SETS
   char *character_set;
 #endif
+#ifndef DOMAIN
+  char *default_domain;
+#endif
 };
 
 extern struct Option_struct Options;
@@ -228,6 +231,9 @@ static struct {
   MAKE_OPT(color,"Pour forcer l'utilisation des couleurs."),
   MAKE_OPT_REVNAME(cool_arrows,inexistant_arrow,"Supprime les messages d'erreur liés aux mauvais usages des flèches."),
   MAKE_OPT(date_in_summary,"Ajoute la date dans les résumés."),
+#ifndef DOMAIN
+  MAKE_STRING_OPT(default_domain,"Fixe le domaine de la machine."),
+#endif
   MAKE_STRING_OPT_L(default_flnewsfile,"Si le .flnewsrc n'existe pas, où en chercher un."),
   MAKE_OPT(default_subscribe,"Abonnement par défaut."),
   MAKE_OPT(duplicate_subject,"Les sujets sont réaffichés à chaque ligne dans les résumés."),
