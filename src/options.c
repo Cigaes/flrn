@@ -1433,6 +1433,12 @@ void free_options() {
      free(parcours2);
   }
   Options.user_autocmd=NULL;
+  free(unknown_Headers);
+  if (size_header_list!=ISIZE_HEADER_LIST) {
+      free(Options.header_list);
+      free(Options.weak_header_list);
+      free(Options.hidden_header_list);
+  }
 }
 
 void free_string_list_type (string_list_type *s_l_t) {
