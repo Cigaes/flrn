@@ -137,9 +137,9 @@ int read_terminal_charset () {
     char *codeset;
     if ((locale=setlocale(LC_ALL,""))==NULL) return -2;
 #ifdef I18N_GETTEXT
-    bindtextdomain("flrn", "/home/masse/tmp/flrn/locale");
-    textdomain ("flrn");
-    bind_textdomain_codeset("flrn","utf-8");
+    bindtextdomain(PACKAGE, LOCALEDIR);
+    textdomain (PACKAGE);
+    bind_textdomain_codeset(PACKAGE,"utf-8");
 #endif
     if ((strcmp(locale,"C")==0) || (strcmp(locale,"POSIX")==0)) return 1;
     codeset=nl_langinfo(CODESET);
@@ -244,7 +244,7 @@ size_t UCGetUniFromUtf8String (long *uch,const u8 *ppuni, size_t sleft)
     if (sleft<=utf_count) return (size_t)(-2);
     for (p = ppuni, i = 0; i < utf_count ; i++) {
          if ((*(++p) & 0xc0) != 0x80)
-	     return (-1);
+	     return (size_t)(-1);
     }
     p = ppuni;
     switch (utf_count) {
@@ -716,8 +716,6 @@ size_t fl_appconv_from_flstring_ce (struct conversion_etat *ce,
 	const flrn_char **inbuf, size_t *inbl, 
 	char **outbuf, char **outptr, size_t *outbl) {
     size_t res;
-    flrn_mbstate ps;
-    memset(&ps,0,sizeof(flrn_mbstate));
     while (1) {
 	res=fl_conv_from_flstring_ce(ce,inbuf,inbl,outbuf,outptr,outbl);
 	if (((int)res==-1) && (errno==EILSEQ)) {
@@ -728,16 +726,16 @@ size_t fl_appconv_from_flstring_ce (struct conversion_etat *ce,
 #else
 	    /* on suppose qu'on est en locale utf8, ce qui est la norme */
 	    **outptr='?'; (*outptr)++; (*outbl)--;
-	    res=mbrlen(*inbuf,*inbl,&ps);
+	    res=UCGetUniFromUtf8String(NULL, *inbuf, *inbl);
 	    if (res==0) res=1;
-	    if (res>0) {
+	    if ((int)res>0) {
 		(*inbuf)+=res;
 		(*inbl)-=res;
 		continue;
 	    }
-	    while (res==-1) {
+	    while ((int)res==-1) {
 	      (*inbuf)++; (*inbl)--; if (*inbl==0) break;
-	      res=mbrlen(*inbuf,*inbl,&ps);
+	      res=UCGetUniFromUtf8String(NULL, *inbuf, *inbl);
 	    }
 	    if ((int)res==-2) return -1;
 	    if (*inbl==0) return 0;
