@@ -209,7 +209,7 @@ int Decode_ligne_with_charset (char *ligne_lue, char **output, int chrset) {
     unsigned char *bufwrite;
     int le_charset;
 
-    if (UCInfo[chrset].enc==0) return 0;
+    if (UCInfo[chrset].enc==0) return 1;
     /* TODO : s'occuper de l'utf-8 */
     if (UCInfo[chrset].enc>2) {
         *output=ligne_lue;
