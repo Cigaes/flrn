@@ -13,7 +13,7 @@ Moyenne priorité
 _ reprendre les regexp pour garder la chaîne initiale. Améliorer save-options
   en conséquence
 - reprendre la doc
-_ Content-Type, même avec des guillemets
+_ Content-Type, même avec des guillemets (plus ou moins fait)
 
 Basse priorité
 --------------

@@ -31,6 +31,9 @@
 #include "tty_keyboard.h"
 #include "flrn_pager.h"
 #include "flrn_menus.h"
+#ifdef USE_SLANG_LANGUAGE
+#include "slang_flrn.h"
+#endif
 
 static UNUSED char rcsid[]="$Id$";
 

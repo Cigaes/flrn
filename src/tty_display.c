@@ -757,7 +757,7 @@ int Aff_arbre (int row, int col, Article_List *init,
   for (up=0;up<height+1;up++)
       for (left=0;left<(to_left+to_right)*2+3; left++) 
         table[up][left]=(FIELD_NORMAL<<8) + ' ';
-#define field_for_art(x) (Est_proprietaire(x) ? FIELD_AT_MINE : FIELD_AT_OTH)
+#define field_for_art(x) ((Est_proprietaire(x)>0) ? FIELD_AT_MINE : FIELD_AT_OTH)
 #define char_for_art(x) (x->numero== -1 ? SYMB_ART_UNK : (x->flag & FLAG_READ ? SYMB_ART_READ : SYMB_ART_UNR))
   /* Enfin, on va commencer "modifier" to_left et to_right... */
   left=up=down=act_right=act_right_deb=0;
