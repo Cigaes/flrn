@@ -949,7 +949,9 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
    bol=1;
 
    buf2=strchr(buf,(from_file ? '\n' : '\r'));    
-   	/* Bon d'accord, on formate rien, mais bon */
+	/* Bon d'accord, on formate rien, mais bon */
+   if ((!buf2) && (!from_file)) buf2=strchr(buf,'\n');
+	/* Pour corriger une erreur dans inn-2.1 :-( */
    if (buf2) *buf2='\0';
    while (1) {
       if ((act_row>Screen_Rows-2) && (en_deca)) {  /* Fin de l'ecran */

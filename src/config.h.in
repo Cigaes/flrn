@@ -6,9 +6,10 @@
 /* Définissez ceci si gethostname */
 /* n'existe pas ou si vous voulez */
 /* imposer le nom de la machine...*/
-/* ou utilisez l'option --with-default-host de  ./configure */
+/* ou utilisez l'option --with-default-host de ./configure */
 #undef DEFAULT_HOST
 
+/* Pour l'option --with-domain du configure */
 #undef DOMAIN
 
 /* Define to empty if the keyword does not work.  */
