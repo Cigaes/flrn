@@ -39,7 +39,9 @@ static UNUSED char rcsid[]="$Id$";
 
 static flrn_char *delim = fl_static("=: \t\n");
 
-Known_Headers unknown_Headers[MAX_HEADER_LIST];
+int size_header_list=ISIZE_HEADER_LIST;
+Known_Headers *unknown_Headers;
+void increase_size_header_list(int);
 
 static void free_string_list_type (string_list_type *s_l_t);
 static int parse_option_file (char *name, int flags, int flag_option);
@@ -276,14 +278,15 @@ int Le_header(flrn_char *buf) {
 		    fl_static_tran(Headers[i].header),l)==0))
       return i;
   }
-  for (i=0;i<MAX_HEADER_LIST;i++) {
+  for (i=0;i<size_header_list;i++) {
     if ((l==unknown_Headers[i].header_len-1) && 
 	    (fl_strncasecmp(buf,
 	fl_static_tran(unknown_Headers[i].header),l)==0))
       return -i-2;
     if (unknown_Headers[i].header_len==0) break;
   }
-  if (i==MAX_HEADER_LIST) return -i-2; /* Pas grave... */ /* TODO : changer */
+  if (i==size_header_list) 
+      increase_size_header_list(i+10);
   unknown_Headers[i].header=safe_malloc(l+2);
   /* unknown headers est une liste de chaînes en us-ascii... un
    * header n'est pas censé contenir d'accents */
@@ -651,6 +654,29 @@ int opt_do_my_flags(flrn_char *str, int flag)
   return 0;
 }
 
+void increase_size_header_list(int newsize) {
+    int *new_list;
+    new_list=safe_calloc(newsize,sizeof(int));
+    memcpy(new_list,Options.header_list,sizeof(int)*size_header_list);
+    if (Options.header_list!=&(deb_header_list[0])) free(Options.header_list);
+    Options.header_list=new_list;
+    new_list=safe_calloc(newsize,sizeof(int));
+    memcpy(new_list,Options.weak_header_list,sizeof(int)*size_header_list);
+    if (Options.hidden_header_list!=&(deb_weak_header_list[0])) 
+	 free(Options.weak_header_list);
+    Options.weak_header_list=new_list;
+    new_list=safe_calloc(newsize,sizeof(int));
+    memcpy(new_list,Options.hidden_header_list,sizeof(int)*size_header_list);
+    if (Options.hidden_header_list!=&(deb_hidden_header_list[0])) 
+	 free(Options.hidden_header_list);
+    Options.hidden_header_list=new_list;
+    unknown_Headers = 
+	safe_realloc(unknown_Headers,newsize*sizeof(Known_Headers));
+    if (newsize>size_header_list)
+      memset((unknown_Headers+size_header_list),0,
+	      (newsize-size_header_list)*sizeof(Known_Headers));
+    size_header_list=newsize;
+}
 
 int opt_do_header(flrn_char *str, int flag)
 {
@@ -669,7 +695,7 @@ int opt_do_header(flrn_char *str, int flag)
 	if (fl_strcasecmp(buf,fl_static("list"))!=0) 
      Options.header_list[i++]=Le_header(buf);
 
-  while((buf=fl_strtok_r(NULL,delim,&dummy)) && (i<MAX_HEADER_LIST-1))
+  while ((buf=fl_strtok_r(NULL,delim,&dummy)))
   {
     if (weak)
       Options.weak_header_list[i++]=Le_header(buf);
@@ -677,6 +703,7 @@ int opt_do_header(flrn_char *str, int flag)
       Options.hidden_header_list[i++]=Le_header(buf);
     else
       Options.header_list[i++]=Le_header(buf);
+    if (i==size_header_list) increase_size_header_list(size_header_list+10);
   }
   if (weak)
     Options.weak_header_list[i]=-1; 
@@ -1020,7 +1047,7 @@ void print_header_name(FILE *file, int i) {
     fputs(Headers[i].header,file);
   } else {
     i=-i-2;
-    if (i==MAX_HEADER_LIST) return;
+    if (i==size_header_list) return; /* ne devrait pas arriver */
     fputs(unknown_Headers[i].header,file);
   }
 }
@@ -1052,19 +1079,19 @@ void dump_variables(FILE *file) {
   if (resc==0) free(trad);
   if (r0==0) free(t0);
   fprintf(file,"\nheader list: ");
-  for (i=0; i<MAX_HEADER_LIST; i++) {
+  for (i=0; i<size_header_list; i++) {
     if (Options.header_list[i]==-1) break;
     putc(' ',file);
     print_header_name(file,Options.header_list[i]);
   }
   fprintf(file,"\nheader weak: ");
-  for (i=0; i<MAX_HEADER_LIST; i++) {
+  for (i=0; i<size_header_list; i++) {
     if (Options.weak_header_list[i]==-1) break;
     putc(' ',file);
     print_header_name(file,Options.weak_header_list[i]);
   }
   fprintf(file,"\nheader hide: ");
-  for (i=0; i<MAX_HEADER_LIST; i++) {
+  for (i=0; i<size_header_list; i++) {
     if (Options.hidden_header_list[i]==-1) break;
     putc(' ',file);
     print_header_name(file,Options.hidden_header_list[i]);
@@ -1365,6 +1392,8 @@ void init_options() {
   char *buf;
   int i;
 
+  unknown_Headers = safe_calloc(size_header_list,sizeof(Known_Headers));
+
   buf=getenv("NNTPSERVER");
   if (buf)
   {
@@ -1375,7 +1404,7 @@ void init_options() {
 /*    strncpy(Options.serveur_name,buf,MAX_SERVER_LEN);
     Options.serveur_name[MAX_SERVER_LEN-1]=0; */
   }
-  for (i=0;i<MAX_HEADER_LIST;i++) {
+  for (i=0;i<size_header_list;i++) {
     unknown_Headers[i].header_len=0;
     unknown_Headers[i].header=NULL;
   }

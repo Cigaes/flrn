@@ -14,18 +14,25 @@
 
 #ifdef IN_OPTION_C
 
+#ifdef GNKSA_DISPLAY_HEADERS /* défini dans config.h ou flrn_config.h */
+int deb_header_list[] = {NEWSGROUPS_HEADER,FOLLOWUP_TO_HEADER,REFERENCES_HEADER,FROM_HEADER,REPLY_TO_HEADER,DATE_HEADER,SUBJECT_HEADER,-1}; /* header */
+#else  /* configuration "forum" */
+int deb_header_list[] = {REFERENCES_HEADER,FROM_HEADER,DATE_HEADER,SUBJECT_HEADER,-1}; /* header */
+#endif
+
+#define ISIZE_HEADER_LIST  (sizeof(deb_header_list)/sizeof(int))
+
+int deb_weak_header_list[ISIZE_HEADER_LIST] = {-1};
+int deb_hidden_header_list[ISIZE_HEADER_LIST] = {-1};
+
 struct Option_struct Options = {
   "news",  		 /* server */
   DEFAULT_NNTP_PORT,    /* port (DEFAULT_NNTP_PORT = 119) */
   NULL,			/* flnews_ext */
   NULL, 		/* Post name - doit rester NULL */
-#ifdef GNKSA_DISPLAY_HEADERS /* défini dans config.h ou flrn_config.h */
-  {NEWSGROUPS_HEADER,FOLLOWUP_TO_HEADER,REFERENCES_HEADER,FROM_HEADER,REPLY_TO_HEADER,DATE_HEADER,SUBJECT_HEADER,-1}, /* header */
-#else  /* configuration "forum" */
-  {REFERENCES_HEADER,FROM_HEADER,DATE_HEADER,SUBJECT_HEADER,-1}, /* header */
-#endif
-  {-1},			/* weak headers */
-  {-1},			/* hidden headers */
+  &(deb_header_list[0]), /* header */
+  &(deb_weak_header_list[0]),	/* weak headers */
+  &(deb_hidden_header_list[0]),	/* hidden headers */
   NULL,			/* user headers */
   NULL,			/* user_flags */
   NULL,			/* user_autocmd */

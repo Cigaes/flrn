@@ -70,12 +70,10 @@ struct _Optcmd {
 
 #endif
 
-#ifndef MAX_HEADER_LIST
-#define MAX_HEADER_LIST 31
-#endif
+extern int size_header_list;
 
-extern Known_Headers unknown_Headers[MAX_HEADER_LIST];
-	/* on va les reperer en négatif de -2 à -MAX_HEADER_LIST-1 */
+extern Known_Headers *unknown_Headers;
+	/* on va les reperer en négatif de -2 à -size_header_list-1 */
 extern const flrn_char *Help_Lines[17];
 
 /* pour les my_hdr */
@@ -99,9 +97,9 @@ struct Option_struct {
   int  port;				 /* Option port	     */
   flrn_char *flnews_ext;		 /* extension du .flnewsrc */
   flrn_char *post_name;			 /* options post_name */
-  int  header_list[MAX_HEADER_LIST];     /* ordre des headers  */
-  int  weak_header_list[MAX_HEADER_LIST]; /* headers "faibles" */
-  int  hidden_header_list[MAX_HEADER_LIST]; /* headers a cacher */
+  int  *header_list;     /* ordre des headers  */
+  int  *weak_header_list; /* headers "faibles" */
+  int  *hidden_header_list; /* headers a cacher */
   string_list_type *user_header;
   string_list_type *user_flags;
   autocmd_list_type *user_autocmd;

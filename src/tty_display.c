@@ -1729,7 +1729,7 @@ int Aff_headers (int flag) {
    for (j=0;j<NB_KNOWN_HEADERS;j++) flags[j]=-1;
    while (tmp) { tmp->num_af=-1; tmp=tmp->next; }
    while ((i=Options.header_list[index++])!=-1) {
-      if ((i>NB_KNOWN_HEADERS) || (i<-MAX_HEADER_LIST-1)) continue;
+      if ((i>NB_KNOWN_HEADERS) || (i<-size_header_list-1)) continue;
       if ((i>=0) && (i<NB_KNOWN_HEADERS)) flags[i]=index; else
       if (i==NB_KNOWN_HEADERS) {
 	tmp=Last_head_cmd.headers;
@@ -1748,7 +1748,7 @@ int Aff_headers (int flag) {
    }
    index=0;
    while ((i=Options.hidden_header_list[index++])!=-1) {
-      if ((i>NB_KNOWN_HEADERS) || (i<-MAX_HEADER_LIST-1)) continue;
+      if ((i>NB_KNOWN_HEADERS) || (i<-size_header_list-1)) continue;
       if ((i>=0) && (i<NB_KNOWN_HEADERS)) flags[i]=-1; else
       if (i==NB_KNOWN_HEADERS) {
 	/* depuis quand hidden_header peut contenir others ??? */
@@ -1766,7 +1766,7 @@ int Aff_headers (int flag) {
    index=0;
    while ((i=Options.header_list[index++])!=-1)
    {
-     if ((i>NB_KNOWN_HEADERS) || (i<-MAX_HEADER_LIST-1)) continue;
+     if ((i>NB_KNOWN_HEADERS) || (i<-size_header_list-1)) continue;
      if (flag) {
        for (j=0; Options.weak_header_list[j]!=-1; j++)
          if (Options.weak_header_list[j]==i) break;
@@ -1964,7 +1964,7 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
    int res, percent;
    char *buf, *buf2;
    flrn_char buf3[15];
-   int last_color;
+   int last_color,deb=1;
    flrn_char *trad;
    int rc;
    struct construct_fill cf;
@@ -2005,7 +2005,6 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
    if (saved_field!=FIELD_SIG) {
      if (buf[0]=='>') saved_field=FIELD_QUOTED; else saved_field=FIELD_NORMAL;
    }
-   if ((!from_file) && ((strcmp(buf,"-- \r\n")==0))) saved_field=FIELD_SIG;
    if (from_file) saved_field=FIELD_FILE;
    last_color=saved_field;
    memset(&cf,0,sizeof(struct construct_fill));
@@ -2033,6 +2032,8 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
      }
      if (from_file) rc=conversion_from_file(buf,&trad,0,(size_t)(-1));
        else rc=conversion_from_message(buf,&trad,0,(size_t)(-1));
+     if ((!from_file) && (buf2) && (fl_strcmp(trad,fl_static("-- "))==0))
+	 last_color=saved_field=FIELD_SIG;
      create_Color_line(add_line_aff_line,saved_field,trad,fl_strlen(trad),
 	     saved_field);
      if (rc==0) free(trad);
@@ -2041,6 +2042,7 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
      res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
      if (res<2) break;
      buf=tcp_line_read;
+     deb=0;
    }
    add_line_aff_line(NULL,0,0);
 

@@ -43,9 +43,8 @@ void print_version_defines(FILE *out)
    fprintf(out, "DEFAULT_HOST=\"%s\"  ", DEFAULT_HOST);
 #endif
 #ifdef DOMAIN
-   fprintf(out, "DOMAIN=\"%s\"  ", DOMAIN);
+   fprintf(out, "DOMAIN=\"%s\"\n", DOMAIN);
 #endif
-   fprintf(out, "MAX_HEADER_LIST=%d\n", MAX_HEADER_LIST);
    fputs(
 #ifdef MODE_EXPERT
          "+MODE_EXPERT  "
