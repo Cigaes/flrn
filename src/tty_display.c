@@ -2316,7 +2316,10 @@ int Aff_article_courant(int to_build) {
 #ifdef USE_CONTENT_ENCODING
 	 if (fl_strncasecmp(tmp->header_head,
 		     fl_static("content-transfer-encoding:"),26)==0) {
-	     isinQP =  (fl_strstr(tmp->header_body,"uoted")!=NULL);
+             flrn_char *lect = tmp->header_body;
+             while ((*lect) && (fl_isspace(*lect))) lect++;
+	     isinQP =  (fl_strncasecmp(lect,
+			 fl_static("quoted-printable"),16)==0);
 	 }
 #endif
          if (fl_strncasecmp(tmp->header_head,

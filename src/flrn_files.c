@@ -366,7 +366,10 @@ void Copy_article (FILE *dest, Article_List *article, int copie_head,
 #ifdef USE_CONTENT_ENCODING
                   if (fl_strncasecmp(newheader,
 		             fl_static("content-transfer-encoding:"),26)==0) {
-                      isinQP =  (fl_strstr(newheader+26,"uoted")!=NULL);
+		      flrn_char *lect = newheader+26;
+                      while ((*lect) && (fl_isspace(*lect))) lect++;
+                      isinQP =  (fl_strncasecmp(lect,
+				  fl_static("quoted-printable"),16)==0);
                   }
 #endif
 		  if (encoding%2==1) 
