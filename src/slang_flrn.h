@@ -17,6 +17,8 @@
 
 #ifdef USE_SLANG_LANGUAGE
 
+#include "art_group.h"
+#include "group.h"
 #include "slang.h"
 
 extern int flrn_SLang_inited;
@@ -27,6 +29,7 @@ extern int source_SLang_file (char *);
 extern void change_SLang_Error_Hook(int);
 extern SLang_Name_Type *Parse_fun_slang (char *, int *);
 extern int Parse_type_fun_slang(char *);
+extern int Push_article_on_stack (Article_List *, Newsgroup_List *);
 
 #endif
 

@@ -81,6 +81,21 @@ static void Article_Type_destroy_callback(unsigned char type, VOID_STAR addr)
    return; 
 }
 
+int Push_article_on_stack (Article_List *article, Newsgroup_List *groupe) {
+   SLang_MMT_Type *bla;
+   Article_and_Group *larticle;
+
+   larticle=safe_malloc(sizeof(Article_and_Group));
+   larticle->article=article;
+   larticle->groupe=groupe;
+   bla = SLang_create_mmt(ARTICLE_TYPE_NUMBER,VOID_STAR larticle);
+   if (SLang_push_mmt(bla)) return 0;
+   else {
+     SLang_free_mmt(bla);
+     return -1;
+   }
+}
+
 /***************** Les variables *****************************/
 
 static SLang_MMT_Type *flrn_SLang_article_courant_mmt;
