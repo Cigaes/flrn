@@ -551,7 +551,6 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 		        if (len2<=0) { result[len]=0; free(att); free(msgid); 
 			               return; } else 
 			result[len-len2]=0; }
-                      ptr_att++;
 		      free(msgid);
                       break;
 		    }
