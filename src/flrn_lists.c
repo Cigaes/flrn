@@ -23,6 +23,7 @@ int free_liste(Flrn_liste *l) {
     free_liste_el(a);
     a=b;
   }
+  free(l);
   return 0;
 }
 

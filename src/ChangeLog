@@ -1,5 +1,8 @@
 ChangeLog Flrn
 
+
+. corrections de memory leaks
+
 -----------------------------
 Version 0.3.1
 -----------------------------

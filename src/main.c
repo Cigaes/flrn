@@ -132,6 +132,7 @@ int main(int argc, char *argv[])
   free_groups(res);
   free_options();
   free_kill(); /* pour sauver le kill-file... */
+  free_highlights();
 #ifdef CHECK_MAIL
   if (getenv("MAIL")==NULL) free(mailbox);
 #endif

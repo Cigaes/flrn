@@ -119,6 +119,7 @@ extern int cree_liste_end(void);
 
 /* tty_display.c */
 extern int Init_screen(void);
+extern void Reset_screen(void);
 extern void sig_winch(int );
 extern int Aff_article_courant(void);
 extern void Aff_newsgroup_name(void);
@@ -217,6 +218,8 @@ extern int in_main_list(char *);
 
 
 /* flrn_color.c */
+extern void free_highlights(void);
+
 extern int parse_option_color(int /*func*/, char * /*line*/);
 extern void Init_couleurs(void);
 extern int Aff_color_line(int /*to_print*/, unsigned short * /*format_line*/,
@@ -230,7 +233,7 @@ extern void Screen_suspend(void);
 extern void Screen_resume(void);
 extern void Screen_get_size(void);
 extern int Screen_init_smg(void);
-extern void Reset_screen(void);
+extern void Screen_reset(void);
 extern void Get_terminfo(void);
 extern void Screen_write_char(char /*c*/);
 extern void Screen_write_string(char * /*s*/);

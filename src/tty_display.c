@@ -119,8 +119,16 @@ int Init_screen() {
    /*SL*/signal(SIGWINCH, sig_winch);
     
    return Size_Window(1,5);
- 
 }
+
+void Reset_screen() {
+  int res;
+  for (res=0;res<7;res++)
+    free(table_petit_arbre[res]);
+  free(table_petit_arbre);
+  Screen_reset();
+}
+
 
 
 /* Affiche un message en bas de l'ecran.				*/

@@ -369,6 +369,8 @@ void free_groups(int save_flnewsrc) {
        libere_liste();
        Newsgroup_courant->Article_deb=NULL;
        Newsgroup_courant->Article_exte_deb=NULL;
+       if (Newsgroup_courant->Hash_table)
+	 free(Newsgroup_courant->Hash_table);
        Newsgroup_courant->Hash_table=NULL;
        Newsgroup_courant->article_deb_key=0;
      }

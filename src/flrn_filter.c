@@ -224,6 +224,7 @@ static void free_condition( flrn_condition *cond) {
       free(cond->condition.string);
       cond->condition.string=NULL;
   }
+  free(cond);
 }
 
 static void free_action( flrn_action *act) {

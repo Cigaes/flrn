@@ -23,7 +23,8 @@ void Screen_get_size() { SLtt_get_screen_size();
 			 Screen_Cols=SLtt_Screen_Cols;
 		       }
 int Screen_init_smg() { int a; a=SLsmg_init_smg(); Screen_Tab_Width=SLsmg_Tab_Width; return a; }
-void Reset_screen() { SLsmg_reset_smg(); }
+void Screen_reset() {  SLsmg_reset_smg(); }
+
 void Get_terminfo() { SLtt_get_terminfo();
 		      Screen_Rows=SLtt_Screen_Rows;
 		      Screen_Cols=SLtt_Screen_Cols;
