@@ -115,8 +115,9 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin, 
     int out=0, progress=0, progress_step;
     char *hdr=NULL;
 
-    Manage_progress_bar(1);
-    progress_step=(n2-n1)/9;
+    /* FIXME : francais */
+    Manage_progress_bar(fl_static("Lecture de l'overview, patientez..."),1);
+    progress_step=(n2-n1)/10;
     if (progress_step==0) progress_step=1;
     *newmin=*newmax=-1;
     buf=safe_malloc(50*sizeof(char)); /* De toute façon, on devra */
@@ -148,7 +149,7 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin, 
 	 creation->numero=strtol(buf,NULL,10);
 	 while ((creation->numero-n1)/progress_step>progress) {
 	      progress++;
-	      Manage_progress_bar(0);
+	      Manage_progress_bar(NULL,0);
 	 }
 	 creation->flag=FLAG_NEW; /* pour le kill_file */
 	 /* on le recherche */
@@ -333,8 +334,8 @@ int cree_liste_noxover(int min, int max, Article_List *start_article, int *newmi
    int lus_index=0;
    int progress=0, progress_step;
    
-   Manage_progress_bar(1);
-   progress_step=(max-min)/4;
+   Manage_progress_bar(fl_static("Lecture des References, patientez..."),1);
+   progress_step=((max-min)*2)/9;
    if (progress_step==0) progress_step=1;
    *newmin=min;
    *newmax=max;
@@ -370,7 +371,7 @@ int cree_liste_noxover(int min, int max, Article_List *start_article, int *newmi
 
       while ((creation->numero-min)/progress_step>progress) {
 	      progress++;
-	      Manage_progress_bar(0);
+	      Manage_progress_bar(NULL,0);
       }
 
       creation->flag = FLAG_NEW;
@@ -402,7 +403,7 @@ int cree_liste_noxover(int min, int max, Article_List *start_article, int *newmi
       						      /* quand même buggué...*/
    }
 
-   Manage_progress_bar(0);
+   Manage_progress_bar(NULL,0);
    progress=0;
    /* Recherche des parents */
    sprintf(buf, "References %d-%d", min, max);
@@ -426,7 +427,7 @@ int cree_liste_noxover(int min, int max, Article_List *start_article, int *newmi
       }
       while ((article->numero-min)/progress_step>progress) {
 	      progress++;
-	      Manage_progress_bar(0);
+	      Manage_progress_bar(NULL,0);
       }
       if (code == article->numero) {
 	/* on construit le champ References */

@@ -44,6 +44,6 @@ extern int Liste_groupe(int , flrn_char * , Newsgroup_List **);
 extern void Aff_help_line(int);
 extern int screen_changed_size(void);
 
-extern void Manage_progress_bar(int);
+extern void Manage_progress_bar(flrn_char *, int);
 
 #endif

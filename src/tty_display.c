@@ -282,12 +282,13 @@ int Aff_error_fin(const flrn_char *str, int s_beep, int short_e) {
    return 0;
 }
 
-void Manage_progress_bar(int reset) {
+void Manage_progress_bar(flrn_char *msg, int reset) {
    static int col=0;
    if (screen_inited==0) return;
    Screen_set_color(FIELD_NORMAL);
    if (reset==1) {
-        Aff_fin(fl_static("Patientez..."));
+       /* FIXME : français */
+        Aff_fin((msg ? msg : fl_static("Patientez...")));
         Cursor_gotorc(Screen_Rows2-1, Screen_Cols-13);
 	Screen_write_string("[          ]");
 	col=Screen_Cols-12;
@@ -297,6 +298,8 @@ void Manage_progress_bar(int reset) {
    Cursor_gotorc(Screen_Rows2-1, col);
    Screen_write_string("*");
    col++;
+   if (col>Screen_Cols-3) col=Screen_Cols-3;
+   Cursor_gotorc(Screen_Rows2-1, Screen_Cols-1);
    Screen_refresh();
 }
 
