@@ -516,7 +516,7 @@ int Aff_arbre (int row, int col, Article_List *init,
   /* on "nettoie" table */
   for (up=0;up<height+1;up++)
     memset (table[up], ' ', (to_left+to_right)*2+3);
-#define char_for_art(x) (x->flag & FLAG_READ ? SYMB_ART_READ : SYMB_ART_UNR)
+#define char_for_art(x) (x->numero== -1 ? SYMB_ART_UNK : (x->flag & FLAG_READ ? SYMB_ART_READ : SYMB_ART_UNR))
   /* Enfin, on va commencer "modifier" to_left et to_right... */
   left=up=down=act_right=act_right_deb=0;
   while (parcours->pere) {
@@ -555,8 +555,7 @@ int Aff_arbre (int row, int col, Article_List *init,
      act_right=act_right_deb;
      cl=initcol+act_right*2;
      if (parcours==init) (table[0])[cl]=SYMB_ART_COUR;
-        else if (parcours->numero<0) (table[0])[cl]=SYMB_ART_UNK; else
-	  (table[0])[cl]=char_for_art(parcours);
+        else (table[0])[cl]=char_for_art(parcours);
      if (act_right!=-left) (table[0])[cl-1]='-'; 
      /* on commence l'infame parcours */
      parcours2=parcours->frere_prev;
@@ -840,13 +839,63 @@ static char *Recupere_user_flags (Article_List *article) {
    return (size==0 ? NULL : str);
 }
 
+
+/* flag==1 : pas de scrolling possible */
+int Aff_place_article (int flag){
+   int with_arbre;
+   int row=0;
+
+   with_arbre=1+Options.alpha_tree;
+   Screen_set_color(FIELD_NORMAL);
+   if (with_arbre==1) {
+     /* On affiche les petites fleches */
+     /* provisoirement, on les ajoute pas au scrolling (ARGH !!!) */
+     Cursor_gotorc(2+Options.skip_line, Screen_Cols-4);
+     Screen_write_char('+');
+     if (Article_courant->frere_prev) {
+        Cursor_gotorc(1+Options.skip_line, Screen_Cols-4);
+        Screen_write_char('^');
+        if (Article_courant->frere_prev->prem_fils)
+          Screen_write_char('\'');
+     }
+     if (Article_courant->frere_suiv) {
+        Cursor_gotorc(3+Options.skip_line, Screen_Cols-4);
+        Screen_write_char('v');
+        if (Article_courant->frere_suiv->prem_fils)
+          Screen_write_char(',');
+     }
+     if (Article_courant->pere) {
+        Cursor_gotorc(2+Options.skip_line, Screen_Cols-5);
+        Screen_write_char('<');
+     }
+     if (Article_courant->prem_fils) {
+        int numfils=1;
+        Article_List *parcours=Article_courant->prem_fils;
+        while ((parcours->frere_prev)) parcours=parcours->frere_prev;
+        while ((parcours=parcours->frere_suiv)) numfils++;
+        Cursor_gotorc(2+Options.skip_line, Screen_Cols-3);
+        if (numfils > 9) Screen_write_char('*');
+        else if (numfils > 1) Screen_write_char('0'+numfils);
+         Screen_write_char('>');
+        if (Article_courant->prem_fils->prem_fils)
+          Screen_write_char('>');
+     }
+     row=4+Options.skip_line;
+   } else if (with_arbre==2) {
+     row=Aff_arbre(1+Options.skip_line,Screen_Cols-12,Article_courant,2,2,6,
+	 table_petit_arbre,!flag);
+   }
+   return row;
+}
+
+
 /* Affichage des headers... Le parametre flag vaut 1 si c'est la suite d'un */
 /* message 								    */
 /* Un truc bien est maintenant d'ajouter éventuellement au scrolling les    */
 /* headers dans le cas ou flag vaut 0. On gardera ensuite ledit scrolling   */
 /* selon les options obtenues...					    */
 int Aff_headers (int flag) {
-   int index=0, row, col, i, j, i0, length;
+   int index=0, row, row2, col, i, j, i0, length;
    char buf[15];
    Header_List *tmp=Last_head_cmd.headers;
    char *une_ligne=NULL, *flags_header;
@@ -1047,47 +1096,8 @@ int Aff_headers (int flag) {
    }
    if (une_ligne) free(une_ligne);
    if (une_belle_ligne) free(une_belle_ligne);
-   Screen_set_color(FIELD_NORMAL);
-   if (with_arbre==1) {
-     /* On affiche les petites fleches */
-     /* provisoirement, on les ajoute pas au scrolling (ARGH !!!) */
-     Cursor_gotorc(2+Options.skip_line, Screen_Cols-4);
-     Screen_write_char('+');
-     if (Article_courant->frere_prev) {
-        Cursor_gotorc(1+Options.skip_line, Screen_Cols-4);
-        Screen_write_char('^');
-        if (Article_courant->frere_prev->prem_fils)
-          Screen_write_char('\'');
-     }
-     if (Article_courant->frere_suiv) {
-        Cursor_gotorc(3+Options.skip_line, Screen_Cols-4);
-        Screen_write_char('v');
-        if (Article_courant->frere_suiv->prem_fils)
-          Screen_write_char(',');
-     }
-     if (Article_courant->pere) {
-        Cursor_gotorc(2+Options.skip_line, Screen_Cols-5);
-        Screen_write_char('<');
-     }
-     if (Article_courant->prem_fils) {
-        int numfils=1;
-        Article_List *parcours=Article_courant->prem_fils;
-        while ((parcours->frere_prev)) parcours=parcours->frere_prev;
-        while ((parcours=parcours->frere_suiv)) numfils++;
-        Cursor_gotorc(2+Options.skip_line, Screen_Cols-3);
-        if (numfils > 9) Screen_write_char('*');
-        else if (numfils > 1) Screen_write_char('0'+numfils);
-         Screen_write_char('>');
-        if (Article_courant->prem_fils->prem_fils)
-          Screen_write_char('>');
-     }
-     if (row<4+Options.skip_line) row=4+Options.skip_line;
-   } else if (with_arbre==2) {
-     int row2;
-     row2=Aff_arbre(1+Options.skip_line,Screen_Cols-12,Article_courant,2,2,6,
-	 table_petit_arbre,!flag);
-     if (row<row2) row=row2;
-   }
+   row2=Aff_place_article(flag);
+   if (row2>row) row=row2;
    return row;
 }
 
@@ -1369,12 +1379,20 @@ int Aff_article_courant() {
    if ((!Article_courant->headers) ||
        (Article_courant->headers->all_headers==0) || (Last_head_cmd.Article_vu!=Article_courant)) {
         cree_header(Article_courant,1,1,0);
-        if (!Article_courant->headers) 
-	    return Aff_error("Article indisponible, peut-être cancelé.");
+        if (!Article_courant->headers) {
+	    Aff_place_article(1);
+	    Screen_set_color(FIELD_ERROR);
+	    Cursor_gotorc(row_erreur,col_erreur); 
+	    Screen_write_string("Article indisponible.");
+	    Screen_set_color(FIELD_NORMAL);
+	    return 0;
+	}
         /* On suppose ca provisoire */
 	/* le bon check, c'est pere != NULL ou parent !=0 ?
 	 * esperons que ca coincide */
-   } else if ((Article_courant->pere) && (Article_courant->headers->reponse_a_checked==0)) ajoute_reponse_a(Article_courant);
+   } else if ((Article_courant->pere) && 
+              (Article_courant->headers->reponse_a_checked==0)) 
+	   ajoute_reponse_a(Article_courant);
    actual_row=Aff_headers(0);
    if ((actual_row>Screen_Rows-2) || (Options.headers_scroll)) {
       Ajoute_color_Line(NULL,0,0); /* on saute une ligne dans le vide */

@@ -145,6 +145,7 @@ static Thread_List *fusionne_thread(Thread_List *thread1, Thread_List *thread2) 
    if (thread2==NULL) return thread1;
    thread1->non_lu+=thread2->non_lu;
    thread1->number+=thread2->number;
+   thread1->flags|=thread2->flags;
    for (parcours=thread2->premier_hash; ;
         parcours=parcours->next_in_thread) 
 	{
@@ -246,7 +247,7 @@ int cree_liens() {
        parcours_hash->thread=thread_creation=safe_calloc(1,sizeof(Thread_List));
        thread_creation->next_thread=Thread_deb;
        Thread_deb=thread_creation;
-       thread_creation->non_lu=1;
+       if (!(creation->flag & FLAG_READ)) thread_creation->non_lu=1;
        thread_creation->number=1;
        thread_creation->premier_hash=parcours_hash;
        parcours_hash->next_in_thread=NULL;

@@ -87,7 +87,9 @@ typedef struct Flrn_art_list
 } Article_List;
 
 typedef struct Flrn_thread_list {
-   int non_lu, number;
+   int non_lu, number, flags;
+#define FLAG_THREAD_SELECTED 1
+/* doit être remis à 0 en FIN d'opération */
    struct Flrn_hash_list *premier_hash;
    struct Flrn_thread_list *next_thread;
 } Thread_List;

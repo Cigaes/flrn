@@ -51,7 +51,7 @@ extern const char *tcp_command[];
 
 
 /* Touches de Commande */
-#define NB_FLCMD 59
+#define NB_FLCMD 60
 #define FLCMD_UNDEF -1
 #define FLCMD_RETURN FLCMD_SUIV
 #define FLCMD_MACRO 1024
@@ -90,6 +90,7 @@ extern int do_hist_menu(int);
 extern int do_add_kill(int);
 extern int do_remove_kill(int);
 extern int do_pipe_header(int);
+extern int do_select(int);
 
 
 /* ATTENTION : MAX_FL_KEY DOIT ÊTRE UN BIT SEULEMENT */
@@ -222,6 +223,8 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_REMOVE_KILL 57
    { "pipe-header", 0, 0, 15|CMD_NEED_GROUP, &do_pipe },
 #define FLCMD_PIPE_HEADER 58
+   { "select", 0, 0, 14|CMD_NEED_GROUP, &do_select },
+#define FLCMD_SELECT 59
 };
 
 #define CMD_DEF_PLUS (sizeof(Cmd_Def_Plus)/sizeof(Cmd_Def_Plus[0]))
@@ -239,6 +242,7 @@ struct cmd_predef {
   { '(', FLCMD_UP, NULL },
   { ')', FLCMD_DOWN, NULL },
   { 2  , FLCMD_PIPE, "urlview" },
+  { '+', FLCMD_SELECT, "1-,unread" },
 };
 
 #else

@@ -1,5 +1,10 @@
 ChangeLog Flrn
 
+-----------------------------
+Version 0.3.1
+-----------------------------
+
+. thread, commande select
 . amélioration des menus.
 . les threads, les threads, et encore les threads.
 . sauvegarde de l'historique

@@ -52,6 +52,7 @@ Numeros_List Arg_do_funcs={NULL, 0, 0, 0};
 typedef int (*Action)(Article_List *article, void * flag);
 int distribue_action(Numeros_List *num, Action action, Action special,
     void * flag);
+int gthread_action(Article_List *article,int all, Action action, void *param);
 
 
 #define MAX_CHAR_STRING 100
@@ -113,6 +114,7 @@ int do_abonne(int res);
 int do_remove_kill(int res);
 int do_add_kill(int res);
 int do_pipe_header(int res);
+int do_select(int res);
 
 
 /* Ces fonctions sont appelés par les do_* */
@@ -438,8 +440,9 @@ void init_Flcmd_rev() {
     if (Cmd_Def_Plus[i].args==NULL) 
       Flcmd_rev[Cmd_Def_Plus[i].key]=Cmd_Def_Plus[i].cmd; else {
       Flcmd_macro[Flcmd_num_macros].cmd=Cmd_Def_Plus[i].cmd;
-      Flcmd_macro[Flcmd_num_macros].arg=Cmd_Def_Plus[i].args;/* pas de strdup */
-					/* car pas de free a premiere vue */
+      Flcmd_macro[Flcmd_num_macros].arg=strdup(Cmd_Def_Plus[i].args);
+      					/* un strdup car je VEUX pouvoir */
+					/* parser la chaine */
       Flcmd_rev[Cmd_Def_Plus[i].key]=Flcmd_num_macros | FLCMD_MACRO;
       Flcmd_num_macros++;
     }
@@ -871,12 +874,25 @@ int do_deplace(int res) {
    /* Je vois pas comment on peut éviter un case */
    parcours2=NULL;
    switch (res) {
-     case FLCMD_PREC : if (ret!=-1) 
-			 do {
-			   parcours=parcours->prev;
-			 } while(parcours && (parcours->flag & FLAG_KILLED));
+     case FLCMD_PREC : if (ret!=-1) {
+     			   if (parcours->numero==-1) {
+			      if (parcours->parent>0)
+			         parcours=parcours->pere; else
+			         parcours=parcours->prem_fils;
+			   } else
+			   do {
+			     parcours=parcours->prev;
+			   } while(parcours && (parcours->flag & FLAG_KILLED));
+			 }
 			 break;
      case FLCMD_SUIV : if (ret!=-1) {
+     			 if (parcours->numero==-1) {
+			    if (parcours->prem_fils && 
+			         (parcours->prem_fils->numero>0))
+			       parcours=parcours->prem_fils; else
+			       parcours=parcours->pere;
+			    break;
+			 }
 			 parcours2=parcours->next; 
 			 while(parcours2 && (parcours2->flag & FLAG_KILLED)) {
 			   parcours=parcours2;
@@ -1311,7 +1327,8 @@ int do_kill(int res) {
   /* Est-ce un hack trop crade ? */
   courant->flags=0;
   Aff_not_read_newsgroup_courant();
-  do_deplace(FLCMD_SPACE);
+  if (Article_courant->flag & FLAG_READ) do_deplace(FLCMD_SPACE);
+  else etat_loop.etat=3;
   return 0;
 }
 
@@ -1352,8 +1369,16 @@ int do_quit(int res) {
 static int check_and_tag_article(Article_List *article, void *blah)
 {
   flrn_filter *arg = (flrn_filter *) blah;
-  if (check_article(article,blah,0)<=0)
+  if (check_article(article,arg,0)<=0)
   { tag_article(article,& arg->action.flag); return 1; }
+  else return 0;
+}
+
+static int tag_thread_article(Article_List *article, void *blah)
+{
+  flrn_filter *arg = (flrn_filter *) blah;
+  if ((article->thread) && (check_article(article,arg,0)<=0))
+  { article->thread->flags|=FLAG_THREAD_SELECTED; return 1; }
   else return 0;
 }
 
@@ -1443,6 +1468,79 @@ static void Aff_summary (int deb, int fin, int thread) {
 Article_List * Menu_summary (int deb, int fin, int thread) {
   return raw_Do_summary(deb,fin,thread,Do_menu_summary_line);
 }
+
+static void selector_line(void *item, char *line, int length) {
+  Article_List *art = (Article_List *)item;
+  *line='\0';
+  Prepare_summary_line(art,NULL,0,line,length,1);
+}
+
+static int thread_menu (void *value, char **nom, int i, char *name, int len, int key) {
+   Article_List *art=(Article_List *)value;
+   Action action=NULL;
+   char *buf=(*nom)+5;
+   char sauv=*(buf+5);
+
+   switch (key<MAX_FL_KEY ? Flcmd_rev[key] : FLCMD_UNDEF) {
+      case FLCMD_KILL :
+      case FLCMD_GKIL :
+      case FLCMD_PKIL : action=kill_article;
+      			break;
+      case FLCMD_OMET :
+      case FLCMD_GOMT : action=omet_article;
+			break;
+   }
+   if (action) gthread_action(art,0,action,NULL);
+   if (art->thread->non_lu>9999) strcpy(buf," *** "); else
+           sprintf(buf,"%4d ",art->thread->non_lu);
+   *(buf+5)=sauv;
+   return 0;
+}
+
+static void Menu_selector () {
+   Thread_List *parcours=Thread_deb;
+   Hash_List *hash_parc;
+   Article_List *art;
+   Liste_Menu *courant=NULL, *menu=NULL, *start=NULL;
+   char *buf, *buf2;
+   int place;
+
+   for (;parcours;parcours=parcours->next_thread) {
+      if (!(parcours->flags & FLAG_THREAD_SELECTED)) continue;
+      hash_parc=parcours->premier_hash;
+      while ((hash_parc) && ((hash_parc->article==NULL) 
+                         || (hash_parc->article->numero<=0)))
+         hash_parc=hash_parc->next_in_thread;
+      if (hash_parc==NULL) continue;
+      buf=buf2=safe_malloc(Screen_Cols-2);
+      art=root_of_thread(hash_parc->article,0);
+      if ((art->headers==NULL) ||
+          (art->headers->k_headers_checked[SUBJECT_HEADER] == 0))
+        cree_header(art,0,0,0);
+      if (art->headers==NULL)  continue;
+      place=Screen_Cols-2;
+      if (Screen_Cols-2>15) {
+        if (parcours->number>9999) strcpy(buf," *** "); else
+           sprintf(buf,"%4d ",parcours->number);
+	buf2=buf+5;
+        if (parcours->non_lu>9999) strcpy(buf2," *** "); else
+           sprintf(buf2,"%4d ",parcours->non_lu);
+	buf2+=5;
+	place-=10;
+      }
+      strncpy(buf2,art->headers->k_headers[SUBJECT_HEADER],place);
+      courant=ajoute_menu(courant,buf,(void *)art);
+      if (Article_courant->thread==parcours) start=courant;
+      if (!menu) menu=courant;
+   }
+    
+   if (menu) {
+      Menu_simple(menu,start,selector_line,thread_menu,"<total> <non lus>. q pour quitter.");
+      Libere_menu_noms(menu);
+   }
+}
+
+
 static int default_thread(Article_List *article, void *flag)
 {
   Numeros_List blah;
@@ -1522,6 +1620,37 @@ int do_summary(int res) {
     Article_courant=ret;
     etat_loop.etat=0;
   }
+  return 0;
+}
+
+int do_select(int res) {
+  Numeros_List *courant=&Arg_do_funcs;
+  int result;
+  Action act=NULL;
+  flrn_filter *filt;
+  char *buf=Arg_str;
+  Thread_List *parcours=Thread_deb;
+
+  filt=new_filter();
+  act=tag_thread_article;
+  if (Arg_str && *Arg_str) {
+    while(*buf==' ') buf++;
+    if (parse_filter_flags(Arg_str,filt))
+      parse_filter(Arg_str,filt);
+  }
+  result = distribue_action(courant, act, NULL, (void *)filt);
+  free_filter(filt);
+  Menu_selector();
+  while (parcours) {
+    parcours->flags &= ~FLAG_THREAD_SELECTED;
+    parcours=parcours->next_thread;
+  }
+  etat_loop.etat=0;
+  /* Est-ce un hack trop crade ? */
+  courant->flags=0;
+  Aff_not_read_newsgroup_courant();
+  if (Article_courant->flag & FLAG_READ) do_deplace(FLCMD_SPACE);
+  else etat_loop.etat=3;
   return 0;
 }
 
