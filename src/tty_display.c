@@ -1588,7 +1588,7 @@ void Aff_newsgroup_name(int erase_scr) {
    if ((fun=SLang_get_function("Newsgroup_title_string"))!=NULL) {
         SLang_start_arg_list ();
 	if (Newsgroup_courant)
-	   SLang_push_string(Newsgroup_courant->name);
+	    Push_newsgroup_on_stack(Newsgroup_courant);
         else SLang_push_string("");
 	SLang_end_arg_list ();
 	if (SLexecute_function(fun)==-1) {
