@@ -277,7 +277,7 @@ void new_groups(int opt_c) {
 	if (Options.auto_ignore) regfree(&badreg);
         return;
       }
-      if (tcp_line_read[1]=='\r') break; /* a priori, on a lu ".\r\n" */
+      if (res<4) break; /* a priori, on a lu ".\r\n" */
       /* On parcourt à chaque fois l'ensemble des newsgroup pour vérifier */
       /* qu'on ne recrée pas un newsgroup.				  */
       creation=un_nouveau_newsgroup(tcp_line_read);
@@ -303,7 +303,7 @@ void new_groups(int opt_c) {
 	add_to_main_list(creation->name);
 	creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
       }
-      if ((opt_c) || (Options.warn_if_new && (wait_for_key==0))) {
+      if ((opt_c) || (Options.warn_if_new && (wait_for_key!=-1))) {
           fprintf(stdout, "Nouveau groupe : %s ", creation->name); 
 	  if (!opt_c) {
 	     if (creation->flags & GROUP_UNSUBSCRIBED) 
