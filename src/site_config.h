@@ -80,6 +80,7 @@ struct Option_struct Options = {
   NULL,			/* auth_pass */
   NULL,			/* sign_file */
   0,			/* quote_all */
+  0,			/* quote_sig */
 #ifdef WITH_CHARACTER_SETS
   NULL,                 /* character_set */
 #endif
