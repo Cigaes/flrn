@@ -1,6 +1,8 @@
 /* flrn, gestion des kill files
  * 		Jo.		*/
 
+#include <sys/types.h>
+#include <time.h>
 #include <stdlib.h>
 #include "flrn.h"
 #include "flrn_filter.h"
@@ -15,6 +17,7 @@
 static flrn_kill *flrn_kill_deb=NULL;
 static Flrn_liste *main_kill_list=NULL; /* la liste pour l'abonnement */
 static char *main_list_file_name=NULL;
+static time_t timeone=0;
 
 /* regarde si l'article correspond au filtre */
 /* renvoie -1, s'il manque des headers
@@ -27,7 +30,6 @@ int check_article(Article_List *article, flrn_filter *filtre, int flag) {
   /* en premier, on regarde si les flags de l'article sont bons */
   if ((article->flag & filtre->cond_mask) != filtre->cond_res)
     return 1;
-
   /* regarde s'il y a lieu de faire un xover */
   if (article->headers==NULL) {
     int first, last;
@@ -44,6 +46,11 @@ int check_article(Article_List *article, flrn_filter *filtre, int flag) {
       cree_liens();
       apply_kill_file();
     }
+  }
+  if (filtre->diff_date>0) {
+     if (timeone==0) timeone=time(NULL);
+     if ((article->headers) && (article->headers->date_gmt>0)) 
+        if (timeone-article->headers->date_gmt>filtre->diff_date) return 1;
   }
   while(regexp) {
     if ((article->headers == NULL) ||
@@ -204,7 +211,15 @@ int parse_filter(char * istr, flrn_filter *start) {
     }
   }
   /* FIXME: pour l'instant, on se limite aux known headers... */
-  if (i == NB_KNOWN_HEADERS) { free(cond) ; return -1; }
+  if (i == NB_KNOWN_HEADERS) { 
+     free(cond) ; 
+     /* cas d'une date */
+     if (strncasecmp(str,"date ",5)==0) {
+        buf=str+5;
+	start->diff_date=strtol(buf,NULL,10);
+     }
+     return -1; 
+  }
   buf = str + Headers[cond->header_num].header_len;
   while(*buf==' ') buf++;
   /* on parse la regexp */
