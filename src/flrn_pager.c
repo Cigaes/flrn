@@ -49,7 +49,7 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
   at_end=(num_elem<Screen_Rows-row_deb);
   while (1) {
     if ((short_exit) && 
-        (at_end==1) && (key<MAX_FL_KEY) && (Flcmd_pager_rev[key]!=FLCMD_PAGER_UNDEF))
+        (at_end==1) && (key<MAX_FL_KEY) && (Flcmd_rev[CONTEXT_COMMAND][key]!=FLCMD_UNDEF))
            return (key | MAX_FL_KEY); 
 	   	/* note : on ne teste pas '0-9,-<>.', qui ne doivent */
 	   	/* PAS être bindés				    */

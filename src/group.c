@@ -96,11 +96,11 @@ void init_groups() {
    Newsgroup_courant=Newsgroup_deb=NULL;
    strcpy(name,DEFAULT_FLNEWS_FILE);
    if (Options.flnews_ext) strcat(name,Options.flnews_ext);
-   flnews_file = open_flrnfile(name,"r",1,&Last_check);
+   flnews_file = open_flrnfile(name,"r",Options.default_flnewsfile ? 0 : 1,&Last_check);
 
    if (flnews_file==NULL) {
      if (Options.default_flnewsfile) {
-        flnews_file=open_flrnfile(Options.default_flnewsfile,"r",1,NULL);
+        flnews_file=open_flrnfile(Options.default_flnewsfile,"r",0,NULL);
 	if (flnews_file) Last_check=time(NULL); else return;
      } else return;
    }
@@ -825,11 +825,15 @@ void add_read_article(Newsgroup_List *mygroup, int article)
        range2->next=safe_calloc(1,sizeof(Range_List));
        /* Mais il FAUT conserver range2, donc pas faire range2=range2->next */
        copy_range_list(range1,1,range2->next,0);
+       /* On restaure range1 pour pouvoir le libérer */
+       if (pere) range1=pere->next; else range1=mygroup->read;
      } else {
        range2->max[lu_index]=range1->max[lu_index+1];
        if (lu_index==RANGE_TABLE_SIZE-2) {
 	 range1=range1->next;
-         copy_range_list(range1,0,range2,lu_index+1);
+         if (range1) copy_range_list(range1,0,range2,lu_index+1);
+         /* On restaure range1 pour pouvoir le libérer */
+         if (pere) range1=pere->next; else range1=mygroup->read;
        } else
          copy_range_list(range1,lu_index+2,range2,lu_index+1);
      }
