@@ -163,7 +163,7 @@ static void raw_Aff_summary_line(Article_List *article, int row,
     char *previous_subject,
     int level) {
   char *buf= safe_malloc(Screen_Cols);
-  Prepare_summary_line(article,previous_subject, level, buf, Screen_Cols);
+  Prepare_summary_line(article,previous_subject, level, buf, Screen_Cols,0);
   Cursor_gotorc(row,0);
   Aff_color_line(1,NULL,NULL,FIELD_SUMMARY,buf,Screen_Cols,1,FIELD_SUMMARY);
   free(buf);
@@ -1360,7 +1360,7 @@ int Aff_article_courant() {
   /* Headers  -- on veut all_headers <=> un appel a cree_headers */
    if ((!Article_courant->headers) ||
        (Article_courant->headers->all_headers==0) || (Last_head_cmd.Article_vu!=Article_courant)) {
-        cree_header(Article_courant,1,1);
+        cree_header(Article_courant,1,1,0);
         if (!Article_courant->headers) 
 	    return Aff_error("Article indisponible, peut-être cancelé.");
         /* On suppose ca provisoire */

@@ -236,7 +236,7 @@ int cree_liens() {
        parcours_hash->article=creation;
        thread_creation=parcours_hash->thread;
        thread_creation->number++;
-       thread_creation->non_lu++;
+       if (!(creation->flag & FLAG_READ)) thread_creation->non_lu++;
     } else {
        parcours_hash=safe_calloc(1,sizeof(Hash_List));
        parcours_hash->prev_hash=(*Hash_table)[hash];
@@ -374,7 +374,8 @@ static void Free_Last_head_cmd () {
 /* Si rech_pere==0, on ne recherche pas de reponse_a. reponse_a pourra  */
 /* alors etre obtenu par ajoute_reponse_a.				*/
 /* Si others=1, on detruit et refait les autres headers...		*/
-Article_Header *cree_header(Article_List *article, int rech_pere, int others) {
+/* si by_msgid=1, on utilise le message-ID. Alors rech_pere=0...	*/
+Article_Header *cree_header(Article_List *article, int rech_pere, int others, int by_msgid) {
    int res, code, flag=2;  /* flag & 1 : debut de ligne     */
                            /*      & 2 : fin de ligne       */
    int header_courant=NULL_HEADER, i;
@@ -390,8 +391,8 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others) {
     * utiliser en priorité le numéro... C'est probablement plus rapide *
     * et parfois plus efficace...				       */
    /* ... mais si ca plante, le message-ID peut etre utile...	       */
-   if (article->numero>0) sprintf(num,"%d",article->numero); else
-       strcpy(num,article->msgid);
+   if ((article->numero>0) && (!by_msgid)) sprintf(num,"%d",article->numero); 
+   else strcpy(num,article->msgid);
    res=write_command(CMD_HEAD, 1, &num);
    free(num);
    if (res<0) return NULL; 
@@ -526,7 +527,7 @@ void ajoute_reponse_a(Article_List *article) {
    
    if (!article->pere->headers ||
        (article->pere->headers->k_headers_checked[FROM_HEADER]==0))
-      cree_header(article->pere,0,0);
+      cree_header(article->pere,0,0,0);
    if (article->pere->headers && article->pere->headers->k_headers[FROM_HEADER]) {
        article->headers->reponse_a=safe_malloc(
 	        (strlen(article->pere->headers->k_headers[FROM_HEADER])+1)*sizeof(char));
@@ -559,7 +560,7 @@ Article_List *ajoute_message (char *msgid, int *should_retry) {
    creation=safe_calloc(1,sizeof(Article_List));
    creation->numero=strtol(buf,NULL,10);
    creation->msgid=safe_strdup(msgid);
-   creation->headers=cree_header(creation, 0, 1);
+   creation->headers=cree_header(creation, 0, 1, 0);
    if (creation->headers==NULL) {
       free(creation->msgid);
       free(creation);
@@ -626,7 +627,7 @@ Article_List *ajoute_message_par_num (int min, int max) {
    creation=safe_calloc(1,sizeof(Article_List));
    creation->numero=i;
    creation->msgid=safe_strdup(buf);
-   creation->headers=cree_header(creation, 0, 1);
+   creation->headers=cree_header(creation, 0, 1, 0);
    if (creation->headers==NULL) {
       free(creation->msgid);
       free(creation);
@@ -884,7 +885,7 @@ Article_List * next_in_thread(Article_List *start, long flag, int *level,
   }
   /* y'a plus rien a donner, sauf si big_thread=1 */
   /* La c'est un truc lourd, bien lourd... */
-  if (big_thread) {
+  if ((big_thread) && (start->thread)) {
      Hash_List *parcours=start->thread->premier_hash;
      if (debug) fprintf(stderr,"Recherche dans le thread générique...\n");
      while (1) {
@@ -1002,10 +1003,12 @@ void article_read(Article_List *article)
   int numero;
   if ((article->headers==NULL) ||
       (article->headers->k_headers_checked[XREF_HEADER]==0))
-    cree_header(article,0,0); 
+    cree_header(article,0,0,0); 
   if (!(article->flag & FLAG_READ) && (article->numero>0) &&
-  	(Newsgroup_courant->not_read>0)) 
+  	(Newsgroup_courant->not_read>0)) {
   		Newsgroup_courant->not_read--;
+		article->thread->non_lu--;
+  }
   article->flag |= FLAG_READ;
   if (article->headers->k_headers[XREF_HEADER]==NULL) return;
     /* Eviter un segfault quand le serveur est Bipesque */
@@ -1079,7 +1082,7 @@ int Est_proprietaire(Article_List *article) {
   char *la_chaine, *ladresse, *buf;
    
   if (!article->headers) {
-     cree_header(article,0,0);
+     cree_header(article,0,0,0);
      if (!article->headers) return -1;
   }
   la_chaine=article->headers->k_headers[SENDER_HEADER];

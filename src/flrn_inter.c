@@ -1079,7 +1079,7 @@ static void hist_menu_summary(void *item, char *line, int length) {
   Flrn_Tag *tag = &tags[((int)(long)item)-1];
   *line='\0';
   if (validate_tag_ptr(tag)) {
-    Prepare_summary_line(tag->article,NULL,0,line,length);
+    Prepare_summary_line(tag->article,NULL,0,line,length,1);
   }
 }
 
@@ -1321,6 +1321,7 @@ int do_kill(int res) {
 int do_zap_group(int res) {
   Numeros_List blah;
   int flag=FLAG_READ;
+  Thread_List *parcours=Thread_deb;
 
   blah.next=NULL; blah.flags=2; blah.num1=1;
   blah.num2=Newsgroup_courant->max;
@@ -1331,6 +1332,7 @@ int do_zap_group(int res) {
     etat_loop.etat=1; etat_loop.num_message=11;
   }
   Newsgroup_courant->not_read=0;
+  while (parcours) { parcours->non_lu=0; parcours=parcours->next_thread; }
   Aff_not_read_newsgroup_courant();
   return (Options.zap_change_group)?1:0;
 }
@@ -1367,7 +1369,7 @@ static int Do_aff_summary_line(Article_List *art, int *row,
 static int Do_menu_summary_line(Article_List *art, int *row,
     char *previous_subject, int level, Liste_Menu **courant) {
   char *buf= safe_malloc(Screen_Cols-2);
-  Prepare_summary_line(art,previous_subject,level, buf, Screen_Cols-2);
+  Prepare_summary_line(art,previous_subject,level, buf, Screen_Cols-2,0);
   *courant=ajoute_menu(*courant,buf,art);
   return 0;
 }
@@ -1821,7 +1823,7 @@ static int Sauve_header_article(Article_List *a_sauver, void *file_and_int) {
   
   if (a_sauver==NULL) return 0;
   if ((a_sauver->headers==NULL) &&
-      (cree_header(a_sauver,0,0)==NULL)) return 0;
+      (cree_header(a_sauver,0,0,0)==NULL)) return 0;
   if (a_sauver->headers->k_headers[truc->num]==NULL) return 0;
   fprintf(truc->file,"%s\n",a_sauver->headers->k_headers[truc->num]);
   return 0;
@@ -1862,7 +1864,7 @@ int do_swap_grp(int res) {
 
   if ((!article_considere->headers) ||
       (article_considere->headers->k_headers_checked[XREF_HEADER] == 0)) {
-    cree_header(Article_courant,0,1);
+    cree_header(Article_courant,0,1,0);
     if (!article_considere->headers) {
       etat_loop.etat=1; etat_loop.num_message=3; return 0;
     }

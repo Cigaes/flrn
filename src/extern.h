@@ -73,7 +73,7 @@ extern void Ligne_carac_du_groupe (void *, char *, int );
 extern int va_dans_groupe(void);
 extern int cree_liens(void);
 extern Article_Header *cree_header(Article_List * /*article*/,
-    int /*rech_pere*/, int /*others*/);
+    int /*rech_pere*/, int /*others*/, int);
 extern void ajoute_reponse_a(Article_List * /*article*/);
 extern Article_List *ajoute_message(char * /*msgid*/, int * /*should_retry*/);
 extern Article_List *ajoute_message_par_num(int , int);
@@ -122,7 +122,7 @@ extern void Aff_newsgroup_name(void);
 extern void Aff_newsgroup_courant(void);
 extern void Aff_not_read_newsgroup_courant(void);
 extern char * Prepare_summary_line(Article_List * /*article*/,
-    char * /*prev_subject*/, int /*level*/, char * /*buf*/, int /*buflen*/);
+    char * /*prev_subject*/, int /*level*/, char * /*buf*/, int /*buflen*/, int);
 extern int Aff_summary_line(Article_List * /*article*/,int * /*row*/,
     char * /*prev_subject*/, int /*level*/);
 extern Article_List * Menu_summary (int /*deb*/, int /*fin*/, int /*thread*/);

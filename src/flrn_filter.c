@@ -44,7 +44,7 @@ int check_article(Article_List *article, flrn_filter *filtre, int flag) {
   while(regexp) {
     if ((article->headers == NULL) ||
 	(article->headers->k_headers_checked[regexp->header_num]==0)) {
-      if (flag) cree_header(article,0,0);
+      if (flag) cree_header(article,0,0,0);
       else return -1;
     }
     if (!(regexp->flags & FLRN_COND_STRING)) {
@@ -79,8 +79,10 @@ void filter_do_action(flrn_filter *filt) {
     if (Article_courant->flag & FLAG_KILLED) 
       Article_courant->flag |= FLAG_READ;
     if ((!read) && (Article_courant->flag & FLAG_READ) && 
-        (Article_courant->numero>0) && (Newsgroup_courant->not_read>0)) 
+        (Article_courant->numero>0) && (Newsgroup_courant->not_read>0)) {
 	   Newsgroup_courant->not_read--;
+	   if (Article_courant->thread) Article_courant->thread->non_lu--;
+    }
     return;
   }
   act=filt->action.action;

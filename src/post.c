@@ -1003,7 +1003,7 @@ static int Get_base_headers(int flag) {
    }
    if (Pere_post) { 
       if ((Pere_post->headers==NULL)||(Pere_post->headers->all_headers==0))
-	cree_header(Pere_post,0,0);
+	cree_header(Pere_post,0,0,0);
       if (Pere_post->headers==NULL) {
 	   if (debug) fprintf(stderr,"Cree-headers a renvoye un resultat beurk !\n");
 	   return -1;

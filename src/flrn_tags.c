@@ -66,6 +66,7 @@ void save_history (void) {
   int num,num_last;
 
   /* On se place sur des messages corrects */
+  if (max_tags_ptr==-1) return;
   num_last=max_tags_ptr;
   while (tags[num_last].numero<=0) {
      num_last+=NUM_SPECIAL_TAGS-1;

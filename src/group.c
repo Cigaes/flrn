@@ -870,6 +870,7 @@ void zap_group_non_courant (Newsgroup_List *group) {
    Range_List *range1, *range2;
    char *buf;
    Article_List *art;
+   Thread_List *thr;
 
    if (group==Newsgroup_courant) return;
    /* On envoie un list active au serveur */
@@ -913,6 +914,11 @@ void zap_group_non_courant (Newsgroup_List *group) {
    while (art) {
      art->flag|=FLAG_READ;
      art=art->next;
+   }
+   thr=group->Thread_deb;
+   while (thr) {
+     thr->non_lu=0;
+     thr=thr->next_thread;
    }
    /* si de nouveaux messages étaient apparus, on ne les a pas marqué lus */
    /* Tant pis... Ça devrait pas changer beaucoup de choses... qui irait  */

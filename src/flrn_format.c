@@ -479,8 +479,9 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article) {
 }
 
 /* prépare une ligne de résumé */
+/* by_msgid DOIT valoir 1 si l'article peut être extérieur au groupe */
 char * Prepare_summary_line(Article_List *article, char *previous_subject,
-    int level, char *out, int outlen) {
+    int level, char *out, int outlen, int by_msgid) {
     int deb_num, deb_nom, tai_nom, deb_sub, tai_sub, deb_dat, deb_rep;
     char *buf, buf2[15];
     char *subject;
@@ -492,7 +493,7 @@ char * Prepare_summary_line(Article_List *article, char *previous_subject,
 	(article->headers->k_headers_checked[SUBJECT_HEADER] == 0) ||
 	((article->headers->k_headers_checked[DATE_HEADER] == 0)  &&
 	 Options.date_in_summary))
-      cree_header(article,0,0);
+      cree_header(article,0,0,by_msgid);
     if (article->headers==NULL) return NULL;
     deb_num=0; deb_nom=7;
     deb_rep=outlen-8;
