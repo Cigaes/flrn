@@ -351,18 +351,21 @@ void new_groups(int opt_c) {
 	res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
 	continue;
       }
+      /* par défaut, on est désabonné au groupe, il faut donc
+       * se réabonner le cas échéant */
       Newsgroup_courant=creation;
       good=bad=0;
       if(Options.auto_ignore)
         bad=(fl_regexec(&badreg,creation->name,0,NULL,0)==0)?1:0;
       if(Options.auto_subscribe)
         good=(fl_regexec(&goodreg,creation->name,0,NULL,0)==0)?1:0;
-      creation->flags |=
-	(!Options.default_subscribe && !good)?GROUP_UNSUBSCRIBED:0;
-      if (Options.subscribe_first)
-	creation->flags |= (bad)?GROUP_UNSUBSCRIBED:0;
-      else
-	creation->flags |= (bad&&!good)?GROUP_UNSUBSCRIBED:0;
+      if (good) {
+	  if ((!bad) || (!Options.subscribe_first)) 
+	      creation->flags &= ~GROUP_UNSUBSCRIBED;
+      } else {
+	  if ((!bad) && (Options.default_subscribe))
+	      creation->flags &= ~GROUP_UNSUBSCRIBED;
+      }
 
       if (Options.auto_kill) {
 	add_to_main_list(creation->name);
