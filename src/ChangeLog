@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. macros pour le pager et les menus. quelques petits mieux
 . macros, commande toggle... ca foire bien...
 . unification des flags
 . put-flag, on-selected

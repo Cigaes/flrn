@@ -13,7 +13,7 @@ typedef struct liste_menu_desc {
    int toggled; /* pour le toggle */
 } Liste_Menu;
 
-#define NB_FLCMD_MENU 9
+#define NB_FLCMD_MENU 10
 #define FLCMD_MENU_UNDEF -1
 extern char *Flcmds_menu[NB_FLCMD_MENU];
 
@@ -38,8 +38,10 @@ char *Flcmds_menu[NB_FLCMD_MENU] =
 #define FLCMD_MENU_SEARCH 6
      "nxt-search",
 #define FLCMD_MENU_NXT_SCH 7
-     "toggle"
+     "toggle",
 #define FLCMD_MENU_TOGGLE 8
+     "cmd"
+#define FLCMD_MENU_CMD 9
 };
 
 #define CMD_DEF_MENU (sizeof(Cmd_Def_Menu)/sizeof(Cmd_Def_Menu[0]))
@@ -77,5 +79,6 @@ extern Liste_Menu *ajoute_menu(Liste_Menu * /*base*/, char * /*nom*/,
 extern Liste_Menu *ajoute_menu_ordre(Liste_Menu **, char *, void *, int);
 extern int Bind_command_menu(char *, int, char *, int);
 extern void init_Flcmd_menu_rev(void);
+extern int get_menu_signification (char *);
 
 #endif

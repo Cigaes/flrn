@@ -19,12 +19,14 @@
 /* le tableau touche -> commande */
 int *Flcmd_menu_rev = &Flcmd_rev[CONTEXT_MENU][0];
 /* pour les macros */
+char *Macro_menu_bef, *Macro_menu_aft;
+int nxt_menu_cmd;
 
 /* Cette fonction est définie dans flrn_pager.c */
 /* Je préfère la déclarer en extern ici */
 extern int get_new_pattern();
 
-int get_signification(char *str) {
+int get_menu_signification(char *str) {
    int a;
    while ((*str) && (isblank(*str))) str++;
    if (*str=='\0') return 1;
@@ -42,24 +44,99 @@ int get_signification(char *str) {
 
 /* retour : -4 : CONTEXT_COMMAND */
 int get_command_menu(int with_command, int *number)  {
-   int res, res2, bef=0;
+   int res, res2=-1, bef=0, num_macro=0;
 
-   res=get_command(0,CONTEXT_MENU, (with_command ? CONTEXT_COMMAND : -1), &une_commande);
+   if (nxt_menu_cmd==-1) {
+     res=get_command(0,CONTEXT_MENU, (with_command ? CONTEXT_COMMAND : -1), &une_commande);
+     if ((res==0) && ((res2=une_commande.cmd[CONTEXT_MENU]) & FLCMD_MACRO)) {
+         num_macro=res2 ^ FLCMD_MACRO;
+	 if (Flcmd_macro[num_macro].next_cmd!=-1) {
+           if (une_commande.before) 
+	      Macro_menu_bef=safe_strdup(une_commande.before);
+           if (une_commande.after) 
+	      Macro_menu_aft=safe_strdup(une_commande.after);
+	 }
+     }
+   } else {
+     res=0;
+     if (Macro_menu_bef) une_commande.before=safe_strdup(Macro_menu_bef); else
+         une_commande.before=NULL;
+     if (Macro_menu_aft) une_commande.after=safe_strdup(Macro_menu_aft); else
+         une_commande.after=NULL;
+     res2=une_commande.cmd[CONTEXT_MENU]=nxt_menu_cmd;
+   }
+   if ((res==1) && (une_commande.cmd[CONTEXT_COMMAND] & FLCMD_MACRO)) {
+      Aff_error_fin(Messages[MES_MACRO_FORBID],1,1);
+      if (une_commande.before) free(une_commande.before);
+      if (une_commande.after) free(une_commande.after);
+      return -1;
+   }
    if (res==-1)
       Aff_error_fin(Messages[MES_UNKNOWN_CMD],1,1);
-   if (res<0) return res;
+   if (res<0) {
+      if (une_commande.before) free(une_commande.before);
+      if (une_commande.after) free(une_commande.after);
+      return res;
+   }
    if (res==1) return -4;
    *number=1;
    /* Le search */
+   if (res2 & FLCMD_MACRO) {
+      num_macro=res2 ^ FLCMD_MACRO;
+      nxt_menu_cmd=Flcmd_macro[num_macro].next_cmd;
+      res2=Flcmd_macro[num_macro].cmd;
+      if ((res2!=FLCMD_MENU_CMD) && (Flcmd_macro[num_macro].arg)) {
+          if (une_commande.after) free(une_commande.after);
+	  une_commande.after=safe_strdup(Flcmd_macro[num_macro].arg);
+      }
+   } else nxt_menu_cmd=num_macro=-1;
+   if (nxt_menu_cmd==-1) {
+      if (Macro_menu_bef) free(Macro_menu_bef);
+      if (Macro_menu_aft) free(Macro_menu_aft);
+      Macro_menu_bef=Macro_menu_aft=NULL;
+   }
+   if (res2==FLCMD_MENU_CMD) {
+      une_commande.cmd[CONTEXT_MENU]=-1;
+      if ((num_macro!=-1) && (Flcmd_macro[num_macro].arg)) {
+         char *buf=Flcmd_macro[num_macro].arg;
+	 while ((*buf) && (isblank(*buf))) buf++;
+         res=Lit_cmd_explicite(buf, CONTEXT_COMMAND,-1,&une_commande);
+	 buf=strchr(buf,' ');
+	 if (buf!=NULL) {
+	   if (une_commande.after) free(une_commande.after);
+	   une_commande.after=safe_strdup(buf);
+	 }
+      } else if (une_commande.after) {
+         char *buf=une_commande.after;
+	 while ((*buf) && (isblank(*buf))) buf++;
+         res=Lit_cmd_explicite(buf,CONTEXT_COMMAND,-1,&une_commande);
+	 buf=strchr(buf,' ');
+	 if (buf==NULL) {
+	    free(une_commande.after);
+	    une_commande.after=NULL;
+	 } else {
+	    buf=safe_strdup(buf);
+	    free(une_commande.after);
+	    une_commande.after=buf;
+	 }
+      } else res=-1;
+      if (res<0) {
+         if (une_commande.before) free(une_commande.before);
+         if (une_commande.after) free(une_commande.after);
+         Aff_error_fin(Messages[MES_UNKNOWN_CMD],1,1);
+         return -1;
+      }
+      /* res=0 */
+      return -4;
+   }
    if (une_commande.before) {
       bef=1;
-      *number=get_signification(une_commande.before);
+      *number=get_menu_signification(une_commande.before);
       free(une_commande.before);
    }
-   res2=une_commande.cmd[CONTEXT_MENU];
    if (res2!=FLCMD_MENU_SEARCH) {
       if (une_commande.after) {
-	  if (!bef) *number=get_signification(une_commande.after);
+	  if (!bef) *number=get_menu_signification(une_commande.after);
 	  free(une_commande.after);
       }
       return res2;
@@ -95,6 +172,7 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
   char *Une_Ligne;
   int Une_Ligne_len;
   
+  Macro_menu_bef=NULL; Macro_menu_aft=NULL; nxt_menu_cmd=-1;
   if (parcours==NULL) return NULL; /* Ouais ouais ouais... */
   Une_Ligne=safe_malloc(Une_Ligne_len=(Screen_Cols +1));
   
@@ -352,6 +430,8 @@ void *Menu_simple (Liste_Menu *debut_menu, Liste_Menu *actuel,
   }
   free_text_scroll();
   free(Une_Ligne);
+  if (Macro_menu_bef) free(Macro_menu_bef);
+  if (Macro_menu_aft) free(Macro_menu_aft);
   return (courant ? courant->lobjet : NULL);
 }
 

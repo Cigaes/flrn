@@ -1608,7 +1608,7 @@ static int thread_menu (Liste_Menu *debut_menu, Liste_Menu **courant, char *name
    int cmd;
 
    *affiche=0;
-   if (la_commande->cmd[CONTEXT_MENU]!=-1) return -2; else
+   if (la_commande->cmd[CONTEXT_MENU]!=FLCMD_UNDEF) return -1; else
    cmd=la_commande->cmd[CONTEXT_COMMAND];
 
    if (la_commande->before) free(la_commande->before);
@@ -1632,17 +1632,18 @@ static int thread_menu (Liste_Menu *debut_menu, Liste_Menu **courant, char *name
    return 1;
 }
 
-static int Menu_selector () {
+static int Menu_selector (Thread_List **retour) {
    Thread_List *parcours=Thread_deb;
    Hash_List *hash_parc;
    Article_List *art;
    Liste_Menu *courant=NULL, *menu=NULL, *start=NULL;
    char *buf, *buf2;
-   int place, non_lu;
+   int place, non_lu, lu, impor, flag=FLAG_IMPORTANT;
 
    for (;parcours;parcours=parcours->next_thread) {
       parcours->flags&=~FLAG_THREAD_READ;
       parcours->flags&=~FLAG_THREAD_UNREAD;
+      parcours->flags&=~FLAG_THREAD_IMPORTANT;
       if (!(parcours->flags & FLAG_THREAD_SELECTED)) continue;
       hash_parc=parcours->premier_hash;
       while ((hash_parc) && ((hash_parc->article==NULL) 
@@ -1672,21 +1673,25 @@ static int Menu_selector () {
    }
     
    if (menu) {
-      Menu_simple(menu,start,NULL,thread_menu,"<total> <non lus>. q pour quitter.");
+      (*retour)=(Thread_List *)Menu_simple(menu,start,NULL,thread_menu,"<total> <non lus>. q pour quitter.");
       Libere_menu_noms(menu);
    } else return -1;
    parcours=Thread_deb;
    for (;parcours;parcours=parcours->next_thread) {
-       if (parcours->flags & (FLAG_THREAD_UNREAD | FLAG_THREAD_READ)) {
+       if (parcours->flags & (FLAG_THREAD_UNREAD | FLAG_THREAD_READ | FLAG_THREAD_IMPORTANT)) {
          non_lu=parcours->flags & FLAG_THREAD_UNREAD;
+         lu=parcours->flags & FLAG_THREAD_READ;
+	 impor=parcours->flags & FLAG_THREAD_IMPORTANT;
          for (hash_parc=parcours->premier_hash;hash_parc;
 	      hash_parc=hash_parc->next_in_thread) 
 	    if (hash_parc->article) {
 	       if (non_lu) omet_article(hash_parc->article,NULL);
-	       else if ((hash_parc->article->numero>0) &&
-	                (!(hash_parc->article->flag && FLAG_READ)))
+	       else if ((lu) && ((hash_parc->article->numero>0) &&
+	                (!(hash_parc->article->flag && FLAG_READ))))
 	           kill_article(hash_parc->article,NULL);
 	/* On évite de faire des requetes superflues et lourdes */
+	       if (impor)
+	          mark_article_important(hash_parc->article,(void *)(&flag));
 	    }
        }
    }
@@ -1778,11 +1783,13 @@ int do_summary(int res) {
 
 int do_select(int res) {
   Numeros_List *courant=&Arg_do_funcs;
+  Hash_List *hash_parc;
   int result;
   Action act=NULL;
   flrn_filter *filt;
   char *buf=Arg_str;
-  Thread_List *parcours=Thread_deb;
+  Thread_List *parcours=Thread_deb, *retour=NULL;
+  Article_List *art_ret=NULL;
 
   filt=new_filter();
   act=tag_thread_article;
@@ -1793,7 +1800,7 @@ int do_select(int res) {
   }
   result = distribue_action(courant, act, NULL, (void *)filt);
   free_filter(filt);
-  result=Menu_selector();
+  result=Menu_selector(&retour);
   if (result==-1) {
      etat_loop.hors_struct|=1;
      etat_loop.etat=1;
@@ -1808,6 +1815,19 @@ int do_select(int res) {
   /* Est-ce un hack trop crade ? */
   courant->flags=0;
   Aff_not_read_newsgroup_courant();
+  if (retour) {
+      for (hash_parc=retour->premier_hash; hash_parc;
+              hash_parc=hash_parc->next_in_thread) {
+	 if (!hash_parc->article) continue;
+	 if ((art_ret==NULL) || (!(Article_courant->flag & FLAG_READ))) 
+	     art_ret=hash_parc->article;
+      }
+      if (art_ret) {
+         Article_courant=root_of_thread(art_ret,1);
+	 etat_loop.etat=0;
+	 if (!(art_ret->flag & FLAG_READ)) do_deplace(FLCMD_SPACE);
+      }
+  } else
   if (Article_courant->flag & FLAG_READ) {
      etat_loop.hors_struct&=~2;
      do_deplace(FLCMD_SPACE);

@@ -22,6 +22,8 @@
 /* le tableau touche -> commande */
 int *Flcmd_pager_rev = &Flcmd_rev[CONTEXT_PAGER][0];
 /* pour les macros */
+char *Macro_pager_bef, *Macro_pager_aft;
+int nxt_pager_cmd;
 
 char pattern_search[SIZE_PATTERN_SEARCH]="";
 
@@ -39,25 +41,63 @@ int get_new_pattern() {
 
 /* retour : -4 : CONTEXT_COMMAND */
 int get_command_pager(int une_touche, int endroit, int cmd, int *number) {
-   int res, res2, bef=0;
+   int res, res2=-1, bef=0, num_macro=0;
 
    *number=0;
    if (cmd==0) endroit=1;
-   res=get_command(une_touche,(endroit ? CONTEXT_PAGER : CONTEXT_COMMAND),
+   if (nxt_pager_cmd==-1) {
+     res=get_command(une_touche,(endroit ? CONTEXT_PAGER : CONTEXT_COMMAND),
 	   	(cmd ? (endroit ? CONTEXT_COMMAND : CONTEXT_PAGER) : -1), 
 		   &une_commande);
+     if ((res==(1-endroit)) 
+           && ((res2=une_commande.cmd[CONTEXT_PAGER]) & FLCMD_MACRO)) {
+	num_macro=res2 ^ FLCMD_MACRO;
+	if (Flcmd_macro[num_macro].next_cmd!=-1) {
+	  if (une_commande.before) 
+	     Macro_pager_bef=safe_strdup(une_commande.before);
+	  if (une_commande.after) 
+	     Macro_pager_aft=safe_strdup(une_commande.after);
+	}
+     }
+   } else {
+     res=1-endroit;
+     if (Macro_pager_bef) une_commande.before=safe_strdup(Macro_pager_bef); else
+       une_commande.before=NULL;
+     if (Macro_pager_aft) une_commande.after=safe_strdup(Macro_pager_aft); else
+       une_commande.after=NULL;
+     res2=une_commande.cmd[CONTEXT_PAGER]=nxt_pager_cmd;
+   }
+   /* on autorise les macros pour le CONTEXT_COMMAND, ca ne pose aucun 
+      probleme, contrairement a ce qui se passe dans le menu */
    if (res==-1) 
       Aff_error_fin(Messages[MES_UNKNOWN_CMD],1,1);
-   if (res<0) return res;
+   if (res<0) {
+     if (une_commande.before) free(une_commande.before);
+     if (une_commande.after) free(une_commande.after);
+     return res;
+   }
    if (res==endroit) return -4;
    /* Le search */
+   if (res2 & FLCMD_MACRO) {
+      num_macro=res2 ^ FLCMD_MACRO;
+      nxt_pager_cmd=Flcmd_macro[num_macro].next_cmd;
+      res2=Flcmd_macro[num_macro].cmd;
+      if (Flcmd_macro[num_macro].arg) {
+         if (une_commande.after) free(une_commande.after);
+	 une_commande.after=safe_strdup(Flcmd_macro[num_macro].arg);
+      }
+   } else nxt_pager_cmd=num_macro=-1;
+   if (nxt_pager_cmd==-1) {
+      if (Macro_pager_bef) free(Macro_pager_bef);
+      if (Macro_pager_aft) free(Macro_pager_aft);
+      Macro_pager_bef=Macro_pager_aft=NULL;
+   }
    if (une_commande.before) {
       bef=1;
       *number=strtol(une_commande.before,NULL,10);
       /* la on ne peut avoir que des nombres */
       free(une_commande.before);
    }
-   res2=une_commande.cmd[CONTEXT_PAGER];
    if (res2!=FLCMD_PAGER_SEARCH) {
       if (une_commande.after) {
          if (!bef) *number=strtol(une_commande.after,NULL,10);
@@ -100,16 +140,21 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
   int percent, nll, deb=1, le_scroll, at_end, to_wait, res, number;
   char buf3[15], *buf=NULL;
 
+  Macro_pager_bef=Macro_pager_aft=NULL; nxt_pager_cmd=-1;
   to_wait=(in_wait==NULL ? 0 : 1);
   at_end=(num_elem<Screen_Rows-row_deb);
   while (1) {
     le_scroll=Do_Scroll_Window(0,deb);
-    if ((exit_chars) && (strchr(exit_chars,key)))
+    if ((exit_chars) && (strchr(exit_chars,key))) {
+        if (Macro_pager_bef) free(Macro_pager_bef);
+	if (Macro_pager_aft) free(Macro_pager_aft);
  	return (key | (at_end ? MAX_FL_KEY : 0));
+    }
     res=get_command_pager(key,(short_exit) && (at_end==0),short_exit, &number);
     if (number<1) number=1;
     if (res==-4) {
        if (short_exit) return (at_end ? MAX_FL_KEY : 0);
+       /* pas besoin de Macro_pager... ici */
     }
     switch (res) {
        case FLCMD_PAGER_PGUP : 
@@ -153,12 +198,20 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
 				       le_scroll=Do_Scroll_Window(le_scroll,deb);
 				   break;
 				 }
-      case FLCMD_PAGER_QUIT : return -2;
+      case FLCMD_PAGER_QUIT : {
+      				if (Macro_pager_bef) free(Macro_pager_bef);
+      				if (Macro_pager_aft) free(Macro_pager_aft);
+        			return -2;
+			      }
     }
     if (deb || le_scroll) {
       nll=Number_current_line_scroll()+Screen_Rows-act_row-2;
       if (nll>=num_elem) {
-	if ((!short_exit) && (exit_chars==NULL)) return 0; 
+	if ((!short_exit) && (exit_chars==NULL)) {
+	   if (Macro_pager_bef) free(Macro_pager_bef);
+      	   if (Macro_pager_aft) free(Macro_pager_aft);
+	   return 0; 
+	}
 	else {
 	  if (to_wait) {
 	     Aff_fin("Patientez...");
@@ -185,7 +238,11 @@ int Page_message (int num_elem, int short_exit, int key, int act_row,
     if (buf) Aff_fin(buf);
     deb=0;
     key=Attend_touche();
-    if (KeyBoard_Quit) return -1;
+    if (KeyBoard_Quit) {
+       if (Macro_pager_bef) free(Macro_pager_bef);
+       if (Macro_pager_aft) free(Macro_pager_aft);
+       return -1;
+    }
   }
 }
 
