@@ -1075,7 +1075,7 @@ int calcul_order(char *nom_gr, char *str) {
     char *buf, *buf2;
     if (str==NULL) return 0;
     if ((buf=strstr(nom_gr,str))==NULL) return -1;
-    while ((buf2=strstr(buf+1,str))!=NULL) buf=buf2;
+    while ((*buf!='\0') && ((buf2=strstr(buf+1,str))!=NULL)) buf=buf2;
     return (strlen(nom_gr)-strlen(str))*10-9*(buf-nom_gr);
 }
 

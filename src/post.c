@@ -779,7 +779,7 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
 	}
 	if (Options.use_regexp) {
 	   char *mustmatch;
-	   if (regcomp(&reg,nom2,REG_EXTENDED|REG_NOSUB)) {
+	   if (regcomp(&reg,nom2,REG_EXTENDED)) {
 	      strcpy(nom2,nom);
 	      to_test=0;
 	      continue;
