@@ -412,7 +412,6 @@ void copy_bout (FILE *tmp_file, char *chaine) {
 void Copy_format (FILE *tmp_file, char *chaine, Article_List *article) {
    char *att=safe_strdup(chaine), *ptr_att;
    char *buf;
-   char *tmp;
 
    if (article->headers==NULL) return; /* Beurk ! */
    copy_bout(NULL,NULL);

@@ -10,6 +10,7 @@ changement entre deux versions, et il n'est pas exempt de bugs.
 [\fB-v|--version\fR]
 [\fB-h|--help\fR]
 [\fB-d|--debug\fR]
+[\fB-n|--name\fR]
 [\fB-c|--co\fR]
 [\fB-s|--show-config\fR]
 
@@ -44,6 +45,8 @@ messages à lire.
 L'option \fB-h\fR affiche la liste des options reconnues.
 .IP \fB-v\fR
 Affiche le numéro de version.
+.IP \fB-n\fR
+Donne le nom a utiliser pour la configuration.
 .IP \fB-s\fR
 Donne un fichier de configuration contenant les valeurs par défaut de toutes
 les variables. Cette option devrait disparaitre.
@@ -62,6 +65,11 @@ Il y a six commandes :
 .B regcolor
 .B header
 .B bind
+
+Les commandes peuvent maintenant etre prefixees par name <nom> pour n'etre
+traitées que si flrn à été lancé sous le nom <nom> ou avec l'option
+-n <nom>.
+
 
 .TP 8
 .B set <variable_name>=<value>

@@ -74,6 +74,9 @@ void filter_do_action(flrn_filter *filt) {
   flrn_action *act;
   if (filt->flag ==0) { /* il s'agit de mettre un flag */
     Article_courant->flag |= filt->action.flag;
+    /* FIXME ? FLAG_KILLED => FLAG_READ */
+    if (Article_courant->flag & FLAG_KILLED)
+      Article_courant->flag |= FLAG_READ;
     return;
   }
   act=filt->action.action;
@@ -98,6 +101,13 @@ int parse_filter_flags(char * str, flrn_filter *filt) {
   if (strcmp(str,"read") ==0 ) {
     filt->cond_res |=  FLAG_READ;
     filt->cond_mask |= FLAG_READ;
+  } else
+  if (strcmp(str,"unkilled") ==0 ) { filt->cond_mask |= FLAG_KILLED;
+    filt->cond_res &= ~FLAG_KILLED;
+  } else
+  if (strcmp(str,"killed") ==0 ) {
+    filt->cond_res |=  FLAG_KILLED;
+    filt->cond_mask |= FLAG_KILLED;
   } else
   if (strcmp(str,"all") ==0 )
     filt->cond_res = filt->cond_mask = 0;
@@ -136,6 +146,8 @@ int parse_filter_toggle_flag(char * str, flrn_filter *filt) {
   if (filt->flag) return -1;
   if (strcmp(str,"read") ==0 )
     filt->action.flag = FLAG_READ;
+  else if (strcmp(str,"killed") ==0 )
+    filt->action.flag = FLAG_KILLED;
   else return -1;
   /* on ajoute le flag au filtre */
   filt->cond_mask |= filt->action.flag;

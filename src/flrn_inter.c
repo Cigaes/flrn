@@ -860,9 +860,17 @@ int do_deplace(int res) {
    /* Je vois pas comment on peut éviter un case */
    parcours2=NULL;
    switch (res) {
-     case FLCMD_PREC : if (ret!=-1) parcours=parcours->prev; break;
+     case FLCMD_PREC : if (ret!=-1) 
+			 do {
+			   parcours=parcours->prev;
+			 } while(parcours && (parcours->flag & FLAG_KILLED));
+			 break;
      case FLCMD_SUIV : if (ret!=-1) {
 			 parcours2=parcours->next; 
+			 while(parcours2 && (parcours2->flag & FLAG_KILLED)) {
+			   parcours=parcours2;
+			   parcours2=parcours2->next;
+			 }
 			 if ((parcours2==NULL) && (parcours->numero>0)) {
 			     if (parcours->numero<Newsgroup_courant->max)
 			       /* On peut avoir un article juste posté que */
@@ -876,7 +884,11 @@ int do_deplace(int res) {
 			       if (ret==-2) { /* Alors pas bo */
 				 etat_loop.Newsgroup_nouveau=Newsgroup_courant;
 				 return 1;
-			       } else if (ret>0) parcours2=parcours->next;
+			       } else if (ret>0) {parcours2=parcours->next;
+				 while(parcours2 &&
+				     (parcours2->flag & FLAG_KILLED))
+				   parcours2=parcours2->next;
+			       }
 			     }
 			 }
 			 parcours=parcours2;

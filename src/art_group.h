@@ -74,6 +74,8 @@ typedef struct Flrn_art_list
 #define FLAG_ACTION 8
    /* Flag disant d'appliquer le kill_file */
 #define FLAG_NEW   16
+   /* Flag disant d'ignorer le message */
+#define FLAG_KILLED   32
    int flag;  
 
    char *msgid;
