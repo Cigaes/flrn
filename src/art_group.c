@@ -995,20 +995,22 @@ Article_List *cousin_next(Article_List *debut) {
 Article_List * root_of_thread(Article_List *article, int flag) {
   Article_List *racine=article;
   Article_List *racine2=article;
-  Article_List *racine3=article;
 
   if(racine->pere) 
     racine2=racine->pere;
   while(racine2->pere && (racine2!=racine)) {
     racine=racine->pere;
-    racine3=racine2;
     racine2=racine2->pere;
-    if(racine2->pere) {
-      racine3=racine2;
-      racine2=racine2->pere;
-    }
+    if(racine2->pere) racine2=racine2->pere;
   }
-  return ((flag || (racine2->numero!=-1)) ? racine2 : racine3);
+  if ((!flag) && (racine2->numero==-1)) {
+     /* Il y a toujours au moins un fils d'un article dans la liste */
+     /* principale. En particulier le tout dernier fils */
+     /* (cf la façon dont relie_article est faite */
+     racine2=racine2->prem_fils;
+     while ((racine2->numero==-1) && (racine2->frere_suiv)) racine2=racine2->frere_suiv;
+  }
+  return racine2;
 }
 
 /* Parse le champ Xref, et marque les copies comme lues */
