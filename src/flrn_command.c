@@ -160,7 +160,10 @@ void free_Macros(void) {
    }
    Flcmd_num_macros=0;
    Flcmd_num_macros_max=0;
-   free(Flcmd_macro);
+   if (Flcmd_macro) {
+      free(Flcmd_macro);
+      Flcmd_macro=NULL;
+   }
 }
 
 static char *get_context_name (void *ptr, int num)

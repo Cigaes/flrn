@@ -826,6 +826,7 @@ void detruit_liste(int flag) {
    }
    Thread_deb=NULL;
    Hash_table=NULL;
+   Article_deb=NULL;
    Free_Last_head_cmd();
 }
 

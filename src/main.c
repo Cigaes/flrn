@@ -69,6 +69,28 @@ void Help(char *argv[])
 " -h|--help   : affiche ce message\n\n%s\n",version_string);
 }
 
+/* Cette fonction peut être appelée par tty_keyboard (les handlers de signaux).
+   Elle s'occupe de gérer la sauvegarde finale des fichiers.
+   Appel actuel : res=1 -> on sauve     res=0 -> on sauve pas .
+   Chaque fonction devra veiller à ne pas planter en cas de deux appels
+   consécutifs, ne pas libérer deux fois la même chose. Ce n'est pas que
+   ce soit très grave, mais il est théoriquement possible qu'un signal mal
+   placé crée un double-appel */
+void save_and_free_all(int res) {
+  if (res) save_history();
+  free_groups(res);
+  free_options();
+  free_kill(); /* pour sauver le kill-file... */
+  free_highlights();
+  free_Macros();
+#ifdef CHECK_MAIL
+  if ((getenv("MAIL")==NULL) && (mailbox)) {
+    free(mailbox);
+    mailbox=NULL;
+  }
+#endif
+}
+
 int main(int argc, char *argv[])
 {
   int code, res=0, res_opt_c=0;
@@ -188,15 +210,8 @@ int main(int argc, char *argv[])
   }
   if (res) new_groups(0);
   quit_server();
-  if (res) save_history();
-  free_groups(res);
-  free_options();
-  free_kill(); /* pour sauver le kill-file... */
-  free_highlights();
-  free_Macros();
-#ifdef CHECK_MAIL
-  if (getenv("MAIL")==NULL) free(mailbox);
-#endif
+  /* On fait la fin séparément */
+  save_and_free_all(res);
   if (!opt_c) fprintf(stdout,"That's all folks !\n");
   return 0;
 }

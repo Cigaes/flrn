@@ -1068,6 +1068,7 @@ void free_options() {
     }
   free_string_list_type(Options.user_header);
   free_string_list_type(Options.user_flags);
+  Options.user_header=Options.user_flags=NULL;
   parcours=Options.user_autocmd;
   while (parcours) {
      regfree(&(parcours->match));
@@ -1076,6 +1077,7 @@ void free_options() {
      parcours=parcours->next;
      free(parcours2);
   }
+  Options.user_autocmd=NULL;
 }
 
 void free_string_list_type (string_list_type *s_l_t) {

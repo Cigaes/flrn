@@ -20,6 +20,7 @@
 #include "flrn_slang.h"
 #include "tty_display.h"
 #include "tty_keyboard.h"
+#include "art_group.h"
 
 static UNUSED char rcsid[]="$Id$";
 
@@ -54,12 +55,27 @@ void sigterm_handler(int sig) {
    exit (sig);
 }
 
+extern void save_and_free_all(int);
+
+void sighup_handler(int sig) {
+   /* L'idée est qu'un sighup sauve et quitte, sans faire aucune
+      entrée-sortie clavier-écran */
+   if (Newsgroup_courant && Article_deb && (Article_deb!=&Article_bidon))
+      detruit_liste(0);
+   save_and_free_all(1);
+   exit(sig);
+}
+
 static void init_signals (void) {
 #ifdef SIGTSTP
     /*SL*/signal (SIGTSTP, sigtstp_handler);
 #endif
 #ifdef SIGTERM
     /*SL*/signal (SIGTERM, sigterm_handler);
+#endif
+#ifdef SIGHUP
+    /*SL*/signal (SIGHUP, sighup_handler);
+    /* init_signals est appelé après la création des groupes, etc... */
 #endif
 }
 

@@ -453,6 +453,7 @@ void free_groups(int save_flnewsrc) {
      }
      free(Newsgroup_courant);
    }
+   Newsgroup_deb=NULL; /* pour avoir la paix */
    /* C'est tout */
 }
 
