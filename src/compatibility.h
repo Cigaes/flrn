@@ -25,6 +25,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <ctype.h>
 #include "enc/enc_base.h"
 
 #ifdef HAVE_ERRNO_H
@@ -45,8 +46,10 @@ static inline int isblank(int c) {
   return (c==' ') || (c=='\t');
 }
 #else
-/* not always declared */
+/* not always declared , but can be a macro */
+#ifndef isblank
 extern int isblank(int);
+#endif
 #endif
 
 #ifndef HAVE_ISDIGIT

@@ -1683,7 +1683,7 @@ int cancel_message (Article_List *origine, int confirm) {
    if (origine->numero==-1) return -1;
    supersedes=0;
    Pere_post=NULL; /* Pas besoin de References */
-   res=Est_proprietaire(origine);
+   res=Est_proprietaire(origine,1);
    if (res!=1) return -1;
    /* On pourrait demander confirmation */
    /* L'équivalent d'un Aff_fin */
@@ -1808,7 +1808,7 @@ int post_message (Article_List *origine, flrn_char *name_file,int flag) {
        return -1;
     }
     if (flag==-1) {
-      res=Est_proprietaire(origine);
+      res=Est_proprietaire(origine,1);
       if (res!=1) {
 	Aff_error_fin_utf8(_("Supersedes interdit !"),1,-1);
         return -1;

@@ -93,7 +93,10 @@ int intrin_get_flags_group (Newsgroup_List *group) {
 /* description */
 char *intrin_get_description_group (Newsgroup_List *group) {
    int rc;
-   if (retour_intrinsics) free(retour_intrinsics);
+   if (retour_intrinsics) {
+       free(retour_intrinsics);
+       retour_intrinsics=NULL;
+   }
    rc=conversion_to_file(group->description,&retour_intrinsics,
 	   0,(size_t)(-1));
    if (rc!=0) retour_intrinsics=safe_strdup(retour_intrinsics);
@@ -234,7 +237,10 @@ char *intrin_get_header(Article_and_Group *larticle, char *name) {
     int rc, tofree;
     flrn_char *bla;
     if ((larticle==NULL) || (larticle->article==NULL)) return "";
-    if (retour_intrinsics) free(retour_intrinsics);
+    if (retour_intrinsics) {
+	free(retour_intrinsics);
+        retour_intrinsics=NULL;
+    }
     bla=get_one_header(larticle->article, larticle->groupe, name, &tofree);
     if (bla) {
       rc=conversion_to_file(bla,&retour_intrinsics,0,(size_t)(-1));
@@ -243,6 +249,19 @@ char *intrin_get_header(Article_and_Group *larticle, char *name) {
     } else return "";
     return retour_intrinsics;
 }
+
+char *intrin_get_program_name() {
+    return name_program;
+}
+
+int intrin_get_option(char *param) {
+    /* on distingue deux cas :
+     * 1) param commence par "var " (ou rien) : c'est une variable
+     * 2) autres cas : on duplique les lignes de chaînes 
+     */
+    return 0;
+}
+
 
 SLang_Intrin_Fun_Type flrn_Intrin_Fun [] =
 {
@@ -264,17 +283,15 @@ SLang_Intrin_Fun_Type flrn_Intrin_Fun [] =
    MAKE_INTRINSIC_2("menu_groups", intrin_menu_groups, SLANG_INT_TYPE,
 	                        SLANG_INT_TYPE,SLANG_INT_TYPE),
 /*** Divers ***/
-#if 0
 /* 1) obtention d'une option (-> renvoie le nombre de résultats) */
-   MAKE_INTRINSIC_1("get_option", intrin_get_option, SLANG_DATATYPE_TYPE,
+   MAKE_INTRINSIC_1("get_option", intrin_get_option, SLANG_INT_TYPE,
 	                          SLANG_STRING_TYPE),
 /* 2) nom du programme */
    MAKE_INTRINSIC_0("get_program_name", intrin_get_program_name,
 	             SLANG_STRING_TYPE),
 /* 3) set option */
-   MAKE_INTRINSIC_2("set_option", intrin_set_option, SLANG_INT_TYPE,
-	             SLANG_STRING_TYPE, SLANG_INT_TYPE),
-#endif
+/*   MAKE_INTRINSIC_2("set_option", intrin_set_option, SLANG_INT_TYPE,
+	             SLANG_STRING_TYPE, SLANG_INT_TYPE), */
    SLANG_END_TABLE
 };
 
@@ -509,7 +526,7 @@ SLang_Name_Type *Parse_fun_slang (flrn_char *str, int *num) {
 /* classés en fonction du type */
 
 /*  Newsgroup -> string */
-extern int try_hook_newsgroup_string (char *name, Newsgroup_List *groupe,
+int try_hook_newsgroup_string (char *name, Newsgroup_List *groupe,
 	                              flrn_char **res) {
     SLang_Name_Type *fun;
     int value_hook, ret=0,rt,rc;

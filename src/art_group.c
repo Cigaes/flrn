@@ -1274,16 +1274,19 @@ void recherche_article_par_msgid(Article_List **larticle,
 
 /* Détermine si on est le propriétaire d'un article */
 /* retour : 1 si oui, 0 si non, -1 si bug */
-int Est_proprietaire(Article_List *article) {
-#ifndef MODE_EXPERT
+/* strict = 1 : on veut vérifier pour le cancel */
+int Est_proprietaire(Article_List *article, int strict) {
   flrn_char *la_chaine, *ladresse, *buf;
-   
+
+#ifdef MODE_EXPERT
+  if (strict) return 1;
+#endif
   if (!article->headers) {
      cree_header(article,0,0,0);
      if (!article->headers) return -1;
   }
-  la_chaine=article->headers->k_headers[SENDER_HEADER];
-  if (!la_chaine) {
+  if ((strict==0) || 
+	  ((la_chaine=article->headers->k_headers[SENDER_HEADER])==NULL)) {
       regex_t reg;
       la_chaine=article->headers->k_headers[FROM_HEADER];
       if (!la_chaine) return -1;
@@ -1324,7 +1327,6 @@ int Est_proprietaire(Article_List *article) {
   if (buf==NULL) return 0;
   if ((*(buf-1))!=fl_static('.')) return 0;
   if (fl_isalnum(*(buf+strlen(DOMAIN)))) return 0;
-#endif
 #endif
   return 1; /* C'est bon */
 }

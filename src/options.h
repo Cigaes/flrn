@@ -314,5 +314,7 @@ extern int  options_comp(flrn_char * , size_t , Liste_Chaine *);
 extern void free_options(void);
 extern void menu_config_variables(void);
 extern void load_help_line_file(void);
+extern int  get_and_push_option(flrn_char *, 
+	   void push_string(flrn_char *), void push_int(int));
 
 #endif

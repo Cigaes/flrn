@@ -178,7 +178,7 @@ extern void article_read(Article_List * /*article*/);
 extern int Recherche_article (int /*num*/, Article_List ** /*retour*/,
     int /*flags*/);
 extern Article_Header *new_header(void);
-extern int Est_proprietaire(Article_List * /*article*/);
+extern int Est_proprietaire(Article_List * /*article*/, int);
 extern void apply_kill_file(int, int);
 extern Article_List *cousin_prev(Article_List *article);
 extern Article_List *cousin_next(Article_List *article);

@@ -1214,6 +1214,11 @@ static int parse_option_file (char *name, int flags, int flag_option) {
   return 0;
 }
 
+int get_and_push_option(flrn_char *param,
+	  void (push_string)(flrn_char *), void (push_int)(int)) {
+    return 0;
+}
+
 const flrn_char *Help_Lines[17];
 const char *menu_default_help_line=N_(" Menu: \\quit : quitter le menu     \\select : selectionner un element");
 
