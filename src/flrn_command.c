@@ -21,8 +21,6 @@
 
 #include <stdlib.h>
 
-#define _(String) (String)
-
 #include "flrn.h"
 #include "options.h"
 #include "flrn_macros.h"

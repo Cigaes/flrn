@@ -12,6 +12,7 @@
 
 /* FLRN : les messages */
 
+#include "flrn.h"
 #include "flrn_messages.h"
 #include "config.h"
 #include "compatibility.h"

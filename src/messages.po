@@ -2,7 +2,7 @@
 # Copyright (C) YEAR Free Software Foundation, Inc.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#: art_group.c:584 art_group.c:586 art_group.c:593 flrn_comp.c:51
+#: art_group.c:582 art_group.c:584 art_group.c:591 flrn_comp.c:51
 #: flrn_filter.c:143 flrn_filter.c:147 flrn_filter.c:242 flrn_filter.c:248
 #: flrn_format.c:725 flrn_format.c:729 flrn_format.c:746 flrn_inter.c:204
 #: flrn_inter.c:224 flrn_inter.c:234 flrn_pager.c:36 flrn_xover.c:557
@@ -12,7 +12,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-11-05 22:57+0100\n"
+"POT-Creation-Date: 2000-11-06 14:25+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -20,307 +20,307 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: ENCODING\n"
 
-#: art_group.c:34
+#: art_group.c:32
 msgid "$Id$"
 msgstr ""
 
-#: art_group.c:37
+#: art_group.c:35
 msgid "From:"
 msgstr ""
 
-#: art_group.c:38
+#: art_group.c:36
 msgid "References:"
 msgstr ""
 
-#: art_group.c:39
+#: art_group.c:37
 msgid "Subject:"
 msgstr ""
 
-#: art_group.c:40
+#: art_group.c:38
 msgid "Date:"
 msgstr ""
 
-#: art_group.c:41
+#: art_group.c:39
 msgid "Newsgroups:"
 msgstr ""
 
-#: art_group.c:42
+#: art_group.c:40
 msgid "Followup-To:"
 msgstr ""
 
-#: art_group.c:43
+#: art_group.c:41
 msgid "Organization:"
 msgstr ""
 
-#: art_group.c:44
+#: art_group.c:42
 msgid "Lines:"
 msgstr ""
 
-#: art_group.c:45
+#: art_group.c:43
 msgid "Sender:"
 msgstr ""
 
-#: art_group.c:46
+#: art_group.c:44
 msgid "Reply-To:"
 msgstr ""
 
-#: art_group.c:47
+#: art_group.c:45
 msgid "Expires:"
 msgstr ""
 
-#: art_group.c:48
+#: art_group.c:46
 msgid "X-Newsreader:"
 msgstr ""
 
-#: art_group.c:49
+#: art_group.c:47
 msgid "To:"
 msgstr ""
 
-#: art_group.c:50
+#: art_group.c:48
 msgid "Cc:"
 msgstr ""
 
-#: art_group.c:51
+#: art_group.c:49
 msgid "Bcc:"
 msgstr ""
 
-#: art_group.c:52
+#: art_group.c:50
 msgid "Xref:"
 msgstr ""
 
-#: art_group.c:53 flrn_xover.c:62
+#: art_group.c:51 flrn_xover.c:62
 msgid "Message-Id:"
 msgstr ""
 
-#: art_group.c:54
+#: art_group.c:52
 msgid "X-Censorship:"
 msgstr ""
 
-#: art_group.c:286
+#: art_group.c:284
 #, c-format
 msgid "Header référence qui buggue : %s !\n"
 msgstr ""
 
-#: art_group.c:418 art_group.c:698 flrn_files.c:252 flrn_format.c:536
+#: art_group.c:416 art_group.c:696 flrn_files.c:252 flrn_format.c:536
 #: group.c:398 tty_display.c:1782
 #, c-format
 msgid "%d"
 msgstr ""
 
-#: art_group.c:465 art_group.c:472 flrn_color.c:230 flrn_inter.c:2453
+#: art_group.c:463 art_group.c:470 flrn_color.c:229 flrn_inter.c:2453
 #: options.c:339 options.c:622 options.c:679 options.c:733 post.c:187
 msgid "\n"
 msgstr ""
 
-#: art_group.c:925
+#: art_group.c:923
 #, c-format
 msgid "appel a next_in_thread... %d\n"
 msgstr ""
 
-#: art_group.c:1018
+#: art_group.c:1016
 msgid "Echec de next_in_thread...\n"
 msgstr ""
 
-#: art_group.c:1133 flrn_command.c:145 flrn_command.c:213 flrn_command.c:266
+#: art_group.c:1131 flrn_command.c:143 flrn_command.c:211 flrn_command.c:264
 #: flrn_comp.c:75 flrn_comp.c:95 flrn_filter.c:790 flrn_filter.c:820
 #: flrn_filter.c:852 flrn_inter.c:2480 options.c:80 options.c:208
 #: options.c:212 post.c:1247 post.c:1275 post.c:1279 tty_display.c:1331
 msgid " "
 msgstr ""
 
-#: art_group.c:1134 flrn_inter.c:2481
+#: art_group.c:1132 flrn_inter.c:2481
 msgid " :"
 msgstr ""
 
-#: art_group.c:1136 flrn_inter.c:2482 tty_display.c:101
+#: art_group.c:1134 flrn_inter.c:2482 tty_display.c:101
 msgid ": "
 msgstr ""
 
-#: compatibility.c:22
+#: compatibility.c:21
 msgid "$Id$"
 msgstr ""
 
-#: compatibility.c:45 compatibility.c:66 compatibility.c:91
+#: compatibility.c:44 compatibility.c:65 compatibility.c:90
 msgid "Mémoire insuffisante !\n"
 msgstr ""
 
-#: compatibility.c:49
+#: compatibility.c:48
 #, c-format
 msgid "%8lx malloc %ld, %s :%s, %d\n"
 msgstr ""
 
-#: compatibility.c:70
+#: compatibility.c:69
 #, c-format
 msgid "%8lx calloc %ld * %ld, %s :%s, %d\n"
 msgstr ""
 
-#: compatibility.c:95
+#: compatibility.c:94
 #, c-format
 msgid "%8lx free *realloc* (%8lx) %ld, %s :%s, %d\n"
 msgstr ""
 
-#: compatibility.c:98
+#: compatibility.c:97
 #, c-format
 msgid "%8lx malloc *realloc* (%8lx) %ld, %s :%s, %d\n"
 msgstr ""
 
-#: compatibility.c:114
+#: compatibility.c:113
 msgid "*safe_strdup* "
 msgstr ""
 
-#: compatibility.c:131
+#: compatibility.c:130
 msgid "*safe_strappend* "
 msgstr ""
 
-#: flrn_color.c:27
+#: flrn_color.c:26
 msgid "$Id$"
 msgstr ""
 
-#: flrn_color.c:47 flrn_color.c:48 flrn_color.c:49 flrn_color.c:51
-#: flrn_color.c:52 flrn_color.c:53 flrn_color.c:55 flrn_color.c:56
-#: flrn_color.c:57 flrn_color.c:58
+#: flrn_color.c:46 flrn_color.c:47 flrn_color.c:48 flrn_color.c:50
+#: flrn_color.c:51 flrn_color.c:52 flrn_color.c:54 flrn_color.c:55
+#: flrn_color.c:56 flrn_color.c:57
 msgid "default"
 msgstr ""
 
-#: flrn_color.c:48
+#: flrn_color.c:47
 msgid "green"
 msgstr ""
 
-#: flrn_color.c:51
+#: flrn_color.c:50
 msgid "brightred"
 msgstr ""
 
-#: flrn_color.c:52
+#: flrn_color.c:51
 msgid "magenta"
 msgstr ""
 
-#: flrn_color.c:55
+#: flrn_color.c:54
 msgid "blue"
 msgstr ""
 
-#: flrn_color.c:64 options.c:39
+#: flrn_color.c:63 options.c:39
 msgid "=: \t\n"
 msgstr ""
 
-#: flrn_color.c:88
+#: flrn_color.c:87
 msgid "exclude"
 msgstr ""
 
-#: flrn_color.c:88
+#: flrn_color.c:87
 msgid "line"
 msgstr ""
 
-#: flrn_color.c:88
+#: flrn_color.c:87
 msgid "case"
 msgstr ""
 
-#: flrn_color.c:91
+#: flrn_color.c:90
 msgid "bold"
 msgstr ""
 
-#: flrn_color.c:92
+#: flrn_color.c:91
 msgid "blink"
 msgstr ""
 
-#: flrn_color.c:93
+#: flrn_color.c:92
 msgid "underline"
 msgstr ""
 
-#: flrn_color.c:94
+#: flrn_color.c:93
 msgid "reverse"
 msgstr ""
 
-#: flrn_color.c:110
+#: flrn_color.c:109
 msgid "std"
 msgstr ""
 
-#: flrn_color.c:112
+#: flrn_color.c:111
 msgid "std-"
 msgstr ""
 
-#: flrn_color.c:140 options.c:533
+#: flrn_color.c:139 options.c:533
 msgid "clear"
 msgstr ""
 
-#: flrn_color.c:159 flrn_color.c:224
+#: flrn_color.c:158 flrn_color.c:223
 msgid "-"
 msgstr ""
 
-#: flrn_color.c:159 flrn_filter.c:754
+#: flrn_color.c:158 flrn_filter.c:754
 msgid "all"
 msgstr ""
 
-#: flrn_color.c:175
+#: flrn_color.c:174
 msgid "0123456789"
 msgstr ""
 
-#: flrn_color.c:224 flrn_color.h:20
+#: flrn_color.c:223 flrn_color.h:20
 msgid "normal"
 msgstr ""
 
-#: flrn_color.c:470
+#: flrn_color.c:469
 msgid " normal"
 msgstr ""
 
-#: flrn_color.c:474 flrn_color.c:478 flrn_color.c:482 flrn_color.c:486
-#: flrn_color.c:514 flrn_color.c:530
+#: flrn_color.c:473 flrn_color.c:477 flrn_color.c:481 flrn_color.c:485
+#: flrn_color.c:513 flrn_color.c:529
 #, c-format
 msgid "%c%s"
 msgstr ""
 
-#: flrn_color.c:497
+#: flrn_color.c:496
 msgid "# Couleurs des champs généraux :"
 msgstr ""
 
-#: flrn_color.c:499
+#: flrn_color.c:498
 #, c-format
 msgid ""
 "\n"
 "color %s %s %s"
 msgstr ""
 
-#: flrn_color.c:501
+#: flrn_color.c:500
 #, c-format
 msgid ""
 "\n"
 "mono %s"
 msgstr ""
 
-#: flrn_color.c:504
+#: flrn_color.c:503
 msgid ""
 "\n"
 "# Les regcolors, dans la mesure du possible, ça marche pas toujours..."
 msgstr ""
 
-#: flrn_color.c:509
+#: flrn_color.c:508
 msgid ""
 "\n"
 "regcolor"
 msgstr ""
 
-#: flrn_color.c:510
+#: flrn_color.c:509
 msgid " all"
 msgstr ""
 
-#: flrn_color.c:521 options.c:801 options.c:806 options.c:811
+#: flrn_color.c:520 options.c:801 options.c:806 options.c:811
 #, c-format
 msgid " %d"
 msgstr ""
 
-#: flrn_color.c:526
+#: flrn_color.c:525
 msgid " -"
 msgstr ""
 
-#: flrn_color.c:535
+#: flrn_color.c:534
 #, c-format
 msgid " %s %s"
 msgstr ""
 
-#: flrn_color.c:539
+#: flrn_color.c:538
 msgid " une_regexp_iconnue..."
 msgstr ""
 
-#: flrn_color.c:542
+#: flrn_color.c:541
 msgid ""
 "\n"
 "\n"
@@ -363,91 +363,91 @@ msgstr ""
 msgid "search"
 msgstr ""
 
-#: flrn_command.c:36
+#: flrn_command.c:34
 msgid "$Id$"
 msgstr ""
 
-#: flrn_command.c:177
+#: flrn_command.c:175
 msgid "            "
 msgstr ""
 
-#: flrn_command.c:181
+#: flrn_command.c:179
 msgid "touche de commande explicite"
 msgstr ""
 
-#: flrn_command.c:183
+#: flrn_command.c:181
 msgid "touche de commande nocbreak"
 msgstr ""
 
-#: flrn_command.c:187
+#: flrn_command.c:185
 msgid "touche de préfixe de commande"
 msgstr ""
 
-#: flrn_command.c:192 flrn_inter.c:598 flrn_menus.c:599 flrn_pager.c:295
+#: flrn_command.c:190 flrn_inter.c:598 flrn_menus.c:599 flrn_pager.c:295
 msgid "undef"
 msgstr ""
 
-#: flrn_command.c:196
+#: flrn_command.c:194
 msgid "(mult.) "
 msgstr ""
 
-#: flrn_command.c:198
+#: flrn_command.c:196
 msgid "(macro)"
 msgstr ""
 
-#: flrn_command.c:217
+#: flrn_command.c:215
 msgid "..."
 msgstr ""
 
-#: flrn_command.c:260 flrn_command.c:484
+#: flrn_command.c:258 flrn_command.c:482
 msgid "\\"
 msgstr ""
 
-#: flrn_command.c:347 options.c:178 options.c:600
+#: flrn_command.c:345 options.c:178 options.c:600
 msgid "command"
 msgstr ""
 
-#: flrn_command.c:347 options.c:177 options.c:599
+#: flrn_command.c:345 options.c:177 options.c:599
 msgid "pager"
 msgstr ""
 
-#: flrn_command.c:347 options.c:176 options.c:598
+#: flrn_command.c:345 options.c:176 options.c:598
 msgid "menu"
 msgstr ""
 
-#: flrn_command.c:360
+#: flrn_command.c:358
 #, c-format
 msgid "(%s"
 msgstr ""
 
-#: flrn_command.c:362 flrn_files.c:60 flrn_files.c:76 flrn_files.c:80
+#: flrn_command.c:360 flrn_files.c:60 flrn_files.c:76 flrn_files.c:80
 #: flrn_files.c:148 flrn_files.c:166 flrn_files.c:171 flrn_files.c:205
 #: flrn_files.c:218 flrn_format.c:622 flrn_inter.c:2086 flrn_inter.c:2164
 #: flrn_shell.c:59 flrn_shell.c:110
 msgid "/"
 msgstr ""
 
-#: flrn_command.c:365 flrn_inter.c:794
+#: flrn_command.c:363 flrn_inter.c:794
 msgid ") : "
 msgstr ""
 
-#: flrn_command.c:428
+#: flrn_command.c:426
 msgid "key-up "
 msgstr ""
 
-#: flrn_command.c:430
+#: flrn_command.c:428
 msgid "key-down "
 msgstr ""
 
-#: flrn_command.c:432
+#: flrn_command.c:430
 msgid "key-left "
 msgstr ""
 
-#: flrn_command.c:434
+#: flrn_command.c:432
 msgid "key-right "
 msgstr ""
 
-#: flrn_command.c:489 flrn_inter.c:804 flrn_inter.c:2830
+#: flrn_command.c:487 flrn_inter.c:804 flrn_inter.c:2830
 msgid "\t"
 msgstr ""
 
@@ -1473,191 +1473,191 @@ msgstr ""
 msgid "cmd"
 msgstr ""
 
-#: flrn_messages.c:19
+#: flrn_messages.c:20
 msgid "$Id$"
 msgstr ""
 
-#: flrn_messages.c:22
+#: flrn_messages.c:23
 msgid "Commande inconnue ou hors contexte !"
 msgstr ""
 
-#: flrn_messages.c:23
+#: flrn_messages.c:24
 msgid "Rien de nouveau."
 msgstr ""
 
-#: flrn_messages.c:24
+#: flrn_messages.c:25
 msgid "Fin du newsgroup."
 msgstr ""
 
-#: flrn_messages.c:25
+#: flrn_messages.c:26
 msgid "Message(s) inexistant(s)."
 msgstr ""
 
-#: flrn_messages.c:26
+#: flrn_messages.c:27
 msgid "Les messages sont marqués non lus."
 msgstr ""
 
-#: flrn_messages.c:27
+#: flrn_messages.c:28
 msgid "Post envoyé."
 msgstr ""
 
-#: flrn_messages.c:28 post.c:1653
+#: flrn_messages.c:29 post.c:1653
 msgid "Post annulé."
 msgstr ""
 
-#: flrn_messages.c:29
+#: flrn_messages.c:30
 msgid "Article(s) sauvé(s)."
 msgstr ""
 
-#: flrn_messages.c:30
+#: flrn_messages.c:31
 msgid "Abonnement effectué."
 msgstr ""
 
-#: flrn_messages.c:31
+#: flrn_messages.c:32
 msgid "Désabonnement effectué."
 msgstr ""
 
-#: flrn_messages.c:32
+#: flrn_messages.c:33
 msgid "Pas de thread sélectionné."
 msgstr ""
 
-#: flrn_messages.c:33
+#: flrn_messages.c:34
 msgid "Groupe zappé."
 msgstr ""
 
-#: flrn_messages.c:34
+#: flrn_messages.c:35
 msgid "Pas d'autres newsgroups."
 msgstr ""
 
-#: flrn_messages.c:35
+#: flrn_messages.c:36
 msgid "Xref non trouvé !"
 msgstr ""
 
-#: flrn_messages.c:36
+#: flrn_messages.c:37
 msgid "(continue)"
 msgstr ""
 
-#: flrn_messages.c:37
+#: flrn_messages.c:38
 msgid "Tag mis"
 msgstr ""
 
-#: flrn_messages.c:38
+#: flrn_messages.c:39
 msgid "Cancel annulé"
 msgstr ""
 
-#: flrn_messages.c:39
+#: flrn_messages.c:40
 msgid "Article(s) cancelé(s)"
 msgstr ""
 
-#: flrn_messages.c:40
+#: flrn_messages.c:41
 msgid "Opération effectuée"
 msgstr ""
 
-#: flrn_messages.c:41
+#: flrn_messages.c:42
 msgid "Mail envoyé"
 msgstr ""
 
-#: flrn_messages.c:42
+#: flrn_messages.c:43
 msgid "Mail envoyé, article posté"
 msgstr ""
 
-#: flrn_messages.c:43
+#: flrn_messages.c:44
 msgid "Article(s) lu(s) temporairement."
 msgstr ""
 
-#: flrn_messages.c:44
+#: flrn_messages.c:45
 msgid "Vous n'êtes abonné à aucun groupe"
 msgstr ""
 
-#: flrn_messages.c:45
+#: flrn_messages.c:46
 msgid "Newsgroup vide"
 msgstr ""
 
-#: flrn_messages.c:46
+#: flrn_messages.c:47
 msgid "Vous n'êtes dans aucun groupe"
 msgstr ""
 
-#: flrn_messages.c:47
+#: flrn_messages.c:48
 msgid "Pas d'article négatif"
 msgstr ""
 
-#: flrn_messages.c:48
+#: flrn_messages.c:49
 msgid "Echec de la sauvegarde."
 msgstr ""
 
-#: flrn_messages.c:49
+#: flrn_messages.c:50
 msgid "Newsgroup inconnu, supprimé !"
 msgstr ""
 
-#: flrn_messages.c:50
+#: flrn_messages.c:51
 msgid "Pas de newsgroup trouvé"
 msgstr ""
 
-#: flrn_messages.c:51
+#: flrn_messages.c:52
 msgid "Regexp invalide !"
 msgstr ""
 
-#: flrn_messages.c:52
+#: flrn_messages.c:53
 msgid "Echec du pipe..."
 msgstr ""
 
-#: flrn_messages.c:53
+#: flrn_messages.c:54
 msgid "L'article n'est plus dans le groupe"
 msgstr ""
 
-#: flrn_messages.c:54
+#: flrn_messages.c:55
 msgid "Tag invalide"
 msgstr ""
 
-#: flrn_messages.c:55
+#: flrn_messages.c:56
 msgid "Cancel refusé"
 msgstr ""
 
-#: flrn_messages.c:56
+#: flrn_messages.c:57
 msgid "Historique vide."
 msgstr ""
 
-#: flrn_messages.c:57
+#: flrn_messages.c:58
 msgid "Pas de header !"
 msgstr ""
 
-#: flrn_messages.c:58
+#: flrn_messages.c:59
 msgid "Header refusé !"
 msgstr ""
 
-#: flrn_messages.c:59
+#: flrn_messages.c:60
 msgid "Erreur fatale !!!"
 msgstr ""
 
-#: flrn_messages.c:60
+#: flrn_messages.c:61
 msgid "Pas de recherche."
 msgstr ""
 
-#: flrn_messages.c:61
+#: flrn_messages.c:62
 msgid "Rien trouvé."
 msgstr ""
 
-#: flrn_messages.c:62
+#: flrn_messages.c:63
 msgid "Flag invalide."
 msgstr ""
 
-#: flrn_messages.c:63
+#: flrn_messages.c:64
 msgid "Flag appliqué."
 msgstr ""
 
-#: flrn_messages.c:64
+#: flrn_messages.c:65
 msgid "Macro interdite."
 msgstr ""
 
-#: flrn_messages.c:65
+#: flrn_messages.c:66
 msgid "Message-ID inconnu."
 msgstr ""
 
-#: flrn_messages.c:66
+#: flrn_messages.c:67
 msgid "Passage en mode thread."
 msgstr ""
 
-#: flrn_messages.c:67
+#: flrn_messages.c:68
 msgid "Passage en mode normal."
 msgstr ""
 

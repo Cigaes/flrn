@@ -16,7 +16,6 @@
 #include <unistd.h>
 #include <strings.h>
 
-#define _(String) (String)
 #define DEF_FILD_NAMES
 
 #include "flrn.h"

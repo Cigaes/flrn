@@ -19,8 +19,6 @@
 
 #include <sys/times.h>
 
-#define _(String) (String)
-
 #include "flrn.h"
 #include "art_group.h"
 #include "group.h"

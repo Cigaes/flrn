@@ -14,8 +14,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
-#define _(String) (String)
-
+#include "flrn.h"
 #include "config.h"
 #include "compatibility.h"
 

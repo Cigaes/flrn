@@ -18,4 +18,7 @@
 #include "compatibility.h"  /* La compatibilité */
 #include "flrn_glob.h"      /* Variables externes */
 
+#define _(String) (String)
+#define N_(String) (String)
+
 #endif
