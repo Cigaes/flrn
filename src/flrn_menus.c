@@ -13,16 +13,13 @@
 #include "flrn_config.h"
 #include "flrn_menus.h"
 #include "flrn_inter.h"
+#include "flrn_macros.h"
 
 /* le tableau touche -> commande */
 int Flcmd_menu_rev[MAX_FL_KEY];
 /* pour les macros */
 
-#define MAX_FL_MACRO_MENU 32 /* Pas exagerer non plus */
-struct {
-  int cmd;
-  char *arg;
-} Flcmd_macro_menu[MAX_FL_MACRO_MENU];
+Flcmd_macro_t Flcmd_macro_menu[MAX_FL_MACRO_MENU];
 
 int Flcmd_num_macros_menu=0;
 

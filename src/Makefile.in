@@ -41,7 +41,7 @@ VC_FILES = `echo $(C_FILES) | sed s'&\ \|^& '$(SRCDIR)'/&'g`
 
 #Headers
 
-HDRS = flrn.h options.h flrn_config.h flrn_glob.h extern.h group.h art_group.h post.h flrn_string.h rfc2047.h pathdef.h version.h site_config.h flrn_slang.h flrn_menus.h flrn_filter.h flrn_pager.h flrn_lists.h flrn_tags.h flrn_tcp.h
+HDRS = flrn.h options.h flrn_config.h flrn_glob.h extern.h group.h art_group.h post.h flrn_string.h rfc2047.h pathdef.h version.h site_config.h flrn_slang.h flrn_menus.h flrn_filter.h flrn_pager.h flrn_lists.h flrn_tags.h flrn_tcp.h flrn_macros.h
 
 #Objets
 

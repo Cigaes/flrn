@@ -20,6 +20,7 @@
 #include "flrn_menus.h"
 #include "flrn_filter.h"
 #include "flrn_tags.h"
+#include "flrn_macros.h"
 
 /* On va définir ici des structures et des variables qui seront utilisées */
 /* pour loop, et les fonctions qui y sont associés. Il faudrait en fait   */
@@ -62,11 +63,7 @@ char Arg_str[MAX_CHAR_STRING];
 int Flcmd_rev[MAX_FL_KEY];
 /* pour les macros */
 
-#define MAX_FL_MACRO 256
-struct {
-  int cmd;
-  char *arg;
-} Flcmd_macro[MAX_FL_MACRO];
+Flcmd_macro_t Flcmd_macro[MAX_FL_MACRO];
 
 int Flcmd_num_macros=0;
 

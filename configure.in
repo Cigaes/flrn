@@ -5,6 +5,8 @@ dnl 		Jo.
 AC_INIT(src/art_group.c)
 AC_CONFIG_HEADER(src/config.h)
 
+CFLAGS="-I. $CFLAGS"
+
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL

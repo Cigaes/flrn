@@ -11,16 +11,13 @@
 #include "flrn.h"
 #include "options.h"
 #include "flrn_pager.h"
+#include "flrn_macros.h"
 
 /* le tableau touche -> commande */
 int Flcmd_pager_rev[MAX_FL_KEY];
 /* pour les macros */
 
-#define MAX_FL_MACRO_PAGER 32 /* Pas exagerer non plus */
-struct {
-  int cmd;
-  char *arg;
-} Flcmd_macro_pager[MAX_FL_MACRO_PAGER];
+Flcmd_macro_t Flcmd_macro_pager[MAX_FL_MACRO_PAGER];
 
 int Flcmd_num_macros_pager=0;
 
