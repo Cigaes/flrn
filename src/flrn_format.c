@@ -245,8 +245,8 @@ int format_flstring (char *dest, flrn_char *src, int mwidth, size_t sdest,
 	       width+=w;
 	    }
 	}
-	*buf='\0';
    }
+   *buf='\0';
    if ((width<mwidth) && (sdest>1) && (justify>0)) {
        int decalage;
        if (justify==1) 
@@ -727,7 +727,7 @@ flrn_char * Prepare_summary_line(Article_List *article,
       out_ptr += 13;
       tmplen+=13;
     }
-    if (tmplen+7>=outlen) return out;
+    if (tmplen+8>=outlen) return out;
     if (article->parent!=0) {
        if (article->parent>0) {
 	   fl_snprintf(out_ptr,8,fl_static("[%5d]"), article->parent);
@@ -735,7 +735,7 @@ flrn_char * Prepare_summary_line(Article_List *article,
          else fl_snprintf(out_ptr,8,fl_static("%-7s"),
 		 fl_static("[  ?  ]"));
     }
-         else fl_snprintf(out_ptr,8,fl_static("%7.7s"),fl_static(""));
+         else fl_snprintf(out_ptr,outlen,fl_static("%7.7s"),fl_static(""));
     return out;
 }
 
