@@ -1,0 +1,38 @@
+Liste des symboles "intrinsics" définis pour flrn dans le langage de script
+---------------------------------------------------------------------------
+
+(cf slang_flrn.c)
+
+Classes
+-------
+Newsgroup_Type : désigne un groupe de discussion.
+   -> en chaîne de caractère :  le nom du groupe ("" si NULL)
+
+Article_Type : désigne un article (dans le groupe courant ou non)
+   -> en chaîne de caractère : le Message-ID de l'article ("" si NULL)
+
+
+Variables
+---------
+Newsgroup_Courant : de type Newsgroup_Type, fait référence au groupe courant
+
+Article_Courant : de type Article_Type, fait référence à l'article courant
+   (ou, actuellement, à l'article auquel on répond)
+
+Fonctions
+---------
+
+get_header(Article_Type article, String string) :
+   renvoie une chaîne contenant l'entête <string> de l'article <article>,
+   "" si cette entête n'existe pas.
+   
+
+error, verror, message et vmessage
+----------------------------------
+
+Ces fonctions changent de comportement dans le mode normal (cbreak) de flrn :
+error et verror affichent un message d'erreur de flrn "classique", au milieu
+de l'écran, et attendent qu'une touche soit pressée pour continuer (si
+c'est possible). Cela est aussi valable pour les messages d'erreur de
+l'interpréteur.
+message et vmessage ont *pour l'instant* le même effet.
