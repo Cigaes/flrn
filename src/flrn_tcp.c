@@ -424,7 +424,7 @@ int connect_server (char *host, int port) {
     }
 */
     /* Authentification */
-    if ((ret<400) && (Options.auth_user)) {
+    if ((ret<500) && (Options.auth_user)) {
         char *strvar[2];
 	strvar[0]="user";
 	strvar[1]=Options.auth_user;
