@@ -883,3 +883,14 @@ void zap_group_non_courant (Newsgroup_List *group) {
    /* zapper un groupe après coup...					  */
 }
    
+
+/* Action de Menu_simple pour le goto */
+void Ligne_carac_du_groupe (void *letruc, char *lachaine,
+                                int taille)
+{
+  Newsgroup_List *legroupe=letruc;
+  lachaine[0]='\0';
+  if (legroupe->description) strncat(lachaine,legroupe->description,taille-1);
+  lachaine[taille-1]='\0';
+}
+

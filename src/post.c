@@ -535,14 +535,116 @@ static int get_Body_post() {
    return (empty)?0:1;
 }
 
+/* Regarde l'existence d'un groupe dans un header... essaie une correction */
+/* sinon...								   */
+static char *check_group_in_header(char *nom, int *copy_pre, char *header) {
+   char *nom2=nom;
+   Newsgroup_List *groupe;
+   int key,alloue=0,ret,col,to_test=1;
+   regex_t reg;
+   Liste_Menu *lemenu;
 
+   if (strlen(nom)>MAX_NEWSGROUP_LEN) return nom;
+     /* Tant pis. Si le mec se fout de ma gueule, c'est réciproque */
+   while (1) {
+     if (to_test) {
+       groupe=cherche_newsgroup(nom2,1,*copy_pre);
+       if (groupe!=NULL) return nom2;
+       if (*copy_pre) {
+         groupe=cherche_newsgroup(nom2,1,0);
+         if (groupe!=NULL) {
+            *copy_pre=0;
+	    return nom2;
+         }
+       }
+       Cursor_gotorc(1,0);
+       Screen_erase_eos();
+     }
+     Cursor_gotorc(Screen_Rows-2,0);
+     Screen_erase_eol();
+     Screen_write_string("Groupe inconnu dans ");
+     Screen_write_string(header);
+     Screen_write_string(" : ");
+     Screen_write_string(nom2);
+     Cursor_gotorc(Screen_Rows-1,0);
+     Screen_erase_eol();
+     Screen_write_string("(S)upprimer,(R)emplacer,(M)enu ? ");
+     key=Attend_touche();
+     key=toupper(key);
+     if (KeyBoard_Quit || (key=='S')) {
+        if (alloue) free(nom2);
+        return NULL;
+     }
+     if ((key=='R') || (key=='M')) {
+        Cursor_gotorc(Screen_Rows-1,0);
+	if (!alloue) {
+	  nom2=safe_malloc(MAX_NEWSGROUP_LEN);
+	  alloue=1;
+	}
+	nom2[0]='\0';
+	Screen_erase_eol();
+	if (key=='R') {
+	  if (*copy_pre) strcpy(nom2,Options.prefixe_groupe);
+	  Screen_write_string("Nom du groupe : ");
+	  Screen_write_string(nom2);
+	  ret=getline(nom2,MAX_NEWSGROUP_LEN,Screen_Rows-1,16);
+	  if (ret<0) {
+	     strcpy(nom2,nom);
+	     to_test=0;
+	  } else to_test=1;
+	  continue;
+	} 
+	/* key=='M' */
+	col=(Options.use_regexp ? 9 : 14);
+	Screen_write_string(Options.use_regexp ? "Regexp : " :
+						 "Sous-chaîne : ");
+	ret=getline(nom2,MAX_NEWSGROUP_LEN,Screen_Rows-1,col);
+	if (ret<0) {
+	   strcpy(nom2,nom);
+	   to_test=0;
+	   continue;
+	}
+	if (Options.use_regexp) {
+	   char *mustmatch;
+	   mustmatch=reg_string(nom2,1);
+	   if (mustmatch!=NULL) lemenu=menu_newsgroup_re(mustmatch, reg,
+	     				1+((*copy_pre)*2));
+	   else {
+	     regfree(&reg);
+	     strcpy(nom2,nom);
+	     to_test=0;
+	     continue;
+	   }
+	   free(mustmatch);
+	   regfree(&reg);
+	} else lemenu=menu_newsgroup_re(nom2,reg,((*copy_pre)*2));
+	     /* On passe n'importe quoi pour reg */
+	if (lemenu) {
+	  if (lemenu->suiv==NULL) {
+	     strcpy(nom2,((Newsgroup_List *) (lemenu->lobjet))->name);
+	     return nom2;
+	  }
+	  else
+	    groupe=Menu_simple(lemenu,NULL,Ligne_carac_du_groupe,NULL,"Quel groupe ?");
+	  Libere_menu(lemenu);
+	} else groupe=NULL;
+	if (groupe) {
+	   strcpy(nom2,groupe->name);
+	   return nom2;
+	}
+	strcpy(nom2,nom);
+     }
+     to_test=0;
+   }
+}
+	
 
 /* Prepare les headers pour le post */
 /* Pour l'instant, on s'occupe juste de sender et de X-newsreader */
 /* On pourrait aussi supprimer Control */
 static void Format_headers() {
    int len1, len2, copy_pre, i,j;
-   char *real_name=safe_strdup(flrn_user->pw_gecos), *buf;
+   char *real_name=safe_strdup(flrn_user->pw_gecos), *buf, *buf2;
    static char *delim2=" ,;\t";
 
    buf=strchr(real_name,','); if (buf) *buf='\0';
@@ -584,18 +686,23 @@ static void Format_headers() {
        len1=0;
        while (buf) {
          copy_pre=((Options.prefixe_groupe) && (strncmp(buf,Options.prefixe_groupe,strlen(Options.prefixe_groupe))!=0));
-         real_name=safe_realloc(real_name,len1+(copy_pre?strlen(Options.prefixe_groupe):0)+strlen(buf)+2);
+	 buf2=check_group_in_header(buf,&copy_pre,Headers[i].header);
+	 if (buf2==NULL) {
+	   buf=strtok(NULL,delim2);
+	   continue;
+	 }
+         real_name=safe_realloc(real_name,len1+(copy_pre?strlen(Options.prefixe_groupe):0)+strlen(buf2)+2);
          if (len1==0) real_name[0]='\0';
-         len1+=(copy_pre?strlen(Options.prefixe_groupe):0)+strlen(buf)+1;
+         len1+=(copy_pre?strlen(Options.prefixe_groupe):0)+strlen(buf2)+1;
          if (copy_pre) strcat(real_name,Options.prefixe_groupe);
-         strcat(real_name,buf);
+         strcat(real_name,buf2);
          strcat(real_name,",");
+	 if (buf2!=buf) free(buf2);
          buf=strtok(NULL,delim2);
        }
        if (len1>0) real_name[len1-1]='\0'; /* Enlevons la dernière , */
        free(Header_post->k_header[j]);
-       Header_post->k_header[j]=(j==1 ? real_name : safe_strdup(real_name));
-       if (j==0) free(real_name);
+       Header_post->k_header[j]=real_name;
     }
   }
 }

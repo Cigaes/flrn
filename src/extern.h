@@ -66,6 +66,8 @@ extern void add_read_article(Newsgroup_List * /*group*/, int /*numero*/);
 extern char *truncate_group (char *, int);
 extern void test_readonly(Newsgroup_List *);
 extern void zap_group_non_courant (Newsgroup_List *);
+extern void Ligne_carac_du_groupe (void *, char *, int );
+
     
 /*  art_group.c  */
 extern int va_dans_groupe(void);

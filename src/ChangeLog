@@ -1,5 +1,10 @@
 ChangeLog Flrn
 
+-----------------------------
+Version 0.3.0
+-----------------------------
+
+. modif du post : test des groupes invalides...
 . changement de list/LIST, avec menus. petits patchs sur les posts
 . option include
 . option my_flags, supression de messages en trop

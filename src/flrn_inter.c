@@ -1933,16 +1933,6 @@ void Get_option_line(char *argument)
   return;
 }
 
-/* Action de Menu_simple pour le goto */
-void Ligne_carac_du_groupe (void *letruc, char *lachaine, 
-    				int taille)
-{
-  Newsgroup_List *legroupe=letruc;
-  lachaine[0]='\0';
-  if (legroupe->description) strncat(lachaine,legroupe->description,taille-1);
-  lachaine[taille-1]='\0';
-}
-
 /* change de groupe */
 /* les flags correspondent à abonné / tout (0/1) et */
 /* avec prefixe_groupe/sans (2/0) */
@@ -1975,7 +1965,6 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 	if (mustmatch!=NULL) lemenu=menu_newsgroup_re(mustmatch, reg,1+(flags & 2));
 	else {
 	   regfree(&reg);
-	   free(mustmatch);
 	   return -2;
 	}
 	free(mustmatch);
@@ -2042,7 +2031,6 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 	   } else {
 	     *newgroup=mygroup;
 	     regfree(&reg);
-	     free(mustmatch);
 	     return 0;
 	   }
 	   free(mustmatch);
