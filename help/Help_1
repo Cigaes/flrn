@@ -12,8 +12,9 @@ Les paragraphes en retrait sont des descriptions plus détaillées qui peuvent
 Les commandes sont utilisables soit en tapant leur nom :
 "\goto" ou en utilisant une touche sur laquelle elles sont bindées, comme 'g'.
 
-  Quand on tappe leur nom, il y a une completion automatique rudimentaire
-  obtenue avec Tab.
+  Quand on tappe leur nom, il y a une completion automatique obtenue avec
+  <tab>. On peut appuyer plusieurs fois de suite sur la touche pour voir
+  les différentes possibilités que propose flrn.
 
 Certaines commandes prennent une chaîne de caractères en argument. On peut la
 mettre directement si l'on utilise la première forme : "\goto flrn".
@@ -71,6 +72,10 @@ k (\kill) marque l'article comme lu. Cela sert quand l'article est long.
 r (\summary) affiche un résumé.
 t (\summ_fil) résumé d'un article et de ses fils. (équivalent à '.>r')
 T (\summ_thr) résumé de la discussion. (équivalent à '.<>r')
+/ (\menu-search) affiche un menu des articles vérifiant une condition :
+	ça peut être soit des flags (read/unread, selected/unselected),
+	ou des entêtes (par exemple, From: toto proposera les articles
+	dont l'entête From: contient "toto").
 
 * Gestion des groupes :
 

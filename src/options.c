@@ -107,7 +107,7 @@ int options_comp(char *str, int len, Liste_Chaine *debut)
   char *suite;
   for (i=0;i<NUMBER_OF_OPT_CMD;i++) result[i]=0;
   res = Comp_generic(debut, str,len,(void *)Optcmd_liste,NUMBER_OF_OPT_CMD,
-      get_optcmd_name,delim,result);
+      get_optcmd_name,delim,result,1);
   if (res==-3) return 0;
   if (res >= 0) {
     if (Optcmd_liste[res].comp) {
@@ -135,6 +135,7 @@ int options_comp(char *str, int len, Liste_Chaine *debut)
             pere->suivant=courant->suivant;
             free(courant);
             courant=pere->suivant;
+	    if (courant) suivant=courant->suivant;
             continue;
          }
        } else {
@@ -203,7 +204,7 @@ int bind_comp(char *str, int len, Liste_Chaine *debut)
   }
   res = Comp_generic(debut,str,len,(void *)bindarg_names,
       sizeof(bindarg_names)/sizeof(bindarg_names[0]),
-      get_name_liste,delim,result);
+      get_name_liste,delim,result,1);
   if (res==-3) return 0;
   if (res>=0) {
     return bind_comp(str,len,debut);
@@ -223,6 +224,7 @@ int bind_comp(char *str, int len, Liste_Chaine *debut)
           pere->suivant=courant->suivant;
           free(courant);
           courant=pere->suivant;
+	  if (courant) suivant=courant->suivant;
           continue;
        }
        if (res==-1) bon+=2; else bon++;

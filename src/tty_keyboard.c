@@ -128,9 +128,16 @@ int magic_getline(char *buf, int buffsize, int row, int col, char *magic, int fl
      } else key=Attend_touche();
      /* if (key=='\r') key='\n'; */
      if (KeyBoard_Quit) return -1; /* on n'a rien fait... */
-     if (key==FL_KEY_BACKSPACE) {
+     if ((key==FL_KEY_BACKSPACE) || (key==21) || (key==23)) {
+        int mot_trouve=0;
         if (place==0) return -2;
-        col--; place--;
+	do {
+          col--; place--;
+	  if (place==0) break;
+	  if (key==FL_KEY_BACKSPACE) break;
+	  if (!isblank(buf[place])) mot_trouve=1;
+	  if ((key==21) && (mot_trouve) && (isblank(buf[place-1]))) break;
+	} while (1);
         Cursor_gotorc(row,col);
         Screen_erase_eol();
         continue;

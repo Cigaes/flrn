@@ -497,15 +497,119 @@ int in_main_list (char *name) {
 int parse_flags(char *name, int *toset, int *flag) {
    char *buf=name;
    *flag=0;
-   if (strcmp(buf,"all")==0) return -2; /* cas pour les filtres */
-   if (strncmp(name,"un",2)==0) {
+   if (strcasecmp(buf,"all")==0) return -2; /* cas pour les filtres */
+   if (strncasecmp(name,"un",2)==0) {
       buf+=2;
       *toset=0;
    } else *toset=1;
-   if (strcmp(buf,"read")==0) *flag=FLAG_READ; else
-   if (strcmp(buf,"killed")==0) *flag=FLAG_KILLED; else
-   if (strcmp(buf,"interesting")==0) *flag=FLAG_IMPORTANT; else
-   if (strcmp(buf,"selected")==0) *flag=FLAG_IS_SELECTED;
+   if (strcasecmp(buf,"read")==0) *flag=FLAG_READ; else
+   if (strcasecmp(buf,"killed")==0) *flag=FLAG_KILLED; else
+   if (strcasecmp(buf,"interesting")==0) *flag=FLAG_IMPORTANT; else
+   if (strcasecmp(buf,"selected")==0) *flag=FLAG_IS_SELECTED;
    if (*flag==0) return -1;
    return 0;
 }
+
+/* ceci sert pour la complétion */
+#define NUM_FLAGS_STR 4
+
+static char *get_flag_name(void *ptr, int num) {
+   char *pipo;
+   switch (num%NUM_FLAGS_STR) {
+      case 0 : pipo="unread"; break;
+      case 1 : pipo="unkilled"; break;
+      case 2 : pipo="uninteresting"; break;
+      default : pipo="unselected"; break;
+   }
+   return (num>=NUM_FLAGS_STR ? pipo+2 : pipo);
+}
+
+int flags_comp(char *str, int len, Liste_Chaine *debut) {
+   Liste_Chaine *courant;
+   int res,i;
+   int result[NUM_FLAGS_STR*2];
+
+   for (i=0;i<NUM_FLAGS_STR*2;i++) result[i]=0;
+   res = Comp_generic(debut, str,len,NULL,NUM_FLAGS_STR*2,
+      get_flag_name," ",result,0);
+   if (res==-3) return 0;
+   if (res>= 0) {
+      if (str[0]) debut->complet=0;
+      strcat(debut->une_chaine,str);
+      return 0;
+   }
+   if (res==-1) {
+      courant=debut->suivant;
+      for (i=0;i<NUM_FLAGS_STR*2;i++) {
+        if (result[i]==0) continue;
+	strcat(courant->une_chaine,str);
+	if (str[0]) courant->complet=0;
+	courant=courant->suivant;
+     }
+     return -1;
+   }
+   return -2;
+}
+
+static char *get_header_name(void *ptr, int num) {
+   return ((Known_Headers *)ptr)[num].header;
+}
+int header_comp(char *str, int len, Liste_Chaine *debut) {
+   Liste_Chaine *courant;
+   int res,i;
+   int result[NB_KNOWN_HEADERS];
+
+   for (i=0;i<NB_KNOWN_HEADERS;i++) result[i]=0;
+   res = Comp_generic(debut,str,len,(void *)Headers,NB_KNOWN_HEADERS,
+      get_header_name," ",result,0);
+   if (res==-3) return 0;
+   if (res>= 0) {
+      if (str[0]) debut->complet=0;
+      strcat(debut->une_chaine,str);
+      return 0;
+   }
+   if (res==-1) {
+      courant=debut->suivant;
+      for (i=0;i<NUM_FLAGS_STR*2+NB_KNOWN_HEADERS;i++) {
+        if (result[i]==0) continue;
+	strcat(courant->une_chaine,str);
+	if (str[0]) courant->complet=0;
+	courant=courant->suivant;
+     }
+     return -1;
+   }
+   return -2;
+}
+   
+static char *get_flag_header_name(void *ptr, int num) {
+   if (num>=2*NUM_FLAGS_STR)
+     return ((Known_Headers *)ptr)[num-2*NUM_FLAGS_STR].header;
+   else return get_flag_name(ptr,num);
+}
+int flag_header_comp(char *str, int len, Liste_Chaine *debut) {
+   Liste_Chaine *courant;
+   int res,i;
+   int result[2*NUM_FLAGS_STR+NB_KNOWN_HEADERS];
+
+   for (i=0;i<2*NUM_FLAGS_STR+NB_KNOWN_HEADERS;i++) result[i]=0;
+   res = Comp_generic(debut,str,len,(void *)Headers,2*NUM_FLAGS_STR+
+       NB_KNOWN_HEADERS, get_flag_header_name," ",result,0);
+   if (res==-3) return 0;
+   if (res>= 0) {
+      if (str[0]) debut->complet=0;
+      strcat(debut->une_chaine,str);
+      return 0;
+   }
+   if (res==-1) {
+      courant=debut->suivant;
+      for (i=0;i<NUM_FLAGS_STR*2+NB_KNOWN_HEADERS;i++) {
+        if (result[i]==0) continue;
+	strcat(courant->une_chaine,str);
+	if (str[0]) courant->complet=0;
+	courant=courant->suivant;
+     }
+     return -1;
+   }
+   return -2;
+}
+   

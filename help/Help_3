@@ -32,12 +32,14 @@ header	list|weak|hide <une suite de chiffre ou de noms>
 	  5 : Newsgroups  6 : Followup-To   7 : Organization  8 : Lines  
 	  9 : Sender     10 : Reply-To     11 : Expires      12 : X-Newsreader
 	On peut mettre d'autres entêtes en donnant leur nom complet. 
-	On peut aussi mettre others pour signifier tous les autres entêtes, qui
-	sont alors affiché dans un ordre quelconque.
+	On peut aussi mettre 'others' pour signifier tous les autres entêtes,
+	qui sont alors affiché dans un ordre quelconque.
 	(défaut : 2 1 4 3)
 	Avec weak, on donne ceux qui ne doivent pas être réaffichés après la
 	première page d'un message.
 	Avec hide, on indique les headers à ne pas afficher avec others.
+	Les listes ne peuvent pas dépasser 30 entrées, et on ne peut
+	définir plus de 30 nom d'entêtes qui n'ont pas de numéros associés.
 	(pas de défaut)
 
 my_hdr  <nom>: <champ>
@@ -45,8 +47,13 @@ my_hdr  <nom>: <champ>
 	dans les messages postés. <champ> ne peut pas dépasser une ligne.
 	Dans le cas où <nom> a déjà été utilisé, l'ancien champ n'est plus
 	utilisé. Si <champ> est vide, on demande à ne plus ajouter le header
-	en question. Les headers indispensables pour le post ne peuvent être
-	modifiés (l'option post_name permet de modifier le header From:).
+	en question.
+	On ne peut modifier les headers 'References:', 'Subject:', 'Date:',
+	'Newsgroups:', 'Sender:' et 'To:' de cette façon.
+	On peut modifier le header 'From:', mais si on ne désire pas changer
+	l'adresse, il est préférable d'utiliser la variable post_name.
+	Il est possible d'utiliser le format défini avec la variable
+	"attribution".
 
 my_flags <caractère> <filtre>
 my_flags clear
@@ -81,6 +88,7 @@ regcolor   <types> <flags> <n1> <n2> <p1>,<p2>,... <regexp>
              sig    : pour les signatures        (défaut: en bleu)
              file   : pour les fichiers (aide)   (défaut: normal)
              summary: pour les résumés           (défaut: normal)
+	     search : pour les recherches	 (défaut: inverse vidéo)
 	     all    : tous les objets
 	<n1> et <n2> sont les couleurs des caractères et du fond
 	<p1> ... sont les attributs des caractères : cela comprend
@@ -108,7 +116,7 @@ regcolor   <types> <flags> <n1> <n2> <p1>,<p2>,... <regexp>
      La troisième ligne demande que la ligne de statut et les messages d'erreur
      soient en gras.
 
-bind	[<mode>] <touche> <commande>
+bind	[<mode>] [add] <touche> <commande>
 	Permet de changer la fonction d'une touche. <mode> se rapporte
 	au mode d'utilisation dans lequel le binding prend effet. On
 	distingue 3 modes :
@@ -118,6 +126,8 @@ bind	[<mode>] <touche> <commande>
 	  	      lors de la lecture de l'aide
           _ menu    : dans un menu (mode non utilisé actuellement)
 	Les noms des commandes varient en conséquences.
+	L'ajout de "add" permet de signaler qu'on désire ajouter au binding
+	existant déjà (dans le mode considéré) une nouvelle commande.
 	On peut utiliser \<n> pour représenter le code ASCII <n>. <n> est
 	en base 10 normalement, en base 8 s'il commence pas un 0, et en
 	base 16 s'il commence par '0x'.
@@ -141,9 +151,11 @@ bind	[<mode>] <touche> <commande>
 	modifiables non plus, pas plus que les chiffres.
   exemple :
     bind U pipe urlview
-    bind + summary unread
+    bind command + select 1-,unread	# ce binding est déjà défini
     bind \0x01 gotag é  # ^A
     bind A tag é
+    bind menu T toggle
+    bind menu add T up
     bind pager pageup pgup
     bind pager pagedown pgdown
 
@@ -175,6 +187,12 @@ subscribe_first=yes|no
 	auto_subscribe et auto_ignore. Si la variable est égale à yes,
 	alors de tels groupes sont classés comme non-abonnés.
 	(défaut : yes)
+	
+warn_if_new=yes|no
+	au lancement de flrn, si cette option est activée, le programme
+	affiche la liste des nouveaux newsgroups, avec le comportement qu'a
+	adopté flrn pour chacun d'eux.
+	(défaut : no)
 
 *************
 * Affichage *
@@ -216,6 +234,12 @@ flags_group=<une chaine de 8 caractères>
 	 	7		|     oui       |   non   |       oui
 		8		|     non       |   non   |       oui
 	(défaut: " TDD*tdd")
+
+headers_scroll=yes|no
+	cette option activée, les entêtes d'un message défilent avec le
+	reste du message. Ceci est de toute façon vrai si l'écran est trop
+	petit.
+	(défaut : no)
 
 ordered_summary=yes|no
 	affiche les résumés dans l'ordre de leur numéro, et non dans un ordre
@@ -283,9 +307,11 @@ threaded_space=yes|no
 	(défaut : no, mais yes dans la config conscrit)
 
 use_menus=yes|no
-	utilise des menus interactifs avec certaines commandes (goto...).
-	Cette option est incomplète.
-	(défaut : no, mais est souvent utilisée)
+	Utilise des menus interactifs avec certaines commandes (goto...).
+	Cette option très puissante va devenir le comportement par défaut.
+	A noter que certaines commandes utilisent de toute façon des menus
+	(\menu*)
+	(défaut : no, mais cela va changer)
 
 use_regexp=yes|no
 	permet d'utilise les expressions régulières pour les commandes list
@@ -315,12 +341,23 @@ attribution=<chaine>
 	  groupe "tronqué".
 	%C le numéro du message dans le groupe
 	%% désigne enfin le caractère '%'.
+	On peut aussi utiliser des entêtes "connues par flrn" du message
+	initial par l'écriture %{nom-du-header}. Ainsi, %{Subject} permet
+	d'écrire le sujet du message auquel un répond.
+	Ce format fonctionne aussi dans l'option my_hdr.
 	(défaut : "%n, dans le post %i, a écrit :")
 
 auto_edit=yes|no
 	n'utilise pas l'éditeur intégré de flrn, et lance directement l'éditeur
 	extérieur quand on poste un message.
 	(défaut : no)
+
+edit_all_headers=yes|no
+	lors de l'édition, cette option détermine si flrn doit proposer
+	l'ensemble des entêtes qu'il connait ou juste Newsgroups: (renommé
+	Groupes:) et Subject: (renommé Sujet:). Même désactivée, il est
+	toujours possible de rajouter des entêtes à la main.
+	(défaut : no, mais activer cette option est conseillée)
 
 include_in_edit=yes|no
 	insère automatiquement le message auquel on répond dans l'éditeur.
@@ -334,6 +371,7 @@ index_string=<str>
 
 post_name=<un nom>
 	choisis le nom utilisé dans les messages envoyés.
+	Cette option est incompatible avec un 'my_hdr From:'.
 	(défaut : "")
 
 simple_post=yes|no
@@ -367,10 +405,19 @@ check_mail=yes|no
 	vous informe si vous avez du courrier
 	(défaut : yes)
 
-flnews_ext=yes|no
+default_flnewsfile=<chaîne>
+	Si le .flnewsrc avec son extension (défini par flnews_ext) n'existe
+	pas ou est vire, flrn prend le fichier désigné par cette option.
+	(défaut : "")
+
+flnews_ext=<chaîne>
 	donne l'extension à ajouter au .flnewsrc. Utile pour faire du
 	multiserveur.
 	(défaut : "")
+
+hist_file_name=<chaîne>
+	si un nom de fichier est entré, flrn utilise ce fichier comme
+	lieu de sauvegarde de l'historique d'une session sur l'autre.
 
 port=<n>
 	utilise le port donné plutôt que le port nntp.
@@ -389,6 +436,12 @@ quit_if_nothine=yes|no
 server=<string>
 	utilise la machine correspondant à ce nom comme serveur.
 	(défaut : selon l'installation locale)
+
+short_errors=yes|no
+	Cette option activée, tout message d'erreur écrit par flrn en
+	bas de l'écran s'efface au bout d'une seconde. Dans le cas contraire,
+	flrn attend le plus souvent qu'une touche soit envoyée.
+	(défaut : no)
 
 use_mailbox=yes|no
 	Sauve les messages au format mailbox.

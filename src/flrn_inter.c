@@ -759,8 +759,22 @@ static int get_str_arg(int res, char *beg) {
    col=Aff_fin(cmd_line);
    str=cmd_line;
    str[0]=0;
-   ret=getline(str, MAX_CHAR_STRING, Screen_Rows-1, col);
-   if (ret<0) return -1;
+   if (Flcmds[res].comp) {
+     int ret2;
+     ret2=0;
+     do {
+        Aff_ligne_comp_cmd(str,strlen(str),col);
+	if ((ret=magic_getline(str,MAX_CHAR_STRING,Screen_Rows-1,col,
+			"\011",0,ret2))<0) return -1;
+	ret2=0;
+	if (ret>0) ret2=Comp_general_command(str, MAX_CHAR_STRING,col,
+	   Flcmds[res].comp, Aff_ligne_comp_cmd);
+	if (ret2<0) ret2=0;
+     } while (ret!=0);
+   } else {
+     ret=getline(str, MAX_CHAR_STRING, Screen_Rows-1, col);
+     if (ret<0) return -1;
+   }
    if (Flcmds[res].flags & 2) 
      Parse_nums_article(str,&str,Flcmds[res].flags & 19);
    if (str) strcpy(Arg_str, str); else Arg_str[0]='\0';

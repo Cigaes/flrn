@@ -16,18 +16,19 @@ La commande \reply répond à l'article courant.
 Ces deux commandes peuvent prendre un nom de fichier en argument. Le
 fichier est alors directement posté sans confirmation.
 Si aucun fichier n'est en argument, vous entrez dans l'éditeur intégré
-de flrn, à moins que l'option auto_edit soit définie, ce qui est le
-cas dans la config conscrit.
+de flrn, à moins que la variable auto_edit soit définie.
 
 Taper son message
 -----------------
 
-L'éditeur de flrn est rudimentaire. Vous ne pouvez pas revenir sur
-une ligne déjà écrite par exemple.
+L'éditeur de flrn est rudimentaire, mais il s'améliore régulièrement.
+
 Pour lancer votre éditeur favori (défini par la variable d'environnement
 EDITOR) tapez ~e en début de ligne puis <Entrée>, ou ~E si vous voulez
 que soit inclu le message auquel vous répondez (si vous utilisez la commande
 \reply).
+On peut aussi inclure directement un fichier en tapant en début de ligne
+(~r <nom-de-fichier>).
 
 Pour poster votre message, entrez à la fin de celui-ci une ligne nme
 comportant que '.', ou tapez ^D (Control-D).

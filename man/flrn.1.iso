@@ -2,9 +2,6 @@
 .SH NOM
 flrn
 - Forum Like rn
-.SH 
-Attention, c'est encore un programme en développement. Il peut y avoir de gros
-changement entre deux versions, et il n'est pas exempt de bugs.
 .SH SYNTAXE
 .B flrn
 [\fB-v|--version\fR]
@@ -22,17 +19,19 @@ changement entre deux versions, et il n'est pas exempt de bugs.
 .SH DESCRIPTION
 .B Flrn
 est un lecteur de news dont l'interface est largement inspirée de celles de
-forum, trn, mutt et slrn. Il est assez configurable, mais la configuration par
+l'ancien forum et de \fBtrn\fR(1), \fBmutt\fR(1) et \fBslrn\fR(1). Il est assez configurable, mais la configuration par
 défaut est proche de forum. On a la valeur par défaut de toutes les
-variables en utilisant '\fI flrn -s\fR' (cette option devrait disparaître
-dans les prochaines versions) ou en utilisant la commande '\config'.
+variables en utilisant \fBflrn --show-config\fR (cette option devrait
+disparaître dans les prochaines versions) ou en utilisant la commande \\config.
 
-Il y a une aide accessible par la commande 'h' dans flrn. Elle est souvent
+Il y a une aide accessible par la touche \'?\' dans flrn. Elle est souvent
 plus à jour que cette page.
 
-Si on lui passe un nom sur la ligne de commande, flrn va dans le premier
-groupe où l'on trouve ce sous mot, en cherchant en priorité dans les groupes
-auxquels on est abonné.
+Si on lui passe un mot sur la ligne de commande, flrn va dans le premier
+groupe dont le nom contient ce mot ou vérifie l'expression régulière définie
+par ce mot, selon la valeur de l'option use-regexp. flrn cherche d'abord
+dans les groupes auxquels on est abonné, puis dans tous les groupes. En cas
+d'ambiguité, il fait au mieux.
 
 .SS Description des options de ligne de commande
 .TP 6
@@ -42,11 +41,13 @@ Elle ne devrait pas servir en usage normal.
 .IP \fB-c\fR
 L'option \fB-c\fR donne une estimation du nombre de messages à lire dans les
 groupes où l'on est abonné. Cela renvoie toujours un majorant du nombre de
-messages à lire.
+messages à lire. Si on lui passe un mot en paramètre, il fait une recherche
+plus précise et indique, pour chaque groupe où l'on est abonné comportant
+ce sous-mot, le nombre de messages à lire et un résumé de chaque message.
 .IP \fB-n\fR
 L'option \fB-n\fR fixe le nom de lancement de flrn à \fI<name>\fR, ce qui
 permet de fixer des options spécifiques dans le .flrnrc. \fI<name>\fR ne
-peut pas commencer par le caractère '-'.
+peut pas commencer par le caractère \'-\'.
 .IP \fB-h\fR
 L'option \fB-h\fR affiche la liste des options reconnues.
 .IP \fB-v\fR
@@ -66,9 +67,11 @@ terminaux qui supportent mal cette capacités, comme les minitels.
 .SS Options de configuration
 Se reporter à l'aide interne pour avoir une description plus complète.
 On peut maintenant modifier les options pendant l'utilisation de flrn avec
-la commande '\config'. Cependant, ces changement ne sont pas sauvés.
+la commande \\config. Cependant, ces changement ne sont pas sauvés.
+La commande \'\\save-options\' permet d'obtenir un fichier donnant à peu près
+la configuration courante.
 
-La forme générale des options est inspirée de \fBmutt\fR.
+La forme générale des options est inspirée de \fBmutt\fR(1).
 Il y a six commandes :
 .B include
 .B set
@@ -80,9 +83,9 @@ Il y a six commandes :
 .B my_flags
 .B bind
 
-Les commandes peuvent maintenant être préfixées par name <nom> pour n'être
+Les commandes peuvent maintenant être préfixées par \fIname\ <nom>\fR pour n'être
 traitées que si flrn à été lancé sous le nom <nom> ou avec l'option
--n <nom>.
+\fI-n\ <nom>\fR.
 
 
 .TP 8
@@ -95,7 +98,7 @@ De même, "set no<variable>" est équivalent à "set <variable>=no" ou
 
 .IP "\fBinclude <nom_de_fichier>\fR"
 Charge \fI<nom_de_fichier>\fR comme fichier de configuration. Si le
-nom commence par un '/', le chemin d'accès est absolu, sinon il est
+nom commence par un \'/\', le chemin d'accès est absolu, sinon il est
 relatif au HOME/FLRNHOME. Il est interdit de faire plus de 10 inclusions
 imbriquées.
 
@@ -104,8 +107,8 @@ imbriquées.
 .IP "\fBregcolor <types> <flags> <p.p.> <a.p.> <attributs> <regexp>\fR"
 permettent de définir les couleurs.
 <Types> est un une suite de mots séparés par des virgules (sans espace)
-parmi : normal, header, status, quoted, error, aff_fin, sig,
-file, summary ou le mot all.
+parmi : \fInormal\fR, \fIheader\fR, \fIstatus\fR, \fIquoted\fR, \fIerror\fR, \fIfin\fR, \fIsig\fR,
+\fIfile\fR, \fIsummary\fR, \fIsearch\fR ou le mot \fIall\fR.
 <p.p.> et <a.p.> sont des couleurs. On a le droit à la couleur default, et
 aux couleurs std-normal, std-header ... et std. std-<type> représente la couleur
 du dernier color type fait (ou la couleur par défaut si c'est le premier).
@@ -133,9 +136,15 @@ Avec weak, on donne ceux à ne pas réafficher pour les pages d'un
 messages après la première.
 Avec hide on donne ceux à ne pas afficher quand on a utilise le mot réservé
 other.
+On ne peut donner plus de 30 noms de headers inconnus dans cette liste,
+c'est-à-dire des headers qui n'ont pas de numéro associés.
 
 .IP "\fBmy_hdr <nom_du_header>: <chaîne>\fR"
 Donne une ligne de header à rajouter dans tous les posts fait par flrn.
+Les headers \'References:\', \'Subject:\', \'Date:\', \'Newsgroups:\',
+\'Sender:\' et \'To:\' ne sont pas modifiables de cette façon.
+Quoique cette option soit utilisable pour le header \'From:\', on lui
+préférera l'option post_name si on ne désire pas changer l'adresse.
 
 .IP "\fBmy_flags <caractère> <filtre>\fR"
 .IP "\fBmy_flags clear\fR"
@@ -148,13 +157,13 @@ Dans le second cas, supprime tous les \fImy_flags\fR lus jusqu'à présent.
 .IP "\fBbind <mode> <touche> <commande> [<arguments>]\fR"
 Permet de changer la fonction d'une touche.
 Pour l'instant, on ne peut mettre pour touche un caractère n'étant pas un
-caractère spécial du .flrnrc comme '" :=^I' et correspondant à
+caractère spécial du .flrnrc comme \'" :=^I\' et correspondant à
 un caractère imprimable, ou utiliser la forme \0x20, \040 ou \32.
 On ne peut pas mettre la touche entre guillemets pour l'instant.
 
 .SS Les variables :
 Voici une liste partielle des variables. Une liste à jour complétée
-des valeurs par défaut est obtenue avec ./flrn -s.
+des valeurs par défaut est obtenue avec ./flrn --show-config.
 
 .TP 6
 .RS
@@ -171,8 +180,12 @@ régulière donnée.
 .IP \fIauto_ignore=<regexp>\fR
 Désabonne automatiquement des groupes qui correspondent.
 .IP \fIsubscribe_first\fR
-Choisis si l'on doit ignorer un groupe correspondant à la fois à
-\fIauto_subscribe\fR et \fIauto_ignore\fR.
+Choisis si l'on doit ignorer ou non un groupe correspondant à la fois à
+\fIauto_subscribe\fR et \fIauto_ignore\fR. Un valeur de 1 signifie qu'on
+ne s'abonne pas à un tel groupe.
+.IP \fIwarn_if_new\fR
+Cette option activée, flrn affiche en début de session les nouveaux
+groupes créés et le comportement qu'il a choisi d'avoir face à ces groupes.
 
 .TP 6
 .RS
@@ -183,10 +196,13 @@ Choisis si l'on doit ignorer un groupe correspondant à la fois à
 Donne le nombre de lignes blanches à laisser sous la barre de status.
 .IP \fIflags_group=<chaîne> \fR
 Drapeaux à indiquer devant les groupes en fonction de leurs statuts.
+La chaîne comporte a priori 8 caractères, précisant si on peut poster
+ou non dans le groupe, et si on y est abonné ou non, dans la liste
+principale du kill-file ou non.
 .IP \fIalpha_tree \fR
 Demande d'afficher un arbre de thread plutôt que les petites flèches.
 .IP \fIparse_from \fR
-Affiche un champ From: et un champ Réponse à: plus forum-like.
+Affiche un champ \'From:\' et un champ \'Réponse à:\' plus forum-like.
 .IP \fIheaders_scroll \fR
 Demande à ce que les headers défilent avec les reste du message.
 .IP \fIscroll_after_end \fR
@@ -199,7 +215,7 @@ Affiche les résumés dans l'ordre (c'est-à-dire sans tenir compte des
 discussions).
 .IP \fIduplicate_subject \fR
 Affiche je sujet à chaque ligne d'un résumé, même si c'est le même que la
-ligne d'au dessus.
+ligne au dessus.
 .IP \fIcolor\fR
 Permet d'utiliser la couleur.
 .TP 6
@@ -242,13 +258,14 @@ Quitte flrn tout de suite s'il n'y a rien à lire.
 .TP 4
 .I include_in_edit
 Insère automatiquement le message auquel on répond dans l'éditeur.
+.IP \fIedit_all_headers\fR
+Cette option activée, flrn propose tous les headers dans l'éditeur.
+Il se limite sinon à \'Newsgroups:\' (renommé \'Groupes:\') et 
+\'Subject:\' (renommé \'Sujet:\').
 .IP \fIattribution=<string>\fR
 Donne la chaîne ajoutée devant les citations.
 .IP \fIauto_edit\fR
 Lance automatiquement l'éditeur lorsque l'on poste un message.
-.IP \fIsimple_post\fR
-Avec cette option, flrn tente de modifier les messages pour qu'il soient
-acceptes par le serveur.
 .IP \fIpost_name=<nom>\fR
 Définit le nom réel à mettre dans le champ From.
 .IP \fIindex_string=<string>\fR
@@ -275,8 +292,19 @@ du kill_file.
 Utilise le format d'une mailbox pour sauver les messages.
 .IP \fIcheck_mail\fR
 Indique lorsqu'on a reçu du nouveau mail.
+.IP \fIshort_errors\fR
+Lorsque flrn affiche une erreur en bas de l'écran, il peut attendre une
+seconde et réafficher un prompt, ou attendre que l'utilisateur tape une
+nouvelle commande. Cette option à 1 active le premier comportement.
+Désactivée, cette option provoque le plus souvent le second comportement.
 .IP \fIflnews_ext=<nom>\fR
 Donne l'extension au nom du .flnewsrc. Utile pour faire du multiserveur.
+.IP \fIdefault_flnewsfile\fR
+Charge ce fichier si le fichier .flnewsrc n'existe pas. Ceci permet de
+définir une configuration d'abonnement par défaut.
+.IP \fIhist_file_name=<nom>\fR
+Lorsque cette option est définie, flrn sauvegarde l'historique d'une
+session sur l'autre dans ce fichier.
 .IP \fIprefixe_groupe\fR
 Donne un préfixe par défaut aux noms de groupes. flrn essaiera alors de
 compléter et/ou d'enlever ce préfixe dans les bonnes conditions.
@@ -287,27 +315,37 @@ Utilise le port donné plutôt que le port NNTP par défaut.
 
 
 .SH FICHIERS
-Flrn utilise de deux à quatre fichiers dans le homedir de l'utilisateur:
+Flrn utilise plusieurs fichiers de configuration. Il les recherche
+dans un éventuel répertoire \fB.flrn\fR dans le homedir de l'utilisateur.
+Si ce répertoire n'existe pas, il recherche les fichiers dans le homedir
+de l'utilisateur. Si la variable d'environnement FLRNHOME est définie, flrn
+cherchera ses fichiers dans le chemin ainsi défini.
 .TP 10
 .B "\fB.flrnrc\fR"
-C'est le fichier de configuration.
+C'est le fichier de configuration. Si ce fichier n'existe pas,
+flrn charge un fichier de configuration par défaut du nom de "flrnrc"
+dans le répertoire de données de flrn.
 .IP "\fB.flnewsrc*\fR"
 C'est un fichier avec la même syntaxe qu'un .newsrc qui est utilisé par
 flrn pour marquer les messages lus. On peut le modifier avec l'option
-\fIflnews_ext\fR.
+\fIflnews_ext\fR. Si ce fichier n'existe pas, flrn peut éventuellement
+prendre par défaut le fichier défini par l'option \fIdefault_flnewsfile\fR.
 .IP "\fB.flrnkill\fR"
 Ce fichier est le kill-file de flrn. Il contient différentes instructions
 à exécuter automatiquement sur un groupe. Voir l'aide intérieure pour
-Son nom est fixé dans le .flrnrc par l'option kill_file_name.
+Son nom est fixé dans le .flrnrc par l'option \fIkill_file_name\fR.
 plus de détails.
 .IP "\fB.flrnabo\fR"
 Ce fichier (ou son équivalent) contient les groupes de la liste principale
 de censure. Ce fichier est créé et modifié automatiquement par flrn. Son
 nom est décrit dans le kill-file.
+.IP "\fB.flrnhist\fR"
+Ceci est couramment le nom donné pour sauvegarder l'historique. Ce nom
+est défini par la variable \fIhist_file_name\fR.
 
 .SH VOIR AUSSI
 Pour les expressions régulières, voir
-regex(7) ou regcomp(3) ou encore la doc de rx ou egrep(1).
+\fBregex\fR(7) ou \fBregcomp\fR(3) ou encore la doc de \fBrx\fR ou \fBegrep\fR(1).
 
 .SH BUGS
 Il y en a encore plein. Si vous en trouvez, dîtes-le nous.

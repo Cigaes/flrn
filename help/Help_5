@@ -1,51 +1,94 @@
 5: les kill-files
 
+	########################################################
+	#		Le kill-file de flrn                   #
+	########################################################
 
-	Présentation de flrn : les kill-files
-	-------------------------------------
 
   Le kill-file est un moyen de filtrer les articles que l'on ne souhaite
 pas lire. Il est utilisé par exemple pour implémenter la censure.
 Il a été rendu volontairement assez libre, il est donc possible de
-faire de nombreuses choses à la sémantique douteuse et même de faire planter
-flrn avec. La syntaxe est librement inspirée de celles de procmail et de slrn.
+faire de nombreuses choses à la sémantique douteuse.
+La syntaxe est librement inspirée de celles de procmail et de slrn.
 
 Ce fichier est constitués de blocs séparés par une ligne blanche.
 '#' introduit encore des commentaires.
 
+Forme d'un bloc
+===============
+
+1ère ligne
+----------
+
 La première ligne d'un bloc indique les groupes où cela s'applique. Elle est
 de la forme :
-:<regexp groupe>:<flags>
-Il n'y a pas encore de flag implémenté.
+:<chaine>:<flags>
 
-La suite est constituée de
-. conditions (Header: regexp ou ^Header:regexp) sur les headers (une partie des
-  headers seulement pour l'instant) de la forme :
-*Header: <regexp>
-*^Header: <regexp>       # on peut remplacer ^ par ~.
-*'Header: <sous-chaine>  # on peut remplacer ' par ".
-*^'Header: <sous-chaine> # attention c'est ^' et pas '^.
+Si <flags> est vide, <chaine> est une expression régulière qui décrit
+les groupes sur lesquels le bloc doit s'appliquer.
 
-. conditions sur les flags de l'article (read/unread/all/killed/unkilled) :
-  (par défaut, c'est unread)
+Si <flags> contient 'f', <chaine> est le nom d'un fichier qui contient
+la liste des groupes sur lesquels le bloc doit s'appliquer. Avec 'm' en
+plus, ce fichier est celui de la liste principale qui est modifié
+interactivement avec les commandes \add-kill et \remove-kill.
+
+Si <flags> est 'l', <chaine> est le nom d'un groupe qui est le début d'une
+liste. Dans la suite du bloc, chaque ligne commençant par ':' doit être
+suivi d'un nom de groupe à ajouter à la liste.
+
+Lignes suivantes
+----------------
+
+On trouve, dans le désordre :
+
+   Ajouts à une liste
+   - - - - - - - - -
+:<nom_de_groupe>
+ajoute <nom_de_groupe> à la liste si <flags> contenait 'l'.
+
+   Conditions sur les entêtes
+   - - - - - - - - - - - - -
+Ce sont des conditions que doivent vérifier les articles pour y appliquer
+le kill-file. Elles portent sur des entêtes connues de flrn, de préférence
+disponible via l'overview du serveur. On trouve :
+*<header>: <regexp>   expression régulière que doit satisfaire l'entête
+*^<header>: <regexp>  expression que ne doit pas satisfaire l'entête
+*'<header>: <ss-chaine> sous-chaîne que doit satisfaire l'entête
+*^'<header>: <ss-chaine> sous-chaîne que ne doit pas satisfaire l'entête
+
+   Condition sur les drapeaux de l'article
+   - - - - - - - - - - - - - - - - - - - -
+Ce sont les conditions que doivent vérifer les articles. Par défaut,
+c'est 'unread'.
 F<flag>
+<flag> peut être read/unread
+                 killed/unkilled
+                 interesting/uninteresting
+                 selected/unselected
 
-. de flag a modifier (read, killed)
+   Drapeaux à modifier
+   - - - - - - - - - -
+Si les articles vérifient les conditions.
 T<flag>
+<flag> peut être read, killed, intereseting ou selected. On ne peut que mettre
+des flags, pas en enlever par cette méthode.
 
-. de commande à lancer (la, faire attention, il n'est fait aucune
-  vérification !)
+   Commandes à lancer
+   - - - - - - - - -
+Ces commandes sont lancées sur les articles qui vérifient la condition.
+Cela risque de poser des problèmes si ces commandes veulent demander
+interactivement des arguments. Une commande est lancé pour chaque
+article, donc il ne sert à rien d'utiliser des commandes qui font des menus.
 C<commande avec arguments>
 
 On ne peut avoir qu'une ligne T, et on ne peut avoir à la fois des lignes T
 et C. Par contre, on peut avoir plusieurs commandes.
-De plus, le flag killed implique le flag read.
-Il faut remarquer que pour limiter le volume de donnees echangees avec le
-serveur, des articles correspondant au kill-file peuvent apparaitre dans le
-résumé sous certaines conditions.
-Les regexp ne sont pas case-sensitive pour l'instant.
 
-Par exemple :
+De plus, le flag killed implique le flag read, et le flag interesting ne
+peut être appliqué sur un article marqué lu.
+
+Exemples
+========
 
 # on ne lit pas les messages postés avec flrn dans les groupes de test
 # c'est stupide, mais bon.
@@ -60,15 +103,13 @@ Tread
 
 # dans essai, je lis mes messages même si je les ai déjà lus...
 :essai:
-*From: jo
+*From: moi
 Fread
 Comet
 
-Il y a bien sur plein de restrictions derrière (surtout quand on utilise
-Fread) qui ne sont pas développées ici.
-
-
-			Jo.
+Note : un certains nombres de restrictions existent. En particulier, le
+----   kill-file n'est appliqué sur les articles que lorsqu'on entre dans
+       un groupe, ou sur les nouveaux articles quand ceux-ci sont detectés.
 
 'q' permet de quitter l'aide à tout moment.
 'm' permet de revenir au menu

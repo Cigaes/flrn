@@ -100,6 +100,8 @@ extern int do_art_msgid(int);
 extern int options_comp(char * /*option*/, int /*len*/, Liste_Chaine *);
 extern int keybindings_comp(char *, int, Liste_Chaine *);
 extern int flags_comp(char *, int, Liste_Chaine *);
+extern int header_comp(char *, int, Liste_Chaine *);
+extern int flag_header_comp(char *, int, Liste_Chaine *);
 
 
 /* ATTENTION : MAX_FL_KEY DOIT ÊTRE UN BIT SEULEMENT */
@@ -212,7 +214,7 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_HMENU 48
    { "supersedes", 0, 0, 3|CMD_NEED_GROUP, &do_post, NULL },
 #define FLCMD_SUPERSEDES 49
-   { "summ-search" , 0, 0 ,14|CMD_NEED_GROUP, &do_summary, NULL },
+   { "summ-search" , 0, 0 ,14|CMD_NEED_GROUP, &do_summary, &flag_header_comp },
 #define FLCMD_SUMM_SEARCH 50
    { "menu-summary" , 0, 0 ,6|CMD_NEED_GROUP, &do_summary, NULL },
 #define FLCMD_MENUSUMM 51
@@ -220,7 +222,7 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_MENUTHRE 52
    { "menu-thread" , 0, 0 ,6|CMD_NEED_GROUP, &do_summary, NULL },
 #define FLCMD_MENUGTHR 53
-   { "menu-search" , '/', 0 ,14|CMD_NEED_GROUP, &do_summary, NULL },
+   { "menu-search" , '/', 0 ,14|CMD_NEED_GROUP, &do_summary, &flag_header_comp },
 #define FLCMD_MENUSUMMS 54
    { "save-options", 0, 0, 1, &do_save, NULL },
 #define FLCMD_SAVE_OPT 55
@@ -228,15 +230,15 @@ Flcmd Flcmds[NB_FLCMD] = {
 #define FLCMD_ADD_KILL 56
    { "remove-kill", 0, 0, 5, &do_remove_kill, NULL },
 #define FLCMD_REMOVE_KILL 57
-   { "pipe-header", 0, 0, 15|CMD_NEED_GROUP, &do_pipe, NULL },
+   { "pipe-header", 0, 0, 15|CMD_NEED_GROUP, &do_pipe, &header_comp },
 #define FLCMD_PIPE_HEADER 58
-   { "select", 0, 0, 14|CMD_NEED_GROUP, &do_select, NULL },
+   { "select", 0, 0, 14|CMD_NEED_GROUP, &do_select, &flag_header_comp },
 #define FLCMD_SELECT 59
    { "art-to-return", 'x', 0, 2|CMD_NEED_GROUP, &do_kill, NULL },
 #define FLCMD_ART_TO_RETURN 60
    { "keybindings", 0, 0, 17, &do_keybindings, &keybindings_comp },
 #define FLCMD_KEYBINDINGS 61
-   { "put-flag", 0, 0, 15|CMD_NEED_GROUP, &do_omet, NULL },
+   { "put-flag", 0, 0, 15|CMD_NEED_GROUP, &do_omet, &flags_comp },
 #define FLCMD_PUT_FLAG 62
    { "on-selected", 0, 0, 15|CMD_NEED_GROUP, &do_on_selected, NULL },
 #define FLCMD_ON_SELECTED 63

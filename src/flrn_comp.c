@@ -25,8 +25,9 @@ void Aff_ligne_comp_cmd (char *str, int len, int col) {
 /* resultat : >=0 grassouille, -1 plusieurs solutions, -2 aucune solution */
 /* -3 : la chaine est vide...   */
 /* on renvoie dans prefix ce qu'on a construit. */
+/* case_sen=1 : on est case_sensitive */
 int Comp_generic(Liste_Chaine *prefix, char *str, int len, void * truc,
-  int num, char *get_str(void *, int ), char *delim, int *result)
+  int num, char *get_str(void *, int ), char *delim, int *result, int case_sen)
 {
   Liste_Chaine *courant=prefix;
   Liste_Chaine *nouveau;
@@ -44,7 +45,10 @@ int Comp_generic(Liste_Chaine *prefix, char *str, int len, void * truc,
   if (suite) suite=safe_strdup(suite);
 
   for (i=0;i<num;i++)
-    if (strncmp(str, cur=get_str(truc,i), strlen(str))==0) {
+    if (((case_sen) && (strncmp(str, cur=get_str(truc,i), strlen(str))==0))
+        || ((!case_sen) && 
+	      (strncasecmp(str, cur=get_str(truc,i), strlen(str))==0)))
+    {
       if (strlen(cur)+strlen(prefix->une_chaine)+(suite ? strlen(suite) : 0)>=len) continue;
       if (match) {
         if (!prefix_len) prefix_len=strlen(guess);

@@ -125,7 +125,7 @@ int keybindings_comp(char *str, int len, Liste_Chaine *debut) {
 
    for (i=0;i<NUMBER_OF_CONTEXTS;i++) result[i]=0;
    res = Comp_generic(debut, str,len,(void *)Noms_contextes,NUMBER_OF_CONTEXTS,
-         get_context_name," ",result);
+         get_context_name," ",result,1);
    if (res==-3) return 0;
    if (res>= 0) {
        if (str[0]) debut->complet=0;
@@ -246,7 +246,7 @@ int Comp_cmd_explicite(char *str, int len, Liste_Chaine *debut)
   nbflcmd=NB_FLCMD+NB_FLCMD_PAGER+NB_FLCMD_MENU;
   for (i=0;i<nbflcmd;i++) result[i]=0;
   res = Comp_generic(debut,str,len,NULL,nbflcmd, get_command_name_tout,
-	      " ",result);
+	      " ",result,1);
   if (res==-3) return 0;
   if (res>=0) {
     if ((res<NB_FLCMD) && (Flcmds[res].comp)) {
@@ -275,6 +275,7 @@ int Comp_cmd_explicite(char *str, int len, Liste_Chaine *debut)
             pere->suivant=courant->suivant;
             free(courant);
             courant=pere->suivant;
+	    if (courant) suivant=courant->suivant;
             continue;
          }
        } else {

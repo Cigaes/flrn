@@ -11,7 +11,7 @@ typedef struct liste_de_chaine {
 extern void Aff_ligne_comp_cmd (char *, int , int );
 
 extern int Comp_generic(Liste_Chaine *, char *, int , void *,
-	  int , char *(void *, int ), char *, int *);
+	  int , char *(void *, int ), char *, int *, int);
 
 
 extern int Comp_general_command (char *, int , int,
