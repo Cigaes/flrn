@@ -225,3 +225,33 @@ int init_kill_file() {
   }
   return 0;
 }
+
+int read_list_file(char *name, Flrn_liste *liste) {
+  FILE *blah = open_flrnfile(name,"r",0,NULL);
+  char buf1[MAX_BUF_SIZE];
+  char *buf2;
+  if (blah) {
+    while (fgets(buf1, MAX_BUF_SIZE,blah)) {
+      buf2=strchr(buf1,'\n');
+      if (buf2) *buf2=0;
+      if (*buf1) /* on vire les lignes vides... */
+	add_to_liste(liste,buf1);
+    }
+  } else {
+    return -1;
+  }
+  return 0;
+}
+
+int write_list_file(char *name, Flrn_liste *liste) {
+  char buf1[MAX_PATH_LEN];
+  FILE *blah;
+  strcpy(buf1,name);
+  strcat(buf1,".swp");
+  blah = open_flrnfile(buf1,"w",0,NULL);
+  if (blah) {
+    write_liste(liste, blah);
+    rename_flnewsfile(buf1,name);
+  }
+  return 0;
+}

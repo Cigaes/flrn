@@ -34,6 +34,8 @@ extern void Copy_article (FILE * /*dest*/, Article_List * /*article*/,
     int /*copie_head*/, char * /*avant*/);
 extern int init_kill_file(void);
 extern int newmail(char *);
+extern int read_list_file(char *, Flrn_liste *);
+extern int write_list_file(char *, Flrn_liste *);
 
 /* flrn_shell.c */
 extern int Launch_Editor (int /*flags*/);
@@ -197,6 +199,7 @@ extern void apply_kill(int);
 extern void check_kill_article(Article_List *, int );
 extern int add_to_main_list(char *);
 extern int remove_from_main_list(char *);
+extern void free_kill();
 
 
 

@@ -62,3 +62,12 @@ int remove_from_liste(Flrn_liste *l, char *el) {
   }
   return -1;
 }
+
+int write_liste(Flrn_liste *l, FILE *fi) {
+  Flrn_liste_els *a;
+  if (l) { a=l->first;
+    while(a) { fprintf(fi,"%s\n",a->ptr);
+      a=a->next;}
+  }
+  return 0;
+}

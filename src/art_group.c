@@ -34,6 +34,7 @@ const Known_Headers Headers[NB_KNOWN_HEADERS] = {
    { "Cc:", 3 },
    { "Bcc:", 4 },
    { "Xref:", 5 },
+   { "X-Censorship:", 13 },
 };
 
 

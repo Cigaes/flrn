@@ -6,6 +6,7 @@
 /* on met ici le contenu du kill_file */
 static flrn_kill *flrn_kill_deb=NULL;
 static Flrn_liste *main_kill_list=NULL; /* la liste pour l'abonnement */
+static char *main_list_file_name=NULL;
 
 /* regarde si condition est vérifié */
 /* renvoie -1, s'il manque des headers
@@ -182,6 +183,12 @@ void free_filter(flrn_filter *filt) {
 
 void free_kill(flrn_kill *kill) {
   flrn_kill *k2=kill;
+  if (main_list_file_name) {
+    write_list_file(main_list_file_name,main_kill_list);
+    free(main_list_file_name);
+    main_list_file_name=NULL;
+    main_kill_list=NULL;
+  }
   while(kill) {
     k2=kill->next;
     if (kill->filter)
@@ -238,6 +245,7 @@ int parse_kill_file(FILE *fi) {
   char *buf2,*buf1=buf;
   flrn_kill *kill, *k2=flrn_kill_deb;
   int out=0;
+  int file=0;
 
   while(fgets(buf,MAX_BUF_SIZE,fi)) {
     buf1=buf;
@@ -259,16 +267,26 @@ int parse_kill_file(FILE *fi) {
 	*(buf2++)='\0';
 	/* buf2 pointe sur les flags */
 	kill->newsgroup_regexp=1;
+	if (strchr(buf2,'f')) {
+	  kill->newsgroup_regexp=0;
+	  kill->newsgroup_cond.liste=alloue_liste();
+	  read_list_file(buf1,kill->newsgroup_cond.liste);
+	  file=1;
+	}
 	if (strchr(buf2,'l')) {
 	  kill->newsgroup_regexp=0;
 	  kill->newsgroup_cond.liste=alloue_liste();
 	  add_to_liste(kill->newsgroup_cond.liste,buf1);
 	}
 	if (strchr(buf2,'m')) {
-	  if (kill->newsgroup_regexp == 0)
+	  if (kill->newsgroup_regexp == 0) {
 	    main_kill_list=kill->newsgroup_cond.liste;
+	    if (file)
+	      main_list_file_name=safe_strdup(buf1);
+	  }
 	  else out=1;
 	}
+	file=0;
 	/* FIXME : parser les listes */
 	if (kill->newsgroup_regexp==1) {
 	  kill->newsgroup_cond.regexp = safe_malloc(sizeof(regex_t));

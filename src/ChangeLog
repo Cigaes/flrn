@@ -1,5 +1,7 @@
 ChangeLog Flrn
 
+. ajout de X-Censorship aux headers 'connus'.
+. ajout de la gestion de liste de groupes dans un fichier.
 . ajout de l'option auto-kill
 . ajout des comandes add-kill et remove-kill
 . ajout de la gestion des listes de groupes dans les kill-files

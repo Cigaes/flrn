@@ -114,6 +114,7 @@ int main(int argc, char *argv[])
     Reset_keyboard();
   }
   free_options();
+  free_kill(); /* pour sauver le kill-file... */
 #ifdef CHECK_MAIL
   if (getenv("MAIL")==NULL) free(mailbox);
 #endif
