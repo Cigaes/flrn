@@ -52,7 +52,7 @@
 
 /* Cette option vérifie les references d'un article posté, en met le
  * maximum dans la limite de 998 caractères */
-/* #undef GNKSA_REFERENCES_HEADER */
+#undef GNKSA_REFERENCES_HEADER
 
 /* Cette option (qui devrait ne pas en être une) permet une meilleure
  * gestion des réponses (point numéro 9 du GNKSA). Elle sera par défaut

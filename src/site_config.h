@@ -27,7 +27,11 @@ struct Option_struct Options = {
   NULL,			/* user_flags */
   NULL,			/* user_autocmd */
   0,			/* headers scroll */
+#ifdef GNKSA_DISPLAY_HEADERS 
+  0,			/* skip_line */
+#else
   1,			/* skip_line */
+#endif
   -1,			/* color, -1 = autodetect */
   1,			/* cbreak */
 #ifdef CHECK_MAIL

@@ -1154,39 +1154,83 @@ void Get_user_address(char *str) {
 
 /* Extration des references pour le header References du post */
 /* len_id donne la taille à réserver en plus pour le msgid du pere */
+/* get_unbroken_id est une fonction utilisée dans extract_post_references */
+static char *get_unbroken_id (char *buf, char **end) {
+   char *buf2;
+
+   while ((buf=strchr(buf,'<'))) {
+     buf2=strpbrk(buf+1,">< \t\r\n");
+     if (buf2==NULL) return NULL; /* Broken MID */
+     if (*buf2!='>') continue; /* Broken MID */
+     *end=buf2;
+     return buf;
+   }
+   return NULL;
+}
+     
 static char *extract_post_references (char *str, int len_id) {
-   int len, nb_ref=0, i;
-   char *buf=str, *buf2, *res;
+   int len=0;
+#ifndef GNKSA_REFERENCES_HEADER
+   int i,nb_ref=0;
+#endif
+   char *prem_mid=NULL, *end_prem_mid=NULL;
+   char *buf, *buf2=str, *res;
    
    /* On calcule le nombre de references */
-   while ((buf=strchr(buf,'<'))) {
+   while ((buf=get_unbroken_id(buf2, &buf2))) {
+     len+=buf2-buf+2; /* L'espace en plus */
+#ifndef GNKSA_REFERENCES_HEADER
      nb_ref++;
-     buf=strchr(buf,'>');
-     if (buf==NULL) break; /* BEURK */
+#endif
+     if (prem_mid==NULL) {
+        prem_mid=buf;
+	end_prem_mid=buf2;
+     }
    }
+#ifndef GNKSA_REFERENCES_HEADER
    if (nb_ref<MAX_NB_REF) {  /* On se pose pas de questions */
-     len=strlen(str);
      res=safe_malloc((len+len_id+2)*sizeof(char));
-     strcpy(res,str);
-     strcat(res," ");
+     *res='\0';
+     buf2=str;
+     while ((buf=get_unbroken_id(buf2, &buf2))) {
+       strncat(res,buf,buf2-buf+1);
+       strcat(res," ");
+     }
      return res;
    }
-   /* Y'a des pb */
-   /* On determine d'abord len */
-   buf=str; buf=strchr(str,'>'); buf++;
-   len=buf-str;
-   buf2=strchr(buf,'<');
-   for (i=1; i<nb_ref-4; i++) { buf2=strchr(buf2,'>'); buf2=strchr(buf2,'<'); }
-   len+=1+strlen(buf2);
+   buf2=end_prem_mid;
+   for (i=1; i<nb_ref+2-MAX_NB_REF; i++) { 
+     buf=get_unbroken_id (buf2, &buf2);
+     if (buf==NULL) /* Argh ! */
+        break;
+     len-=buf2-buf+2;
+   }
+#else
+   if (prem_mid==NULL) {
+     res=safe_malloc((len_id+2)*sizeof(char));
+     *res='\0';
+     return res;
+   }
+   buf=buf2=end_prem_mid;
+   while (len+len_id+2>986) { /* 998 - 12 pour la chaîne "References: " */
+      buf=get_unbroken_id (buf2, &buf2);
+      if (buf==NULL) /* Argh ! */
+         break;
+      len-=buf2-buf+2;
+   }
+#endif
    res=safe_malloc((len+len_id+2)*sizeof(char));
-   strncpy(res,str,buf-str);
-   res[buf-str]='\0';
+   strncpy(res,prem_mid,end_prem_mid-prem_mid+1);
+   res[end_prem_mid-prem_mid+1]='\0';
    strcat(res," ");
-   strcat(res,buf2);
-   strcat(res," ");
+   if (buf==NULL) return res;
+   while ((buf=get_unbroken_id(buf2, &buf2))) {
+      strncat(res,buf,buf2-buf+1);
+      strcat(res," ");
+   }
    return res;
-}
 
+}
 
 
 /* Creation des headers du futur article */
