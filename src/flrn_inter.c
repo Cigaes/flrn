@@ -65,18 +65,34 @@ typedef struct Num_lists
    struct Num_lists *next;
    int flags; /* 0 : rien   1 : article       2 : num1
                  4 : _article  8 : article>   16 : big_thread(*) 
-		 32 : num1-num2 */
+		 32 : num1-num2  64(flag) : selected */
    union element elem1;
    int num2;
 } Numeros_List;
+
+/* DOC : le flag selected s'applique pour toute commande qui appelle 
+   distribue_action. Dans le cas ou aucun numéro n'est précisé, ça équivaut
+   à "1-".
+   Les fonctions qui appellent distribue_action (avec un flag potentiel
+   a 64) sont : 
+       do_tag
+       do_omet (donc put_flags)
+       do_kill
+       do_summary
+       do_select
+       do_save
+       do_launch_pager
+       do_pipe
+       do_cancel
+*/
 
 Numeros_List Arg_do_funcs={NULL, 0, {0}, 0};
 
 typedef int (*Action)(Article_List *article, void * flag);
 int distribue_action(Numeros_List *num, Action action, Action special,
     void * flag);
-int thread_action(Article_List *article,int all, Action action, void *param);
-int gthread_action(Article_List *article,int all, Action action, void *param);
+int thread_action(Article_List *article,int all, Action action, void *param, int flags);
+int gthread_action(Article_List *article,int all, Action action, void *param, int flags);
 
 
 Cmd_return une_commande;
@@ -133,6 +149,7 @@ int do_add_kill(int res);
 int do_pipe_header(int res);
 int do_select(int res);
 int do_keybindings(int);
+int do_on_selected(int res);
 
 
 /* Ces fonctions sont appelés par les do_* */
@@ -239,6 +256,7 @@ static void Aff_message(int type, int num)
     case 20 : Aff_error(Messages[MES_MAIL_SENT]); break;
     case 21 : Aff_error(Messages[MES_MAIL_POST]); break;
     case 22 : Aff_error_fin(Messages[MES_TEMP_READ],0,-1); break;
+    case 23 : Aff_error_fin(Messages[MES_FLAG_APPLIED],0,-1); break;
  /* Message d'erreur */
     case -1 : Aff_error(Messages[MES_NO_GROUP]);  /* non utilisé */
 	       break;
@@ -270,6 +288,7 @@ static void Aff_message(int type, int num)
 /* la rigueur si le serveur refuse tout...			      */
     case -17 : Aff_error(Messages[MES_NO_HEADER]); break;
     case -18 : Aff_error(Messages[MES_REFUSED_HEADER]); break;
+    case -19 : Aff_error(Messages[MES_INVAL_FLAG]); break;
     default : Aff_error(Messages[MES_FATAL]);
 	       break;
   }
@@ -812,7 +831,7 @@ int do_deplace(int res) {
    /* dans le cas ou on est hors limite et num1=Article_courant->numero */
    /* on reaffiche Article_courant, a condition que ce ne soit ni - ni '\n' */
    /* ni un ' ' (sauf cas particuliers) */
-   if (Article_courant && (Arg_do_funcs.flags==0)) {
+   if (Article_courant && ((Arg_do_funcs.flags | 64)==64)) {
       parc_eq_cour=1;
       if ((etat_loop.hors_struct & 1) && (res!=FLCMD_SPACE) &&
 	  ((res!=FLCMD_PREC) || !(etat_loop.hors_struct & 4)) &&
@@ -1242,36 +1261,152 @@ int do_prem_grp (int res) {
 /* des hack crades :-( */
 int grand_distribue(Article_List *article, void * beurk) {
   Action_with_args *le_machin = (Action_with_args *) beurk;
-  return thread_action(article,0,le_machin->action,le_machin->flag);
+  return thread_action(article,0,le_machin->action,le_machin->flag,0);
 }
 int thread_distribue(Article_List *article, void * beurk) {
   Action_with_args *le_machin = (Action_with_args *) beurk;
-  return thread_action(article,1,le_machin->action,le_machin->flag);
+  return thread_action(article,1,le_machin->action,le_machin->flag,0);
 }
 int gthread_distribue(Article_List *article, void * beurk) {
   Action_with_args *le_machin = (Action_with_args *) beurk;
-  return gthread_action(article,0,le_machin->action,le_machin->flag);
+  return gthread_action(article,0,le_machin->action,le_machin->flag,0);
 }
 
 static int omet_article(Article_List *article, void * toto)
-{ if ((article->numero>0) && (article->flag & FLAG_READ) &&
+{  if (article->flag & FLAG_KILLED) return 0;
+   if ((article->numero>0) && (article->flag & FLAG_READ) &&
       (Newsgroup_courant->not_read!=-1)) {
         Newsgroup_courant->not_read++;
 	article->thread->non_lu++;
       }
       article->flag &= ~FLAG_READ; return 0; }
+
+/* Contrairement à article_read, on ne s'occupe pas des crossposts */
+static int mark_article_read(Article_List *article, void  *toto)
+{ 
+   int flag=*((int *)toto);
+   if ((article->numero>0) && (!(article->flag & FLAG_READ)) &&
+      (Newsgroup_courant->not_read>0)) {
+        Newsgroup_courant->not_read--;
+	article->thread->non_lu--;
+      }
+   article->flag |= FLAG_READ; 
+   if (article->flag & FLAG_IMPORTANT) {
+      Newsgroup_courant->important--;
+      article->flag &= ~FLAG_IMPORTANT;
+   }
+   article->flag |= flag; /* Si flag est FLAG_KILLED */
+   return 0; 
+}
+static int mark_article_important(Article_List *article, void  *toto)
+{ 
+   int flag=*((int *)toto);
+   if (article->flag & FLAG_READ) return 0;
+   if (!(article->flag & FLAG_IMPORTANT)) Newsgroup_courant->important++;
+   article->flag |= flag; 
+   return 0; 
+}
+static int mark_article_unimportant(Article_List *article, void  *toto)
+{ 
+   int flag=*((int *)toto);
+   if (article->flag & FLAG_IMPORTANT) Newsgroup_courant->important--;
+   article->flag &= flag; 
+   return 0; 
+}
+
+static void transforme_selection() {
+   Article_List *parcours=Article_deb;
+
+   while (parcours) {
+      if (parcours->flag & FLAG_IS_SELECTED) 
+              parcours->flag&= ~FLAG_IS_SELECTED;
+      if (parcours->flag & FLAG_SUMMARY) {
+          parcours->flag|=FLAG_IS_SELECTED;
+	  parcours->flag&=~FLAG_SUMMARY;
+      }
+      parcours=parcours->next;
+   }
+   parcours=Article_exte_deb;
+   while (parcours) {
+      if (parcours->flag & FLAG_IS_SELECTED) 
+              parcours->flag&= ~FLAG_IS_SELECTED;
+      if (parcours->flag & FLAG_SUMMARY) {
+          parcours->flag|=FLAG_IS_SELECTED;
+	  parcours->flag&=~FLAG_SUMMARY;
+      }
+      parcours=parcours->next;
+   }
+}
+
 int do_omet(int res) { 
   Numeros_List *courant=&Arg_do_funcs;
   Action_with_args beurk;
+  int flag, col, use_summary=0;
+  int toset;
+  char *name=Arg_str;
+  int use_argstr=0, ret=0;
   
-  beurk.action=omet_article;
-  beurk.flag=NULL;
+  if ((res==FLCMD_OMET) || (res==FLCMD_GOMT)) {
+     beurk.action=omet_article;
+     beurk.flag=NULL;
+  } else {
+     while ((*name) && (isblank(*name))) name++;
+     if (name[0]=='\0') {
+       use_argstr=1;
+       name=safe_malloc(30*sizeof(char));
+       col=Aff_fin("Flag : ");
+       if ((ret=getline(name, MAX_PATH_LEN, Screen_Rows-1,col)<0)) {
+          free(name);
+	  etat_loop.etat=3;
+	  return 0;
+       }
+     }
+     ret=parse_flags(name,&toset,&flag);
+     if (ret==-1) {
+        if (use_argstr) free(name);
+        etat_loop.etat=2; etat_loop.num_message=-19;
+        return 0;
+     }
+     beurk.flag=&flag;
+     if (toset) 
+        beurk.action=tag_article;
+     else 
+        beurk.action=untag_article;
+     switch (flag) {
+        case FLAG_READ :
+	    if (toset) {
+     		beurk.action=mark_article_read;
+	    } else {
+     		beurk.action=omet_article;
+     		beurk.flag=NULL;
+		res=FLCMD_OMET;
+	    }
+	    break;
+	case FLAG_KILLED :
+	    if (toset) 
+     		beurk.action=mark_article_read;
+	    break;
+	case FLAG_IMPORTANT :
+	    if (toset) 
+	        beurk.action=mark_article_important;
+	    else beurk.action=mark_article_unimportant;
+	    break;
+     }
+     if (toset==0) flag=~flag;
+  }
+  if ((flag==FLAG_IS_SELECTED) && (toset) && (courant->flags & 64)) {
+      flag=FLAG_SUMMARY;
+      use_summary=1;
+  }
   if (res==FLCMD_GOMT)
       distribue_action(courant,grand_distribue,NULL,&beurk);
   else
-      distribue_action(courant,omet_article,NULL,NULL);
+      distribue_action(courant,beurk.action,NULL,beurk.flag);
+  if (use_summary) transforme_selection();
   Aff_not_read_newsgroup_courant();
-  etat_loop.etat=1; etat_loop.num_message=(res==FLCMD_GOMT ? 5 : 4);
+  if (use_argstr) free(name);
+  etat_loop.etat=1; etat_loop.num_message=(res==FLCMD_OMET ?
+  				(res==FLCMD_GOMT ? 5 : 4) : 23);
   return 0;
 }
 
@@ -1881,7 +2016,7 @@ int do_post(int res) {
      origine=Article_courant;
      if (Arg_do_funcs.flags & 34)
        ret=Recherche_article(Arg_do_funcs.elem1.num,&origine,0);
-     else if (Arg_do_funcs.flags) {
+     else if (Arg_do_funcs.flags & 63) {
        origine=Arg_do_funcs.elem1.article;
        ret=(origine ? 0 : -2);
      }
@@ -2011,7 +2146,7 @@ int do_swap_grp(int res) {
   article_considere=Article_courant;
   if (Arg_do_funcs.flags & 34) 
     Recherche_article(Arg_do_funcs.elem1.num, &article_considere, 0); else
-  if (Arg_do_funcs.flags) article_considere=Arg_do_funcs.elem1.article;
+  if (Arg_do_funcs.flags & 63) article_considere=Arg_do_funcs.elem1.article;
   if (article_considere==NULL) {
      etat_loop.etat=1; etat_loop.num_message=3; return 0;
   }
@@ -2127,6 +2262,72 @@ int do_keybindings(int res) {
    etat_loop.hors_struct|=1;
    etat_loop.etat=3+(key>=0);
    return 0;
+}
+
+int do_on_selected (int res) {
+  char *name=Arg_str,*buf;
+  int ret, key, res2;
+  Numeros_List *courant=&Arg_do_funcs;
+
+  while ((*name) && (isblank(*name))) name++;
+  if (name[0]=='\0') {
+    Aff_fin("Commande : ");
+    key=Attend_touche();
+    if (KeyBoard_Quit) {
+       etat_loop.etat=3;
+       return 0;
+    }
+    ret=get_command(key,CONTEXT_COMMAND,-1,&une_commande);
+  } else { 
+    une_commande.maybe_after=0;
+    if ((name[1]=='\0') || (isblank(name[1]))) {
+        une_commande.cmd[CONTEXT_COMMAND]=Flcmd_rev[CONTEXT_COMMAND][(int)(*name)];
+	ret=(une_commande.cmd[CONTEXT_COMMAND]==FLCMD_UNDEF ? -1 : CONTEXT_COMMAND);
+	une_commande.before=NULL;
+	une_commande.after=safe_strdup(name+2);
+    } else {
+	ret=Lit_cmd_explicite(name,CONTEXT_COMMAND,-1,&une_commande);
+	buf=name;
+	while ((*buf) && (!isblank(*buf))) buf++;
+	if (buf[0]) une_commande.after=safe_strdup(buf);
+	else une_commande.after=NULL;
+	une_commande.before=NULL;
+    }
+  }
+  if (ret<0) {
+     if (une_commande.before) free(une_commande.before);
+     if (une_commande.after) free(une_commande.after);
+     etat_loop.etat=2; etat_loop.num_message=-9;
+     return 0;
+  }
+  Arg_str[0]='\0';
+  res2=une_commande.cmd[CONTEXT_COMMAND];
+  if (une_commande.before) Parse_nums_article(une_commande.before,NULL,0);
+  if (une_commande.after) {
+     res2=parse_arg_string(une_commande.after,res2,1);
+     free(une_commande.after);
+  }
+  if ((res2 & FLCMD_MACRO)==0) {
+     if ((une_commande.maybe_after) && 
+         ( ((!Options.forum_mode) && (Flcmds[res2].flags & 8))
+	 || ((Options.forum_mode) && (Flcmds[res2].flags & 4)) )) {
+       ret=get_str_arg(res2,une_commande.before);
+       if (ret==-1) {
+          if (une_commande.before) free(une_commande.before);
+	  etat_loop.etat=3;
+	  return 0;
+       }
+     }
+  }
+  if (une_commande.before) free(une_commande.before);
+  /* On ne teste pas CMD_NEED_GROUP, ça a déjà été testé :-) */
+  courant->flags|=64;
+  courant=courant->next;
+  while ((courant) && (courant->flags)) {
+     courant->flags|=64;
+     courant = courant->next;
+  }
+  return (*Flcmds[res2].appel)(res2);
 }
 
 #if 0
@@ -2464,18 +2665,21 @@ int prochain_newsgroup(Newsgroup_List **newgroup ) {
 }
 
 /* Applique action sur tous les peres de l'article donne*/
-int parents_action(Article_List *article,int all, Action action, void *param) {
+int parents_action(Article_List *article,int all, Action action, void *param, int flags) {
   Article_List *racine=article;
+  int res=0, res2=0;
   while(racine->pere && !(racine->pere->flag & FLAG_INTERNE2)) {
     racine->flag |= FLAG_INTERNE2;
     racine=racine->pere;
   }
   do {
-    action(racine,param);
+    if ((!(flags & 64)) || (racine->flag & FLAG_IS_SELECTED)) 
+        res2=action(racine,param);
     racine->flag &= ~FLAG_INTERNE2;
+    if (res2<res) res=res2;
   } while((racine=next_in_thread(racine,FLAG_INTERNE2,NULL,0,0,
       FLAG_INTERNE2,0)));
-  return 0;
+  return res;
 }
   
 
@@ -2484,7 +2688,8 @@ int parents_action(Article_List *article,int all, Action action, void *param) {
  * Attention a ne pas interferer
  * all indique qu'il faut d'abord remonter a la racine */
 /* on applique a tous les articles non extérieurs */
-int thread_action(Article_List *article,int all, Action action, void *param) {
+/* flags & 64 : on se limite aux articles SELECTED */
+int thread_action(Article_List *article,int all, Action action, void *param, int flags) {
   Article_List *racine=article;
   Article_List *racine2=article;
   int res=0;
@@ -2503,7 +2708,9 @@ int thread_action(Article_List *article,int all, Action action, void *param) {
     racine->flag &= ~FLAG_INTERNE1;
   racine=racine2;
   /* Et la on peut faire ce qu'il faut */
-  do { if (racine->numero!=-1) res2=action(racine,param);
+  do { if (racine->numero!=-1) 
+         if ((!(flags & 64)) || (racine->flag & FLAG_IS_SELECTED)) 
+          res2=action(racine,param);
     if (res2<res) res=res2;
     racine->flag |= FLAG_INTERNE1;
   } while ((racine=next_in_thread(racine,FLAG_INTERNE1,&level,-1,0,
@@ -2515,7 +2722,8 @@ int thread_action(Article_List *article,int all, Action action, void *param) {
  * Attention a ne pas interferer
  * all indique qu'il faut d'abord remonter a la racine */
 /* on applique a tous les articles non extérieurs */
-int gthread_action(Article_List *article,int all, Action action, void *param) {
+/* flags & 64 : on se limite aux articles SELECTED */
+int gthread_action(Article_List *article,int all, Action action, void *param, int flags) {
   Article_List *racine=article;
   Article_List *racine2=article;
   int res=0;
@@ -2533,7 +2741,9 @@ int gthread_action(Article_List *article,int all, Action action, void *param) {
     racine->flag &= ~FLAG_INTERNE1;
   racine=racine2;
   /* Et la on peut faire ce qu'il faut */
-  do { if (racine->numero!=-1) res2=action(racine,param);
+  do { if (racine->numero!=-1)
+         if ((!(flags & 64)) || (racine->flag & FLAG_IS_SELECTED)) 
+          res2=action(racine,param);
     if (res2<res) res=res2;
     racine->flag |= FLAG_INTERNE1;
   } while ((racine=next_in_thread(racine,FLAG_INTERNE1,&level,-1,0,
@@ -2551,6 +2761,10 @@ int distribue_action(Numeros_List *num, Action action, Action special,
     if (!Article_courant) return -1;
     if (special) return special(Article_courant,param);
     return action(Article_courant,param);
+  } else if (num->flags==64) {
+      if (!Article_courant) return -1;
+      num->flags=96; num->elem1.num=1;
+      num->num2=Newsgroup_courant->max;
   }
   while (num) {
     if (num->flags==0) {return 0;}
@@ -2561,19 +2775,24 @@ int distribue_action(Numeros_List *num, Action action, Action special,
        res=(parcours ? 0 : -2);
     }
     res2=0;
-    switch (num->flags) {
-      case 1: case 2 : if (res==0) res2=action(parcours,param);
+    switch (num->flags & 63) {
+      case 1: case 2 : if (num->flags & 64) {
+                           if ((res==0) && (!(parcours->flag & FLAG_IS_SELECTED)))
+			        res=-1;
+		       }
+                  if (res==0) res2=action(parcours,param);
 	      break;
-      case 4: if (res==0) res2=parents_action(parcours,0,action,param);
+      case 4: if (res==0) res2=parents_action(parcours,0,action,param, num->flags);
 		break;
-      case 8: if (res==0) res2=thread_action(parcours,0,action,param);
+      case 8: if (res==0) res2=thread_action(parcours,0,action,param, num->flags);
 		break;
-      case 16: if (res==0) res2=gthread_action(parcours,0,action,param);
+      case 16: if (res==0) res2=gthread_action(parcours,0,action,param,num->flags);
 		break;
       case 32: if ((res==0) || (res==-1)) {
 		while(parcours) {
 		  if (parcours->numero > num->num2) break;
-		  res2=action(parcours,param);
+		  if ((num->flags==32) || (parcours->flag & FLAG_IS_SELECTED)) 
+		       res2=action(parcours,param);
 		  if (res2<result) result=res2;
 		  parcours=parcours->next;
 		}

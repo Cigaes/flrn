@@ -69,5 +69,6 @@ extern int add_to_main_list(char *);
 extern int remove_from_main_list(char *);
 extern void free_kill();
 extern int in_main_list(char *);
+extern int parse_flags(char *, int *, int *);
 
 #endif

@@ -1,5 +1,6 @@
 ChangeLog Flrn
 
+. put-flag, on-selected
 . nxt-search
 . commande keybindings
 . bugfixes, ~r dans l'éditeur intégré.

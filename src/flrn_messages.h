@@ -42,8 +42,10 @@
 #define MES_FATAL 37
 #define MES_NO_SEARCH 38
 #define MES_NO_FOUND 39
+#define MES_INVAL_FLAG 40
+#define MES_FLAG_APPLIED 41
 
-#define NB_MESSAGES 40
+#define NB_MESSAGES 42
 extern const char *Messages[NB_MESSAGES];
 
 #endif

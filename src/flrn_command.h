@@ -36,5 +36,6 @@ typedef struct command_return {
 extern Cmd_return une_commande;
 
 extern int get_command(int, int, int, Cmd_return *);
+extern int Lit_cmd_explicite(char *, int, int, Cmd_return *la_commande);
 
 #endif

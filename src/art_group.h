@@ -82,6 +82,7 @@ typedef struct Flrn_art_list
    /* Flag a utiliser avec distribue_action
     * utilise par le resume
     * Il doit en etat normal etre a 0 */
+   /* Ce flag est aussi utilise pour la selection */
 #define FLAG_SUMMARY		0x0400
    int flag;  
 

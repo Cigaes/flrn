@@ -1473,7 +1473,18 @@ int Aff_article_courant(int to_build) {
 	    Cursor_gotorc(row_erreur,col_erreur); 
 	    Screen_write_string("Article indisponible.");
 	    Screen_set_color(FIELD_NORMAL);
-	    return 0;
+	    if (!(Article_courant->flag & FLAG_READ) && (Article_courant->numero>0) &&
+	           (Newsgroup_courant->not_read>0)) {
+		      Newsgroup_courant->not_read--;
+		      Article_courant->thread->non_lu--;
+	    }
+	    if (Article_courant->flag & FLAG_IMPORTANT) {
+              Newsgroup_courant->important--;
+	      Article_courant->flag &= ~FLAG_IMPORTANT;
+            }
+	    Article_courant->flag |= FLAG_READ;
+	    Article_courant->flag |= FLAG_KILLED;
+	    return -1;
 	}
         /* On suppose ca provisoire */
 	/* le bon check, c'est pere != NULL ou parent !=0 ?
@@ -1516,9 +1527,24 @@ int Aff_article_courant(int to_build) {
    if (res<0 || res>400) { 
      if (debug)
        fprintf(stderr, "Pas d'article : %d\n", Article_courant->numero); 
-     Aff_error("Article indisponible."); 
+     Aff_place_article(1);
+     Screen_set_color(FIELD_ERROR);
+     Cursor_gotorc(row_erreur,col_erreur); 
+     Screen_write_string("Article indisponible.");
+     Screen_set_color(FIELD_NORMAL);
+     if (!(Article_courant->flag & FLAG_READ) && (Article_courant->numero>0) &&
+           (Newsgroup_courant->not_read>0)) {
+	      Newsgroup_courant->not_read--;
+	      Article_courant->thread->non_lu--;
+     }
+     if (Article_courant->flag & FLAG_IMPORTANT) {
+        Newsgroup_courant->important--;
+        Article_courant->flag &= ~FLAG_IMPORTANT;
+     }
+     Article_courant->flag |= FLAG_READ;
+     Article_courant->flag |= FLAG_KILLED;
      free_text_scroll(); 
-     return -1; 
+     return -1;
    }
    do {
       res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);

@@ -43,5 +43,7 @@ const char *Messages[NB_MESSAGES] = {
     "Erreur fatale !!!",                        /* 37 */
     "Pas de recherche.",			/* 38 */ /* pager, menus */
     "Rien trouvé.",				/* 39 */ /* pager, menus */
+    "Flag invalide.",				/* 40 */
+    "Flag appliqué.",				/* 41 */ /* pager, menus */
 };
 

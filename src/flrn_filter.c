@@ -504,3 +504,19 @@ int in_main_list (char *name) {
   return (main_kill_list &&
      find_in_liste(main_kill_list,name));
 }
+
+/* Je met ca la pour une éventuelle unification */
+int parse_flags(char *name, int *toset, int *flag) {
+   char *buf=name;
+   *flag=0;
+   if (strncmp(name,"un",2)==0) {
+      buf+=2;
+      *toset=0;
+   } else *toset=1;
+   if (strcmp(buf,"read")==0) *flag=FLAG_READ; else
+   if (strcmp(buf,"killed")==0) *flag=FLAG_KILLED; else
+   if (strcmp(buf,"interesting")==0) *flag=FLAG_IMPORTANT; else
+   if (strcmp(buf,"selected")==0) *flag=FLAG_IS_SELECTED;
+   if (*flag==0) return -1;
+   return 0;
+}
