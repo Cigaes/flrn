@@ -2,14 +2,15 @@
 /* src/config.h.in.  Generated automatically from configure.in by autoheader.  */
 
 /* Define to the path of sendmail */
-#define SENDMAIL "/usr/lib/sendmail"
+#define SENDMAIL "/usr/sbin/sendmail"
 
 /* Définissez ceci si gethostname */
 /* n'existe pas ou si vous voulez */
 /* imposer le nom de la machine...*/
-/* ou utilisez l'option --with-default-host de  ./configure */
-#define DEFAULT_HOST "news.ens.fr"
+/* ou utilisez l'option --with-default-host de ./configure */
+/* #undef DEFAULT_HOST */
 
+/* Pour l'option --with-domain du configure */
 #define DOMAIN "ens.fr"
 
 /* Define to empty if the keyword does not work.  */
@@ -34,10 +35,10 @@
 #define HAVE_GETHOSTNAME 1
 
 /* Define if you have the inet_aton function.  */
-/* #undef HAVE_INET_ATON */
+#define HAVE_INET_ATON 1
 
 /* Define if you have the isblank function.  */
-/* #undef HAVE_ISBLANK */
+#define HAVE_ISBLANK 1
 
 /* Define if you have the isdigit function.  */
 #define HAVE_ISDIGIT 1
@@ -55,7 +56,7 @@
 #define HAVE_SELECT 1
 
 /* Define if you have the snprintf function.  */
-/* #undef HAVE_SNPRINTF */
+#define HAVE_SNPRINTF 1
 
 /* Define if you have the socket function.  */
 #define HAVE_SOCKET 1
@@ -82,7 +83,7 @@
 #define HAVE_UNISTD_H 1
 
 /* Define if you have the nsl library (-lnsl).  */
-#define HAVE_LIBNSL 1
+/* #undef HAVE_LIBNSL */
 
 /* Define if you have the socket library (-lsocket).  */
-#define HAVE_LIBSOCKET 1
+/* #undef HAVE_LIBSOCKET */

@@ -69,7 +69,7 @@ FILE *open_flrnfile (char *file,char *mode, int flag, time_t * date)
    if (!(config_file=fopen(name,mode))) {
      if (flag) {
        fprintf(stderr,"Le fichier %s ne peut être ouvert\n",name);
-       fprintf(stderr,"Si vous avez un .flrn, vous devez le renommer en $s\n",
+       fprintf(stderr,"Si vous avez un .flrn, vous devez le renommer en %s\n",
        		DEFAULT_CONFIG_FILE);
      }
      if (home_found && flag) {
