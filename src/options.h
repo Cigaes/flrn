@@ -125,6 +125,7 @@ struct Option_struct {
   char *help_lines_file;
   char *auth_user;
   char *auth_pass;
+  char *sig_file;
 };
 
 extern struct Option_struct Options;
@@ -215,6 +216,7 @@ static struct {
   MAKE_OPT(scroll_after_end,"Modifie le comportement final du scrolling."),
   MAKE_STRING_OPT_NAME_L(server,serveur_name,"Nom du serveur de news."),
   MAKE_OPT(short_errors,"flrn n'affiche les erreurs en bas qu'une seconde."),
+  MAKE_STRING_OPT(sig_file,"Nom du fichier de signature, inclu avec auto_edit."),
   MAKE_INTEGER_OPT(skip_line,"Nombre de lignes blanches après la barre de statut."),
   MAKE_OPT(space_is_return,"Cette option définie, la commande \\next ne permet pas de changer de groupe."),
   MAKE_OPT(smart_quote,"Permet de faire un quote \"intelligent\"."),

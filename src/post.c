@@ -120,6 +120,16 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
        Copy_article(tmp_file,Pere_post, 0, (supersedes ? NULL : Options.index_string));
        fprintf(tmp_file,"\n");
    }
+   if ((incl==-1) && (Options.sig_file)) {
+       FILE *sig_file;
+       sig_file=open_flrnfile(Options.sig_file,"r",0,NULL);
+       if (sig_file) {
+          char ligne[82];
+	  while (fgets(ligne,81,sig_file))
+	     fprintf(tmp_file,ligne);
+	  fclose(sig_file);
+       }
+   }
    lecture_courant=Deb_body;
    while (lecture_courant) {
       if (lecture_courant==d_l)  
@@ -381,15 +391,19 @@ static int analyse_ligne (Lecture_List **d_l, int *place, FILE **a_inclure) {
       res=Summon_Editor(d_l, place, (debut[1]=='E'));
       if ((res>=0)) return (res==1)?3:2; else return -1;
    }
-   if (strncmp(debut,"~r ",3)==0) {
+   if ((strncmp(debut,"~r\n",3)==0) || (strncmp(debut,"~r ",3)==0)) {
      char nom[256];
-     for (i=0; i<256; i++) {
-        nom[i]=sd_l->lu[splace];
-	if (nom[i]=='\n') break;
-	splace++; if (splace>=sd_l->size) { splace=0; sd_l=sd_l->suivant; }
-     }
-     nom[i]='\0';
-     (*a_inclure)=fopen(nom,"r");
+     if (i==3) {
+       for (i=0; i<255; i++) {
+          nom[i]=sd_l->lu[splace];
+	  if (nom[i]=='\n') break;
+	  splace++; if (splace>=sd_l->size) { splace=0; sd_l=sd_l->suivant; }
+       }
+       nom[i]='\0';
+       (*a_inclure)=fopen(nom,"r");
+     } else if (Options.sig_file) {
+       (*a_inclure)=open_flrnfile(Options.sig_file,"r",0,NULL);
+     } else (*a_inclure)=NULL;
      return 4;
    }
    return 0;
