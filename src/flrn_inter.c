@@ -639,12 +639,16 @@ static void Parse_nums_article(char *str, char **sortie, int flags) {
 int parse_arg_string(char *str,int command)
 {
    int flag;
+   int cmd;
    if (str) while (*str==' ') str++;
    if ((str==NULL) || (str[0]=='\0')) return command;
-   /* a quoi ca sert ? et ca casse les macros !
-   flag=Flcmds[command].flags & 19;
+   cmd=command;
+   if (cmd<0) return cmd;
+   if (cmd & FLCMD_MACRO) {
+     cmd = Flcmd_macro[cmd ^ FLCMD_MACRO].cmd;
+   }
+   flag=Flcmds[cmd].flags & 19; /* c'est crade... */
    if (flag==0) return command;
-   */
    Parse_nums_article(str, &str, flag);
    if (str) strncpy(Arg_str, str, MAX_CHAR_STRING-1);
    return command;
