@@ -1978,9 +1978,14 @@ int do_select(int res) {
       if (art_ret) {
          Article_courant=root_of_thread(art_ret,1);
 	 if ((!(art_ret->flag & FLAG_READ)) && 
-	       (Article_courant->flag & FLAG_READ)) {
-	    Article_List *myarticle;
-	    myarticle=next_in_thread(Article_courant,FLAG_READ,NULL,
+	       ((Article_courant->flag & FLAG_READ) || (Article_courant->numero==-1))) {
+	    Article_List *myarticle=Article_courant;
+	    while (myarticle && (myarticle->numero==-1)) {
+	       myarticle=Article_courant->prem_fils;
+	       while (myarticle && (myarticle->frere_prev))
+	           myarticle=myarticle->frere_prev;
+	    }
+	    if (myarticle) myarticle=next_in_thread(myarticle,FLAG_READ,NULL,
 	    				0,0,0,1);
 	    if (myarticle) Article_courant=myarticle;
 	 }
