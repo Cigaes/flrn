@@ -434,8 +434,8 @@ void free_groups(int save_flnewsrc) {
 /* flag=1 : avec prefixe_groupe */
 Newsgroup_List *cherche_newsgroup_re (char *name, regex_t reg, int flag)
 {
-    int res, code;
-    char *buf,*buf2;
+    int res, code, order, best_order=-1;
+    char *buf,*buf2,*buf3=NULL;
 
     buf=safe_malloc((MAX_NEWSGROUP_LEN+12)*sizeof(char));
     strcpy(buf, "active ");
@@ -448,25 +448,29 @@ Newsgroup_List *cherche_newsgroup_re (char *name, regex_t reg, int flag)
     if ((code<0) || (code>400)) return NULL;
     while((res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1))>=0)
     {
-      if (tcp_line_read[1]=='\r') return NULL; /* Existe pas... */
+      if (res<4) break; /* Existe pas... */
       buf2=strchr(tcp_line_read,' ');
+      if (buf2==NULL) continue;
       *buf2='\0';
       buf=tcp_line_read+(flag ? strlen(Options.prefixe_groupe) : 0);
-      if (!regexec(&reg,buf,0,NULL,0)) {
+      if ((order=calcul_order_re(buf,&reg))!=-1) {
 	*buf2=' ';
-	buf=safe_strdup(tcp_line_read);
-        discard_server();
-	strcpy(tcp_line_read,buf); free(buf);
-	return un_nouveau_newsgroup(tcp_line_read);
+        if ((best_order==-1) || (best_order>order)) {
+	  buf3=safe_strdup(tcp_line_read);
+	  best_order=order;
+	}
       }
+    }
+    if (buf3) {
+       strcpy(tcp_line_read,buf3); free(buf3);
+       return un_nouveau_newsgroup(tcp_line_read);
     }
     return NULL;
 }
 
 Newsgroup_List *cherche_newsgroup (char *name, int exact, int flag) {
-    int res, code;
-    Newsgroup_List *creation;
-    char *buf;
+    int res, code, order, best_order=-1;
+    char *buf, *buf2, *buf3=NULL;
 
     buf=safe_malloc((MAX_NEWSGROUP_LEN+12)*sizeof(char));
     strcpy(buf, "active ");
@@ -480,15 +484,26 @@ Newsgroup_List *cherche_newsgroup (char *name, int exact, int flag) {
 
     code=return_code();
     if ((code<0) || (code>400)) return NULL;
-
-    res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1);
-    if (res<0) return NULL;
-    if (tcp_line_read[1]=='\r') return NULL; /* Existe pas... */
-
-    creation=un_nouveau_newsgroup(tcp_line_read);
-
-    discard_server();
-    return creation;
+    while((res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1))>=0)
+    {
+      if (res<4) break; /* Existe pas... */
+      buf2=strchr(tcp_line_read,' ');
+      if (buf2==NULL) continue;
+      *buf2='\0';
+      buf=tcp_line_read+(flag ? strlen(Options.prefixe_groupe) : 0);
+      if ((order=calcul_order(buf,name))!=-1) {
+	*buf2=' ';
+        if ((best_order==-1) || (best_order>order)) {
+	  buf3=safe_strdup(tcp_line_read);
+	  best_order=order;
+	}
+      }
+    }
+    if (buf3) {
+       strcpy(tcp_line_read,buf3); free(buf3);
+       return un_nouveau_newsgroup(tcp_line_read);
+    }
+    return NULL;
 }
 
 /*  La fonction est semblable à cherche_newsgroup_re, mais elle créée un */
@@ -497,7 +512,7 @@ Newsgroup_List *cherche_newsgroup (char *name, int exact, int flag) {
 Liste_Menu *menu_newsgroup_re (char *name, regex_t reg, int avec_reg)
 {
     Liste_Menu *lemenu=NULL, *courant=NULL;
-    int res, code;
+    int res, code, order;
     Newsgroup_List *creation;
     char *buf;
     buf=safe_malloc((MAX_NEWSGROUP_LEN+12)*sizeof(char));
@@ -513,13 +528,15 @@ Liste_Menu *menu_newsgroup_re (char *name, regex_t reg, int avec_reg)
     if ((code<0) || (code>400)) return NULL;
     while((res=read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE-1))>=0)
     {
-      if (tcp_line_read[1]=='\r') return lemenu; /* On peut repartir */
+      if (res<4) return lemenu; /* On peut repartir */
       buf=strchr(tcp_line_read,' ');
+      if (buf==NULL) continue;
       *buf='\0';
-      if ((!(avec_reg & 1)) || (!regexec(&reg,tcp_line_read+(avec_reg & 2 ? strlen(Options.prefixe_groupe):0),0,NULL,0))) {
+      order=((avec_reg & 1) ? calcul_order_re(tcp_line_read+(avec_reg & 2 ? strlen(Options.prefixe_groupe):0),&reg) : calcul_order(tcp_line_read+(avec_reg & 2 ? strlen(Options.prefixe_groupe):0),name));
+      if (order!=-1) {
 	*buf=' ';
 	creation=un_nouveau_newsgroup(tcp_line_read);
-	courant=ajoute_menu_ordre(&lemenu,creation->name,creation,0);
+	courant=ajoute_menu_ordre(&lemenu,creation->name,creation,-1,order);
       }
     }
     return lemenu;
@@ -1024,3 +1041,29 @@ void Ligne_carac_du_groupe (void *letruc, char *lachaine,
   lachaine[taille-1]='\0';
 }
 
+int calcul_order(char *nom_gr, char *str) {
+    char *buf, *buf2;
+    if ((buf=strstr(nom_gr,str))==NULL) return -1;
+    while ((buf2=strstr(buf+1,str))!=NULL) buf=buf2;
+    return (strlen(nom_gr)-strlen(str))*10-9*(buf-nom_gr);
+}
+
+int calcul_order_re(char *nom_gr, regex_t *sreg) {
+    int ret, bon=0, orderact, order=-1;
+    char *buf=nom_gr;
+    regmatch_t pmatch[1];
+
+    ret=regexec(sreg, nom_gr, 1, pmatch, 0);
+    if (ret!=0) return -1;
+    do {
+      buf+=pmatch[0].rm_eo;
+      if (pmatch[0].rm_eo==0) buf++; else {
+         bon=1;
+	 orderact=(strlen(nom_gr)-pmatch[0].rm_eo-(buf-nom_gr))*10+
+	                pmatch[0].rm_so+(buf-nom_gr);
+	 if ((order==-1) || (orderact<order)) order=orderact;
+      }
+      ret=regexec(sreg, buf, 1, pmatch, REG_NOTBOL);
+    } while (ret==0);
+    if (bon) return order; else return -1;
+}

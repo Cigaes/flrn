@@ -11,6 +11,7 @@ typedef struct liste_menu_desc {
    struct liste_menu_desc *prec, *suiv;
    int changed; /* interne, quand on vient de changer la ligne */
    int toggled; /* pour le toggle */
+   int order;
 } Liste_Menu;
 
 #define NB_FLCMD_MENU 10
@@ -78,7 +79,7 @@ extern void Libere_menu (Liste_Menu * /*debut*/);
 extern void Libere_menu_noms (Liste_Menu * /*debut*/);
 extern Liste_Menu *ajoute_menu(Liste_Menu * /*base*/, char * /*nom*/,
     void * /*lobjet*/);
-extern Liste_Menu *ajoute_menu_ordre(Liste_Menu **, char *, void *, int);
+extern Liste_Menu *ajoute_menu_ordre(Liste_Menu **, char *, void *, int, int);
 extern int Bind_command_menu(char *, int, char *, int);
 extern void init_Flcmd_menu_rev(void);
 extern int get_menu_signification (char *);

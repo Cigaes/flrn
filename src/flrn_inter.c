@@ -318,31 +318,14 @@ int loop(char *opt) {
    Newsgroup_courant=NULL;
    Last_head_cmd.Article_vu=NULL;
    if (opt) {
-      if (Options.prefixe_groupe) { /* avant-premiere passe */
-        Newsgroup_courant=Newsgroup_deb;
-        while (Newsgroup_courant) {
-	   if (strstr(truncate_group(Newsgroup_courant->name,0), opt) &&
-	         !(Newsgroup_courant->flags & GROUP_UNSUBSCRIBED)) break;
-	   Newsgroup_courant=Newsgroup_courant->next;
-        }
-      }
-      if (Newsgroup_courant==NULL) { /* Premiere passe */
-        Newsgroup_courant=Newsgroup_deb;
-        while (Newsgroup_courant) {
-	   if (strstr(Newsgroup_courant->name, opt) &&
-	     !(Newsgroup_courant->flags & GROUP_UNSUBSCRIBED)) break;
- 	   Newsgroup_courant=Newsgroup_courant->next;
-        }
-      }
-      if (Newsgroup_courant==NULL) { /* Deuxieme passe */
-        Newsgroup_courant=Newsgroup_deb;
-        while (Newsgroup_courant) {
-	   if (strstr(Newsgroup_courant->name, opt)) break;
- 	   Newsgroup_courant=Newsgroup_courant->next;
-        }
-      }
-      if (Newsgroup_courant==NULL) /* Troisieme passe */
-	Newsgroup_courant=cherche_newsgroup(opt,0,0);
+      int save_opt_use_menus=Options.use_menus;
+      Options.use_menus=0;
+      res=change_group(&(etat_loop.Newsgroup_nouveau),2,opt);
+      if (res<0) res=change_group(&(etat_loop.Newsgroup_nouveau),0,opt);
+      if (res<0) res=change_group(&(etat_loop.Newsgroup_nouveau),3,opt);
+      if (res<0) res=change_group(&(etat_loop.Newsgroup_nouveau),1,opt);
+      Options.use_menus=save_opt_use_menus;
+      Newsgroup_courant=etat_loop.Newsgroup_nouveau;
       if (Newsgroup_courant==NULL) {
       	etat_loop.etat=2; etat_loop.num_message=-8;
         Article_deb=&Article_bidon;
@@ -350,7 +333,6 @@ int loop(char *opt) {
 	to_build=1;
 	etat_loop.hors_struct=0;
       }
-      etat_loop.Newsgroup_nouveau=Newsgroup_courant;
    }
    else {
      res=prochain_newsgroup(&(etat_loop.Newsgroup_nouveau));
@@ -2375,7 +2357,7 @@ typedef struct {
 } Flrn_Reference_swap;
 
 static int art_swap_grp(char *xref, char *arg, Newsgroup_List *exclu) {
-  int nostr=0;
+  int nostr=0, order=-1, best_order=-1;
   long numero;
   regex_t reg;
   char *newsgroup, *num, *tmp_name;
@@ -2386,7 +2368,7 @@ static int art_swap_grp(char *xref, char *arg, Newsgroup_List *exclu) {
 
   if ((arg==NULL) || (*arg=='\0')) nostr=1;
   if ((!nostr) && (Options.use_regexp)) {
-    if(regcomp(&reg,arg,REG_EXTENDED|REG_NOSUB)) {etat_loop.etat=2;
+    if(regcomp(&reg,arg,REG_EXTENDED)) {etat_loop.etat=2;
     	etat_loop.num_message=-10; return 0;} }
   /* Bon, faut que je parse le Xref... ça a déjà été fait dans article_read */
   newsgroup=strtok(xref," ");
@@ -2401,8 +2383,10 @@ static int art_swap_grp(char *xref, char *arg, Newsgroup_List *exclu) {
       continue;
     if (!avec_un_menu) tmp_name=truncate_group(newsgroup,0); else
        tmp_name=newsgroup;
-    if ((nostr) || (((!Options.use_regexp) && (strstr(tmp_name, Arg_str)))
-      || ((Options.use_regexp) && (!regexec(&reg,tmp_name,0,NULL,0)))))
+    if ((nostr) || (((!Options.use_regexp) && 
+                       ((order=calcul_order(tmp_name, Arg_str))!=-1))
+      || ((Options.use_regexp) && 
+             ((order=calcul_order_re(tmp_name,&reg))!=-1))))
     {   
       mygroup=Newsgroup_deb;
       while (mygroup && (strcmp(mygroup->name, newsgroup))) 
@@ -2416,18 +2400,21 @@ static int art_swap_grp(char *xref, char *arg, Newsgroup_List *exclu) {
 	 objet->gpe=mygroup;
 	 objet->numero=numero;
          *(num-1)=':';
-         courant=ajoute_menu_ordre(&lemenu,newsgroup,objet,0);
+         courant=ajoute_menu_ordre(&lemenu,newsgroup,objet,-1+nostr,order);
 	 *(num-1)='\0';
       } else {
-         etat_loop.Newsgroup_nouveau=mygroup;
-         etat_loop.num_futur_article=numero;
-	 if ((!nostr) && (Options.use_regexp)) regfree(&reg);
-         return 1;
+         if ((nostr) || (best_order==-1) || (best_order>order)) {
+           etat_loop.Newsgroup_nouveau=mygroup;
+           etat_loop.num_futur_article=numero;
+	   best_order=order;
+	 }
+	 if (nostr) return 1;
       }
     } 
   }
   if ((!nostr) && (Options.use_regexp)) regfree(&reg);
-  if (lemenu) {
+  if ((!avec_un_menu) && (best_order!=-1)) return 1;
+  if ((avec_un_menu) && (lemenu)) {
      if (lemenu->suiv==NULL) {
 	 objet=(Flrn_Reference_swap *)(lemenu->lobjet);
          mygroup=objet->gpe;
@@ -2733,9 +2720,9 @@ void Get_option_line(char *argument)
 int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
 {
    char *gpe=gpe_tab;
-   Newsgroup_List *mygroup=Newsgroup_courant;
+   Newsgroup_List *mygroup=Newsgroup_courant, *tmpmygroup=NULL;
    regex_t reg;
-   int avec_un_menu=Options.use_menus, correct;
+   int avec_un_menu=Options.use_menus, correct, order=-1, best_order=-1;
    Liste_Menu *lemenu=NULL, *courant=NULL;
    char *tmp_name=NULL;
 
@@ -2743,7 +2730,7 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
    if (*gpe=='\0') return 1;
 
    if (Options.use_regexp) {
-      if(regcomp(&reg,gpe,REG_EXTENDED|REG_NOSUB)) {return -2;} }
+      if(regcomp(&reg,gpe,REG_EXTENDED)) {return -2;} }
 
    /* Si on a GGTO et qu'en plus on utilise les menus, on fait tout de suite */
    /* une requete...							     */
@@ -2768,69 +2755,82 @@ int change_group(Newsgroup_List **newgroup, int flags, char *gpe_tab)
        if (mygroup==NULL) break;
        if (flags & 2) tmp_name=truncate_group(mygroup->name,0); else
          tmp_name=mygroup->name;
-       correct=((Options.use_regexp && !regexec(&reg,tmp_name,0,NULL,0))
-	   || (!Options.use_regexp && strstr(tmp_name,gpe))) &&
+       correct=((Options.use_regexp && 
+                    ((order=calcul_order_re(tmp_name,&reg))!=-1))
+	   || (!Options.use_regexp && 
+	            ((order=calcul_order(tmp_name,gpe))!=-1))) &&
 	   ((flags & 1) || !(mygroup->flags & GROUP_UNSUBSCRIBED));
-       if (correct && avec_un_menu) {
-         courant=ajoute_menu_ordre(&lemenu,tmp_name,mygroup,0);
-         correct=0;
+       if (correct) {
+         if (avec_un_menu) 
+            courant=ajoute_menu_ordre(&lemenu,tmp_name,mygroup,-1,order);
+	 else 
+	   if ((best_order==-1) || (order<best_order)) {
+	      best_order=order;
+	      tmpmygroup=mygroup;
+	   }
        }
-     } while (!correct); 
+     } while (1); 
 
-     if (mygroup==NULL) mygroup=Newsgroup_deb;
+     /* mygroup=NULL */
+     mygroup=Newsgroup_deb;
      /* deuxieme passe en repartant du debut si on n'a pas trouve */
      while (mygroup!=Newsgroup_courant) {
        if (flags & 2) tmp_name=truncate_group(mygroup->name,0); else
          tmp_name=mygroup->name;
-       correct=((Options.use_regexp && !regexec(&reg,tmp_name,0,NULL,0))
-	 || (!Options.use_regexp && strstr(tmp_name,gpe))) &&
-	 ((flags & 1) || !(mygroup->flags & GROUP_UNSUBSCRIBED));
-       if (correct && avec_un_menu) {
-         courant=ajoute_menu_ordre(&lemenu,tmp_name,mygroup,0);
-         correct=0;
+       correct=((Options.use_regexp && 
+                    ((order=calcul_order_re(tmp_name,&reg))!=-1))
+	   || (!Options.use_regexp && 
+	            ((order=calcul_order(tmp_name,gpe))!=-1))) &&
+	   ((flags & 1) || !(mygroup->flags & GROUP_UNSUBSCRIBED));
+       if (correct) {
+         if (avec_un_menu) 
+           courant=ajoute_menu_ordre(&lemenu,tmp_name,mygroup,-1,order);
+	 else
+	   if ((best_order==-1) || (order<best_order)) {
+	      best_order=order;
+	      tmpmygroup=mygroup;
+	   }
        }
-       if (correct) break;
        mygroup=mygroup->next;
      }
+     /* mygroup=Newsgroup_courant */
+
      if (mygroup) {
        if (flags & 2) tmp_name=truncate_group(mygroup->name,0); else
          tmp_name=mygroup->name;
      }
-
-     if ((mygroup==Newsgroup_courant) && (!avec_un_menu) &&
-            ((mygroup==NULL) ||
-	    ((!Options.use_regexp || regexec(&reg,tmp_name,0,NULL,0))
-	    && (Options.use_regexp || !strstr(tmp_name,gpe))))) {
-       if (flags & 1) { 
-         /* on recupere la chaine minimale de la regexp */
-
-         if (Options.use_regexp) {
-	   char *mustmatch;
-	   mustmatch=reg_string(gpe,1);
-	   if (mustmatch!=NULL) {
-	     if ((mygroup=cherche_newsgroup_re(mustmatch,reg,(flags & 2)?1:0))==NULL) {
-	       free(mustmatch);
+     if (!avec_un_menu) {
+        if (tmpmygroup) mygroup=tmpmygroup;
+	else 
+        if (flags & 1) { 
+           /* on recupere la chaine minimale de la regexp */
+           if (Options.use_regexp) {
+	     char *mustmatch;
+	     mustmatch=reg_string(gpe,1);
+	     if (mustmatch!=NULL) {
+	       if ((mygroup=cherche_newsgroup_re(mustmatch,reg,(flags & 2)?1:0))==NULL) {
+	         free(mustmatch);
+	         regfree(&reg);
+	         return -2;
+	       }
+	     } else {
+	       *newgroup=mygroup;
 	       regfree(&reg);
-	       return -2;
+	       return 0;
 	     }
-	   } else {
-	     *newgroup=mygroup;
-	     regfree(&reg);
-	     return 0;
-	   }
-	   free(mustmatch);
-         } else {
-	   if ((mygroup=cherche_newsgroup(gpe,0,(flags & 2)?1:0))==NULL) {
-	     return -2;
-	   } else {
-	     *newgroup=mygroup;
-	     return 0;
-	   }
-         }
-       } else {
+	     free(mustmatch);
+           } else {
+	     if ((mygroup=cherche_newsgroup(gpe,0,(flags & 2)?1:0))==NULL) {
+	       return -2;
+	     } else {
+	       *newgroup=mygroup;
+	       return 0;
+	     }
+           }
+        } else {
 	  if (Options.use_regexp) regfree(&reg);
 	  return -2;
-       }
+        }
      }
    }
    if (lemenu) {

@@ -375,46 +375,49 @@ int chg_grp_in(Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int len
    return ret;
 }
 
+static int abon_group_not_in (Liste_Menu *courant, char *arg) {
+   Newsgroup_List *creation;
+   char *nom_groupe=(char *)(courant->lobjet);
+   char nom_int=*(courant->nom);
+
+   creation=cherche_newsgroup(nom_groupe, 1, 0);
+   if (!creation) return -2;
+   creation->flags&=~GROUP_UNSUBSCRIBED;
+   if ((Options.auto_kill) && (!in_main_list(creation->name))) {
+     creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
+     add_to_main_list(creation->name);
+   }
+   *(courant->nom)='A';
+   courant->changed=('A'!=nom_int);
+   return courant->changed;
+}
+
+
 /* Cette fonction NE DOIT PAS renvoyer -1 si on veut éviter une horreur de 
    typage */
 int chg_grp_not_in(Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int len, Cmd_return *la_commande, int *affiche) {
-   char *nom_groupe=(char *)((*courant)->lobjet);
-   Newsgroup_List *creation;
-   char **nom=&((*courant)->nom);
-   int cmd, key=0;
+   int ret,cmd;
+   Action_on_menu action=abon_group_not_in;
 
-   if (la_commande->cmd[CONTEXT_MENU]==FLCMD_UNDEF) {
-     if (la_commande->before) free(la_commande->before);
-     if (la_commande->after) free(la_commande->after);
-     cmd=la_commande->cmd[CONTEXT_COMMAND];
-   } else cmd=-1;
-
-   if (**nom=='A') return -2; 
-   	/* Tant pis... on ne peut se désabonner aussi sec */
-   creation=cherche_newsgroup(nom_groupe, 1, 0);
-   if (!creation) return -2;
-   if (cmd==-1) {
-     Cursor_gotorc(Screen_Rows-2,0);
-     Screen_erase_eol();
-     Screen_write_string(" S'(a)bonner à ce groupe  ? ");
-     key=Attend_touche();
-     key=tolower(key);
-     if (KeyBoard_Quit) key=0;
-   }
-   if ((key=='o') || (key=='a') || (cmd==FLCMD_ABON)) {
-      creation->flags&=~GROUP_UNSUBSCRIBED;
-      if ((Options.auto_kill) && (!in_main_list(creation->name))) {
-        creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
- 	add_to_main_list(creation->name);
-      }
-      **nom='A';
-      (*courant)->changed=1;
+   if (la_commande->cmd[CONTEXT_MENU]!=FLCMD_UNDEF) return -2;
+   cmd=la_commande->cmd[CONTEXT_COMMAND];
+   if (cmd==FLCMD_ABON) {
       strncpy(name,Messages[MES_ABON],len);
+      *affiche=1;
+   } else {
+      strncpy(name,Messages[MES_UNKNOWN_CMD],len);
       name[len-1]='\0';
-   } else *name=0;
-   return (*courant)->changed;
+      *affiche=1;
+      return 0;
+   }
+   ret=distribue_action_in_menu(la_commande->before, la_commande->after,
+                 debut_menu, courant, action);
+   if (la_commande->before) free(la_commande->before);
+   if (la_commande->after) free(la_commande->after);
+   name[len-1]='\0';
+   return ret;
 }
-      
+
 /* Fonctions pour Liste_groupe */
 /* en fonction du passage, et de Options.use_menus */
 /* un ajoute_elem, et un fin_passage -> 4 fonctions */
@@ -494,7 +497,7 @@ int ajoute_elem_menu (void *element, int passage) {
    strncpy(une_ligne+2,(passage<2 ? groupe->name : ligne),77);
    une_ligne[79]='\0';
    ligne=safe_strdup(une_ligne);
-   courant_liste=ajoute_menu_ordre(&menu_liste,ligne,(passage < 2 ? element : ligne+2),2);
+   courant_liste=ajoute_menu_ordre(&menu_liste,ligne,(passage < 2 ? element : ligne+2),2,0);
    if ((passage<2) && (groupe==Newsgroup_courant)) start_liste=courant_liste;
    if (start_liste==NULL) start_liste=menu_liste;
    return 0;
@@ -1565,7 +1568,7 @@ int Aff_article_courant(int to_build) {
    if ((!Article_courant->headers) ||
        (Article_courant->headers->all_headers==0) || (Last_head_cmd.Article_vu!=Article_courant)) {
         cree_header(Article_courant,1,1,0);
-        if ((!Article_courant->headers) || (Article_courant->headers->k_headers[FROM_HEADER]=NULL) || (Article_courant->headers->k_headers[SUBJECT_HEADER]==NULL)) {
+        if ((!Article_courant->headers) || (Article_courant->headers->k_headers[FROM_HEADER]==NULL) || (Article_courant->headers->k_headers[SUBJECT_HEADER]==NULL)) {
 	    Aff_place_article(1);
 	    Screen_set_color(FIELD_ERROR);
 	    Cursor_gotorc(row_erreur,col_erreur); 

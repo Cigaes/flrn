@@ -77,5 +77,7 @@ extern void test_readonly(Newsgroup_List *);
 extern void zap_group_non_courant (Newsgroup_List *);
 extern void Ligne_carac_du_groupe (void *, char *, int );
 extern void get_group_description(Newsgroup_List *);
+extern int calcul_order(char *, char *);
+extern int calcul_order_re(char *, regex_t *);
 
 #endif

@@ -520,6 +520,7 @@ Liste_Menu *ajoute_menu(Liste_Menu *base, char *nom, void *lobjet) {
     base->suiv=creation;
   creation->nom=nom;
   creation->lobjet=lobjet;
+  creation->order=0;
   return creation;
 }
 
@@ -527,20 +528,26 @@ Liste_Menu *ajoute_menu(Liste_Menu *base, char *nom, void *lobjet) {
 /* le premier élément...					     */
 /* la comparaison se fait à partir d'un éventuel décalage du nom pour*/
 /* permettre de comparer sur des champs différents (oui je sais      */
-/* c'est crade...						)    */
+/* c'est crade...						) pour -1 */
+/* on prend order 						     */
 /* On renvoie l'élément créé...					     */
 Liste_Menu *ajoute_menu_ordre(Liste_Menu **menu, char *nom, void *lobjet, int
-				decalage) {
+				decalage, int order) {
   Liste_Menu *creation, *parcours=*menu;
-  int previous=0;
+  int previous=0, by_order=(decalage==-1);
 
   while (parcours && parcours->suiv) {
-    if ((strlen(parcours->nom)<decalage) ||
-        (strcmp(parcours->nom+decalage,nom+decalage)<0)) 
-		parcours=parcours->suiv; else break;
+    if (by_order==0) {
+      if ((strlen(parcours->nom)<decalage) ||
+          (strcmp(parcours->nom+decalage,nom+decalage)<0)) 
+		  parcours=parcours->suiv; else break;
+    } else 
+      if (parcours->order<=order) parcours=parcours->suiv; else break;
   }
-  if (parcours && ((strlen(parcours->nom)<decalage) ||
+  if (by_order==0) {
+     if (parcours && ((strlen(parcours->nom)<decalage) ||
         (strcmp(parcours->nom+decalage,nom+decalage)<0))) previous=1;
+  } else if (parcours && (parcours->order<=order)) previous=1;
   /* previous=1 : on s'est arrete parce que parcours->suiv n'existait pas */
   /* mais on doit mettre nom après parcours */
   creation=safe_malloc(sizeof(Liste_Menu));
@@ -558,6 +565,7 @@ Liste_Menu *ajoute_menu_ordre(Liste_Menu **menu, char *nom, void *lobjet, int
   }
   creation->nom=nom;
   creation->lobjet=lobjet;
+  creation->order=order;
   if ((*menu==NULL) || (creation->suiv==(*menu))) *menu=creation;
   return creation;
 }
