@@ -1116,7 +1116,7 @@ static char *extract_post_references (char *str, int len_id) {
 /* Creation des headers du futur article */
 /* Flag : 0 : normal 1 : mail -1 : cancel ou supersedes */
 static int Get_base_headers(int flag, Article_List *article) {
-   int res, len1, len2=0, len3, key, i;
+   int res, len1, len2=0, len3, key, i, from_perso=0;
    char *real_name, *buf;
    string_list_type *parcours;
 
@@ -1139,6 +1139,7 @@ static int Get_base_headers(int flag, Article_List *article) {
 	{
 	   Header_post->k_header[i]=safe_malloc(513);
 	   Copy_format (NULL, buf+2, article, Header_post->k_header[i], 512);
+	   if (i==FROM_HEADER) from_perso=1;
 	}
 	else if (i==NB_KNOWN_HEADERS) {
 	   Header_List *parcours2=Header_post->autres;
@@ -1273,22 +1274,25 @@ static int Get_base_headers(int flag, Article_List *article) {
      }
    } 
    /* From */
-   real_name=safe_strdup(flrn_user->pw_gecos);
-   buf=strchr(real_name,','); if (buf) *buf='\0';
-   len1=257+strlen(flrn_user->pw_name);
-   if (Options.post_name)
-     len2=4+strlen(Options.post_name);
-   else
-     len2=4+strlen(real_name);
-   Header_post->k_header[FROM_HEADER]=safe_malloc((len1+len2)*sizeof(char));
-   Get_user_address(Header_post->k_header[FROM_HEADER]);
-   strcat(Header_post->k_header[FROM_HEADER]," (");
-   if (Options.post_name) 
-     strcat(Header_post->k_header[FROM_HEADER], Options.post_name);
-   else 
-     strcat(Header_post->k_header[FROM_HEADER], real_name);
-   strcat(Header_post->k_header[FROM_HEADER],")");
-   free(real_name);
+   if (from_perso==0)
+   {
+     real_name=safe_strdup(flrn_user->pw_gecos);
+     buf=strchr(real_name,','); if (buf) *buf='\0';
+     len1=257+strlen(flrn_user->pw_name);
+     if (Options.post_name)
+       len2=4+strlen(Options.post_name);
+     else
+       len2=4+strlen(real_name);
+     Header_post->k_header[FROM_HEADER]=safe_malloc((len1+len2)*sizeof(char));
+     Get_user_address(Header_post->k_header[FROM_HEADER]);
+     strcat(Header_post->k_header[FROM_HEADER]," (");
+     if (Options.post_name) 
+       strcat(Header_post->k_header[FROM_HEADER], Options.post_name);
+     else 
+       strcat(Header_post->k_header[FROM_HEADER], real_name);
+     strcat(Header_post->k_header[FROM_HEADER],")");
+     free(real_name);
+   }
    return 0;
 }
 

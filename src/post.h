@@ -17,7 +17,7 @@ typedef struct Flrn_post_headers {
    Header_List *autres;
 } Post_Headers;
 
-#define is_modifiable(i) ((i>NEWSGROUPS_HEADER) && (i!=TO_HEADER))
+#define is_modifiable(i) (((i==0) || (i>NEWSGROUPS_HEADER)) && (i!=TO_HEADER) && (i!=SENDER_HEADER))
 
 /* Les fonctions */
 

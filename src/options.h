@@ -54,7 +54,7 @@ struct _Optcmd {
 
 #endif
 
-#define MAX_HEADER_LIST 20
+#define MAX_HEADER_LIST 31
 extern Known_Headers unknown_Headers[MAX_HEADER_LIST];
 	/* on va les reperer en négatif de -2 à -MAX_HEADER_LIST-1 */
 
