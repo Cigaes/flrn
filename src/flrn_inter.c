@@ -704,8 +704,10 @@ static void Parse_nums_article(char *str, char **sortie, int flags) {
 	courant->flags=0;
      }
    }
-   if (!reussi) 
+   if (!reussi) {
+     if (ptr2) *ptr2=',';
      courant->flags=0;
+   }
    *sortie=ptr;
 }
 
