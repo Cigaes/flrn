@@ -153,7 +153,7 @@ int parse_option_color(int func, char *line)
       if (strstr(buf,flags_names[i])) new_pat->flags |= 1<<i; 
     }
     if ((buf2=strpbrk(buf,"0123456789"))) {
-      new_pat->pat_num = strtol(buf2,NULL,0);
+      new_pat->pat_num = strtol(buf2,NULL,10);
       if (new_pat->pat_num >= REG_MAX_SUB) { free(new_pat); return -3; }
     } else new_pat->pat_num=0;
     buf = strtok(NULL,delim);

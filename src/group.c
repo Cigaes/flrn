@@ -155,8 +155,9 @@ static Newsgroup_List *un_nouveau_newsgroup (char *la_ligne)
     }
     creation=add_group(&actuel);
     strncpy(creation->name, la_ligne, MAX_NEWSGROUP_LEN);
-    creation->max = strtol(buf, &buf, 0);
-    creation->min = strtol(buf, &buf, 0);
+    creation->max = strtol(buf, &buf, 10); /* Beuh !!!!, parfois ça commence */
+    					   /* par 0 !!!!!		     */
+    creation->min = strtol(buf, &buf, 10); 
     creation->read= NULL;
     creation->description= NULL;
     creation->flags=GROUP_UNSUBSCRIBED | GROUP_NEW_GROUP_FLAG;
@@ -561,8 +562,8 @@ int NoArt_non_lus(Newsgroup_List *group) {
    buf=strchr(tcp_line_read,' ');
    /* SURTOUT ne pas changer group->max et group->min si le groupe est déjà */
    /* connu : ça fait planter les changement de groupes qui suivent...	    */
-   max=strtol(buf,&buf,0);
-   min=strtol(buf,&buf,0);
+   max=strtol(buf,&buf,10);
+   min=strtol(buf,&buf,10);
    if (group->Article_deb==NULL) {
      group->max=max;
      group->min=min;
@@ -617,8 +618,8 @@ void test_readonly(Newsgroup_List *groupe) {
    }
    /* Normalement, une ligne de lecture suffit amplement */
    buf=strchr(tcp_line_read,' ');
-   strtol(buf,&buf,0);
-   strtol(buf,&buf,0);
+   strtol(buf,&buf,10);
+   strtol(buf,&buf,10);
    while (*buf && (isblank(*buf))) buf++;
 /* TODO : améliorer ce test */
    switch (*buf) {

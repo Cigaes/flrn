@@ -376,9 +376,9 @@ int cree_liste(int art_num, int *part) {
 		  }
    if (code==411) { if (debug) fprintf(stderr, "Newsgroup invalide !\n"); 
        return -2; }
-   strtol(buf, &buf, 0);
-   min=strtol(buf, &buf, 0);
-   max=strtol(buf, &buf, 0);
+   strtol(buf, &buf, 10);
+   min=strtol(buf, &buf, 10);
+   max=strtol(buf, &buf, 10);
 
    if (Newsgroup_courant->Article_deb) {
      Article_deb=Newsgroup_courant->Article_deb;

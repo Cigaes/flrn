@@ -432,10 +432,10 @@ Article_List *ajoute_message (char *msgid, int exte, int *should_retry) {
    res=write_command(CMD_STAT, 1, &msgid);
    if (res<1) return NULL;
    res=read_server(tcp_line_read,3, MAX_READ_SIZE-1);
-   code=strtol(tcp_line_read, &buf, 0);
+   code=strtol(tcp_line_read, &buf, 10);
    if (code>400) return NULL;
    creation=safe_calloc(1,sizeof(Article_List));
-   if (exte) creation->numero=-1; else creation->numero=strtol(buf,NULL,0);
+   if (exte) creation->numero=-1; else creation->numero=strtol(buf,NULL,10);
    creation->msgid=safe_strdup(msgid);
    creation->headers=cree_header(creation, 0, 1);
    if (creation->headers==NULL) {
@@ -528,7 +528,7 @@ Article_List *ajoute_message_par_num (int min, int max) {
      res=write_command(CMD_STAT, 1, &buf2);
      if (res<1) return NULL;
      res=read_server(tcp_line_read,3, MAX_READ_SIZE-1);
-     code=strtol(tcp_line_read, &buf, 0);
+     code=strtol(tcp_line_read, &buf, 10);
      if ((code>200) && (code<300)) break;
    }
    free(buf2);
