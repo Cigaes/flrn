@@ -86,7 +86,6 @@ struct Option_struct {
   int  space_is_return;
   int  inexistant_arrow;
   int  edit_all_headers;
-  int  simple_post;
   int  include_in_edit;
   int  date_in_summary;
   int  duplicate_subject;
@@ -204,7 +203,6 @@ static struct {
   MAKE_OPT(scroll_after_end,"Modifie le comportement final du scrolling."),
   MAKE_STRING_OPT_NAME_L(server,serveur_name,"Nom du serveur de news."),
   MAKE_OPT(short_errors,"flrn n'affiche les erreurs en bas qu'une seconde."),
-  MAKE_OPT(simple_post,"Tente de faciliter le posts des messages."),
   MAKE_INTEGER_OPT(skip_line,"Nombre de lignes blanches après la barre de statut."),
   MAKE_OPT(space_is_return,"Cette option définie, la commande \\next ne permet pas de changer de groupe."),
   MAKE_OPT(smart_quote,"Permet de faire un quote \"intelligent\"."),

@@ -27,7 +27,6 @@ struct Option_struct Options = {
   0,			/* space_is_return */
   0,			/* cool_arrows, inversé ! */
   0,			/* edit_all_headers */
-  1,			/* simple_post */
   0,			/* include_in_edit */
   1,			/* date_in_summary */
   0,			/* duplicate_subject */

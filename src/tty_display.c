@@ -794,6 +794,7 @@ int Aff_arbre (int row, int col, Article_List *init,
 	   c=cl-2; r=rw-1;
 	   if (((table[rw])[cl-1]==SYMB_SLASH) || (parcours2->frere_prev==NULL))
 	                         remonte=2; /* obligatoire */
+	   else
 	   if ((c<0) || ((table[rw])[c]!=' ')) remonte=1; 
 	   else {
 	     while ((r>0) && 
