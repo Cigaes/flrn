@@ -41,6 +41,9 @@
 #ifdef WITH_CHARACTER_SETS
 #include "rfc2045.h"
 #endif
+#ifdef USE_SLANG_LANGUAGE
+#include "slang_flrn.h"
+#endif
 
 
 /* place des objets de la barre */
@@ -169,6 +172,10 @@ int Init_screen(int stupid_term) {
    Init_couleurs();
    screen_inited=1;
 
+#ifdef USE_SLANG_LANGUAGE
+   change_SLang_Error_Hook(1);
+#endif
+
    /*SL*/signal(SIGWINCH, sig_winch);
     
    return Size_Window(1,5);
@@ -180,6 +187,11 @@ void Reset_screen() {
     free(table_petit_arbre[res]);
   free(table_petit_arbre);
   screen_inited=0;
+
+#ifdef USE_SLANG_LANGUAGE
+  change_SLang_Error_Hook(0);
+#endif
+
   Screen_reset();
 }
 

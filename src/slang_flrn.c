@@ -18,6 +18,8 @@
 
 #include "art_group.h"
 #include "group.h"
+#include "tty_display.h"
+#include "tty_keyboard.h"
 
 int flrn_SLang_inited=0;
 
@@ -99,6 +101,31 @@ SLang_Intrin_Fun_Type flrn_Intrin_Fun [] =
    SLANG_END_TABLE
 };
 
+/***************** Les "hooks" : error_SLang_hook ***************/
+/***************** et vmessage_SLang_hook ***********************/
+/* TODO : à faire mieux...					*/
+
+/* cette fonction est *temporaire* et ne devrait pas être utilisée */
+void vmessage_SLang_Hook (char *fmt, va_list ap)
+{
+   char buf[200];
+   /* on "triche", en prenant des risques... avec vsprintf... */
+   vsprintf(buf, fmt, ap);
+   Aff_error(buf);
+   Aff_fin("Appuyez sur une touche...");
+   Attend_touche();
+}
+
+/* cette fonction est aussi plus ou moins temporaire, mais elle */
+/* fait plus ou moins ce que je pense être le mieux...          */
+void error_SLang_Hook (char *str)
+{
+   Aff_error(str);
+   Aff_fin("Appuyez sur une touche...");
+   Attend_touche();
+}
+    
+
 /***************** Les fonctions de bases ***************/
 
 /* initialisation des fonctions de SLang. retour : -1 si erreur */
@@ -165,8 +192,8 @@ int flrn_init_SLang(void) {
 /* retour de -1 si erreur */
 /* ATTENTION : la chaîne *result ne doit pas être modifiée et doit être 
  * libérée avec un appel à SLang_free_slstring */
-int source_SLang_string(char *str, char **result) {
-
+int source_SLang_string(char *str, char **result)
+{
    flrn_SLang_article_courant.article=Article_courant;
    flrn_SLang_article_courant.groupe=Newsgroup_courant;
    flrn_SLang_newsgroup_courant=Newsgroup_courant;
@@ -184,12 +211,33 @@ int source_SLang_string(char *str, char **result) {
 /* retour de -1 si erreur */
 int source_SLang_file (char *str) 
 {
+/* comme il s'agit d'une lecture d'options, en aucun cas cela ne doit faire
+ * une véritable commande... */
+   flrn_SLang_article_courant.article=NULL;
+   flrn_SLang_article_courant.groupe=NULL;
+   flrn_SLang_newsgroup_courant=NULL;
    if (-1 == SLang_load_file(str)) {
       SLang_restart(1);
       SLang_Error = 0;
       return -1;
    }
    return 0;
+}
+
+/* change SLang_Error_Hook selon ce qu'on cherche : si paramètre=1, on passe
+ * en mode slang et le message d'erreur est proche d'un message d'erreur
+ * de flrn. Si paramètre=0, on quitte le mode graphique, et SLang_Error_Hook
+ * devient NULL, ce qui correspond à une écriture classique sur stderr.
+ * Ce programme change aussi SLang_VMessage_Hook */
+void change_SLang_Error_Hook (int param)
+{
+   if (param) {
+      SLang_Error_Hook = &error_SLang_Hook;
+      SLang_VMessage_Hook = &vmessage_SLang_Hook;
+   } else {
+      SLang_Error_Hook = NULL;
+      SLang_VMessage_Hook = NULL;
+   }
 }
 
 #endif

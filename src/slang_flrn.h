@@ -19,6 +19,7 @@ extern int flrn_SLang_inited;
 
 extern int flrn_init_SLang(void);
 extern int source_SLang_string(char *, char **);
+extern void change_SLang_Error_Hook(int);
 
 #endif
 
