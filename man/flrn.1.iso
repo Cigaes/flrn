@@ -12,8 +12,9 @@ changement entre deux versions, et il n'est pas exempt de bugs.
 [\fB-d|--debug\fR]
 [\fB-c|--co\fR]
 [\fB-n|--name <name>\fR]
-[\fB-s|--show-config\fR]
+[\fB-s|--server <server>[:<port>]\fR]
 [\fB--stupid-term\fR]
+[\fB--show-config\fR]
 
 .B flrn
 \fB<nom>\fR
@@ -51,6 +52,10 @@ L'option \fB-h\fR affiche la liste des options reconnues.
 .IP \fB-v\fR
 Affiche le numéro de version.
 .IP \fB-s\fR
+Impose (contre un éventuel fichier de configuration) le serveur utilisé,
+et le port du serveur. Dans le cas où le port n'est pas précisé, il est
+fixé (là encore contre un éventuel fichier de configuration) à 119.
+.IP \fB--show-config\fR
 Donne un fichier de configuration contenant les valeurs par défaut de toutes
 les variables. Cette option devrait disparaître.
 .IP \fB--stupid-term\fR

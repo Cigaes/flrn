@@ -39,7 +39,7 @@ char *name_program;
 
 void Usage(char *argv[])
 {
-  printf("Utilisation : %s [-d] [-c] [-v] [-s] [--stupid-term] [-n name] [<newsgroup>]\n",argv[0]);
+  printf("Utilisation : %s [-d] [-c] [-v] [-s server[:port]] [--show-config] [--stupid-term] [-n name] [<newsgroup>]\n",argv[0]);
 }
 
 void Help(char *argv[])
@@ -48,9 +48,10 @@ void Help(char *argv[])
   printf(
 " -d|--debug  : affiche plein d'informations sur la sortie d'erreur\n"
 " -c|--co     : donne les nouveaux newsgroups, et le nombre d'articles non lus\n"
+" -s|--server : impose le nom du serveur (et éventuellement le port)\n"
 " --stupid-term : cette option activee, le terminal ne defile jamais\n"
 " -n|--name   : change le nom d'appel\n"
-" -s|--show-config : donne un .flrn avec les valeurs par defaut.\n"
+" --show-config : donne un .flrn avec les valeurs par defaut.\n"
 " -v|--version: donne la version et quitte\n"
 " -h|--help   : affiche ce message\n\n%s\n",version_string);
 }
@@ -60,7 +61,7 @@ int main(int argc, char *argv[])
   int code, res=0, res_opt_c=0;
   int opt_c=0;
   int i;
-  char *newsgroup=NULL;
+  char *newsgroup=NULL, *serveur_impose=NULL, *buf;
 
   debug=0; with_direc=-1;
   name_program=strrchr(argv[0],'/');
@@ -92,8 +93,13 @@ int main(int argc, char *argv[])
     if (strcmp(argv[i],"--stupid-term")==0) { stupid_terminal=1; continue; }
     if ((strncmp(argv[i],"-h",2)==0)||(strcmp(argv[i],"--help")==0))
     {Help(argv); exit(0);}
-    if ((strncmp(argv[i],"-s",2)==0)||(strcmp(argv[i],"--show-config")==0))
+    if (strcmp(argv[i],"--show-config")==0)
     {dump_variables(stdout); exit(0);}
+    if ((strncmp(argv[i],"-s",2)==0)||(strcmp(argv[i],"--server")==0)) {
+      if ((i+1!=argc) && (*(argv[i+1])!='-'))
+        serveur_impose=argv[++i];  
+      continue;
+    }
     if (argv[i][0]!='-') { newsgroup=argv[i]; continue; }
     printf("Option non reconnue :%s\n",argv[i]);
     Usage(argv);
@@ -113,6 +119,18 @@ int main(int argc, char *argv[])
   init_Flcmd_pager_rev();
   init_Flcmd_menu_rev();
   init_options();
+  if (serveur_impose) {
+     Options.serveur_name=safe_strdup(serveur_impose);
+     buf=strrchr(Options.serveur_name,':');
+     Options.port=DEFAULT_NNTP_PORT;
+     if (buf) {
+        *(buf++)='\0';
+	Options.port=atoi(buf);
+     }
+     fprintf(stdout,"Serveur : %s    port : %i\n",Options.serveur_name,
+        Options.port);
+     sleep(1);
+  }
   init_kill_file();
   if (debug) fprintf(stderr,"Serveur : %s\n",Options.serveur_name);
   code=connect_server(Options.serveur_name, 0);
