@@ -177,13 +177,13 @@ int aff_ligne_binding(int ch, int contexte, char *ligne, int len) {
    buf=ligne+12;
    /* cas des spécials */
    switch (ch) {
-      case '\\' : strncpy(buf,  _("touche de commande explicite"), len-13);
+      case '\\' : strncpy(buf,  "touche de commande explicite", len-13);
       		  return -3;
-      case '@' : strncpy(buf, _("touche de commande nocbreak"), len-13);
+      case '@' : strncpy(buf, "touche de commande nocbreak", len-13);
       		 return -3;
    }
    if ((ch<256) && (strchr(DENIED_CHARS,ch)) && (ch!='-')) {
-       strncpy(buf, _("touche de préfixe de commande"), len-13);
+       strncpy(buf, "touche de préfixe de commande", len-13);
        return -3;
    }
    i=(contexte==-1 ? 0 : contexte);

@@ -41,7 +41,7 @@ void *__safe_malloc(size_t s, char *f, char *fi, int l) {
    void *res;
    if (s==0) return NULL;
    if ((res=malloc(s))==NULL) {
-      fprintf(stderr, _("Mémoire insuffisante !\n"));
+      fprintf(stderr, "Not enough memory!\n");
       exit(-1);
    } else {
 #ifdef DEBUG_MALLOC
@@ -62,7 +62,7 @@ void *__safe_calloc(size_t s, size_t t, char *f, char *fi, int l)
    void *res;
    if (s==0) return NULL;
    if ((res=calloc(s,t))==NULL) {
-      fprintf(stderr, _("Mémoire insuffisante !\n"));
+      fprintf(stderr, "Not enough memory!\n");
       exit(-1);
    } else {
 #ifdef DEBUG_MALLOC
@@ -87,7 +87,7 @@ void *__safe_realloc(void *ptr, size_t s,
    }
    if (ptr==NULL) return safe_malloc(s); else
      if ((res=realloc(ptr,s))==NULL) {
-        fprintf(stderr, _("Mémoire insuffisante !\n"));
+        fprintf(stderr, "Not enough memory!\n");
 	exit(-1);
      } else {
 #ifdef DEBUG_MALLOC
