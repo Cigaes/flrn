@@ -2076,7 +2076,7 @@ int do_save(int res) {
   }
   if (name[0]!='/' && (Options.savepath[0]!='\0')) {
     /* on n'a pas un path complet */
-    char *fullname=safe_malloc(strlen(name)+strlen(Options.savepath)+1);
+    char *fullname=safe_malloc(strlen(name)+strlen(Options.savepath)+2);
     strcpy(fullname,Options.savepath);
     strcat(fullname,"/");
     strcat(fullname,name);
