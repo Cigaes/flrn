@@ -15,6 +15,7 @@
 
 #include "pathdef.h"
 #include "config.h"
+#include "enc/enc_base.h"
 
 /* L'utilisateur peut modifier la valeurs qui suivent jusqu'au
    "-- ne rien modifier ensuite --" */
@@ -88,7 +89,7 @@
 /* Cette option supprime l'éditeur interne de flrn... Elle pose problème
  * si l'utilisateur ne réussit pas à définir un bon éditeur. Bien entendu
  * l'option auto_edit est alors supprimée. */
-#undef NO_INTERN_EDITOR
+#define NO_INTERN_EDITOR 1
 
 /* Répertoire où chercher les fichiers de config chez l'utilisateur */
 #define DEFAULT_DIR_FILE        ".flrn"
@@ -215,15 +216,16 @@ extern int do_art_msgid(int);
 /* completions */
 #include "flrn_comp.h"
 
-extern int options_comp(char * /*option*/, int /*len*/, Liste_Chaine *);
-extern int keybindings_comp(char *, int, Liste_Chaine *);
-extern int flags_comp(char *, int, Liste_Chaine *);
-extern int header_comp(char *, int, Liste_Chaine *);
-extern int flag_header_comp(char *, int, Liste_Chaine *);
+extern int options_comp(flrn_char * /*option*/, size_t, Liste_Chaine *);
+extern int keybindings_comp(flrn_char *, size_t, Liste_Chaine *);
+extern int flags_comp(flrn_char *, size_t, Liste_Chaine *);
+extern int header_comp(flrn_char *, size_t, Liste_Chaine *);
+extern int flag_header_comp(flrn_char *, size_t, Liste_Chaine *);
 
 
 /* ATTENTION : MAX_FL_KEY DOIT ÊTRE UN BIT SEULEMENT */
 #define MAX_FL_KEY 0x1000 
+#define MAX_ASSOC_TAB 0xFF
 
 #include "flrn_inter.h"
 
@@ -368,7 +370,7 @@ Flcmd Flcmds[NB_FLCMD] = {
 struct cmd_predef {
   int key;
   int cmd;
-  char *args;
+  flrn_char *args;
   int add;
 } Cmd_Def_Plus[] = {
   { 'b', FLCMD_LEFT, NULL, 0 },
@@ -379,8 +381,8 @@ struct cmd_predef {
   { ']', FLCMD_RIGHT, NULL, 0 },
   { '(', FLCMD_UP, NULL, 0 },
   { ')', FLCMD_DOWN, NULL, 0 },
-  { 2  , FLCMD_PIPE, "urlview", 0 },
-  { '+', FLCMD_SELECT, "1-,unread", 0 },
+  { 2  , FLCMD_PIPE, fl_static("urlview"), 0 },
+  { '+', FLCMD_SELECT, fl_static("1-,unread"), 0 },
 };
 
 #else

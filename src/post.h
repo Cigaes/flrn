@@ -15,22 +15,24 @@
 
 #include "flrn_string.h"
 #include "art_group.h"
+#include "enc/enc_base.h"
 
 #define MAX_SUJET_LEN		70
 #define MAX_NB_REF		6
 
 typedef struct Flrn_post_headers {
-   char *k_header[NB_KNOWN_HEADERS];
+   flrn_char *k_header[NB_DECODED_HEADERS];
+   char *k_raw_header[NB_RAW_HEADERS];
    Header_List *autres;
 } Post_Headers;
 
-#define is_modifiable(i) (((i==0) || (i>NEWSGROUPS_HEADER)) && (i!=TO_HEADER) && (i!=SENDER_HEADER))
+#define is_modifiable(i) (((i==FOLLOWUP_TO_HEADER) || (i==EXPIRES_HEADER) || (i>=NB_UTF8_HEADERS)) && (i!=TO_HEADER) && (i!=SENDER_HEADER) && (i!=SUBJECT_HEADER))
 
 /* Les fonctions */
 
-extern void Get_user_address(char * /*str*/);
+extern void Get_user_address(flrn_char * /*str*/);
 extern int cancel_message (Article_List * /*origine*/, int /*confirm*/);
-extern int post_message (Article_List * /*origine*/, char * /*name_file*/,
+extern int post_message (Article_List * /*origine*/, flrn_char * /*name_file*/,
     int /*flag*/);
 
 #endif

@@ -16,15 +16,20 @@
 /* Les fonctions */
 
 #include <stdio.h>
+#include "enc/enc_base.h"
 #include "art_group.h"
 
-extern time_t parse_date(char * /*s*/);
-extern char *vrai_nom(char * /*nom*/);
-extern char *local_date (char * /*date*/);
-extern int str_estime_len (char *, int , int );
-extern int to_make_len (char *, int , int );
-extern void Copy_format (FILE * /*tmp_file*/, char * /*chaine*/,
-    Article_List * /*article*/, char *, int);
-extern void ajoute_parsed_from (char *, char *, char *);
+extern time_t parse_date(flrn_char * /*s*/);
+extern flrn_char *vrai_nom(flrn_char * /*nom*/);
+extern int str_estime_width (char *, int , size_t );
+extern size_t to_make_width (char *, int , int *, int );
+extern size_t to_make_width_convert (flrn_char *, int , int *, int );
+extern int format_flstring (char *,flrn_char *, int, size_t, int);
+extern int format_flstring_from_right (char *,flrn_char *, int, size_t, int);
+extern void Copy_format (FILE * /*tmp_file*/, flrn_char * /*chaine*/,
+    Article_List * /*article*/, flrn_char *, size_t);
+extern flrn_char * Prepare_summary_line(Article_List * ,
+	    flrn_char * , int , flrn_char * , size_t , int , int, int, int);
+extern void ajoute_parsed_from (flrn_char *, flrn_char *, flrn_char *);
 
 #endif

@@ -21,6 +21,9 @@
 /* Define if you have the gethostname function.  */
 #undef HAVE_GETHOSTNAME
 
+/* Define if you have the iconv function.  */
+#undef HAVE_ICONV
+
 /* Define if you have the inet_aton function.  */
 #undef HAVE_INET_ATON
 
@@ -65,6 +68,12 @@
 
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
+
+/* Define if you have the <wchar.h> header file.  */
+#undef HAVE_WCHAR_H
+
+/* Define if you have the iconv library (-liconv).  */
+#undef HAVE_LIBICONV
 
 /* Define if you have the nsl library (-lnsl).  */
 #undef HAVE_LIBNSL

@@ -13,8 +13,10 @@
 #ifndef FLRN_FLRN_REGEXP_H
 #define FLRN_FLRN_REGEXP_H
 
+#include "enc/enc_base.h"
+
 /* les fonctions */
 
-extern char * reg_string (char * /*pattern*/, int /*flag*/);
+extern flrn_char * reg_string (flrn_char * /*pattern*/, int /*flag*/);
 
 #endif

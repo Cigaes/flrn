@@ -42,14 +42,13 @@ struct Option_struct Options = {
 #endif
   0,			/* forum_mode */
   0,			/* space_is_return */
-  0,			/* cool_arrows, inversé (0 : activé, 1 : désactivé)  */
   0,			/* edit_all_headers (1 conseillé) */
   0,			/* include_in_edit */
   1,			/* date_in_summary */
   0,			/* duplicate_subject */
   1,			/* use_mailbox */
   1,			/* ordered_summary */
-  1,			/* threaded_space */
+  1,			/* threaded_next */
 #ifndef NO_INTERN_EDITOR
   0,			/* auto_edit */
 #endif
@@ -67,7 +66,7 @@ struct Option_struct Options = {
   0,			/* zap_change_group */
   0,			/* scroll_after_end */
   "%n, dans son post %i, a écrit :",	/* attribution */
-  0,			/* alpha_tree */
+  0,			/* small_tree */
   ".flrnkill",		/* kill_file_name */
   1,			/* auto_kill */
   "",			/* savepath */
@@ -84,9 +83,10 @@ struct Option_struct Options = {
   NULL,			/* sign_file */
   0,			/* quote_all */
   0,			/* quote_sig */
-#ifdef WITH_CHARACTER_SETS
-  NULL,                 /* character_set */
-#endif
+  NULL,                 /* terminal_charset */
+  NULL,                 /* editor_charset */
+  NULL,		 	/* post_charsets */
+  NULL,			/* files_charset */
 #ifndef DOMAIN
   NULL,                  /* default_domain */
 #endif

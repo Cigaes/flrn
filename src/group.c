@@ -30,6 +30,7 @@
 #include "flrn_files.h"
 #include "tty_display.h"
 #include "flrn_filter.h"
+#include "enc/enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 
@@ -98,16 +99,26 @@ void init_groups() {
    char *buf, *deb, *ptr;
    char name[MAX_PATH_LEN];
    int size_buf=1024;
+   int rc;
+   char *trad;
+   flrn_char *name2;
    
    Newsgroup_courant=Newsgroup_deb=NULL;
    strcpy(name,DEFAULT_FLNEWS_FILE);
-   if (Options.flnews_ext) strcat(name,Options.flnews_ext);
+   if (Options.flnews_ext) {
+       rc=conversion_to_file(Options.flnews_ext,&trad,0,(size_t)(-1));
+       strcat(name,trad);
+       if (rc==0) free(trad);
+   }
    flnews_file = open_flrnfile(name,"r",Options.default_flnewsfile ? 0 : 1,&Last_check);
 
    if (flnews_file==NULL) {
      if (Options.default_flnewsfile) {
-        flnews_file=open_flrnfile(Options.default_flnewsfile,"r",0,NULL);
-	if (flnews_file) Last_check=time(NULL); else return;
+	 rc=conversion_to_file(Options.default_flnewsfile,
+		 &trad,0,(size_t)(-1));
+         flnews_file=open_flrnfile(trad,"r",0,NULL);
+	 if (rc==0) free(trad);
+	 if (flnews_file) Last_check=time(NULL); else return;
      } else return;
    }
    buf=deb=safe_malloc(size_buf*sizeof(char));
@@ -132,6 +143,7 @@ void init_groups() {
       if (deb) *(deb++)='\0';
       if (strlen(ptr)>MAX_NEWSGROUP_LEN)
             { fprintf(stderr,"Nom du newsgroup %s dans le .flnewsrc trop long !!! \n",ptr);
+		/* FIXME : francais */
 	      deb=buf;
 	      sleep(1);
 	      continue; }
@@ -143,11 +155,14 @@ void init_groups() {
 	  continue;
       }
       creation = add_group(&Newsgroup_courant);
-      strncpy(creation->name, ptr, strlen(ptr)-1);
+      name2=&(creation->name[0]);
+      conversion_from_utf8(ptr,&name2,
+	      MAX_NEWSGROUP_LEN,strlen(ptr)-1);
+/*      if (name2!=&(creation->name[0])) fl_strncpy(&(creation->name[0]),
+	      name2,MAX_NEWSGROUP_LEN);  */
       creation->flags=(ptr[strlen(ptr)-1]==':' ? 0 : GROUP_UNSUBSCRIBED);
       if (in_main_list(creation->name)) 
         creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
-      creation->name[strlen(ptr)-1]='\0';
       creation->min=1;
       creation->max=0;
       creation->not_read=-1;
@@ -170,6 +185,8 @@ static Newsgroup_List *un_nouveau_newsgroup (char *la_ligne)
     Newsgroup_List *actuel;
     Newsgroup_List *creation;
     char *buf;
+    int rc;
+    flrn_char *lenom;
 
     buf=strchr(la_ligne,' ');
     if (buf) *(buf++)='\0'; else {
@@ -179,17 +196,25 @@ static Newsgroup_List *un_nouveau_newsgroup (char *la_ligne)
        buf=NULL;
     }
 
+    rc=conversion_from_utf8(la_ligne,&lenom,0,(size_t)(-1));
 
     actuel=Newsgroup_deb;
     if (actuel) {
       while (actuel->next) {
-	if (strcmp(la_ligne,actuel->name)==0) return actuel;
+	if (fl_strcmp(lenom,actuel->name)==0) {
+	    if (rc==0) free(lenom);
+	    return actuel;
+	}
 	actuel=actuel->next;
       }
-      if (strcmp(la_ligne,actuel->name)==0) return actuel;
+      if (strcmp(la_ligne,actuel->name)==0) {
+	  if (rc==0) free(lenom);
+	  return actuel;
+      }
     }
     creation=add_group(&actuel);
-    strncpy(creation->name, la_ligne, MAX_NEWSGROUP_LEN);
+    fl_strncpy(creation->name, lenom, MAX_NEWSGROUP_LEN);
+    if (rc==0) free(lenom);
     if (buf) {
       creation->max = strtol(buf, &buf, 10); 
       creation->min = strtol(buf, &buf, 10); 
@@ -271,10 +296,11 @@ void new_groups(int opt_c) {
    if (tcp_line_read[1]=='\r') return; /* a priori, on a lu ".\r\n" */
 
    if (Options.auto_subscribe) {
-     if (regcomp(&goodreg,Options.auto_subscribe,REG_EXTENDED|REG_NOSUB))
+     if (fl_regcomp(&goodreg,Options.auto_subscribe,REG_EXTENDED|REG_NOSUB))
      {
        char buf[1024];
-       regerror(regcomp(&goodreg,Options.auto_subscribe,REG_EXTENDED|REG_NOSUB),
+       regerror(fl_regcomp
+	       (&goodreg,Options.auto_subscribe,REG_EXTENDED|REG_NOSUB),
 	   &goodreg,buf,1024);
        if (debug) fprintf(stderr,"Goodreg : %s\n",buf);
        return;
@@ -285,7 +311,8 @@ void new_groups(int opt_c) {
      if (regcomp(&badreg,Options.auto_ignore,REG_EXTENDED|REG_NOSUB)) {
        char buf[1024];
        if (Options.auto_subscribe) regfree(&goodreg);
-       regerror(regcomp(&badreg,Options.auto_ignore,REG_EXTENDED|REG_NOSUB),
+       regerror(fl_regcomp
+	       (&badreg,Options.auto_ignore,REG_EXTENDED|REG_NOSUB),
 	   &badreg,buf,1024);
        if (debug) fprintf(stderr,"Badreg : %s\n",buf);
        return;
@@ -294,11 +321,10 @@ void new_groups(int opt_c) {
 
    /* on vire les flags GROUP_NEW_GROUP_FLAG */
    Newsgroup_courant=Newsgroup_deb;
-   if (Newsgroup_courant!=NULL)
-     while (Newsgroup_courant->next) {
+   while (Newsgroup_courant) {
      Newsgroup_courant->flags &= ~GROUP_NEW_GROUP_FLAG;
      Newsgroup_courant=Newsgroup_courant->next;
-     }
+   }
 
    do {
       if (res<1) {
@@ -311,17 +337,16 @@ void new_groups(int opt_c) {
       /* On parcourt à chaque fois l'ensemble des newsgroup pour vérifier */
       /* qu'on ne recrée pas un newsgroup.				  */
       creation=un_nouveau_newsgroup(tcp_line_read);
-      if (!(creation->flags & GROUP_NEW_GROUP_FLAG)) {
+      if ((creation->flags & GROUP_NEW_GROUP_FLAG)==0) {
 	res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
 	continue;
       }
       Newsgroup_courant=creation;
-      creation->flags=GROUP_NEW_GROUP_FLAG;
       good=bad=0;
       if(Options.auto_ignore)
-        bad=(regexec(&badreg,creation->name,0,NULL,0)==0)?1:0;
+        bad=(fl_regexec(&badreg,creation->name,0,NULL,0)==0)?1:0;
       if(Options.auto_subscribe)
-        good=(regexec(&goodreg,creation->name,0,NULL,0)==0)?1:0;
+        good=(fl_regexec(&goodreg,creation->name,0,NULL,0)==0)?1:0;
       creation->flags |=
 	(!Options.default_subscribe && !good)?GROUP_UNSUBSCRIBED:0;
       if (Options.subscribe_first)
@@ -334,13 +359,17 @@ void new_groups(int opt_c) {
 	creation->flags|=GROUP_IN_MAIN_LIST_FLAG;
       }
       if ((opt_c) || (Options.warn_if_new && (wait_for_key!=-1))) {
+	  /* FIXME : francais, et conversion vers terminal */
           fprintf(stdout, "Nouveau groupe : %s ", creation->name); 
 	  if (opt_c==0) {
 	     if (creation->flags & GROUP_UNSUBSCRIBED) 
+	  /* FIXME : francais */
 	        fputs("Non abonné",stdout);
 	     else
 	     if (creation->flags & GROUP_IN_MAIN_LIST_FLAG) 
+	  /* FIXME : francais */
 	        fputs("Abonné, dans le kill-file",stdout);
+	  /* FIXME : francais */
 	     else fputs("Abonné",stdout);
 	     wait_for_key=1;
 	  }
@@ -351,6 +380,7 @@ void new_groups(int opt_c) {
    if (Options.auto_subscribe) regfree(&goodreg);
    if (Options.auto_ignore) regfree(&badreg);
    if (wait_for_key==1) {
+	  /* FIXME : francais */
       fputs("Appuyez sur entree pour continuer...\n",stdout);
       getc(stdin); /* A priori, ça pose pas de problèmes */
    }
@@ -368,14 +398,22 @@ int save_groups() {
    int first=1;
    char name[MAX_PATH_LEN];
    int name_written, failed=0;
+   int rc;
+   char *trad;
    
    if (debug) fprintf(stderr, "Sauvegarde du .flnewsrc\n");
+   memset(name,0,MAX_PATH_LEN);
    strcpy(name,DEFAULT_FLNEWS_FILE);
-   if (Options.flnews_ext) strcat(name,Options.flnews_ext);
+   if (Options.flnews_ext) {
+       rc=conversion_to_file(Options.flnews_ext,&trad,0,(size_t)(-1));
+       strncat(name,trad,MAX_PATH_LEN-5-strlen(DEFAULT_FLNEWS_FILE));
+       if (rc==0) free(trad);
+   }
    strcat(name,".new");
    flnews_file = open_flrnfile(name,"w+",1,NULL);
    if (flnews_file==NULL) return -1;
    for (courant=Newsgroup_deb;courant;courant=tmpgroup) {
+     rc=conversion_to_utf8(courant->name,&trad,0,(size_t)(-1));
      tmpgroup=courant->next;
      /* on construit la ligne du .flnewsrc */
      /* Je propose de ne pas marquer le groupe quand on n'est non abonné */
@@ -383,7 +421,7 @@ int save_groups() {
      msg_lus=courant->read;
      first=1;
      if (!(courant->flags & GROUP_UNSUBSCRIBED)) {
-       failed|=(fprintf(flnews_file,"%s: ",courant->name)<0);
+       failed|=(fprintf(flnews_file,"%s: ",trad)<0);
        name_written=1;
      } else name_written=0;
      while (msg_lus)
@@ -392,7 +430,7 @@ int save_groups() {
 	 {
 	   if (msg_lus->min[lu_index]==0) continue;
 	   if (!name_written) {
-	     failed|=(fprintf(flnews_file,"%s! ",courant->name)<0);
+	     failed|=(fprintf(flnews_file,"%s! ",trad)<0);
 	     name_written=1;
 	   }
 	   if (!first) failed|=(putc(',',flnews_file)==EOF);
@@ -404,6 +442,7 @@ int save_groups() {
 	 msg_lus=msg_lus->next;
      }
      if (name_written) failed|=(putc('\n',flnews_file)==EOF);
+     if (rc==0) free(trad);
    }
    if (!failed) {
      if (fclose(flnews_file)!=EOF) {
@@ -426,6 +465,7 @@ void free_groups(int save_flnewsrc) {
    if (save_flnewsrc) {
       write_flnewsrc=save_groups();
       if (write_flnewsrc) {
+	  /* FIXME : francais */
         fprintf(stderr,"Erreur dans la sauvegarde du .flnewsrc\n");
 	fprintf(stderr,"On garde l'ancien .flnewsrc.\n");
       }
@@ -466,20 +506,26 @@ void free_groups(int save_flnewsrc) {
  * flag & 4 : exact */
 /* name peut être NULL */
 /* retour : -1 : erreur */
-int cherche_newsgroups_base (char *name, regex_t reg, int flag,
-	int ajoute_elem (void *,int,int, void **), 
-	int cal_order (char *, void *),
+int cherche_newsgroups_base (flrn_char *name, regex_t reg, int flag,
+	int ajoute_elem (char *,int,int, void **), 
+	int cal_order (flrn_char *, void *),
 	void **retour)
 {
     int res, code, order;
     char *buf,*buf2;
+    int rc;
+    char *trad;
 
     buf=safe_malloc((MAX_NEWSGROUP_LEN+12)*sizeof(char));
     strcpy(buf, "active ");
-    if (flag & 1) strcat(buf, Options.prefixe_groupe);
+    rc=conversion_to_utf8(Options.prefixe_groupe,&trad,0,(size_t)(-1));
+    if (flag & 1) strcat(buf, trad);
+    if (rc==0) free(trad);
     if (!(flag & 6)) strcat(buf,"*");
     if (name) {
-	strcat(buf, name);
+	rc=conversion_to_utf8(name,&trad,0,(size_t)(-1));
+	strcat(buf, trad);
+	if (rc==0) free(trad);
 	if (!(flag & 6)) strcat(buf,"*");
     }
     res=write_command(CMD_LIST, 1, &buf);
@@ -495,8 +541,10 @@ int cherche_newsgroups_base (char *name, regex_t reg, int flag,
       if (buf2==NULL) continue;
       *buf2='\0';
       buf=tcp_line_read+((flag & 1) ? strlen(Options.prefixe_groupe) : 0);
-      order=((flag & 2) ? cal_order(buf,(void *)&reg) :
-	                      cal_order(buf,(void *)name));
+      rc=conversion_from_utf8(buf,&trad,0,(size_t)(-1));
+      order=((flag & 2) ? cal_order(trad,(void *)&reg) :
+	                      cal_order(trad,(void *)name));
+      if (rc==0) free(trad);
 
       if (order!=-1) {
 	*buf2=' ';
@@ -510,7 +558,7 @@ int cherche_newsgroups_base (char *name, regex_t reg, int flag,
     return ajoute_elem(NULL, flag, 0 ,retour);
 }
 
-int cnr_ajoute_elem (void *param, int flag, int order, void **retour)
+int cnr_ajoute_elem (char *param, int flag, int order, void **retour)
 {
     static int best_order;
     static char *name;
@@ -523,8 +571,8 @@ int cnr_ajoute_elem (void *param, int flag, int order, void **retour)
 
     if (param==NULL) {  /* retour */
 	if (name) {
-	    strcpy(tcp_line_read,name); free (name);
-	    (Newsgroup_List *) *retour = un_nouveau_newsgroup(tcp_line_read);
+	    (Newsgroup_List *) *retour = un_nouveau_newsgroup(name);
+	    free(name);
 	    return 1;
         }
 	*retour=NULL;
@@ -534,12 +582,12 @@ int cnr_ajoute_elem (void *param, int flag, int order, void **retour)
     if ((best_order==-1) || (best_order>order)) {
 	best_order=order;
 	if (name) free(name);
-        name = safe_strdup((char *)param);
+        name = safe_strdup(param);
     }
     return 0;
 }
 
-Newsgroup_List *cherche_newsgroup_re (char *name, regex_t reg, int flag)
+Newsgroup_List *cherche_newsgroup_re (flrn_char *name, regex_t reg, int flag)
 {
     Newsgroup_List *retour;
 
@@ -549,7 +597,7 @@ Newsgroup_List *cherche_newsgroup_re (char *name, regex_t reg, int flag)
     return retour;
 }
 
-Newsgroup_List *cherche_newsgroup (char *name, int exact, int flag)
+Newsgroup_List *cherche_newsgroup (flrn_char *name, int exact, int flag)
 {
     Newsgroup_List *retour;
     regex_t reg;
@@ -560,23 +608,25 @@ Newsgroup_List *cherche_newsgroup (char *name, int exact, int flag)
     return retour;
 }
 
-Liste_Menu *menu_newsgroup_re (char *name, regex_t reg, int avec_reg)
+Liste_Menu *menu_newsgroup_re (flrn_char *name, regex_t reg, int avec_reg)
 {
     Liste_Menu *lemenu=NULL,*courant=NULL;
     int flag;
 
-    int mnr_ajoute_elem (void *param, int flag, int order, void **retour)
+    int mnr_ajoute_elem (char *param, int flag, int order, void **retour)
     {
        Newsgroup_List *creation;
+       flrn_char *name;
 
        if (param==NULL) {  /* retour */
 	  (Liste_Menu *) *retour = lemenu;
           return 1;
        } 
 
-       creation = un_nouveau_newsgroup((char *)param);
-       courant = ajoute_menu_ordre (&lemenu, creation->name, creation,
-	                           -1, order);
+       creation = un_nouveau_newsgroup(param);
+       name=&(creation->name[0]);
+       courant = ajoute_menu_ordre (&lemenu, &fmt_getgrp_menu,
+	       &name, creation, -1, order);
 
        return 0;
     }
@@ -594,8 +644,8 @@ Liste_Menu *menu_newsgroup_re (char *name, regex_t reg, int avec_reg)
  * flag & 1 : prefixe_group (unused), & 2 : regexp, & 4 : exact 
  * flag & 8 : uniquement abonnés
  * flag & 16 : uniquement non abonnés */
-int cherche_newsgroups_in_list (char *name, regex_t reg, int flag,
-	      int ajoute_elem (void *,int,int, void **), 
+int cherche_newsgroups_in_list (flrn_char *name, regex_t reg, int flag,
+	      int ajoute_elem (Newsgroup_List *,int,int, void **), 
 	      int cal_order (char *, void *),
 	      void **retour)
 {
@@ -612,12 +662,12 @@ int cherche_newsgroups_in_list (char *name, regex_t reg, int flag,
 	  parcours=parcours->next;
 	  continue;
       }
-      if ((flag & 4) && (strcmp(parcours->name,name)!=0)) {
+      if ((flag & 4) && (fl_strcmp(parcours->name,name)!=0)) {
 	  parcours=parcours->next;
 	  continue;
       }
-      if (((flag & 2) && regexec(&reg,parcours->name,0,NULL,0)!=0) ||
-          (!(flag & 2) && !strstr(parcours->name,name))) {
+      if (((flag & 2) && fl_regexec(&reg,parcours->name,0,NULL,0)!=0) ||
+          (!(flag & 2) && !fl_strstr(parcours->name,name))) {
 	  parcours=parcours->next;
 	  continue;
       }
@@ -711,12 +761,16 @@ int NoArt_non_lus(Newsgroup_List *group, int force_check) {
    int i, res, code, non_lus, max, min;
    Range_List *actuel;
    char *buf;
+   int rc;
+   char *trad;
 
    if ((group->not_read!=-1) && (!force_check)) return group->not_read;
    /* On envoie un list active au serveur */
    buf=safe_malloc((MAX_NEWSGROUP_LEN+10)*sizeof(char));
    strcpy(buf, "active ");
-   strcat(buf, group->name);
+   rc=conversion_to_utf8(group->name,&trad,0,(size_t)(-1));
+   strcat(buf, trad);
+   if (rc==0) free(trad);
    res=write_command(CMD_LIST, 1, &buf);
    free(buf);
    if (res<3) return -1;
@@ -777,11 +831,15 @@ int NoArt_non_lus(Newsgroup_List *group, int force_check) {
 void test_readonly(Newsgroup_List *groupe) {
    char *buf;
    int res,code;
+   int rc;
+   char *trad;
 
    /* On envoie un list active au serveur */
    buf=safe_malloc((MAX_NEWSGROUP_LEN+10)*sizeof(char));
    strcpy(buf, "active ");
-   strcat(buf, groupe->name);
+   rc=conversion_to_utf8(groupe->name,&trad,0,(size_t)(-1));
+   strcat(buf, trad);
+   if (rc==0) free(trad);
    res=write_command(CMD_LIST, 1, &buf);
    free(buf);
    if (res<3) return;
@@ -1027,12 +1085,12 @@ void add_read_article(Newsgroup_List *mygroup, int article)
 
 /* Renvoie un pointeur sur ce qu'il faut aficher du nom du groupe */
 /* flag=1 :  si l'option est NULL, afficher juste la fin */
-char *truncate_group (char *str, int flag) {
-  char *tmp;
+flrn_char *truncate_group (flrn_char *str, int flag) {
+  flrn_char *tmp;
 
-  if ((Options.prefixe_groupe) && (strncmp(str,Options.prefixe_groupe,strlen(Options.prefixe_groupe))==0))
-       return str+strlen(Options.prefixe_groupe);
-  if (flag) return ((tmp=strrchr(str,'.')) ? tmp+1 : str);
+  if ((Options.prefixe_groupe) && (fl_strncmp(str,Options.prefixe_groupe,fl_strlen(Options.prefixe_groupe))==0))
+       return str+fl_strlen(Options.prefixe_groupe);
+  if (flag) return ((tmp=fl_strrchr(str,fl_static('.'))) ? tmp+1 : str);
   return str;
 }
 
@@ -1042,17 +1100,20 @@ char *truncate_group (char *str, int flag) {
 /* je me base sur NoArtNonLus... C'est méchant, mais au moins c'est zappé  */
 /* jusqu'au bout...							   */
 void zap_group_non_courant (Newsgroup_List *group) {
-   int i, res, code;
+   int i, res, code, rc;
    Range_List *range1, *range2;
    char *buf;
    Article_List *art;
    Thread_List *thr;
+   char *trad;
 
    if (group==Newsgroup_courant) return;
    /* On envoie un list active au serveur */
    buf=safe_malloc((MAX_NEWSGROUP_LEN+10)*sizeof(char));
    strcpy(buf, "active ");
-   strcat(buf, group->name);
+   rc=conversion_to_utf8(group->name,&trad,0,(size_t)(-1));
+   strcat(buf, trad);
+   if (rc==0) free(trad);
    res=write_command(CMD_LIST, 1, &buf);
    free(buf);
    if (res<3) return;
@@ -1109,10 +1170,11 @@ void zap_group_non_courant (Newsgroup_List *group) {
 /* Action de Menu_simple pour le goto */
 void get_group_description (Newsgroup_List *legroupe) {
   char *buf[2],*ptr;
-  int res, code;
+  int res, code, rc;
   buf[0]="newsgroups";
-  buf[1]=legroupe->name;
+  rc=conversion_to_utf8(legroupe->name,&(buf[1]),0,(size_t)(-1));
   res=write_command (CMD_LIST, 2, buf);
+  if (rc==0) free(buf[1]);
   if (res!=-2) {
       if (res<1) return;
       code=return_code();
@@ -1121,42 +1183,50 @@ void get_group_description (Newsgroup_List *legroupe) {
       if (res<1) return;
       if (tcp_line_read[0]!='.') {
           ptr=tcp_line_read+strlen(legroupe->name);
-          legroupe->description=safe_malloc((strlen(ptr)-1)*sizeof(char));
-          strncpy(legroupe->description,ptr, strlen(ptr)-2);
-          legroupe->description[strlen(ptr)-2]='\0';
+	  ptr[strlen(ptr)-2]='\0'; /* remove "\r\n" */
+	  rc=conversion_from_utf8(ptr,&(legroupe->description),0,(size_t)(-1));
+	  if (rc>0) legroupe->description=safe_flstrdup(legroupe->description);
           discard_server();
-      } else legroupe->description=safe_strdup("  (pas de description)  ");
+      } else legroupe->description=
+	  /* FIXME : francais */
+	       safe_flstrdup(fl_static("  (pas de description)  "));
   } else
-     legroupe->description=safe_strdup("  (pas de description)  ");
+     legroupe->description=
+	  /* FIXME : francais */
+	 safe_flstrdup(fl_static("  (pas de description)  "));
 }
 
 
-void Ligne_carac_du_groupe (void *letruc, char *lachaine,
-                                int taille)
+int Ligne_carac_du_groupe (void *letruc, flrn_char **lachaine)
 {
-  Newsgroup_List *legroupe=letruc;
-  lachaine[0]='\0';
+  Newsgroup_List *legroupe=(Newsgroup_List *)letruc;
   if (legroupe->description==NULL) get_group_description(legroupe);
-  if (legroupe->description) strncat(lachaine,legroupe->description,taille-1);
-  lachaine[taille-1]='\0';
+  if (legroupe->description) {
+      *lachaine=legroupe->description;
+      return 0;
+  } else {
+      *lachaine=NULL;
+      return 0;
+  }
 }
 
-int calcul_order(char *nom_gr, void *str_v) {
-    char *str = (char *)str_v;
-    char *buf, *buf2;
+int calcul_order(flrn_char *nom_gr, void *str_v) {
+    flrn_char *str = (flrn_char *)str_v;
+    flrn_char *buf, *buf2;
     if (str==NULL) return 0;
-    if ((buf=strstr(nom_gr,str))==NULL) return -1;
-    while ((*buf!='\0') && ((buf2=strstr(buf+1,str))!=NULL)) buf=buf2;
-    return (strlen(nom_gr)-strlen(str))*10-9*(buf-nom_gr);
+    if ((buf=fl_strstr(nom_gr,str))==NULL) return -1;
+    while ((*buf!=fl_static('\0')) &&
+	    ((buf2=fl_strstr(buf+1,str))!=NULL)) buf=buf2;
+    return (fl_strlen(nom_gr)-fl_strlen(str))*10-9*(buf-nom_gr);
 }
 
-int calcul_order_re(char *nom_gr, void *sreg_v) {
+int calcul_order_re(flrn_char *nom_gr, void *sreg_v) {
     regex_t *sreg = (regex_t *)sreg_v;
     int ret, bon=0, orderact, order=-1;
-    char *buf=nom_gr;
+    flrn_char *buf=nom_gr;
     regmatch_t pmatch[1];
 
-    ret=regexec(sreg, nom_gr, 1, pmatch, 0);
+    ret=fl_regexec(sreg, nom_gr, 1, pmatch, 0);
     if (ret!=0) return -1;
     do {
       buf+=pmatch[0].rm_eo;
@@ -1165,7 +1235,7 @@ int calcul_order_re(char *nom_gr, void *sreg_v) {
 	 orderact=strlen(buf)*10+pmatch[0].rm_so+(buf-nom_gr)-pmatch[0].rm_eo;
 	 if ((order==-1) || (orderact<order)) order=orderact;
       }
-      ret=regexec(sreg, buf, 1, pmatch, REG_NOTBOL);
-    } while ((ret==0) && (*buf!='\0'));
+      ret=fl_regexec(sreg, buf, 1, pmatch, REG_NOTBOL);
+    } while ((ret==0) && (*buf!=fl_static('\0')));
     if (bon) return order; else return -1;
 }

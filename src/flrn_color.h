@@ -14,6 +14,7 @@
 #define FLRN_COLOR_H
 
 #include <stdio.h>
+#include "flrn_slang.h"
 
 #ifdef DEF_FILD_NAMES
 static char *Field_names[] ={
@@ -49,15 +50,18 @@ static char *Field_names[] ={
 
 /* Les fonctions */
 
+typedef void add_line_fun(flrn_char *, size_t , int);
+
+
 extern void free_highlights(void);
-extern int parse_option_color(int /*func*/, char * /*line*/);
+extern int parse_option_color(int /*func*/, flrn_char * /*line*/);
 extern void Init_couleurs(void);
-extern int Aff_color_line(int /*to_print*/, unsigned short * /*format_line*/,
-    int * /*format_len*/, int /*field*/, char * /*line*/, int /*len*/,
-    int /*bol*/, int /*def_color*/);
-extern unsigned short *cree_chaine_mono (const char *, int, int);
+extern int create_Color_line (add_line_fun, int, flrn_char *, size_t, int);
+extern Colored_Char_Type *cree_chaine_mono (const char *, int, size_t,
+	                                     size_t *);
 extern void dump_colors_in_flrnrc (FILE *file);
-extern unsigned short *Search_in_line (unsigned short * /* line */, char *out, 
-                             long /* len */, regex_t * /*sreg*/);
+extern Colored_Char_Type *Search_in_line 
+                         (Colored_Char_Type * /* line */, flrn_char *out, 
+                             size_t /* len */, regex_t * /*sreg*/);
 
 #endif

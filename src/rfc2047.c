@@ -14,24 +14,17 @@
 #include <strings.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_ERRNO_H
+#include <errno.h>
+#endif
 #include "config.h"
 #include "flrn.h"
 
 static UNUSED char rcsid[]="$Id$";
 
-#ifndef WITH_CHARACTER_SETS
-  static char Charset[]="iso-8859-1";
-#else
-  #include "rfc2045.h" 		/* defini terminal_charset */
-  const char *Charset;
-  static char Default_Charset[]="iso-8859-1";
-#endif
   
 #define strfcpy(A,B,C) strncpy(A,B,C), *(A+(C)-1)=0
 #define hexval(c) Index_hex[(int)(c)]
-
-#define IsPrint(c) (isprint((unsigned char)(c)) || \
-	((unsigned char)(c) >= 0xa0))
 
 
 static char B64Chars[64] = {
@@ -69,28 +62,24 @@ int Index_hex[128] = {
 const char *tspecials = "@<>()[];:.,\\\"?/=\n\r";
 
 
-typedef void encode_t (char *, unsigned char *, size_t);
+typedef void encode_t (char **, unsigned char *, size_t *, const char *);
 
 
-static void q_encode_string (char *d, unsigned char *s, size_t len)
+static void q_encode_string (char **d, unsigned char *s, size_t *len,
+	                     const char *codeset)
 {
   char charset[SHORT_STRING];
-  int cslen;
-  int wordlen;
-  char *wptr = d;
+  size_t cslen;
+  size_t wordlen, tmplen;
 
   if (!s) return;
-#ifdef WITH_CHARACTER_SETS
-  if (terminal_charset!=-1) Charset=get_name_charset(terminal_charset);
-      else Charset=Default_Charset;
-#endif
 
 #if HAVE_SNPRINTF
   snprintf (charset, sizeof (charset),
-   "=?%s?Q?", strcasecmp ("us-ascii", Charset)==0 ?"unknown-8bit":Charset);
+   "=?%s?Q?", codeset);
 #else
   sprintf (charset,
-   "=?%s?Q?", strcasecmp ("us-ascii", Charset)==0 ?"unknown-8bit":Charset);
+   "=?%s?Q?", codeset);
 #endif
 
   cslen = strlen (charset);
@@ -102,179 +91,285 @@ static void q_encode_string (char *d, unsigned char *s, size_t len)
 
   if (strncasecmp ("re: ", (char *) s, 4) == 0)
   {
-    strncpy (wptr, (char *) s, 4);
-    wptr += 4;
+    tmplen = (*len>3) ? 4 : *len;
+    strncpy (*d, (char *) s, tmplen);
+    (*d) += tmplen;  (*len) -= tmplen;  if (*len==0) return;
     s += 4;
   }
   else if (strncasecmp ("fwd: ", (char *) s, 5) == 0)
   {
-    strncpy (wptr, (char *) s, 5);
-    wptr += 5;
+    tmplen = (*len>4) ? 5 : *len;
+    strncpy (*d, (char *) s, tmplen);
+    (*d) += tmplen;  (*len) -= tmplen;  if (*len==0) return;
     s += 5;
   }
 
-  strcpy (wptr, charset);
-  wptr += cslen;
+  if (cslen>*len) cslen=*len;
+  strncpy ((*d), charset, cslen);
+  (*d) += cslen; (*len) -= cslen; if (*len==0) return;
   wordlen = cslen;
 
   while (*s)
   {
     if (wordlen >= 72)
     {
-      strcpy(wptr, "?=\n ");
-      wptr += 4;
-      strcpy(wptr, charset);
-      wptr += cslen;
+      tmplen = (*len>3) ? 4 : *len;
+      strncpy(*d, "?=\n ",*len);
+      (*d) += tmplen;  (*len) -= tmplen;  if (*len==0) return;
+      if (cslen>*len) cslen=*len;
+      strncpy ((*d), charset, cslen);
+      (*d) += cslen; (*len) -= cslen; if (*len==0) return;
       wordlen = cslen;
     }
 
     if (*s == ' ')
     {
-      *wptr++ = '_';
+      *((*d)++) = '_';  (*len)--;
       wordlen++;
     }
     else if (*s & 0x80 || (strchr (tspecials, *s) != NULL))
     {
       if (wordlen >= 70)
       {
-	strcpy (wptr, "?=\n ");
-	wptr += 4;
-	strcpy (wptr, charset);
-	wptr += cslen;
+	tmplen = (*len>3) ? 4 : *len;
+	strncpy(*d, "?=\n ",*len);
+	(*d) += tmplen;  (*len) -= tmplen;  if (*len==0) return;
+	if (cslen>*len) cslen=*len;
+	strncpy ((*d), charset, cslen);
+	(*d) += cslen; (*len) -= cslen; if (*len==0) return;
 	wordlen = cslen;
       }
-      sprintf (wptr, "=%02X", *s);
-      wptr += 3;
+      if (*len<3) return;
+      sprintf ((*d), "=%02X", *s);
+      (*d) += 3;  (*len) -= 3;
       wordlen += 3;
     }
     else
     {
-      *wptr++ = *s;
+      *((*d)++) = *s;  (*len)--;
       wordlen++;
     }
     s++;
   }
-  strcpy (wptr, "?=");
+  tmplen = (*len>1) ? 2 : *len;
+  strncpy ((*d), "?=", tmplen);
+  (*d) += tmplen;  (*len) -= tmplen;
 }
 
-static void b_encode_string (char *d, unsigned char *s, size_t len)
+static void b_encode_string (char **d, unsigned char *s, size_t *len, 
+	                      const char *codeset)
 {
   char charset[SHORT_STRING];
-  char *wptr = d;
-  int cslen;
-  int wordlen;
+  size_t cslen, tmplen;
+  size_t wordlen;
 
   if (!s) return;
 
-#ifdef WITH_CHARACTER_SETS
-  if (terminal_charset!=-1) Charset=get_name_charset(terminal_charset);
-      else Charset=Default_Charset;
-#endif
-
 #if HAVE_SNPRINTF
-  snprintf (charset, sizeof (charset), "=?%s?B?", Charset);
+  snprintf (charset, sizeof (charset), "=?%s?B?", codeset);
 #else
-  sprintf (charset, "=?%s?B?", Charset);
+  sprintf (charset, "=?%s?B?", codeset);
 #endif
   cslen = strlen (charset);
-  strcpy (wptr, charset);
-  wptr += cslen;
+
+  /*
+   * Hack to pull the Re: and Fwd: out of the encoded word for better
+   * handling by agents which do not support RFC2047.
+   */
+
+  if (strncasecmp ("re: ", (char *) s, 4) == 0)
+  {
+    tmplen = (*len>3) ? 4 : *len;
+    strncpy (*d, (char *) s, tmplen);
+    (*d) += tmplen;  (*len) -= tmplen;  if (*len==0) return;
+    s += 4;
+  }
+  else if (strncasecmp ("fwd: ", (char *) s, 5) == 0)
+  {
+    tmplen = (*len>4) ? 5 : *len;
+    strncpy (*d, (char *) s, tmplen);
+    (*d) += tmplen;  (*len) -= tmplen;  if (*len==0) return;
+    s += 5;
+  }
+
+  if (cslen>*len) cslen=*len;
+  strncpy (*d, charset, cslen);
+  (*len) -= cslen;
+  (*d) += cslen;
+  if (*len==0) return;
   wordlen = cslen;
 
   while (*s)
   {
     if (wordlen >= 71)
     {
-      strcpy(wptr, "?=\n ");
-      wptr += 4;
-      strcpy(wptr, charset);
-      wptr += cslen;
+      tmplen = (*len)>3 ? 4 : (*len);
+      strncpy(*d, "?=\n ", tmplen);
+      (*len) -= tmplen; (*d)+=tmplen; if (*len==0) return;
+      if (cslen>*len) cslen=*len;
+      strncpy(*d, charset, cslen);
+      (*len) -= cslen; (*d) += cslen;
+      if (*len==0) return;
       wordlen = cslen;
     }
 
-    *wptr++ = B64Chars[ (*s >> 2) & 0x3f ];
-    *wptr++ = B64Chars[ ((*s & 0x3) << 4) | ((*(s+1) >> 4) & 0xf) ];
+    *((*d)++) = B64Chars[ (*s >> 2) & 0x3f ];
+    (*len)--; if (*len==0) return;
+    *((*d)++) = B64Chars[ ((*s & 0x3) << 4) | ((*(s+1) >> 4) & 0xf) ];
+    (*len)--; if (*len==0) return;
     s++;
     if (*s)
     {
-      *wptr++ = B64Chars[ ((*s & 0xf) << 2) | ((*(s+1) >> 6) & 0x3) ];
+      *((*d)++) = B64Chars[ ((*s & 0xf) << 2) | ((*(s+1) >> 6) & 0x3) ];
+      (*len)--; if (*len==0) return;
       s++;
       if (*s)
       {
-	*wptr++ = B64Chars[ *s & 0x3f ];
+	*((*d)++) = B64Chars[ *s & 0x3f ];
+        (*len)--; if (*len==0) return;
 	s++;
       }
-      else
-	*wptr++ = '=';
+      else {
+	*((*d)++) = '=';
+        (*len)--; if (*len==0) return;
+      }
     }
     else
     {
-      *wptr++ = '=';
-      *wptr++ = '=';
+      *((*d)++) = '=';
+      (*len)--; if (*len==0) return;
+      *((*d)++) = '=';
+      (*len)--; if (*len==0) return;
     }
 
     wordlen += 4;
   }
 
-  strcpy(wptr, "?=");
+  tmplen = (*len)>1 ? 2 : (*len);
+  strncpy(*d, "?=", tmplen);
+  (*len) -= tmplen;
+  (*d) += tmplen;
 }
 
-void rfc2047_encode_string (char *d, unsigned char *s, size_t l)
+/* rfc2047 pose problème : que doit-on envoyer */
+int good_encode_string (char **d, flrn_char *s, size_t len_s, size_t *len_d)
 {
   int count = 0;
   int len;
-  unsigned char *p = s;
+  char *p;
+  const char *codeset;
+  char *ch=NULL;
+  char *outbuf=NULL, *outptr=NULL;
+  size_t len_ob=0,res;
   encode_t *encoder;
 
-#ifdef WITH_CHARACTER_SETS
-  if (terminal_charset!=-1) Charset=get_name_charset(terminal_charset);
-      else Charset=Default_Charset;
-#endif
-
-  /* First check to see if there are any 8-bit characters */
-  while (*p)
-  {
-    if (*p & 0x80) count++;
-    p++;
+  /* first thing is to find the good encoding */
+  find_best_conversion(s,len_s,&codeset,NULL);
+  if (codeset==NULL) codeset="UTF-8";
+  ch=strchr(codeset,':');
+  if (ch) {
+      size_t l=ch-codeset;
+      ch=safe_malloc(l+1);
+      strncpy(ch,codeset,l);
+      ch[l]='\0';
+  } else ch=safe_strdup(codeset);
+  fl_revconv_open(ch);
+  free(ch);
+  find_best_conversion(NULL,0,NULL,NULL);
+  res=fl_conv_from_flstring(&s,&len_s,&outbuf,&outptr,&len_ob);
+  if (res!=(size_t)(-3)) {
+      len_ob=outptr-outbuf;
+      *outptr='\0';
+  } else {
+      len_ob=len_s;
+      outbuf=safe_malloc(len_ob+1);
+      strcpy(outbuf,s);
+      outbuf[len_s]='\0';
   }
-  if (!count)
+  fl_revconv_close();
+
+  /* let's count the 8-bits caracters */
+  p=outbuf;
+  res=len_ob;
+  while (res>0)
   {
-    strfcpy (d, (char *)s, l);
-    return;
+    if (((unsigned char) (*p)) & 0x80) count++;
+    p++; res--;
   }
 
-  if (strcasecmp("us-ascii", Charset) == 0 ||
-      strncasecmp("iso-8859", Charset, 8) == 0)
+  if ((codeset!=NULL) && (strncasecmp("iso-8859", codeset, 8) == 0))
     encoder = q_encode_string;
   else
   {
     /* figure out which encoding generates the most compact representation */
-    len = strlen ((char *) s);
+    len = (int)len_ob;
     if ((count * 2) + len <= (4 * len) / 3)
       encoder = q_encode_string;
     else
       encoder = b_encode_string;
   }
 
-  (*encoder)(d, (unsigned char*) safe_strdup((char *)s), l);
+  (*encoder)(d, (unsigned char*) outbuf, len_d, codeset);
+  free(outbuf);
+  return 0;
 }
 
-static int rfc2047_decode_word (char *d, const char *s, size_t len)
+/* encodage suivant la rfc 2047 */
+/* critical = 1 -> on n'encode pas les adresses mails. On essaye, au moins */
+/* c'est pas très propre, mais c'est le plus simple, et _le plus souvent_
+ * ça marche */
+int rfc2047_encode_string (char *d, flrn_char *s, size_t len,
+	                   int critical) {
+
+  flrn_char *p=s, *f8=s, *l8=s, *t8;
+  int count=0,res;
+
+  len--;
+  /* the first thing is to check if we have any 8bit character */
+  while (*p)
+  {
+    if ((*p)>>7) {
+	if (!count) f8=p;
+	l8=p;
+	count++;
+    }
+    p++;
+  }
+  if (count==0) {
+     p=s;
+     while ((*p) && (len>0)) { *(d++)=(char) *(p++); len--; }
+     *d='\0';
+     return 0;
+  }
+  /* si le code n'est pas critique, on encode tout */
+  if (!critical) { f8=s; l8=p; }
+  t8=f8;
+  while (t8<=l8) {
+      if (critical) isolate_non_critical_element(s,t8,l8,&f8,&t8);
+          else t8=l8;
+      /* copie s */
+      while ((s<f8) && (len>0)) { *(d++)=(char) *(s++); len--; }
+      if (len==0) break;
+      res=good_encode_string(&d,f8,(t8-f8+1),&len);
+      if (len==0) break;
+      t8++;
+      s=t8;
+      while ((t8<l8) && (((*t8)>>7)==0)) t8++;
+  }
+  *d='\0';
+  return 0;
+}
+
+/* first decode : return the decoded word, and the codeset */
+static int rfc2047_decode_word (char *d, const char *s, size_t len,
+	                        char **codeset)
 {
   char *p = safe_strdup (s);
   char *pp = p;
   char *pd = d;
-  int enc = 0, filter = 0, count = 0, c1, c2, c3, c4;
-#ifdef WITH_CHARACTER_SETS
-  int crset=0;
-#endif
+  int enc = 0, count = 0, c1, c2, c3, c4;
 
   if (!p) return -1;
-
-#ifdef WITH_CHARACTER_SETS
-  if (terminal_charset!=-1) Charset=get_name_charset(terminal_charset);
-      else Charset=Default_Charset;
-#endif
 
   while ((pp = strtok (pp, "?")) != NULL)
   {
@@ -282,14 +377,7 @@ static int rfc2047_decode_word (char *d, const char *s, size_t len)
     switch (count)
     {
       case 2:
-	if (strcasecmp (pp, Charset) != 0) {
-	  filter = 1;
-#ifdef WITH_CHARACTER_SETS
-          crset=Parse_charset(pp);         
-	  if (crset==-1) filter=0; /* tant pis, on ne filtre pas
-	  				un code inconnu, parfois c'est mieux */
-#endif
-        }
+	*codeset=safe_strdup(pp);
 	break;
       case 3:
 	if (toupper (*pp) == 'Q')
@@ -363,83 +451,131 @@ static int rfc2047_decode_word (char *d, const char *s, size_t len)
     p++;
     p=strchr(p,'\n');
   }
-  if (filter)
-  {
-#ifdef WITH_CHARACTER_SETS
-    char *output;
-    int res;
-    int terminal_charset_old=terminal_charset;
-    if (terminal_charset==-1) Parse_charset_line(Charset);
-    if ((res=Decode_ligne_with_charset(d, &output, crset))!=1)
-#endif
-    {
-      pd = d;
-      while (*pd)
-      {
-        if (!IsPrint ((unsigned char) *pd))
-	  *pd = '?';
-        pd++;
+  return 0;
+}
+
+
+/* 0 : OK   ;  -1 error  */
+int convert_decoded_word (char **d, flrn_char **res, const char *codeset, 
+	                  size_t *slen)
+{
+  size_t inbl = strlen(*d);
+  size_t res_t;
+  flrn_char *dummy;
+#if 0
+#else 
+  if ((codeset) && (strcasecmp(codeset,"utf-8")==0)) {
+      strncpy(*res,*d,*slen);
+      if (inbl>*slen) {
+	  (*res)+=*slen;
+	  *slen=0;
+      } else {
+	  (*res)+=inbl;
+	  *slen-=inbl;
       }
-#ifdef WITH_CHARACTER_SETS
-      if (res==0) free(output); /* TODO : voir si on peut mieux faire */
-#endif
-    }
-#ifdef WITH_CHARACTER_SETS
-    if (terminal_charset_old==-1) Parse_charset_line(NULL);
-#endif
+      return 0;
   }
-  return (0);
+#endif
+  if (fl_stdconv_open(codeset)<0) {
+      if (fl_stdconv_open(NULL)<0) return -1;
+  }
+
+  while (*slen>0) {
+     dummy=*res;
+     res_t=fl_conv_to_flstring (d,&inbl,&dummy,res,slen);
+     if (res_t==-1) {
+           if (errno==EILSEQ) {
+#if 0
+	       *((*res)++)=L'?'; slen--;
+#else
+	       *((*res)++)='?'; slen--;
+#endif
+	       (*d)++; inbl--;
+	       continue;
+	   }
+	   if (errno==EINVAL) {
+#if 0
+	       *((*res)++)=L'?'; slen--;
+#else
+	       *((*res)++)='?'; slen--;
+#endif
+	       break;
+	   }
+	   if (errno==E2BIG) break;
+     }
+     break;
+  }
+  fl_stdconv_close();
+  return 0;
 }
 
 /* try to decode anything that looks like a valid RFC2047 encoded
  * header field, ignoring RFC822 parsing rules
+ * raw=0 -> avec tout ; raw=1 -> sans décodage 2047 ; raw = 2 -> utf-8
  */
-void rfc2047_decode (char *d, const char *s, size_t dlen)
+size_t rfc2047_decode (flrn_char *d, char *s, size_t dlen, int raw)
 {
-  const char *p, *q;
+  flrn_char *init_ch=d;
+  char *p, *q;
+  char *tmpchr;
+  char *codeset;
   size_t n;
   int found_encoded = 0;
 
   dlen--; /* save room for the terminal nul */
-  if (dlen==0) {
-    if (d != s) strfcpy (d, s, 1);
-    return;
-  }
-
-  while (*s && dlen > 0)
+  if (raw) 
+      convert_decoded_word(&s,&d,(raw==2 ? "utf-8" : NULL),&dlen);
+  else 
   {
-    if ((p = strstr (s, "=?")) == NULL ||
-	(q = strchr (p + 2, '?')) == NULL ||
-	(q = strchr (q + 1, '?')) == NULL ||
-	(q = strstr (q + 1, "?=")) == NULL)
+    while (*s && dlen > 0)
     {
-      /* no encoded words */
-      if (d != s)
-	strfcpy (d, s, dlen + 1);
-      return;
-    }
-
-    if (p != s)
-    {
-      n = (size_t) (p - s);
-      /* ignore spaces between encoded words */
-      if (!found_encoded || strspn (s, " \t\n") != n)
+      if ((p = strstr (s, "=?")) == NULL ||
+  	(q = strchr (p + 2, '?')) == NULL ||
+  	(q = strchr (q + 1, '?')) == NULL ||
+  	(q = strstr (q + 1, "?=")) == NULL)
       {
-	if (n > dlen)
-	  n = dlen;
-	if (d != s)
-	  memcpy (d, s, n);
-	d += n;
-	dlen -= n;
+        /* no encoded words */
+        convert_decoded_word(&s,&d,NULL,&dlen);
+        break;
       }
+  
+      if (p != s)
+      {
+        n = (size_t) (p - s);
+        /* ignore spaces between encoded words */
+        if (!found_encoded || strspn (s, " \t\n") != n)
+        {
+  	if (n > dlen)
+  	  n = dlen;
+  	tmpchr=safe_malloc(n+1);
+  	strncpy(tmpchr,s,n);
+  	tmpchr[n]='\0';
+        { 
+	    char *bla=tmpchr;
+            convert_decoded_word(&bla,&d,NULL,&dlen);
+        }
+  	free(tmpchr);
+  	if (dlen==0) break;
+        }
+      }
+  
+      n = strlen(p);
+      tmpchr=safe_malloc(n+1);
+      rfc2047_decode_word (tmpchr, p, n, &codeset);
+      tmpchr[n]='\0';
+      { 
+	  char *bla=tmpchr;
+          convert_decoded_word(&bla,&d,codeset,&dlen);
+      }
+      free(tmpchr);
+      found_encoded = 1;
+      s = q + 2;
     }
-
-    rfc2047_decode_word (d, p, dlen);
-    found_encoded = 1;
-    s = q + 2;
-    n = strlen (d);
-    dlen -= n;
-    d += n;
-  }
-  *d = 0;
+  } /* raw=0 */
+#if 0
+  *d=L'\0';
+#else
+  *d='\0';
+#endif
+  return (d-init_ch);
 }

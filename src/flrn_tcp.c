@@ -29,6 +29,7 @@
 #include "flrn_xover.h"
 #include "flrn_tcp.h"
 #include "tty_display.h"
+#include "enc/enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 
@@ -382,17 +383,23 @@ int discard_server() {
 /* Elle renvoie -1 en cas d'echec de la connexion, le code renvoye par */
 /* le serveur sinon. Si ce code indique un refus du serveur, la         */
 /* fonction coupe la connexion.					*/
-int connect_server (char *host, int port) {
+int connect_server (flrn_char *host, int port) {
     int ret, code;
+    int rc;
+    char *trad;
    
     init_connection=1;
     if (host==NULL) {
+	/* FIXME : français */
        fprintf(stderr,"Pas de serveur où se connecter.\n");
        return -1; 
     }
     if (port==0) port=Options.port;
+    rc=conversion_to_utf8(host,&trad,0,(size_t)(-1));
     ret=contact_server(host, port);
+    if (rc==0) free(trad);
     if (ret<0) {
+	/* FIXME : français */
        fprintf(stderr, "Echec de la connexion au serveur : %s\n", host);
        return -1;
     }
@@ -426,25 +433,38 @@ int connect_server (char *host, int port) {
     /* Authentification */
     if ((ret<500) && (Options.auth_user)) {
         char *strvar[2];
-	strvar[0]="user";
-	strvar[1]=Options.auth_user;
+	strvar[0]="user"; 
+	rc=conversion_to_utf8(Options.auth_user,&trad,0,(size_t)(-1));
+	strvar[1]=trad;
         write_command(CMD_AUTHINFO,2,strvar);
+	if (rc==0) free(trad);
 	ret=return_code();
 	if ((ret>300) && (ret<400)) {
 	   strvar[0]="pass";
-	   if (Options.auth_pass) 
-	     strvar[1]=Options.auth_pass;
-	   else {
+	   if (Options.auth_pass) {
+	     rc=conversion_to_utf8(Options.auth_pass,&trad,0,(size_t)(-1));
+	     strvar[1]=trad;
+	   } else {
 	     char *strpipo;
 	     /* on peut supposer que ça n'arrive que la première fois */
+	     /* FIXME : français */
 	     fprintf(stdout,"Le serveur demande un mot de passe.\n");
 	     strpipo=getpass("Mot de passe : ");
-	     if (strpipo!=NULL) Options.auth_pass=safe_strdup(strpipo);
-	     strvar[1]=Options.auth_pass;
+	     if (strpipo!=NULL) {
+		 rc=conversion_from_terminal(strpipo,&(Options.auth_pass),
+			 0,(size_t)(-1));
+		 if (rc!=0) Options.auth_pass=safe_flstrdup(Options.auth_pass);
+		 rc=conversion_to_utf8(Options.auth_pass,&trad,0,(size_t)(-1));
+	         strvar[1]=trad;
+	     } else {
+	         strvar[1]="";
+		 rc=1;
+	     }
 	   }
 	   if (Options.auth_pass) {
              write_command(CMD_AUTHINFO,2,strvar);
 	     ret=return_code();
+	     if (rc==0) free(trad);
 	   } else ret=502;
 	}
 	if (ret==502) code=ret;

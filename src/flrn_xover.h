@@ -24,8 +24,8 @@ extern int cree_liste_noxover(int /*n1*/, int /*n2*/,
 extern int cree_liste(int, int * );
 extern int cree_liste_end(void);
 extern int cree_liste_suite(int);
-extern int launch_xhdr(int, int, char *);
-extern int get_xhdr_line(int, char **, int, Article_List *);
+extern int launch_xhdr(int, int, flrn_char *);
+extern int get_xhdr_line(int, flrn_char **, int *, int, Article_List *);
 extern int end_xhdr_line(void);
 extern int check_in_xover(int);
 

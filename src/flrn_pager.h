@@ -55,10 +55,11 @@ struct cmd_predef_pager {
 
 /* les fonctions */
 
-extern int Page_message (int /*num_elem*/, int /*short_exit*/, int /*key*/,
-        int /*act_row*/, int /*row_deb*/, char * /*exit_chars*/, char *,
-	int in_wait (int));
-extern int Bind_command_pager(char *, int, char *, int);
+extern int Page_message (int , int , struct key_entry *,
+        int /*act_row*/, int /*row_deb*/, char * /*exit_chars*/, 
+	flrn_char *, int in_wait (int), struct key_entry *);
+extern int Bind_command_pager(flrn_char *, struct key_entry *,
+	flrn_char *, int);
 extern void init_Flcmd_pager_rev(void);
 extern int ajoute_pager(char *, int);
 

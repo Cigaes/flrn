@@ -23,6 +23,7 @@
 #include "flrn_files.h"
 #include "flrn_xover.h"
 #include "flrn_inter.h"
+#include "enc/enc_strings.h"
 
 #include "getdate.h"
 
@@ -39,8 +40,8 @@ static char *main_list_file_name=NULL;
  */
 int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
    int min, int max) {
-  int with_xhdr,std_hdr,ret,reste=0;
-  char *ligne, *saved_ligne=NULL;
+  int with_xhdr,std_hdr,ret,reste=0, tofree=0, savetofree=0;
+  flrn_char *ligne, *saved_ligne=NULL;
   flrn_condition *cond=filtre->condition;
   Article_List *parcours=debut;
   int newmin=max,newmax,deja_test[NB_KNOWN_HEADERS],i;
@@ -71,7 +72,7 @@ int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
   if ((filtre->date_after>0) || (filtre->date_before>0)) {
      with_xhdr=((flag & 1) && (!check_in_xover(DATE_HEADER)));
      if (with_xhdr) {
-        ret=launch_xhdr(min,max,Headers[DATE_HEADER].header);
+        ret=launch_xhdr(min,max,fl_static_tran(Headers[DATE_HEADER].header));
 	deja_test[DATE_HEADER]=1;
 	if (ret==-1) with_xhdr=0;
      }
@@ -82,9 +83,10 @@ int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
         if (parcours->flag & FLAG_TMP_KILL) {
 	   if (with_xhdr) {
 	      if ((ret!=-2) && (ret<parcours->numero))
-	           ret=get_xhdr_line(parcours->numero,&ligne,
+	           ret=get_xhdr_line(parcours->numero,&ligne,&tofree,
 			                 DATE_HEADER,parcours);
 	      if (ret==-1) with_xhdr=0;
+	      if (tofree) free(ligne);
 	      if (ligne==NULL) {
 	         if (reste==0) newmin=parcours->numero;
 	         parcours=parcours->next;
@@ -125,7 +127,7 @@ int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
      }
      if (with_xhdr) {
         ret=launch_xhdr(min,max,(std_hdr==-1 ? cond->header_ns.header_str : 
-						Headers[std_hdr].header));
+			fl_static_tran(Headers[std_hdr].header)));
 	if (std_hdr!=-1) deja_test[std_hdr]=1;
 	if (ret==-1) with_xhdr=0;
      }
@@ -133,16 +135,22 @@ int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
      parcours=debut;
      while (parcours->numero<=max) {
         if (parcours->flag & FLAG_TMP_KILL) {
+	   tofree=0;
 	   if (with_xhdr) {
 	       if ((ret!=-2) && (ret<parcours->numero)) {
-	          ret=get_xhdr_line(parcours->numero,&ligne,std_hdr,parcours);
+	          ret=get_xhdr_line(parcours->numero,&ligne,&tofree,
+			  std_hdr,parcours);
 	          if (ret>parcours->numero) {
 		    saved_ligne=ligne;
-		    ligne="";
+		    savetofree=tofree;
+		    tofree=0;
+		    ligne=fl_static("");
 	          }
 	       }
 	       else if (ret==parcours->numero) {
 		       ligne=saved_ligne;
+		       tofree=savetofree;
+		       savetofree=0;
 		       saved_ligne=NULL;
 		    }
 	       /* if ret==-2, ligne=NULL and will not change */
@@ -154,14 +162,15 @@ int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
 		     break;
 		  }
 	       }
-	       if (ligne==NULL) ligne="";
+	       if (ligne==NULL) { ligne=""; tofree=0; }
 	   } else if (std_hdr!=-1) {
 	       ligne=((parcours->headers) &&
 	       (parcours->headers->k_headers[cond->header_ns.header_num]) ?
-	       parcours->headers->k_headers[cond->header_ns.header_num] : "");
-	   } else ligne="";
+	       parcours->headers->k_headers[cond->header_ns.header_num] : 
+	       fl_static(""));
+	   } else ligne=fl_static("");
 	   if (!(cond->flags & FLRN_COND_STRING)) {
-	      if (regexec(cond->condition.regex,ligne,0,NULL,0)
+	      if (fl_regexec(cond->condition.regex,ligne,0,NULL,0)
 	             !=(cond->flags & FLRN_COND_REV)?REG_NOMATCH:0)
 		  parcours->flag &= ~FLAG_TMP_KILL;
 	      else {
@@ -169,7 +178,7 @@ int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
 	        reste=1;
 	      }
 	   } else {
-	      if (strstr(ligne,cond->condition.string)!=NULL) {
+	      if (fl_strstr(ligne,cond->condition.string)!=NULL) {
 	         if ((cond->flags & FLRN_COND_REV)!=0)
 		     parcours->flag &= ~FLAG_TMP_KILL; else {
 	                if (reste==0) newmin=parcours->numero;
@@ -183,6 +192,7 @@ int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
 		     }
 	      }
 	   }
+	   if (tofree) free(ligne);
 	}
 	parcours=parcours->next;
         if (parcours==NULL) break;
@@ -205,7 +215,7 @@ int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
 int check_article(Article_List *article, flrn_filter *filtre, int flag) {
   flrn_condition *regexp=filtre->condition;
   int cree_header_done=0;
-  char *ligne;
+  flrn_char *ligne;
   Header_List *tmp;
 
   /* en premier, on regarde si les flags de l'article sont bons */
@@ -244,25 +254,26 @@ int check_article(Article_List *article, flrn_filter *filtre, int flag) {
     if (regexp->flags & FLRN_COND_U_HEAD) {
        tmp=Last_head_cmd.headers;
        while (tmp) {
-          if (strncasecmp(tmp->header,regexp->header_ns.header_str,
-	  			strlen(regexp->header_ns.header_str))==0) break;
+          if (fl_strncasecmp(tmp->header_head,regexp->header_ns.header_str,
+	  		fl_strlen(regexp->header_ns.header_str))==0) break;
 	   tmp=tmp->next;
        }
-       if (tmp==NULL) ligne=""; else {
-          ligne=tmp->header+strlen(regexp->header_ns.header_str);
+       if (tmp==NULL) ligne=fl_static(""); else {
+          ligne=tmp->header_body;
 	  while (*ligne==' ') ligne++;
        }
     } else 
       ligne=article->headers->k_headers[regexp->header_ns.header_num]?
-            article->headers->k_headers[regexp->header_ns.header_num]:"";
+            article->headers->k_headers[regexp->header_ns.header_num]:
+	    fl_static("");
     if (!(regexp->flags & FLRN_COND_STRING)) {
       /* c'est une regexp */
-      if(regexec(regexp->condition.regex,ligne,
+      if(fl_regexec(regexp->condition.regex,ligne,
 	0,NULL,0)!=(regexp->flags & FLRN_COND_REV)?REG_NOMATCH:0)
 	return 1;
     } else {
       /* c'est une chaine... FIXME: case-sensitive ou pas */
-      if(strstr(ligne,regexp->condition.string)!=NULL) {
+      if(fl_strstr(ligne,regexp->condition.string)!=NULL) {
 	  if ((regexp->flags & FLRN_COND_REV) != 0) return 1;
       } else {
 	  if ((regexp->flags & FLRN_COND_REV) == 0) return 1;
@@ -300,10 +311,11 @@ void filter_do_action(flrn_filter *filt) {
     }
     return;
   }
+  /* TODO : passer à la "vraie" execution d'une commande */
   act=filt->action.action;
   if (!act) return;
   while(act) {
-    call_func(act->command_num,act->arg);
+    call_func(act->command->cmd[CONTEXT_COMMAND],act->command->after);
     act=act->next;
   }
 }
@@ -314,7 +326,7 @@ flrn_filter *new_filter() {
 
 /* Parse une ligne commencant par F 
  * Par exemple : Fread */
-int parse_filter_flags(char * str, flrn_filter *filt) {
+int parse_filter_flags(flrn_char * str, flrn_filter *filt) {
   int ret,flag, flagset;
   ret=parse_flags(str,&flagset,&flag);
   if (ret==-1) return -1;
@@ -334,19 +346,23 @@ int parse_filter_flags(char * str, flrn_filter *filt) {
 
 /* Parse une ligne commençant par C
  * Par exemple : Comet */
-int parse_filter_action(char * str, flrn_filter *filt) {
+int parse_filter_action(flrn_char * str, flrn_filter *filt) {
   flrn_action *act,*a2;
-  char *buf=str, *buf2;
+  flrn_char *buf=str, *buf2;
+  Cmd_return *cmd;
+  int ret;
+  cmd=safe_calloc(1,sizeof(Cmd_return));
   filt->flag=1;
-  buf2=strchr(buf,' ');
-  if (buf2) *(buf2++)='\0';
+  buf2=fl_strchr(buf,fl_static(' '));
+  if (buf2) *(buf2++)=fl_static('\0');
   act=safe_calloc(1,sizeof(flrn_action));
-  /* on retrouve la fonction */
-  act->command_num=fonction_to_number(str);
-  if (act->command_num == -1) {
+  act->command=cmd;
+  ret=Lit_cmd_explicite(str,CONTEXT_COMMAND,-1,cmd);
+  if (ret<0) {
+    free(cmd);
     free(act); return -2;}
       /* on prend les arguments éventuels */
-  if (buf2) act->arg=safe_strdup(buf2);
+  if (buf2) cmd->after=safe_flstrdup(buf2);
     /* on ajoute l'action... */
   if (filt->action.action==NULL) filt->action.action=act;
   else {
@@ -359,7 +375,7 @@ int parse_filter_action(char * str, flrn_filter *filt) {
 
 /* Parse une ligne commençant par T
  * Par exemple Tread */
-int parse_filter_toggle_flag(char * str, flrn_filter *filt) {
+int parse_filter_toggle_flag(flrn_char * str, flrn_filter *filt) {
   int ret,flag, toset;
   ret=parse_flags(str,&toset,&flag);
   if (filt->flag) return -1;
@@ -377,21 +393,21 @@ int parse_filter_toggle_flag(char * str, flrn_filter *filt) {
 /* La, on parse une condition, du genre ^From: jo
  * C'est utilisé pour les kill-files et les résumés
  * Pour les kill-files, il y avait une * devant */
-int parse_filter(char * istr, flrn_filter *start) {
+int parse_filter(flrn_char * istr, flrn_filter *start) {
   flrn_condition *cond, *c2;
-  char *str=istr;
-  char *buf;
+  flrn_char *str=istr;
+  flrn_char *buf;
   int i;
   cond=safe_calloc(1,sizeof(flrn_condition));
 
   /* si ça commence par ^ ou ~, on inverse la condition */
   while(1) {
-    if (*str == '~' || *str == '^') {
+    if (*str == fl_static('~') || *str == fl_static('^')) {
       cond->flags |= FLRN_COND_REV;
       str++;
     } else
     /* si ça commence par ' ou ", on fait un match exact */
-    if (*str == '\'' || *str == '"') {
+    if (*str == fl_static('\'') || *str == fl_static('"')) {
       cond->flags |= FLRN_COND_STRING;
       str++;
     }
@@ -399,39 +415,42 @@ int parse_filter(char * istr, flrn_filter *start) {
   }
   /* on cherche le header correspondant */
   for (i=0;i<NB_KNOWN_HEADERS;i++) {
-    if (strncasecmp(str,Headers[i].header,Headers[i].header_len)==0) {
+    if (fl_strncasecmp(str,
+		fl_static_tran(Headers[i].header),
+		Headers[i].header_len)==0) {
       cond->header_ns.header_num=i; break;
     }
   }
   if (i == NB_KNOWN_HEADERS) { 
      /* cas d'une date */
-     if (strncasecmp(str,"date ",5)==0) {
+     if (fl_strncasecmp(str,fl_static("date "),5)==0) {
         buf=str+5;
-	if (*buf=='>') start->date_after=get_date(buf+1,NULL);
-	  else if (*buf=='<') start->date_before=get_date(buf+1,NULL);
+	if (*buf==fl_static('>')) start->date_after=get_date(buf+1,NULL);
+	  else if (*buf==fl_static('<')) 
+	      start->date_before=get_date(buf+1,NULL);
 	return 0;
      } else {
        char saf_chr;
        cond->flags |= FLRN_COND_U_HEAD;
-       buf=strchr(str,':');
+       buf=fl_strchr(str,fl_static(':'));
        if ((buf==NULL) || (buf==str)) {
          free(cond);
 	 return -1;
        }
        saf_chr=*(++buf);
-       *buf='\0';
-       cond->header_ns.header_str=safe_strdup(str);
+       *buf=fl_static('\0');
+       cond->header_ns.header_str=safe_flstrdup(str);
        *buf=saf_chr;
      }
   } else
     buf = str + Headers[cond->header_ns.header_num].header_len;
-  while(*buf==' ') buf++;
+  while(*buf==fl_static(' ')) buf++;
   /* on parse la regexp */
   if (cond->flags & FLRN_COND_STRING) {
-    cond->condition.string = safe_strdup(buf);
+    cond->condition.string = safe_flstrdup(buf);
   } else {
     cond->condition.regex = safe_malloc(sizeof(regex_t));
-    if (regcomp(cond->condition.regex,buf,REG_EXTENDED|REG_NOSUB|REG_ICASE))
+    if (fl_regcomp(cond->condition.regex,buf,REG_EXTENDED|REG_NOSUB|REG_ICASE))
     {  if (cond->flags & FLRN_COND_U_HEAD) free(cond->header_ns.header_str);
        free(cond->condition.regex); free(cond) ; return -2;}
   }
@@ -462,7 +481,10 @@ static void free_condition( flrn_condition *cond) {
 }
 
 static void free_action( flrn_action *act) {
-  if (act->arg) free(act->arg);
+  if (act->command) {
+      if (act->command->after) free (act->command->after);
+      free(act->command);
+  }
   free(act);
 }
 
@@ -524,6 +546,8 @@ void free_kill(void) {
 flrn_filter * parse_kill_block(FILE *fi,Flrn_liste *liste) {
   char buf1[MAX_BUF_SIZE];
   char *buf2;
+  flrn_char *trad;
+  int rc;
   flrn_filter *filt = NULL;
   int out=0;
 
@@ -539,16 +563,18 @@ flrn_filter * parse_kill_block(FILE *fi,Flrn_liste *liste) {
       filt->cond_res = 0;
     }
     /* on appelle la bonne fonction suivant le type de ligne */
-    if (buf1[0]=='*') out=parse_filter(buf1+1,filt);
-    else if (buf1[0]=='F') out=parse_filter_flags(buf1+1,filt);
-    else if (buf1[0]=='C') out=parse_filter_action(buf1+1,filt);
-    else if (buf1[0]=='T') out=parse_filter_toggle_flag(buf1+1,filt);
+    rc=conversion_from_file(buf1+1,&trad,0,(size_t)(-1));
+    if (buf1[0]=='*') out=parse_filter(trad,filt);
+    else if (buf1[0]=='F') out=parse_filter_flags(trad,filt);
+    else if (buf1[0]=='C') out=parse_filter_action(trad,filt);
+    else if (buf1[0]=='T') out=parse_filter_toggle_flag(trad,filt);
     else if (buf1[0]==':') {
-      if (liste) add_to_liste(liste,buf1+1);
+      if (liste) add_to_liste(liste,trad);
       else out=1;
     }
     else if (buf1[0]=='#') out=0;
     else out=-1;
+    if (rc==0) free (trad);
     if(out) { free_filter(filt); return NULL; }
   }
   return filt;
@@ -562,6 +588,8 @@ int parse_kill_file(FILE *fi) {
   flrn_kill *kill, *k2=flrn_kill_deb;
   int out=0;
   int file=0;
+  flrn_char *trad;
+  int rc;
 
   while(fgets(buf,MAX_BUF_SIZE,fi)) {
     buf1=buf;
@@ -589,13 +617,17 @@ int parse_kill_file(FILE *fi) {
 	  kill->newsgroup_regexp=0;
 	  kill->newsgroup_cond.liste=alloue_liste();
 	  read_list_file(buf1,kill->newsgroup_cond.liste);
+	  /* ici, exceptionnellement, je ne fais aucune conversion, ni
+	   * dans un sens, ni dans l'autre, elle serait reversible directe */
 	  file=1;
 	}
 	if (strchr(buf2,'l')) {
 	  /* flag l, c'est une liste, et on en a donné le premier élément */
 	  kill->newsgroup_regexp=0;
 	  kill->newsgroup_cond.liste=alloue_liste();
-	  add_to_liste(kill->newsgroup_cond.liste,buf1);
+	  rc=conversion_from_file(buf1,&trad,0,(size_t)(-1));
+	  add_to_liste(kill->newsgroup_cond.liste,trad);
+	  if (rc==0) free(trad);
 	}
 	if (strchr(buf2,'m')) {
 	  /* C'est la liste principale,
@@ -614,12 +646,14 @@ int parse_kill_file(FILE *fi) {
 	file=0;
 	if (kill->newsgroup_regexp==1) {
 	  kill->newsgroup_cond.regexp = safe_malloc(sizeof(regex_t));
-	  if (regcomp(kill->newsgroup_cond.regexp,buf1,REG_EXTENDED|REG_NOSUB))
+	  rc=conversion_from_file(buf1,&trad,0,(size_t)(-1));
+	  if (regcomp(kill->newsgroup_cond.regexp,trad,REG_EXTENDED|REG_NOSUB))
 	    out=1;
 	  else {
 	    kill->filter=parse_kill_block(fi,NULL);
 	    if (!kill->filter) out=1;
 	  }
+	  if (rc==0) free(trad);
 	} else {
 	    kill->filter=parse_kill_block(fi,kill->newsgroup_cond.liste);
 	    if (!kill->filter) out=1;
@@ -643,7 +677,7 @@ static int check_group(flrn_kill *kill) {
     return kill->group_matched;
   kill->Article_deb_key=Newsgroup_courant->article_deb_key;
   if (kill->newsgroup_regexp) {
-    if (regexec(kill->newsgroup_cond.regexp,
+    if (fl_regexec(kill->newsgroup_cond.regexp,
 	Newsgroup_courant->name,0,NULL,0)==0) {
       kill->group_matched=1;
       return 1;
@@ -735,7 +769,7 @@ void check_kill_article_in_list(Article_List *debut, int min, int max, int flag)
   restore_etat_loop();
 }
 
-int add_to_main_list(char *name) {
+int add_to_main_list(flrn_char *name) {
   if(main_kill_list) {
     add_to_liste(main_kill_list,name);
     return 0;
@@ -743,7 +777,7 @@ int add_to_main_list(char *name) {
   return -1;
 }
 
-int remove_from_main_list(char *name) {
+int remove_from_main_list(flrn_char *name) {
   if(main_kill_list) {
     remove_from_liste(main_kill_list,name);
     return 0;
@@ -751,28 +785,29 @@ int remove_from_main_list(char *name) {
   return -1;
 }
 
-int in_main_list (char *name) {
+int in_main_list (flrn_char *name) {
   return (main_kill_list &&
      find_in_liste(main_kill_list,name));
 }
 
 /* Je met ca la pour une éventuelle unification */
-int parse_flags(char *name, int *toset, int *flag) {
+int parse_flags(flrn_char *name, int *toset, int *flag) {
    char *buf=name;
    int l;
    *flag=0;
-   if (strcasecmp(buf,"all")==0) return -2; /* cas pour les filtres */
-   if (strncasecmp(name,"un",2)==0) {
+   if (fl_strcasecmp(buf,fl_static("all"))==0)
+       return -2; /* cas pour les filtres */
+   if (fl_strncasecmp(name,fl_static("un"),2)==0) {
       buf+=2;
       *toset=0;
    } else *toset=1;
-   l=strlen(buf)-1;
-   while ((l>0) && (isblank(buf[l]))) buf[l--]='\0';
-   if (strcasecmp(buf,"read")==0) *flag=FLAG_READ; else
-   if (strcasecmp(buf,"killed")==0) *flag=FLAG_KILLED; else
-   if (strcasecmp(buf,"interesting")==0) *flag=FLAG_IMPORTANT; else
-   if (strcasecmp(buf,"toread")==0) *flag=FLAG_TOREAD; else
-   if (strcasecmp(buf,"selected")==0) *flag=FLAG_IS_SELECTED;
+   l=fl_strlen(buf)-1;
+   while ((l>0) && (fl_isblank(buf[l]))) buf[l--]=fl_static('\0');
+   if (strcasecmp(buf,fl_static("read"))==0) *flag=FLAG_READ; else
+   if (strcasecmp(buf,fl_static("killed"))==0) *flag=FLAG_KILLED; else
+   if (strcasecmp(buf,fl_static("interesting"))==0) *flag=FLAG_IMPORTANT; else
+   if (strcasecmp(buf,fl_static("toread"))==0) *flag=FLAG_TOREAD; else
+   if (strcasecmp(buf,fl_static("selected"))==0) *flag=FLAG_IS_SELECTED;
    if (*flag==0) return -1;
    return 0;
 }
@@ -780,37 +815,37 @@ int parse_flags(char *name, int *toset, int *flag) {
 /* ceci sert pour la complétion */
 #define NUM_FLAGS_STR 5
 
-static char *get_flag_name(void *ptr, int num) {
+static flrn_char *get_flag_name(void *ptr, int num) {
    char *pipo;
    switch (num%NUM_FLAGS_STR) {
-      case 0 : pipo="unread"; break;
-      case 1 : pipo="unkilled"; break;
-      case 2 : pipo="uninteresting"; break;
-      case 3 : pipo="unselected"; break;
-      default : pipo="untoread"; break;
+      case 0 : pipo=fl_static("unread"); break;
+      case 1 : pipo=fl_static("unkilled"); break;
+      case 2 : pipo=fl_static("uninteresting"); break;
+      case 3 : pipo=fl_static("unselected"); break;
+      default : pipo=fl_static("untoread"); break;
    }
    return (num>=NUM_FLAGS_STR ? pipo+2 : pipo);
 }
 
-int flags_comp(char *str, int len, Liste_Chaine *debut) {
+int flags_comp(flrn_char *str, size_t len, Liste_Chaine *debut) {
    Liste_Chaine *courant;
    int res,i;
    int result[NUM_FLAGS_STR*2];
 
    for (i=0;i<NUM_FLAGS_STR*2;i++) result[i]=0;
    res = Comp_generic(debut, str,len,NULL,NUM_FLAGS_STR*2,
-      get_flag_name," ",result,0);
+      get_flag_name,fl_static(" "),result,0);
    if (res==-3) return 0;
    if (res>= 0) {
       if (str[0]) debut->complet=0;
-      strcat(debut->une_chaine,str);
+      fl_strcat(debut->une_chaine,str);
       return 0;
    }
    if (res==-1) {
       courant=debut->suivant;
       for (i=0;i<NUM_FLAGS_STR*2;i++) {
         if (result[i]==0) continue;
-	strcat(courant->une_chaine,str);
+	fl_strcat(courant->une_chaine,str);
 	if (str[0]) courant->complet=0;
 	courant=courant->suivant;
      }
@@ -819,28 +854,32 @@ int flags_comp(char *str, int len, Liste_Chaine *debut) {
    return -2;
 }
 
-static char *get_header_name(void *ptr, int num) {
-   return ((Known_Headers *)ptr)[num].header;
+static flrn_char *get_header_name(void *ptr, int num) {
+   static flrn_char result[20];
+   char *bla;
+   bla=((Known_Headers *)ptr)[num].header;
+   strcpy(result, fl_static_tran(bla));
+   return result;
 }
-int header_comp(char *str, int len, Liste_Chaine *debut) {
+int header_comp(flrn_char *str, size_t len, Liste_Chaine *debut) {
    Liste_Chaine *courant;
    int res,i;
    int result[NB_KNOWN_HEADERS];
 
    for (i=0;i<NB_KNOWN_HEADERS;i++) result[i]=0;
    res = Comp_generic(debut,str,len,(void *)Headers,NB_KNOWN_HEADERS,
-      get_header_name," ",result,0);
+      get_header_name,fl_static(" "),result,0);
    if (res==-3) return 0;
    if (res>= 0) {
       if (str[0]) debut->complet=0;
-      strcat(debut->une_chaine,str);
+      fl_strcat(debut->une_chaine,str);
       return 0;
    }
    if (res==-1) {
       courant=debut->suivant;
       for (i=0;i<NUM_FLAGS_STR*2+NB_KNOWN_HEADERS;i++) {
         if (result[i]==0) continue;
-	strcat(courant->une_chaine,str);
+	fl_strcat(courant->une_chaine,str);
 	if (str[0]) courant->complet=0;
 	courant=courant->suivant;
      }
@@ -849,30 +888,34 @@ int header_comp(char *str, int len, Liste_Chaine *debut) {
    return -2;
 }
    
-static char *get_flag_header_name(void *ptr, int num) {
+static flrn_char *get_flag_header_name(void *ptr, int num) {
+   static flrn_char result[20];
+   char *bla;
    if (num>=2*NUM_FLAGS_STR)
-     return ((Known_Headers *)ptr)[num-2*NUM_FLAGS_STR].header;
+     bla=((Known_Headers *)ptr)[num-2*NUM_FLAGS_STR].header;
    else return get_flag_name(ptr,num);
+   strcpy(result, fl_static_tran(bla));
+   return result;
 }
-int flag_header_comp(char *str, int len, Liste_Chaine *debut) {
+int flag_header_comp(flrn_char *str, size_t len, Liste_Chaine *debut) {
    Liste_Chaine *courant;
    int res,i;
    int result[2*NUM_FLAGS_STR+NB_KNOWN_HEADERS];
 
    for (i=0;i<2*NUM_FLAGS_STR+NB_KNOWN_HEADERS;i++) result[i]=0;
    res = Comp_generic(debut,str,len,(void *)Headers,2*NUM_FLAGS_STR+
-       NB_KNOWN_HEADERS, get_flag_header_name," ",result,0);
+       NB_KNOWN_HEADERS, get_flag_header_name,fl_static(" "),result,0);
    if (res==-3) return 0;
    if (res>= 0) {
       if (str[0]) debut->complet=0;
-      strcat(debut->une_chaine,str);
+      fl_strcat(debut->une_chaine,str);
       return 0;
    }
    if (res==-1) {
       courant=debut->suivant;
       for (i=0;i<NUM_FLAGS_STR*2+NB_KNOWN_HEADERS;i++) {
         if (result[i]==0) continue;
-	strcat(courant->une_chaine,str);
+	fl_strcat(courant->une_chaine,str);
 	if (str[0]) courant->complet=0;
 	courant=courant->suivant;
      }

@@ -29,304 +29,45 @@
 #ifdef USE_SLANG_LANGUAGE
 #include <slang.h>
 #endif
-#ifdef WITH_CHARACTER_SETS
-#include "rfc2045.h"
-#endif
+#include "enc/enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 
-/* On ne parse plus la date ici, on utilise getdate.y (cf GNU date) */
-#if 0
-/* Parsing de la date */
-/* ce code est tiré de celui de mutt, placé aussi sous GPL */
-/* cf ftp://ftp.lip6.fr/pub/unix/mail/mutt/ */
-const char *Months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug",
- "Sep", "Oct", "Nov", "Dec", "ERR" };
 
-static struct tz_t
-{
-  char *tzname;
-  unsigned char zhours;
-  unsigned char zminutes;
-  unsigned char zoccident; /* west of UTC? */
-  unsigned char xxx;       /* unused */
-}
-TimeZones[] =
-{
-  { "sst",  11,  0, 1, 0 }, /* Samoa */
-  { "pst",   8,  0, 1, 0 },
-  { "mst",   7,  0, 1, 0 },
-  { "pdt",   7,  0, 1, 0 },
-  { "cst",   6,  0, 1, 0 },
-  { "mdt",   6,  0, 1, 0 },
-  { "cdt",   5,  0, 1, 0 },
-  { "est",   5,  0, 1, 0 },
-  { "ast",   4,  0, 1, 0 }, /* Atlantic */
-  { "edt",   4,  0, 1, 0 },
-  { "wgt",   3,  0, 1, 0 }, /* Western Greenland */
-  { "wgst",  2,  0, 1, 0 }, /* Western Greenland DST */
-  { "aat",   1,  0, 1, 0 }, /* Atlantic Africa Time */
-  { "egt",   1,  0, 1, 0 }, /* Eastern Greenland */
-  { "egst",  0,  0, 0, 0 }, /* Eastern Greenland DST */
-  { "gmt",   0,  0, 0, 0 },
-  { "utc",   0,  0, 0, 0 },
-  { "wat",   0,  0, 0, 0 }, /* West Africa */
-  { "wet",   0,  0, 0, 0 }, /* Western Europe */
-  { "bst",   1,  0, 0, 0 }, /* British DST */
-  { "cat",   1,  0, 0, 0 }, /* Central Africa */
-  { "cet",   1,  0, 0, 0 }, /* Central Europe */
-  { "met",   1,  0, 0, 0 }, /* this is now officially CET */
-  { "west",  1,  0, 0, 0 }, /* Western Europe DST */
-  { "cest",  2,  0, 0, 0 }, /* Central Europe DST */
-  { "eet",   2,  0, 0, 0 }, /* Eastern Europe */
-  { "ist",   2,  0, 0, 0 }, /* Israel */
-  { "sat",   2,  0, 0, 0 }, /* South Africa */
-  { "ast",   3,  0, 0, 0 }, /* Arabia */
-  { "eat",   3,  0, 0, 0 }, /* East Africa */
-  { "eest",  3,  0, 0, 0 }, /* Eastern Europe DST */
-  { "idt",   3,  0, 0, 0 }, /* Israel DST */
-  { "msk",   3,  0, 0, 0 }, /* Moscow */
-  { "adt",   4,  0, 0, 0 }, /* Arabia DST */
-  { "msd",   4,  0, 0, 0 }, /* Moscow DST */
-  { "gst",   4,  0, 0, 0 }, /* Presian Gulf */
-  { "smt",   4,  0, 0, 0 }, /* Seychelles */
-  { "ist",   5, 30, 0, 0 }, /* India */
-  { "ict",   7,  0, 0, 0 }, /* Indochina */
-/*{ "cst",   8,  0, 0, 0 },*/ /* China */
-  { "hkt",   8,  0, 0, 0 }, /* Hong Kong */
-/*{ "sst",   8,  0, 0, 0 },*/ /* Singapore */
-  { "wst",   8,  0, 0, 0 }, /* Western Australia */
-  { "jst",   9,  0, 0, 0 }, /* Japan */
-/*{ "cst",   9, 30, 0, 0 },*/ /* Australian Central Standard Time */
-  { "kst",  10,  0, 0, 0 }, /* Korea */
-  { "nzst", 12,  0, 0, 0 }, /* New Zealand */
-  { "nzdt", 13,  0, 0, 0 }, /* New Zealand DST */
-  { NULL,    0,  0, 0, 0 }
-};
-
-static int mutt_check_month (const char *s)
-{
-  int i;
-
-  for (i = 0; i < 12; i++)
-    if (strncasecmp (s, Months[i], 3) == 0)
-     return (i);
-  return (-1); /* error */
-}
-
-static const char *uncomment_timezone (char *buf, size_t buflen, const char *tz)
-{
-  char *p;
-  size_t len;
-
-  if (*tz != '(')
-    return tz; /* no need to do anything */
-  tz++;
-  while (isblank(*tz)) tz++;
-  if ((p = strpbrk (tz, " )")) == NULL)
-    return tz;
-  len = p - tz;
-  if (len > buflen - 1)
-    len = buflen - 1;
-  memcpy (buf, tz, len);
-  buf[len] = 0;
-  return buf;
-}
-
-/* converts struct tm to time_t, but does not take the local timezone into
- *    account unless ``local'' is nonzero */
-time_t mutt_mktime (struct tm *t, int local)
-{
-  time_t g;
-
-  static int AccumDaysPerMonth[12] = {
-    0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334
-  };
- /* Compute the number of days since January 1 in the same year */
-  g = AccumDaysPerMonth [t->tm_mon % 12];
-
- /* The leap years are 1972 and every 4. year until 2096,
-  * but this algoritm will fail after year 2099 */
-  g += t->tm_mday;
-  if ((t->tm_year % 4) || t->tm_mon < 2)
-    g--;
-  t->tm_yday = g;
-
-  /* Compute the number of days since January 1, 1970 */
-  g += (t->tm_year - 70) * 365;
-  g += (t->tm_year - 69) / 4;
-  /* Compute the number of hours */
-  g *= 24;
-  g += t->tm_hour;
-
- /* Compute the number of minutes */
-  g *= 60;
-  g += t->tm_min;
-
-  /* Compute the number of seconds */
-  g *= 60;
-  g += t->tm_sec;
-
-/*  if (local)
-    g += mutt_compute_tz (g, t);  */
-
-  return (g);
-}
-
-/* Cette fonction modifiant la chaine de caractère date, on recopie date d'abord
- */
-time_t parse_date (char *s)
-{
-  char *t, *ns;
-  struct tm tm;
-  int hour, min, sec;
-  int i;
-  int tz_offset = 0;
-  int zhours = 0;
-  int zminutes = 0;
-  int zoccident = 0;
-  const char *ptz;
-  char tzstr[128];
-  int count=0;
-
-  /* kill the day of the week, if it exists. */
-  ns=safe_strdup(s);
-  if ((t = strchr (ns, ',')))
-        t++;
-    else
-        t = ns;
-  while (isblank(*t)) t++;
-  memset (&tm, 0, sizeof(tm));
-  while ((t = strtok (t, " \t")) != NULL)
-  {
-    switch (count)
-    {
-      case 0: /* day of the month */
-         if (!isdigit ((int) *t)) {
-           free(ns);
-           return (0);
-         }
-         tm.tm_mday = atoi (t);
-         if (tm.tm_mday > 31) {
-           free(ns);
-           return (0);
-         }
-         break;
-
-      case 1: /* month of the year */
-         if ((i = mutt_check_month (t)) < 0) {
-           free(ns);
-           return (0);
-         }
-         tm.tm_mon = i;
-         break;
-
-      case 2: /* year */
-         tm.tm_year = atoi (t);
-         if (tm.tm_year >= 1900)
-             tm.tm_year -= 1900;
-         break;
-
-      case 3: /* time of day */
-         if (sscanf (t, "%d:%d:%d", &hour, &min, &sec) == 3)
-           ;
-        else if (sscanf (t, "%d:%d", &hour, &min) == 2)
-           sec = 0;
-        else
-        {
-          if (debug) fprintf(stderr, "parse_date: beurk : %s\n",t);
-          free(ns);
-          return 0;
-        }
-        tm.tm_hour = hour;
-        tm.tm_min = min;
-        tm.tm_sec = sec;
-        break;
-
-      case 4: /* timezone */
-       /* sometimes we see things like (MST) or (-0700) so attempt to 
-        * compensate by uncommenting the string if non-RFC822 compliant
-        */
-        ptz = uncomment_timezone (tzstr, sizeof (tzstr), t);
-        if (*ptz == '+' || *ptz == '-')
-        {
-          if (ptz[1] && ptz[2] && ptz[3] && ptz[4])
-          {
-            zhours = (ptz[1] - '0') * 10 + (ptz[2] - '0');
-            zminutes = (ptz[3] - '0') * 10 + (ptz[4] - '0');
-            if (ptz[0] == '-')
-            zoccident = 1;
-          }
-        }
-        else
-        {
-          for (i = 0; TimeZones[i].tzname; i++)
-          if (!strcasecmp (TimeZones[i].tzname, ptz))
-          {
-            zhours = TimeZones[i].zhours;
-            zminutes = TimeZones[i].zminutes;
-            zoccident = TimeZones[i].zoccident;
-            break;
-          }
-        /* ad hoc support for the European MET (now officially CET) TZ */
-        if (strcasecmp (t, "MET") == 0)
-        {
-          if ((t = strtok (NULL, " \t")) != NULL)
-          {
-            if (!strcasecmp (t, "DST"))
-            zhours++;
-          }
-        }
-      }
-      tz_offset = zhours * 3600 + zminutes * 60;
-      if (!zoccident)
-         tz_offset = -tz_offset;
-         break;
-    }
-    count++;
-    t = 0;
-  }
-  free(ns);
-  if (count < 4) /* don't check for missing timezone */
-    return (0);
-  return (mutt_mktime (&tm,0) + tz_offset);
-}
-
-/* fin de la partie prise sur mutt */
-#endif
-
-
-time_t parse_date (char *s) {
+time_t parse_date (flrn_char *s) {
     time_t bla=1;
     /* c'est une date absolue, donc on se fiche du tmeps courant */
-    return get_date(s,&bla);
+    /* la date n'est pas, a priori, avec des caractères 8bits */
+    return get_date(fl_static_rev(s),&bla);
 }
 
 /* Détermination du real name a partir d'une chaine type From */
-char *vrai_nom (char *nom) {
-    char *result, *buf1, *buf2;
+flrn_char *vrai_nom (flrn_char *nom) {
+    flrn_char *result, *buf1, *buf2;
     
-    result=safe_malloc((strlen(nom)+1)*sizeof(char));
-    memset(result, 0, strlen(nom)+1);
+    result=safe_malloc((fl_strlen(nom)+1)*sizeof(flrn_char));
+    memset(result, 0, fl_strlen(nom)+1);
     *result='\0';
     if (nom==NULL) return result;
-    buf1=strchr(nom,'(');
+    buf1=fl_strchr(nom,fl_static('('));
     if (buf1) {
        buf1++;
-       buf2=strrchr(buf1, ')');
-       if (buf2==NULL) buf2=index(buf1, '\0');
-       strncpy(result, buf1, buf2-buf1);
+       buf2=fl_strrchr(buf1, fl_static(')'));
+       if (buf2==NULL) buf2=fl_strchr(buf1, fl_static('\0'));
+       fl_strncpy(result, buf1, buf2-buf1);
     } else {
-      buf1=strchr(nom, '<');
-      if (buf1==NULL) { strcpy(result,nom); return result; }
-      strncpy(result, nom, buf1-nom);
-      buf2=strrchr(nom, '>');
-      if (buf2!=NULL) strcat(result, buf2+1);
+      buf1=fl_strchr(nom, fl_static('<'));
+      if (buf1==NULL) { fl_strcpy(result,nom); return result; }
+      fl_strncpy(result, nom, buf1-nom);
+      buf2=fl_strrchr(nom, fl_static('>'));
+      if (buf2!=NULL) fl_strcat(result, buf2+1);
     }
     return result;
 }
 
 /* Écriture de la date a partir d'une chaine de date */
+/* obsolete */
+#if 0
 char *local_date (char *date) {
     char *result;
     char *mydate=date;
@@ -350,131 +91,319 @@ char *local_date (char *date) {
       strcpy(result,"???");
     return result;
 }
+#endif
 
 
 
 /* Fonctions pour estimer la taille d'une chaine a afficher (avec les tab) */
-int str_estime_len (char *la_chaine, int tmp_col, int tai_chaine) {
+/* on suppose avoir déjà transcrit la chaîne en format "terminal" */
+int str_estime_width (char *la_chaine, int tmp_col, size_t tai_chaine) {
   char *buf = la_chaine;
-  int i=0,l=1;
+  int w,icol=tmp_col;
+  size_t i=0,l=1;
 
-  if (tai_chaine==-1) tai_chaine=strlen(la_chaine);
+  if (tai_chaine==(size_t)-1) tai_chaine=strlen(la_chaine);
   while (i<tai_chaine) {
     if (*buf=='\t') {
       tmp_col=(tmp_col/Screen_Tab_Width+1)*Screen_Tab_Width; 
       buf++;
       i++;
     } else {
-#ifdef WITH_CHARACTER_SETS
-      l=Length_one_character(buf);
-#endif
+      width_termchar(buf,&w,&l);
       buf+=l;
       i+=l;
-      tmp_col++;
+      tmp_col+=w;
     }
   }
-  return tmp_col;
+  return tmp_col-icol;
 }
-int to_make_len (char *la_chaine, int col_total, int tmp_col) {
+
+/* renvoie le nombre de caractères pour la taille totale */
+/* flag = 0 : au plus près ; = 1 : au plus près blanc */
+size_t to_make_width (char *la_chaine, int col_total, int *col, int flag) {
   char *last_s=NULL, *buf=la_chaine;
-  int tmp_col_ini=tmp_col, l=1;
+  int save_col=*col,act_col=*col,w;
+  size_t l=1;
 
   if (*buf=='\0') return 0;
-  while (tmp_col<col_total) {
-    if (isblank(*buf)) last_s=buf;
-    if (*buf=='\t') tmp_col=(tmp_col/Screen_Tab_Width+1)*Screen_Tab_Width; else
-    {
-      tmp_col++;
-#ifdef WITH_CHARACTER_SETS
-      l=Length_one_character(buf);
-#endif
-      buf+=(l-1);
+  while (act_col<col_total) {
+    if (isblank(*buf)) { last_s=buf; save_col=act_col; }
+    if (*buf=='\t') {
+	if ((act_col/Screen_Tab_Width+1)*Screen_Tab_Width>col_total) break;
+	act_col=(act_col/Screen_Tab_Width+1)*Screen_Tab_Width;
+	buf++;
+    } else {
+      width_termchar(buf,&w,&l);
+      if (w+act_col>col_total) break;
+      act_col+=w;
+      buf+=l;
     }
-    buf++;
-    if (*buf=='\0') return strlen(la_chaine);
+    if (*buf=='\0') {
+	*col=act_col;
+	return strlen(la_chaine);
+    }
   }
-  if (isblank(*buf)) return buf-la_chaine+1; else 
-     if (last_s) return last_s-la_chaine+1; else
-       if (tmp_col_ini) return 0; else 
-         return buf-la_chaine;
+  if (isblank(*buf)) {
+     *col=act_col;
+     return buf-la_chaine;
+  } else 
+     if ((last_s) && (flag)) {
+	*col=save_col;
+        return last_s-la_chaine;
+     } else
+       if ((*col) && (flag)) return 0; else {
+	  *col=act_col;
+          return buf-la_chaine;
+       }
 }
-   
 
-/* Copie d'une chaine dans un fichier, limitée... */
+/* version de conversion */
+size_t to_make_width_convert(flrn_char *la_chaine, int col_total,
+	int *col, int flag) {
+    flrn_char *last_s=NULL, *buf=la_chaine;
+    int save_col=*col,act_col=*col,w;
+    char conver[15],*cv;
+    size_t l=1;
+
+    if (*buf==fl_static('\0')) return 0;
+    while (act_col<col_total) {
+	if ((*buf==fl_static(' ')) || (*buf==fl_static('\t')))
+	   { last_s=buf; save_col=act_col; }
+        if (*buf==fl_static('\t')) {
+            if ((act_col/Screen_Tab_Width+1)*Screen_Tab_Width>col_total) break;
+	    act_col=(act_col/Screen_Tab_Width+1)*Screen_Tab_Width;
+	    buf++;
+	} else {
+	    size_t ll;
+	    int scol;
+	    ll=next_flch(buf,0);
+	    if ((int)ll<=0) ll=1;
+	    cv=conver;
+	    w = conversion_to_terminal(buf,&cv,14,ll);
+	    scol=act_col;
+	    while (*cv) {
+               width_termchar(cv,&w,&l);
+	       if (scol+w>col_total) break; 
+	       scol+=w;
+	       cv+=l;
+	    }
+            if (*cv) break; 
+	    buf+=ll;
+	    act_col=scol;
+	}
+	if (*buf==fl_static('\0')) {
+	    *col=act_col;
+	    return fl_strlen(la_chaine);
+	}
+    }
+    if ((*buf==fl_static(' ')) || (*buf==fl_static('\t'))) {
+	*col=act_col;
+	return buf-la_chaine;
+    } else
+	if ((last_s) && (flag)) {
+	    *col=save_col;
+	    return last_s-la_chaine;
+	} else
+	    if ((*col) && (flag)) return 0; else {
+		*col=act_col;
+		return buf-la_chaine;
+            }
+}
+
+/* format_flstring convertit une chaîne en chaîne affichable pour le
+ * terminal, en la mettant dans un morceau de menu. Renvoi la largeur
+ * de la chaîne. Les tabulations deviennent des espaces .
+ * justify =0 : left   1 : right  2 : center */
+int format_flstring (char *dest, flrn_char *src, int mwidth, size_t sdest,
+	int justify) {
+    int width=0;
+    char *buf=dest;
+
+    *buf='\0';
+    while ((*src!=fl_static('\0')) && (width<mwidth) && (sdest>1)) {
+	if ((*src==fl_static(' ')) || (*src==fl_static('\t'))) {
+	    width++;
+	    *(buf++)=' '; sdest--;
+	    src++;
+	    continue;
+	}
+	{
+	    size_t ll;
+	    int w;
+	    ll=next_flch(src,0);
+	    if ((int)ll<=0) ll=1;
+	    conversion_to_terminal(src,&buf,sdest-1,ll);
+	    src+=ll;
+	    if (*buf=='\0') return width;
+	    while (*buf) {
+	       width_termchar(buf,&w,&ll);
+	       if (w+width>mwidth) {
+		   *buf='\0';
+		   return width;
+	       }
+	       buf+=ll; sdest-=ll;
+	       width+=w;
+	    }
+	}
+	*buf='\0';
+   }
+   if ((width<mwidth) && (sdest>1) && (justify>0)) {
+       int decalage;
+       if (justify==1) 
+	   decalage=mwidth-width;
+       else 
+	   decalage=(mwidth-width)/2;
+       if (decalage>=sdest) decalage=sdest-1;
+       memmove(dest+decalage,dest,buf-dest+1);
+       memset(dest,(int)(' '),decalage);
+   }
+   return width;
+}
+
+int format_flstring_from_right (char *dest, flrn_char *src, int mwidth,
+	size_t sdest, int justify) {
+    int width=0;
+    size_t idest=sdest+1;
+    char *buf=dest+sdest;
+    char trad1[15];
+    flrn_char *prc=src+fl_strlen(src);
+    char *dummy=&(trad1[0]);
+
+    memset(dummy,0,15);
+    *(buf--)='\0';
+    while ((prc!=src) && (width<mwidth) && (sdest>1)) {
+	if ((*prc==fl_static(' ')) || (*prc==fl_static('\t'))) {
+	    width++;
+	    *(buf--)=' '; sdest--;
+	    prc--;
+	    continue;
+	}
+	{
+	    size_t ll;
+	    int w;
+	    ll=previous_flch(prc,0,prc-src);
+	    if ((int)ll<=0) ll=1;
+	    prc-=ll;
+	    conversion_to_terminal(prc,&dummy,14,ll);
+	    if (*dummy=='\0') break;
+	    ll=strlen(dummy);
+	    w=str_estime_width(dummy,0,ll);
+	    /* FIXME : en char arrière */
+	    if ((w+width>mwidth) || (ll>sdest-1)) {
+		memmove(dest,buf,idest-sdest);
+		return width;
+	    }
+	    buf-=ll; sdest-=ll;
+	    memcpy(buf,dummy,ll);
+	    width+=w;
+	    dummy=&(trad1[0]);
+	}
+   }
+   memmove(dest,buf,idest-sdest);
+   if ((width<mwidth) && (sdest>1) && (justify>0)) {
+       int decalage;
+       if (justify==1) 
+	   decalage=mwidth-width;
+       else 
+	   decalage=(mwidth-width)/2;
+       if (decalage>=sdest) decalage=sdest-1;
+       memmove(dest+decalage,dest,buf-dest+1);
+       memset(dest,(int)(' '),decalage);
+   }
+   return width;
+}
+
+
+/* Copie d'une chaine dans un fichier pour l'éditeur, limitée... */
 /* tmp_file=NULL : initialise... chaine=NULL : flush */
-void copy_bout (FILE *tmp_file, char *chaine) {
-  static char ligne[80];
-  char *buf;
-  int len1;
-  static int len;
+void copy_bout (FILE *tmp_file, flrn_char *flchaine) {
+  static char ligne[100];
+  char *chaine,*buf,*ptr;
+  int resconv;
+  static int col;
+  size_t len1;
 
   if (tmp_file==NULL) {
     ligne[0]='\0';
-    len=0;
+    col=0;
     return;
   }
-  if (chaine==NULL) {
+  if (flchaine==NULL) {
      fprintf(tmp_file, "%s\n", ligne);
      ligne[0]='\0';
-     len=0;
+     col=0;
      return;
   }
-  if ((buf=strchr(chaine,'\n'))) {
-     *buf='\0';
-     copy_bout(tmp_file,chaine);
-     copy_bout(tmp_file,NULL);
-     copy_bout(tmp_file,buf+1);
-     return;
-  }
-  len1=to_make_len(chaine,72,len);
-  if (len1==0) { /* On peut vouloir couper avant dans ce cas */
-     char *tmp_string, *buf2;
-     buf=strrchr(ligne,' ');
-     if (buf) {
-        buf2=strrchr(buf,'\t');
-	if (buf2) buf=buf2;
-	*buf='\0';
-	fprintf(tmp_file, "%s\n", ligne);
-	tmp_string=safe_strdup(buf+1);
-	strcpy(ligne,tmp_string);
-	len=str_estime_len(ligne, 0, -1);
-	free(tmp_string);
-	copy_bout (tmp_file, chaine);
-	return;
+  resconv=conversion_to_editor(flchaine,&chaine,0,(size_t)(-1));
+  ptr=chaine;
+  while (*ptr) {
+     buf=ptr;
+     if ((ptr=strchr(ptr,'\n'))) {
+        *(ptr++)='\0';
      }
+     len1=to_make_width(buf,72,&col,1);
+     if (len1==0) { /* On peut vouloir couper avant dans ce cas */
+        char *tmp_string, *buf2;
+        tmp_string=strrchr(buf,' ');
+	if (tmp_string==NULL) tmp_string=strrchr(buf,'\t');
+	else { buf2=strrchr(tmp_string,'\t');
+	       if (buf2) tmp_string=buf2; }
+        if (tmp_string) {
+	   *(tmp_string++)='\0';
+	   fprintf(tmp_file, "%s\n", ligne);
+	   ligne[0]='\0';
+	   col=str_estime_width(tmp_string,0,(size_t)-1);
+	   memmove(ligne,tmp_string,strlen(tmp_string)+1);
+	   if (ptr) *(--ptr)='\0'; 
+	   ptr=buf; continue;
+	} else {
+	   fprintf(tmp_file, "%s\n", ligne);
+	   ligne[0]='\0';
+	   col=0;
+	   len1=to_make_width(buf,72,&col,1);
+	   if (len1==0) { /* impossible ! */
+	       if (ptr) *(--ptr)='\n';
+	       fprintf(tmp_file, "%s\n", buf);
+	       if (resconv==0) free(chaine);
+	       return;
+	   }
+	}
+     }
+     strncat(ligne,buf,len1);
+     if ((ptr) || (len1!=strlen(buf))) {
+        fprintf(tmp_file, "%s\n", ligne);
+        ligne[0]='\0';
+        col=0;
+	if (len1!=strlen(buf)) {
+           if (ptr) *(--ptr)='\n';
+	   ptr=buf+len1;
+	}
+     } else break;
   }
-  strncat(ligne,chaine,len1);
-  len=str_estime_len (chaine, len, len1);
-  if (len1!=strlen(chaine)) {
-     fprintf(tmp_file, "%s\n", ligne);
-     ligne[0]='\0';
-     len=0;
-     buf=chaine+len1;
-     copy_bout(tmp_file,buf);
-  }
+  if (resconv==0) free(chaine);
 }
 
 /* Translation des sequences d'echappement dans Copy_format. On peut
    reecrire sur la même chaîne */
-static int translate_escape_seq(char *dst, char *src) {
+static int translate_escape_seq(flrn_char *dst, flrn_char *src) {
    if ((src==NULL) || (dst==NULL)) return -1;
    while (*src) {
-     if ((*dst=*(src++))!='\\') {
+     if ((*dst=*(src++))!=fl_static('\\')) {
         dst++;
      } else 
      switch (*(src++)) {
-         case 'a' : *(dst++)='\a'; break;
-         case 'b' : *(dst++)='\b'; break;
-         case 'f' : *(dst++)='\f'; break;
-         case 'n' : *(dst++)='\n'; break;
-         case 'r' : *(dst++)='\r'; break;
-         case 't' : *(dst++)='\t'; break;
-         case 'v' : *(dst++)='\v'; break;
-         case '\\' : *(dst++)='\\'; break;
-	 default : dst++; *(dst++)='?'; break;
+         case fl_static('a') : *(dst++)=fl_static('\a'); break;
+         case fl_static('b') : *(dst++)=fl_static('\b'); break;
+         case fl_static('f') : *(dst++)=fl_static('\f'); break;
+         case fl_static('n') : *(dst++)=fl_static('\n'); break;
+         case fl_static('r') : *(dst++)=fl_static('\r'); break;
+         case fl_static('t') : *(dst++)=fl_static('\t'); break;
+         case fl_static('v') : *(dst++)=fl_static('\v'); break;
+         case fl_static('\\') : *(dst++)=fl_static('\\'); break;
+	 default : dst++; *(dst++)=fl_static('?'); break;
      }
    }
-   *dst='\0';
+   *dst=fl_static('\0');
    return 0;
 }
 
@@ -483,33 +412,35 @@ static int translate_escape_seq(char *dst, char *src) {
 /* Mais si on veut copier dans une chaine ? */
 /* Je passe aussi une chaine avec la taille limite... */
 /* On suppose chaine non NULL */
-void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
-                  char *result, int len) {
-   char *att, *ptr_att;
-   char *buf;
-   int len2=len;
+void Copy_format (FILE *tmp_file, flrn_char *chaine, Article_List *article,
+                  flrn_char *result, size_t len) {
+   flrn_char *att, *ptr_att;
+   flrn_char *buf;
+   size_t len2=0;
 
-   att=safe_strdup(chaine);
+   att=safe_flstrdup(chaine);
    if (article) if (article->headers==NULL) return; /* Beurk ! */
-   if (tmp_file) copy_bout(NULL,NULL); else result[0]=0;
+   if (tmp_file) copy_bout(NULL,NULL); else result[0]=fl_static('\0');
    ptr_att=att;
    while (ptr_att && (*ptr_att)) {
-     buf=strchr(ptr_att,'%');
-     if (buf) *buf='\0';
+     buf=fl_strchr(ptr_att,fl_static('%'));
+     if (buf) *buf=fl_static('\0');
      /* on copie pour faire marcher les sequences d'echappement */
      if (translate_escape_seq(ptr_att, ptr_att)<0) {
          /* ah, y'a eu un bug, pas logique, normalement il n'y a pas
 	      de '%' */
-        if (debug) fprintf (stderr,"Bug dans Copy_format : ne peut faire la traduction de %s\n", chaine);
+        if (debug) fprintf (stderr,"Bug dans Copy_format : ne peut faire la traduction de %s\n", fl_static_rev(chaine));
      }
      if (buf==NULL) {
        if (tmp_file) {
           copy_bout(tmp_file,ptr_att);
        }
        else { 
-          strncat(result,ptr_att,len2); len2-=strlen(ptr_att); 
-	  if (len2<=0) { result[len]=0; free(att) ;return; } 
-	  else result[len-len2]=0;
+          fl_strncat(result,ptr_att,len2); 
+	  len2+=fl_strlen(ptr_att);
+	  if (len2>=len) { result[len]=fl_static('\0');
+	                   free(att); return; } 
+	  result[len2]=fl_static('\0');
        }
        break;
      } else {
@@ -517,133 +448,149 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
           copy_bout(tmp_file,ptr_att);
        }
        else { 
-          strncat(result,ptr_att,len2); len2-=strlen(ptr_att); 
-	  if (len2<=0) { result[len]=0; free(att) ;return; } 
-	  else result[len-len2]=0;
+          fl_strncat(result,ptr_att,len2); 
+	  len2+=strlen(ptr_att); 
+	  if (len2>=len) { result[len]=fl_static('\0'); free(att) ;return; } 
+	  result[len2]=fl_static('\0');
        }
        ptr_att=(++buf);
        switch (*buf) {
-         case '%' : copy_bout(tmp_file,"%");
-                    if (tmp_file) copy_bout(tmp_file,"%"); else
-                    { strcat(result,"%"); len2--; 
-		      if (len2<=0) { free(att); return; }
-		      else result[len-len2]=0; }
+         case fl_static('%') :
+                    if (tmp_file) copy_bout(tmp_file,fl_static("%")); else
+                    { strcat(result,fl_static("%")); len2++; 
+		      if (len2>=len) { free(att); return; }
+		      else result[len2]=fl_static('\0'); }
                     ptr_att++;
                     break;
-         case 'n' : { char *vrai_n;
+         case fl_static('n') : { flrn_char *vrai_n;
                       ptr_att++;
 		      if (article==NULL) break;
                       vrai_n=vrai_nom(article->headers->k_headers
                                                 [FROM_HEADER]);
                       if (tmp_file) copy_bout(tmp_file,vrai_n); else
-                      { strncat(result,vrai_n,len2); len2-=strlen(vrai_n); 
-		        if (len2<=0) { result[len]=0; free(att); 
-			               free(vrai_n); return; } else 
-			result[len-len2]=0; }
-                      free(vrai_n);
-                      break;
-                    }
-         case 'i' : { char *msgid;
+                      { fl_strncat(result,vrai_n,len2); 
+			len2+=strlen(vrai_n); 
+		        if (len2>=len) { result[len]=fl_static('\0');
+			                 free(att); 
+			                 free(vrai_n); return; } else 
+			result[len2]=fl_static('\0'); }
+                        free(vrai_n);
+                        break;
+                      }
+         case fl_static('i') : { flrn_char *msgid;
                       ptr_att++;
 		      if (article==NULL) break;
-	              msgid=safe_strdup(article->msgid);
+	              msgid=safe_flstrdup(fl_static_tran(article->msgid));
                       if (tmp_file) copy_bout(tmp_file,msgid); else
-                      { strncat(result,msgid,len2); len2-=strlen(msgid); 
-		        if (len2<=0) { result[len]=0; free(att); free(msgid); 
-			               return; } else 
-			result[len-len2]=0; }
+                      { fl_strncat(result,msgid,len2); len2+=fl_strlen(msgid); 
+		        if (len2>=len) { result[len]=fl_static('\0');
+			                 free(att); free(msgid); 
+			                 return; } else 
+			result[len2]=fl_static('\0'); }
 		      free(msgid);
                       break;
 		    }
-         case 'C' : { char *num=safe_malloc(sizeof(int)*3+2);
-		      snprintf(num,sizeof(int)*3+1,"%d",article ? article->numero : 0);
+         case fl_static('C') : { 
+		      flrn_char *num=safe_malloc((sizeof(int)*3+2)*
+			                         sizeof(flrn_char));
+		      fl_snprintf(num,sizeof(int)*3+1,fl_static("%d"),
+			      article ? article->numero : 0);
                       if (tmp_file) copy_bout(tmp_file,num); else
-                      { strncat(result,num,len2); len2-=strlen(num); 
-		        if (len2<=0) { result[len]=0; free(att); free(num); 
+                      { fl_strncat(result,num,len2); len2+=fl_strlen(num); 
+		        if (len2>=len) { result[len]=fl_static('\0');
+			               free(att); free(num); 
 			               return; } else 
-			result[len-len2]=0; }
+			result[len2]=fl_static('\0'); }
 		      free(num);
                       ptr_att++;
                       break;
 		    }
-         case 'g' : { char *bla;
-	              char *str=safe_strdup(Newsgroup_courant->name);
-		      bla=truncate_group(str,1);
-                      if (tmp_file) copy_bout(tmp_file,bla); else
-                      { strncat(result,bla,len2); len2-=strlen(bla); 
-		        if (len2<=0) { result[len]=0; free(att); 
-			               free(str); return; } else 
-			          result[len-len2]=0; }
-		      free(str);
-                      ptr_att++;
-                      break;
-		    }
-         case 'G' : { char *str=safe_strdup(Newsgroup_courant->name);
+         case fl_static('g') : { flrn_char *bla;
+	              flrn_char *str;
+		      bla=truncate_group(Newsgroup_courant->name,1);
+		      str=safe_flstrdup(bla);
                       if (tmp_file) copy_bout(tmp_file,str); else
-                      { strncat(result,str,len2); len2-=strlen(str); 
-		        if (len2<=0) { result[len]=0; free(att); 
-			               free(str); return; } else 
-			result[len-len2]=0; }
+                      { fl_strncat(result,str,len2); len2+=fl_strlen(str); 
+		        if (len2>=len) { result[len]=fl_static('\0');
+			               free(att); free(str); return; }
+			else result[len2]=fl_static('\0'); }
 		      free(str);
                       ptr_att++;
                       break;
 		    }
-	 case '{' : /* un header du message */
-	 case '`' : /* une commande à insérer */
-	 case '[' : /* une commande de script */
+         case fl_static('G') : 
+		  { flrn_char *str=safe_flstrdup(Newsgroup_courant->name);
+                      if (tmp_file) copy_bout(tmp_file,str); else
+                      { fl_strncat(result,str,len2); len2+=strlen(str); 
+		        if (len2>=len) { result[len]=fl_static('\0');
+			               free(att); free(str); return; } 
+			else result[len2]=fl_static('\0'); }
+		      free(str);
+                      ptr_att++;
+                      break;
+		    }
+	 case fl_static('{') : /* un header du message */
+	 case fl_static('`') : /* une commande à insérer */
+	 case fl_static('[') : /* une commande de script */
 	    /* ces trois cas devraient être unifiés */
-	            if (*buf=='{')
+	            if (*buf==fl_static('{'))
 	            { buf++;
-		      ptr_att=strchr(buf,'}'); 
+		      ptr_att=fl_strchr(buf,fl_static('}')); 
 		      if (ptr_att) {
-		         /* on suppose le header connu */
-		         int len3;
-			 char *str;
-		         *ptr_att='\0';
-			 len3=strlen(buf);
+		         int len3,tofree;
+			 flrn_char *str;
+		         *ptr_att=fl_static('\0');
+			 len3=fl_strlen(buf);
 			 ptr_att++;
 			 if (article==NULL) break;
 			 str = get_one_header(article, Newsgroup_courant,
-				                buf);
+				                buf,&tofree);
 			 if (str) {
-			       str=safe_strdup(str);
+			       if (tofree==0) str=safe_flstrdup(str);
                                if (tmp_file) copy_bout(tmp_file,str); else
-                               { strncat(result,str,len2); len2-=strlen(str); if
-	                         (len2<=0) { result[len]=0; free(str);
-				             free(att); return; } else 
-			         result[len-len2]=0; }
+                               { strncat(result,str,len2); len2+=strlen(str);
+				 if (len2>=len) { result[len]=fl_static('\0');
+				             free(str); free(att); return; }
+				 else result[len2]=fl_static('\0'); }
 			       free(str);
 			 }
 		         break;
 	  	      } else ptr_att=buf; /* -> default */
-		   } else if (*buf=='`')
+		   } else if (*buf==fl_static('`'))
 	 	   {  buf++;
-		      ptr_att=strchr(buf,'`');
+		      ptr_att=fl_strchr(buf,fl_static('`'));
 		      if (ptr_att) {
 		        /* TODO : deplacer ca et unifier */
 			/* avec display_filter_file */
 			FILE *file;
 			int fd;
 			char name[MAX_PATH_LEN];
-		        *ptr_att='\0';
+			int resconv;
+			flrn_char *trad;
+		        *ptr_att=fl_static('\0');
 			fd=Pipe_Msg_Start(0,1,buf,name);
-			*ptr_att='`';
+			*ptr_att=fl_static('`');
 			ptr_att++;
 			if (fd<0) break;
 			Pipe_Msg_Stop(fd);
 			file=fopen(name,"r");
 			if (file == NULL) break;
 			while (fgets(tcp_line_read, MAX_READ_SIZE-1, file)) {
-			   if (tmp_file) copy_bout(tmp_file,tcp_line_read);
+			   resconv=conversion_from_file(tcp_line_read,&trad,0,(size_t)(-1));
+			   if (tmp_file) copy_bout(tmp_file,trad);
 			    else {
-			      strncat(result,tcp_line_read,len2);
-			      len2-=strlen(tcp_line_read);
-			      if (len2<=0) { result[len]=0; 
+			      fl_strncat(result,trad,len2);
+			      len2+=strlen(trad);
+			      if (len2>=len) { result[len]=fl_static('\0'); 
+				             if (resconv==0) free(trad);
+					     free(att);
 #ifdef USE_MKSTEMP
 				             unlink(name);
 #endif
 				             return; }
-			      else result[len-len2]=0; }
+			      else result[len2]=fl_static('\0');
+			    }
+			    if (resconv==0) free(trad);
 			}
 #ifdef USE_MKSTEMP
 			unlink (name);
@@ -653,23 +600,22 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 		      ptr_att=buf; /* -> default */
 		   } else {
 		      buf++;
-		      ptr_att=strchr(buf,']');
+		      ptr_att=fl_strchr(buf,fl_static(']'));
 		      if (ptr_att) {
 #ifdef USE_SLANG_LANGUAGE
-		         char *str=NULL, *str1;
-			 *ptr_att='\0';
+		         flrn_char *str=NULL;
+			 *ptr_att=fl_static('\0');
 			 source_SLang_string(buf, &str);
-			 *ptr_att=']';
+			 *ptr_att=fl_static(']');
 			 ptr_att++;
 			 if (str!=NULL) {
-			    str1=safe_strdup(str);
-			    SLang_free_slstring(str);
-			    str=str1;
                             if (tmp_file) copy_bout(tmp_file,str); else
-                            { strncat(result,str,len2); len2-=strlen(str); if
-	                       (len2<=0) { result[len]=0; free(str);
+                            { fl_strncat(result,str,len2);
+				len2+=strlen(str); if
+	                       (len2>=len) { result[len]=fl_static('\0');
+				     free(str);
 			             free(att); return; } else 
-			      result[len-len2]=0; }
+			      result[len2]=fl_static('\0'); }
 			    free(str);
 			 }
 			 break;
@@ -677,17 +623,17 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 	              }
 		      ptr_att=buf; /* -> default */
 		   }
-         default : { char *str=safe_malloc(3);
-		     sprintf(str,"%%%c",*buf);
+         default : { flrn_char save=*(buf+1);
 		     if (debug) fprintf(stderr, "Mauvaise formatage : %%%s\n",
-                                        buf);
-                      if (tmp_file) copy_bout(tmp_file,str); else
-                      { strncat(result,str,len2); len2-=strlen(str); if
-	                (len2<=0) { result[len]=0; free(str); 
+			     fl_static_rev(buf));
+		     *(buf+1)=fl_static('\0');
+		     *(--buf)=fl_static('%');
+                      if (tmp_file) copy_bout(tmp_file,buf); else
+                      { strncat(result,buf,len2); len2+=strlen(buf); if
+	                (len2>=len) { result[len]=fl_static('\0');
 			            free(att); return; } else 
-			result[len-len2]=0; }
-		     free(str);
-                     ptr_att++;
+			result[len2]=fl_static('\0'); }
+                     *(++ptr_att)=save;
                      break;
 		   }
        }
@@ -699,14 +645,18 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 
 /* prépare une ligne de résumé */
 /* by_msgid DOIT valoir 1 si l'article peut être extérieur au groupe */
-char * Prepare_summary_line(Article_List *article, char *previous_subject,
-    int level, char *out, int outlen, int by_msgid) {
+flrn_char * Prepare_summary_line(Article_List *article, 
+	flrn_char *previous_subject, int level, flrn_char *out, size_t outlen,
+	int out_width, int ini_col, int by_msgid, int with_flag) {
     int deb_num, deb_nom, tai_nom, deb_sub, tai_sub, deb_dat, deb_rep;
-    char *buf, buf2[15];
+    /* tout ces trucs sont de la taille des colonnes */
+    flrn_char *flbuf;
+    char buf2[15], *buf;
     char *subject;
-    char *out_ptr=out;
+    flrn_char *out_ptr=out;
+    size_t len_width,tmplen;
    
-    out[0]='\0';
+    memset(out,0,outlen);
     if ((article->headers==NULL) ||
 	(article->headers->k_headers_checked[FROM_HEADER] == 0) ||
 	(article->headers->k_headers_checked[SUBJECT_HEADER] == 0) ||
@@ -714,54 +664,78 @@ char * Prepare_summary_line(Article_List *article, char *previous_subject,
 	 Options.date_in_summary))
       cree_header(article,0,0,by_msgid);
     if (article->headers==NULL) return NULL;
-    if (article->headers->k_headers[FROM_HEADER]==NULL) return NULL;
-    if (article->headers->k_headers[SUBJECT_HEADER]==NULL) return NULL;
-    deb_num=0; deb_nom=7;
-    deb_rep=outlen-8;
+    if (article->headers->k_headers[FROM_HEADER]==NULL) return out;
+    if (article->headers->k_headers[SUBJECT_HEADER]==NULL) return out;
+    deb_num=ini_col; deb_nom=6+with_flag+ini_col;
+    deb_rep=out_width-8;
     if(Options.date_in_summary)
       deb_dat=deb_rep-13; else deb_dat=deb_rep;
     tai_nom=(deb_dat-deb_nom)/3;
     deb_sub=deb_nom+tai_nom+2;
     tai_sub=deb_dat-deb_sub-1;
-    if ((tai_nom<=0) || (tai_sub<=0)) return NULL; /* TROP PETIT */
+    if ((tai_nom<=0) || (tai_sub<=0)) return out; /* TROP PETIT */
     
-    sprintf(buf2,"%c%5d", (article->flag&FLAG_READ)?' ':'*',article->numero);
-    sprintf(out_ptr,"%-*.*s ",deb_nom,deb_nom,buf2);
-    out_ptr+=deb_nom;
-    buf=vrai_nom(article->headers->k_headers[FROM_HEADER]);
-    sprintf(out_ptr,"%-*.*s",tai_nom+2,tai_nom,buf);
-    out_ptr+=tai_nom+2;
-    free(buf);
+    if (with_flag)
+        sprintf(buf2,"%c%5d",
+	      (article->flag&FLAG_READ)?' ':'*', article->numero);
+    else
+	sprintf(buf2,"%5d",article->numero);
+    tmplen=(size_t)fl_snprintf(out_ptr,8,fl_static("%-*.*s "),6,
+	    6,buf2);
+    if (tmplen==(size_t)(-1)) return out;
+    out_ptr+=tmplen;
+    flbuf=vrai_nom(article->headers->k_headers[FROM_HEADER]);
+    len_width=to_make_width_convert(flbuf,deb_nom+tai_nom,&deb_nom,0);
+    if (tmplen+len_width>=outlen) return out;   /* TROP PETIT */
+    fl_strncpy(out_ptr,flbuf,len_width); out_ptr+=len_width; 
+    *out_ptr=fl_static('\0'); free(flbuf);
+    tmplen+=len_width;
+    if (tmplen+(deb_sub-deb_nom)>=outlen) return out;   /* TROP PETIT */
+    fl_memset(out_ptr,fl_static(' '),deb_sub-deb_nom);
+    out_ptr+=deb_sub-deb_nom; tmplen+=deb_sub-deb_nom;
+    *out_ptr=fl_static('\0');
     subject=article->headers->k_headers[SUBJECT_HEADER];
-    if (!strncasecmp(subject,"Re: ",4)) subject +=4;
-    if (previous_subject && !strncasecmp(previous_subject,"Re: ",4))
+    if (!fl_strncasecmp(subject,fl_static("Re: "),4)) subject +=4;
+    if (previous_subject && 
+	    !fl_strncasecmp(previous_subject,fl_static("Re: "),4))
       previous_subject +=4;
-    if (article->headers->k_headers[SUBJECT_HEADER])  {
-      if(previous_subject && !strcmp(subject,previous_subject))
-      {
+    if(previous_subject && !fl_strcmp(subject,previous_subject))
+    {
+	if (tmplen+tai_sub+1>=outlen) return out;  /* T.P */
 	if (level && (level < tai_sub-1)) {
 	  sprintf(out_ptr,"%*s%-*s",level,"",tai_sub-level+1,".");
+	  out_ptr += tai_sub+1; tmplen+=tai_sub+1;
 	}
-      } else
-	sprintf(out_ptr,"%-*.*s",tai_sub+1,tai_sub,subject);
-    } else sprintf(out_ptr,"%*s",tai_sub,"");
-    out_ptr += tai_sub+1;
-    if(Options.date_in_summary) {
-      if (article->headers->date_gmt) 
-        buf=safe_strdup(ctime(&article->headers->date_gmt)+4);
-      else
-        buf=local_date(article->headers->k_headers[DATE_HEADER]);
-      sprintf(out_ptr,"%-*.*s",13,12,buf);
-      out_ptr += 13;
-      free(buf);
+    } else {
+	len_width=to_make_width_convert(subject,deb_sub+tai_sub,&deb_sub,0);
+	if (tmplen+len_width>=outlen) return out;   /* TROP PETIT */
+	fl_strncpy(out_ptr,subject,len_width); out_ptr+=len_width;
+	*out_ptr=fl_static('\0'); tmplen+=len_width;
+	if (tmplen+(deb_dat-deb_sub)>=outlen) return out;   /* TROP PETIT */
+        fl_memset(out_ptr,fl_static(' '),deb_dat-deb_sub);
+	out_ptr+=deb_dat-deb_sub; tmplen+=deb_dat-deb_sub;
+        *out_ptr=fl_static('\0');
     }
+    if(Options.date_in_summary) {
+      if (tmplen+13>=outlen) return out;   /* TROP PETIT */
+      if (article->headers->date_gmt)  {
+        buf=safe_strdup(ctime(&article->headers->date_gmt)+4);
+	fl_snprintf(out_ptr,14,fl_static("%-*.*s"),13,12,buf);
+	free(buf);
+      } else
+        fl_snprintf(out_ptr,14,fl_static("%-*.*s"),13,12,"");
+      out_ptr += 13;
+      tmplen+=13;
+    }
+    if (tmplen+7>=outlen) return out;
     if (article->parent!=0) {
        if (article->parent>0) {
-	   sprintf(out_ptr,"[%5d]", article->parent);
+	   fl_snprintf(out_ptr,8,fl_static("[%5d]"), article->parent);
 	 }
-         else sprintf(out_ptr,"%-7s","[ ? ]");
+         else fl_snprintf(out_ptr,8,fl_static("%-7s"),
+		 fl_static("[  ?  ]"));
     }
-         else sprintf(out_ptr,"%7.7s","");
+         else fl_snprintf(out_ptr,8,fl_static("%7.7s"),fl_static(""));
     return out;
 }
 
@@ -771,36 +745,37 @@ char * Prepare_summary_line(Article_List *article, char *previous_subject,
 /* on suppose qu'il y a de la place (2*strlen(from_line))+3 */
 /* (plus strlen(sender) ) */
 
-void ajoute_parsed_from(char *str, char *from_line, char *sender_line) {
-   char *buf,*buf2,*bufs;
-   int siz_login;
+void ajoute_parsed_from(flrn_char *str, flrn_char *from_line, 
+	flrn_char *sender_line) {
+   flrn_char *buf,*buf2,*bufs;
+   size_t siz_login;
    buf=vrai_nom(from_line);
-   strcat(str,buf);
-   strcat(str," (");
+   fl_strcat(str,buf);
+   fl_strcat(str,fl_static(" ("));
    free(buf);
-   bufs=str+strlen(str); /* sauvegarde du nom entre parentheses */
-   buf=strchr(from_line,'<');
+   bufs=str+fl_strlen(str); /* sauvegarde du nom entre parentheses */
+   buf=fl_strchr(from_line,fl_static('<'));
    if (buf) {
-      buf2=strchr(buf,'@');
+      buf2=fl_strchr(buf,fl_static('@'));
       if (buf2) 
-        strncat(str,buf+1,buf2-buf-1);
-      else strcat(str,buf+1);
+        fl_strncat(str,buf+1,buf2-buf-1);
+      else fl_strcat(str,buf+1);
    } else {
-     buf2=strchr(from_line,'@');
+     buf2=fl_strchr(from_line,fl_static('@'));
      if (buf2)
-       strncat(str,from_line,buf2-from_line);
-     else strcat(str,from_line);
+       fl_strncat(str,from_line,buf2-from_line);
+     else fl_strcat(str,from_line);
    }
-   siz_login=strlen(bufs);
-   strcat(str,")");
+   siz_login=fl_strlen(bufs);
+   fl_strcat(str,fl_static(")"));
    if (sender_line) {
       /* on ajoute [sender]  si le login est différent */
-      buf=strchr(sender_line,'@');
+      buf=fl_strchr(sender_line,fl_static('@'));
       if ((buf) && ((siz_login!=(buf-sender_line)) ||
-                    (strncmp(bufs,sender_line,siz_login)))) {
-	 strcat(str," [");
-	 strncat(str,sender_line,buf-sender_line);
-	 strcat(str,"]");
+                    (fl_strncmp(bufs,sender_line,siz_login)))) {
+	 fl_strcat(str,fl_static(" ["));
+	 fl_strncat(str,sender_line,buf-sender_line);
+	 fl_strcat(str,fl_static("]"));
       }
    }
 }

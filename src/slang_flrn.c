@@ -31,8 +31,10 @@ avec le langage de script.
 #include "tty_display.h"
 #include "tty_keyboard.h"
 #include "flrn_inter.h"
+#include "enc/enc_strings.h"
 
 int flrn_SLang_inited=0;
+char *retour_intrinsics=NULL;
 
 /****************** I : Les types ************************/
 
@@ -48,15 +50,17 @@ static SLang_Class_Type *flrn_SLang_Newsgroup_Type;
 /* louze : on ne peut pas pusher NULL comme pointeur de groupe à cause
  * d'une craderie de SLang sur la façon dont il passe les paramètres
  * aux fonctions intrinsèques. d'où la création d'un groupe dummy */
-Newsgroup_List dummy_group = { NULL, NULL, 0, "",  NULL, -1, -1, -1, 
+Newsgroup_List dummy_group = { NULL, NULL, 0, fl_static(""),  NULL, -1, -1, -1, 
                                -1, -1, NULL, 0, NULL, NULL, NULL, NULL };
 
 /* Callback associés : -> string : donne le nom */
 static char *Newsgroup_Type_string_callback(unsigned char type, VOID_STAR addr)
 {
    Newsgroup_List *legroupe = *((Newsgroup_List **)addr);
-   if ((legroupe==NULL) || (legroupe->name==NULL)) return SLmake_string("bli");
-   return SLmake_string(legroupe->name);
+   char buf[MAX_NEWSGROUP_LEN+1], *ptr=&(buf[0]);
+   if ((legroupe==NULL) || (legroupe->name==NULL)) return SLmake_string("");
+   conversion_to_file(legroupe->name,&ptr,MAX_NEWSGROUP_LEN,(size_t)(-1));
+   return SLmake_string(ptr);
 }
 static void Newsgroup_Type_destroy_callback(unsigned char type, VOID_STAR addr)
 {
@@ -88,8 +92,13 @@ int intrin_get_flags_group (Newsgroup_List *group) {
 }
 /* description */
 char *intrin_get_description_group (Newsgroup_List *group) {
+   int rc;
+   if (retour_intrinsics) free(retour_intrinsics);
+   rc=conversion_to_file(group->description,&retour_intrinsics,
+	   0,(size_t)(-1));
+   if (rc!=0) retour_intrinsics=safe_strdup(retour_intrinsics);
    /* group = (&dummy_group) ? */
-   return group->description;
+   return retour_intrinsics;
 }
 
 /* Liste des groupes. Pour l'instant on ignore l'argument entier. On
@@ -98,25 +107,29 @@ int intrin_get_groupes (char *nom, int *flags) {
     int number=0;
     regex_t reg;
     void *bla=NULL;
+    flrn_char *trad;
+    int rc;
 
-    int no_order(char *u1, void *u2) { return 0; }
-    int igg_ajoute_elem (void *param, int flags2, int order,
+    int no_order(flrn_char *u1, void *u2) { return 0; }
+    int igg_ajoute_elem (Newsgroup_List *grp, int flags2, int order,
 	                  void **retour) {
-	Newsgroup_List *grp = (Newsgroup_List *) param;
-	if (param==NULL) return 0;
+	if (grp==NULL) return 0;
 	Push_newsgroup_on_stack(grp);
 	number++;
 	return 0;
     }
 
-    cherche_newsgroups_in_list (nom, reg, 8, &igg_ajoute_elem,
+    rc=conversion_from_file(nom,&trad,0,(size_t)(-1));
+    cherche_newsgroups_in_list (trad, reg, 8, &igg_ajoute_elem,
 	                                     &no_order, &bla);
+    if (rc==0) free(trad);
     return number;
 }
 
 int intrin_menu_groups (int *flags,int *num) {
     char *fun_label_str, *str;
-    int to_free,ret,numero;
+    flrn_char *flstr;
+    int to_free,ret,numero,rc;
     Newsgroup_List *grp;
     SLang_Name_Type *fun_label=NULL;
     Liste_Menu *lemenu=NULL, *courant=NULL;
@@ -137,15 +150,22 @@ int intrin_menu_groups (int *flags,int *num) {
                SLang_Error = 0;
 	       str = safe_strdup(grp->name);
 	    } else {
-	      ret = SLpop_string(&str);
-	      if (ret<0) str = safe_strdup(grp->name);
+	       ret = SLpop_string(&str);
+	       if (ret<0) flstr = safe_flstrdup(grp->name);
+	       else {
+		   rc=conversion_from_file(str,&flstr,0,(size_t)(-1));
+		   if (rc==0) free(str); /* on libère *l'autre* chaine */
+	       }
             }
-	} else str = safe_strdup(grp->name); /* TODO : correct that */
-	courant = ajoute_menu_ordre(&lemenu, str, (void *) grp,0,0);
+	} else flstr = safe_flstrdup(grp->name); /* TODO : correct that */
+	courant = ajoute_menu_ordre(&lemenu, &fmt_option_menu, 
+		/*  FIXME : menu option ! */
+		&str, (void *) grp,0,0);
+	free(str);
 	if (lemenu==NULL) lemenu=courant;
    }
    grp = Menu_simple (lemenu, lemenu, NULL, NULL, "Menu de groupes");
-   Libere_menu_noms(lemenu);
+   Libere_menu(lemenu);
    lemenu = NULL;
    if (grp!=NULL) side_effect_of_slang_command(1,grp,0,0,0);
    return 0;
@@ -211,22 +231,50 @@ static SLang_Intrin_Var_Type flrn_Intrin_Vars [] =
 /***************** Les fonctions intrinsèques ****************/
 
 char *intrin_get_header(Article_and_Group *larticle, char *name) {
+    int rc, tofree;
+    flrn_char *bla;
     if ((larticle==NULL) || (larticle->article==NULL)) return "";
-    return get_one_header(larticle->article, larticle->groupe, name);
+    if (retour_intrinsics) free(retour_intrinsics);
+    bla=get_one_header(larticle->article, larticle->groupe, name, &tofree);
+    if (bla) {
+      rc=conversion_to_file(bla,&retour_intrinsics,0,(size_t)(-1));
+      if (rc!=0) retour_intrinsics=safe_strdup(retour_intrinsics);
+      if (tofree) free(bla);
+    } else return "";
+    return retour_intrinsics;
 }
 
 SLang_Intrin_Fun_Type flrn_Intrin_Fun [] =
 {
+/*** Articles ***/
+/* 1) obtenir l'entête d'un article */
    MAKE_INTRINSIC_2("get_header", intrin_get_header, SLANG_STRING_TYPE,
    				ARTICLE_TYPE_NUMBER, SLANG_STRING_TYPE),
+/*** Groupes  ***/
+/* 1) obtenir l'état actuel d'un groupe */
    MAKE_INTRINSIC_1("get_flags_group", intrin_get_flags_group, SLANG_INT_TYPE,
 	                        NEWSGROUP_TYPE_NUMBER),
+/* 2) obtenir la description d'un groupe */
    MAKE_INTRINSIC_1("get_description_group", intrin_get_description_group,
 	        SLANG_STRING_TYPE, NEWSGROUP_TYPE_NUMBER),
+/* 3) recherche de groupes */
    MAKE_INTRINSIC_2("get_groupes", intrin_get_groupes,
 	        SLANG_INT_TYPE, SLANG_STRING_TYPE, SLANG_INT_TYPE), 
+/* 4) menu sur des groupes */
    MAKE_INTRINSIC_2("menu_groups", intrin_menu_groups, SLANG_INT_TYPE,
 	                        SLANG_INT_TYPE,SLANG_INT_TYPE),
+/*** Divers ***/
+#if 0
+/* 1) obtention d'une option (-> renvoie le nombre de résultats) */
+   MAKE_INTRINSIC_1("get_option", intrin_get_option, SLANG_DATATYPE_TYPE,
+	                          SLANG_STRING_TYPE),
+/* 2) nom du programme */
+   MAKE_INTRINSIC_0("get_program_name", intrin_get_program_name,
+	             SLANG_STRING_TYPE),
+/* 3) set option */
+   MAKE_INTRINSIC_2("set_option", intrin_set_option, SLANG_INT_TYPE,
+	             SLANG_STRING_TYPE, SLANG_INT_TYPE),
+#endif
    SLANG_END_TABLE
 };
 
@@ -237,36 +285,54 @@ SLang_Intrin_Fun_Type flrn_Intrin_Fun [] =
 /* cette fonction est *temporaire* et ne devrait pas être utilisée */
 void vmessage_SLang_Hook (char *fmt, va_list ap)
 {
-   char buf[200];
+   char buf[200]; 
+   int rc; flrn_char *trad;
    /* on "triche", en prenant des risques... avec vsprintf... */
+   /* FIXME: une version correcte utilierait vsnprintf */
    vsprintf(buf, fmt, ap);
-   Aff_error(buf);
-   Aff_fin("Appuyez sur une touche...");
-   Attend_touche();
+   rc=conversion_from_file(buf,&trad,0,(size_t)(-1));
+   Aff_error(trad);
+   if (rc==0) free(trad);
+   /* FIXME : français */
+   Aff_fin(fl_static("Appuyez sur une touche..."));
+   Attend_touche(NULL);
 }
 
 void vmessage_SLang_Hook2 (char *fmt, va_list ap)
 {
    char buf[200];
+   int rc; flrn_char *trad;
    /* on "triche", en prenant des risques... avec vsprintf... */
+   /* FIXME: une version correcte utilierait vsnprintf */
    vsprintf(buf, fmt, ap);
-   Aff_error_fin(buf,0,0);
-   Attend_touche();
+   rc=conversion_from_file(buf,&trad,0,(size_t)(-1));
+   Aff_error_fin(trad,0,0);
+   if (rc==0) free(trad);
+   Attend_touche(NULL);
 }
 
 /* cette fonction est aussi plus ou moins temporaire, mais elle */
 /* fait plus ou moins ce que je pense être le mieux...          */
 void error_SLang_Hook (char *str)
 {
-   Aff_error(str);
-   Aff_fin("Appuyez sur une touche...");
-   Attend_touche();
+   flrn_char *trad;
+   int rc;
+   rc=conversion_from_file(str,&trad,0,(size_t)(-1));
+   Aff_error(trad);
+   if (rc==0) free(trad);
+   /* FIXME : français */
+   Aff_fin(fl_static("Appuyez sur une touche..."));
+   Attend_touche(NULL);
 }
 
 void error_SLang_Hook2 (char *str)
 {
-   Aff_error_fin(str,0,0);
-   Attend_touche();
+   flrn_char *trad;
+   int rc;
+   rc=conversion_from_file(str,&trad,0,(size_t)(-1));
+   Aff_error_fin(trad,0,0);
+   if (rc==0) free(trad);
+   Attend_touche(NULL);
 }
     
 
@@ -334,21 +400,37 @@ int flrn_init_SLang(void) {
 
 /* lecture d'une chaîne, utilisée dans certains cas. */
 /* retour de -1 si erreur */
-/* ATTENTION : la chaîne *result ne doit pas être modifiée et doit être 
- * libérée avec un appel à SLang_free_slstring */
-int source_SLang_string(char *str, char **result)
+int source_SLang_string(flrn_char *str, flrn_char **result)
 {
+   int rc;
+   char *trad;
+   char **rst=NULL;
    flrn_SLang_article_courant.article=Article_courant;
    flrn_SLang_article_courant.groupe=Newsgroup_courant;
    flrn_SLang_newsgroup_courant=(Newsgroup_courant ?
 	                             Newsgroup_courant : &dummy_group);
    *result=NULL;
    if (flrn_SLang_inited==0) return -1;
-   if ((-1 == SLang_load_string(str)) ||  (-1 == SLang_pop_slstring(result))) {
+   rc=conversion_to_file(str,&trad,0,(size_t)(-1));
+   if ((-1 == SLang_load_string(trad)) ||
+	   (-1 == SLang_pop_slstring(rst))) {
+       if (retour_intrinsics) {
+	   free(retour_intrinsics);
+	   retour_intrinsics=NULL;
+       }
+       if (rc==0) free(trad);
       SLang_restart (1);
       SLang_Error = 0;
       return -1;
    }
+   if (retour_intrinsics) {
+      free(retour_intrinsics);
+      retour_intrinsics=NULL;
+   }
+   if (rc==0) free(trad);
+   rc=conversion_to_file(*rst,result,0,(size_t)(-1));
+   if (rc!=0) *result=safe_flstrdup(*result);
+   SLang_free_slstring(*rst);
    return 0;
 }
 
@@ -356,12 +438,18 @@ int source_SLang_string(char *str, char **result)
 /* retour de -1 si erreur */
 int source_SLang_file (char *str) 
 {
+    int ret;
 /* comme il s'agit d'une lecture d'options, en aucun cas cela ne doit faire
  * une véritable commande... */
    flrn_SLang_article_courant.article=NULL;
    flrn_SLang_article_courant.groupe=NULL;
    flrn_SLang_newsgroup_courant=&dummy_group;
-   if (-1 == SLang_load_file(str)) {
+   ret=SLang_load_file(str);
+   if (retour_intrinsics) {
+      free(retour_intrinsics);
+      retour_intrinsics=NULL;
+   }
+   if (-1 == ret) {
       SLang_restart(1);
       SLang_Error = 0;
       return -1;
@@ -396,20 +484,24 @@ int change_SLang_Error_Hook (int param)
    return temp;
 }
 
-int Parse_type_fun_slang(char *str_int) {
-    return strtol(str_int, NULL, 10);
+int Parse_type_fun_slang(flrn_char *str_int) {
+    return fl_strtol(str_int, NULL, 10);
 }
 
-SLang_Name_Type *Parse_fun_slang (char *str, int *num) {
-    char *comma;
+SLang_Name_Type *Parse_fun_slang (flrn_char *str, int *num) {
+    flrn_char *comma;
+    int rc;
+    char *trad;
     SLang_Name_Type *result;
-    comma=strchr(str,',');
+    comma=fl_strchr(str,fl_static(','));
     if (comma) {
-       *comma='\0';
+       *comma=fl_static('\0');
        *num=Parse_type_fun_slang(comma+1);
     } else *num=0;
-    result=SLang_get_function(str);
-    if (comma) *comma=',';
+    rc=conversion_to_file(str,&trad,0,(size_t)(-1));
+    result=SLang_get_function(trad);
+    if (rc==0) free(trad);
+    if (comma) *comma=fl_static(',');
     return result;
 }
 
@@ -420,9 +512,10 @@ SLang_Name_Type *Parse_fun_slang (char *str, int *num) {
 
 /*  Newsgroup -> string */
 extern int try_hook_newsgroup_string (char *name, Newsgroup_List *groupe,
-	                              char **res) {
+	                              flrn_char **res) {
     SLang_Name_Type *fun;
-    int value_hook, ret=0;
+    int value_hook, ret=0,rt,rc;
+    char *ires=NULL;
 
     if ((fun=SLang_get_function(name))==NULL) return ret;
     SLang_start_arg_list ();
@@ -433,11 +526,20 @@ extern int try_hook_newsgroup_string (char *name, Newsgroup_List *groupe,
     flrn_SLang_newsgroup_courant=(Newsgroup_courant ?
 	                             Newsgroup_courant : &dummy_group);
     value_hook = change_SLang_Error_Hook(2);
-    if (SLexecute_function(fun)==-1) {
+    rt=SLexecute_function(fun);
+    if (retour_intrinsics) {
+       free(retour_intrinsics);
+       retour_intrinsics=NULL;
+    }
+    if (rt==-1) {
          SLang_restart (1);
          SLang_Error = 0;
     } else 
-	 if (SLpop_string(res)>=0) ret=1;
+	 if (SLpop_string(&ires)>=0) ret=1;
+    if (ret) {
+	rc=conversion_from_file(ires,res,0,(size_t)(-1));
+	if (rc==0) free(ires);
+    }
     (void) change_SLang_Error_Hook(value_hook);
     return ret;
 }

@@ -18,6 +18,8 @@
 #endif
 #include <sys/times.h>
 
+#include "enc/enc_base.h"
+
 typedef struct Flrn_known_headers {
    char *header;
    int header_len;
@@ -27,34 +29,41 @@ extern const Known_Headers Headers[];
 
 #define UNKNOWN_HEADER -2
 #define NULL_HEADER -1
-#define FROM_HEADER 0
-#define REFERENCES_HEADER 1
-#define SUBJECT_HEADER 2
-#define DATE_HEADER 3
-#define NEWSGROUPS_HEADER 4
-#define FOLLOWUP_TO_HEADER 5
-#define ORGANIZATION_HEADER 6
-#define LINES_HEADER 7
-#define SENDER_HEADER 8
-#define REPLY_TO_HEADER 9
-#define EXPIRES_HEADER 10
-#define X_NEWSREADER_HEADER 11
-#define TO_HEADER 12
-#define CC_HEADER 13
-#define BCC_HEADER 14
-#define XREF_HEADER 15
-#define MESSAGE_ID_HEADER 16
-#define X_CENSORSHIP 17
-#define X_TRACE 18
+#define NEWSGROUPS_HEADER 0
+#define FOLLOWUP_TO_HEADER 1
+#define DATE_HEADER 2
+#define LINES_HEADER 3
+#define EXPIRES_HEADER 4
+#define XREF_HEADER 5
+#define X_TRACE_HEADER 6
 
+#define NB_UTF8_HEADERS 7
 
-#define NB_KNOWN_HEADERS 19
+#define FROM_HEADER 7
+#define SUBJECT_HEADER 8
+#define ORGANIZATION_HEADER 9
+#define SENDER_HEADER 10
+#define REPLY_TO_HEADER 11
+#define X_NEWSREADER_HEADER 12
+#define TO_HEADER 13
+#define CC_HEADER 14
+#define BCC_HEADER 15
+#define X_CENSORSHIP 16
+
+#define NB_DECODED_HEADERS 17
+
+#define REFERENCES_HEADER 0
+#define MESSAGE_ID_HEADER 1
+
+#define NB_RAW_HEADERS 2
+#define NB_KNOWN_HEADERS (NB_DECODED_HEADERS+NB_RAW_HEADERS)
 
 typedef struct Flrn_art_header
 {
-   char *k_headers[NB_KNOWN_HEADERS];
+   flrn_char *k_headers[NB_DECODED_HEADERS];
+   char *k_raw_headers[NB_RAW_HEADERS];
    int  k_headers_checked[NB_KNOWN_HEADERS];
-   char *reponse_a;
+   flrn_char *reponse_a;
    int  nb_lines, all_headers, reponse_a_checked;
    time_t date_gmt;
    /*
@@ -83,7 +92,7 @@ typedef struct Flrn_art_list
 #define FLAG_NEW   		0x0040
 /* flags internes : pour certaines commandes */
 /* A mettre à 0 avant de l'utiliser : */
-   /* utilisé par next_thread, thread_action et gthread_action */
+   /* utilisé par thread_action et gthread_action */
 #define FLAG_INTERNE1		0x0100
 /* A mettre à 0 après l'avoir utilisé : */
    /* utilise par parent_action */
@@ -139,7 +148,8 @@ extern Thread_List *Thread_deb;
 /* pour les autre headers */
 typedef struct Flrn_header_list {
    struct Flrn_header_list *next;
-   char *header;
+   flrn_char *header_head;
+   flrn_char *header_body;
    int num_af; /* utile lors de l'affichage */
 } Header_List;
 
@@ -178,6 +188,7 @@ struct Group_List;
 
 extern void recherche_article_par_msgid(Article_List **, struct Group_List **,
                                                 char *);
-extern char *get_one_header(Article_List *, struct Group_List *, char *);
+extern flrn_char *get_one_header(Article_List *, struct Group_List *, 
+	flrn_char *, int *);
 
 #endif

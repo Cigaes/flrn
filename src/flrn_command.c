@@ -31,6 +31,8 @@
 #include "tty_keyboard.h"
 #include "flrn_pager.h"
 #include "flrn_menus.h"
+#include "enc/enc_strings.h"
+#include "flrn_format.h"
 #ifdef USE_SLANG_LANGUAGE
 #include "slang_flrn.h"
 #endif
@@ -41,14 +43,99 @@ static UNUSED char rcsid[]="$Id$";
 #define DENIED_CHARS "0123456789<>.,_*-"
 
 /* le tableau touche -> commande */
-int Flcmd_rev[NUMBER_OF_CONTEXTS][MAX_FL_KEY];
+flrn_assoc_key_cmd *Flcmd_rev[MAX_ASSOC_TAB];
 Flcmd_macro_t *Flcmd_macro=NULL;
 int Flcmd_num_macros=0;
 static int Flcmd_num_macros_max=0;
 
 #define NUM_HIST_CMD 20
-char *cmd_historique[NUM_HIST_CMD];
+flrn_char *cmd_historique[NUM_HIST_CMD];
 int cmd_hist_max=-1, cmd_hist_curr=-1;
+
+/* Accès au tableau de commande */
+void init_assoc_key_cmd() {
+    memset (&Flcmd_rev[0],0,
+	    MAX_ASSOC_TAB*sizeof(flrn_assoc_key_cmd *));
+}
+/* get_hash_key n'est utilisé que pour un key défini */
+static unsigned char get_hash_key (struct key_entry *key) {
+    if (key->entry==ENTRY_SLANG_KEY) 
+	return ((unsigned char) key->value.slang_key & MAX_ASSOC_TAB);
+    if (key->entry==ENTRY_STATIC_STRING) 
+	return ((unsigned char) key->value.ststr[0] & MAX_ASSOC_TAB);
+    return ((unsigned char) key->value.allocstr[0] & MAX_ASSOC_TAB);
+}
+int *get_adrcmd_from_key(int cxt, struct key_entry *key, int create) {
+    flrn_assoc_key_cmd *pc;
+    unsigned char hash;
+    int i;
+    if (key==NULL) return NULL;
+    if (key->entry==ENTRY_ERROR_KEY) return NULL;
+    hash=get_hash_key(key);
+    pc=Flcmd_rev[hash];
+    if (pc==NULL) {
+        if (create) 
+	    pc=Flcmd_rev[hash]=safe_calloc(1,sizeof(flrn_assoc_key_cmd));
+	else return NULL;
+    } else { 
+	while (pc->next) {
+            if (key_are_equal(&(pc->key),key)) break;
+	    pc=pc->next;
+	}
+	if (key_are_equal(&(pc->key),key)) return &(pc->cmd[cxt]);
+	if (create==0) return NULL;
+	pc->next=safe_calloc(1,sizeof(flrn_assoc_key_cmd));
+	pc=pc->next;
+    }
+    /* create = 1 */
+    for (i=0;i<NUMBER_OF_CONTEXTS;i++) pc->cmd[i]=FLCMD_UNDEF;
+    memcpy(&(pc->key),key,sizeof(struct key_entry));
+    if (key->entry==ENTRY_ALLOCATED_STRING) 
+	pc->key.value.allocstr=safe_flstrdup(key->value.allocstr);
+    return &(pc->cmd[cxt]);
+}
+int add_cmd_for_slang_key (int cxt, int cmd, int slkey) {
+    struct key_entry key;
+    int *toadd;
+    key.entry=ENTRY_SLANG_KEY;
+    key.value.slang_key=slkey;
+    toadd=get_adrcmd_from_key(cxt,&key,1);
+    *toadd=cmd;
+    return 0;
+}
+/* retourne la commande supprimée */
+int del_cmd_for_key (int cxt,struct key_entry *key) {
+    flrn_assoc_key_cmd *pc,**pere;
+    unsigned char hash;
+    int oldcmd,i;
+    if (key==NULL) return -2;
+    if (key->entry==ENTRY_ERROR_KEY) return -2;
+    hash=get_hash_key(key);
+    pc=Flcmd_rev[hash];
+    if (pc==NULL) return FLCMD_UNDEF;
+    if (key_are_equal(&(pc->key),key)) 
+	pere=&(Flcmd_rev[hash]);
+    else { 
+	while (pc->next) {
+	    if (key_are_equal(&(pc->next->key),key)) break;
+	    pc=pc->next;
+	}
+	if (pc->next==NULL) return FLCMD_UNDEF;
+	pere=&(pc->next);
+	pc=pc->next;
+    }
+    oldcmd=pc->cmd[cxt];
+    pc->cmd[cxt]=FLCMD_UNDEF;
+    for (i=0;i<NUMBER_OF_CONTEXTS;i++) 
+	if (pc->cmd[i]!=FLCMD_UNDEF) break;
+    if (i==NUMBER_OF_CONTEXTS) {
+        if (key->entry==ENTRY_ALLOCATED_STRING) 
+	   free(pc->key.value.allocstr);
+	(*pere)=pc->next;
+        free(pc);
+    }
+    return oldcmd;
+}
 
 /* cree une macro
  * maintenant, on recherche une place libre avant d'ajouter a la fin...
@@ -56,9 +143,9 @@ int cmd_hist_max=-1, cmd_hist_curr=-1;
  * la consommation memoire */
 static int do_macro(int cmd, 
 #ifdef USE_SLANG_LANGUAGE
-    char *fun_slang,
+    flrn_char *fun_slang,
 #endif
-    char *arg) {
+    flrn_char *arg) {
   int num;
   for (num=0; num < Flcmd_num_macros; num++) {
     if (Flcmd_macro[num].cmd < 0)
@@ -74,12 +161,12 @@ static int do_macro(int cmd,
   Flcmd_macro[num].cmd = cmd;
 #ifdef USE_SLANG_LANGUAGE
   if (fun_slang != NULL)
-    Flcmd_macro[num].fun_slang = safe_strdup(fun_slang);
+    Flcmd_macro[num].fun_slang = safe_flstrdup(fun_slang);
   else
     Flcmd_macro[num].fun_slang = NULL;
 #endif
   if (arg != NULL) 
-    Flcmd_macro[num].arg = safe_strdup(arg);
+    Flcmd_macro[num].arg = safe_flstrdup(arg);
   else
     Flcmd_macro[num].arg = NULL;
   Flcmd_macro[num].next_cmd = -1;
@@ -99,18 +186,17 @@ static void del_macro(int num) {
 
 /* renvoie -1 en cas de pb
  * si add!=0, on ajoute la commande... */
-int Bind_command_new(int key, int command, char *arg,
+int Bind_command_new(struct key_entry *key, int command, flrn_char *arg,
 #ifdef USE_SLANG_LANGUAGE
-   char *fun_slang,
+   flrn_char *fun_slang,
 #endif
    int context, int add ) {
-  int parcours,*to_add=NULL;
+  int parcours,*toadd=NULL;
   int mac_num,mac_prec=-1;
+  toadd=get_adrcmd_from_key(context,key,(add==0));
   if (add) {
-    if (Flcmd_rev[context][key] < 0) {
-      return -1;
-    }
-    parcours=Flcmd_rev[context][key];
+    if ((toadd==NULL) || (*toadd==FLCMD_UNDEF)) return -1;
+    parcours=*toadd;
     while ((parcours>-1) && (parcours & FLCMD_MACRO)) {
       mac_prec=parcours ^ FLCMD_MACRO;
       parcours=Flcmd_macro[parcours ^ FLCMD_MACRO].next_cmd;
@@ -121,15 +207,14 @@ int Bind_command_new(int key, int command, char *arg,
       NULL,
 #endif
       NULL);
-      if (mac_prec==-1) Flcmd_rev[context][key] = mac_num | FLCMD_MACRO;
+      if (mac_prec==-1) *toadd=mac_num | FLCMD_MACRO;
           else Flcmd_macro[mac_prec].next_cmd=mac_num | FLCMD_MACRO;
-      to_add = & Flcmd_macro[mac_num].next_cmd;
+      toadd = & Flcmd_macro[mac_num].next_cmd;
     } else {
-      to_add = & Flcmd_macro[mac_prec].next_cmd;
+      toadd = & Flcmd_macro[mac_prec].next_cmd;
     }
   } else {
-    to_add = &Flcmd_rev[context][key];
-    parcours = Flcmd_rev[context][key];
+    parcours = *toadd;
     while ((parcours>-1) && (parcours & FLCMD_MACRO)) {
        /* pour liberer la macro */
        mac_prec=parcours ^ FLCMD_MACRO;
@@ -147,10 +232,10 @@ int Bind_command_new(int key, int command, char *arg,
         fun_slang,
 #endif
         arg);
-    *to_add = mac_num | FLCMD_MACRO;
+    *toadd = mac_num | FLCMD_MACRO;
     return 0;
   } else {
-    *to_add = command;
+    *toadd = command;
     return 0;
   }
 }
@@ -173,30 +258,30 @@ void free_Macros(void) {
    }
 }
 
-static char *get_context_name (void *ptr, int num)
+static flrn_char *get_context_name (void *ptr, int num)
 {
-   return ((char **)ptr)[num];
+   return ((flrn_char **)ptr)[num];
 }
 
-int keybindings_comp(char *str, int len, Liste_Chaine *debut) {
+int keybindings_comp(flrn_char *str, size_t len, Liste_Chaine *debut) {
    Liste_Chaine *courant;
    int i, res;
    int result[NUMBER_OF_CONTEXTS];
 
    for (i=0;i<NUMBER_OF_CONTEXTS;i++) result[i]=0;
    res = Comp_generic(debut, str,len,(void *)Noms_contextes,NUMBER_OF_CONTEXTS,
-         get_context_name," ",result,1);
+         get_context_name,fl_static(" "),result,1);
    if (res==-3) return 0;
    if (res>= 0) {
        if (str[0]) debut->complet=0;
-       strcat(debut->une_chaine,str);
+       fl_strcat(debut->une_chaine,str);
        return 0;
    }
    if (res==-1) {
       courant=debut->suivant;
       for (i=0;i<NUMBER_OF_CONTEXTS;i++) {
         if (result[i]==0) continue;
-	strcat(courant->une_chaine,str);
+	fl_strcat(courant->une_chaine,str);
 	if (str[0]) courant->complet=0;
         courant=courant->suivant;
       }
@@ -205,129 +290,183 @@ int keybindings_comp(char *str, int len, Liste_Chaine *debut) {
    return -2;
 }
 
-/* 0 : un truc, -1 : rien -2 : trop court, -3 : spécial */
-int aff_ligne_binding(int ch, int contexte, char *ligne, int len) {
-   int i, taille, ret=-1;
-   int compte,cmd;
-   char *buf;
+/* deux formats possibles */
+static struct format_elem_menu fmt_keybind_menu1_e [] =
+       { { 0, 0, 11, 2, 0, 3 }, { 0, 0, -1, 12, 0, 3 } };
+struct format_menu fmt_keybind_menu1 = { 2, &(fmt_keybind_menu1_e[0]) };
 
-   ligne[len-1]='\0';
-   if (len<20) return -2;
-   taille=len-13;
-   if (contexte==-1) taille=taille/NUMBER_OF_CONTEXTS;
-   strcpy(ligne,get_name_char(ch,0));
-   compte=strlen(ligne);
-   strncat(ligne,"            ",12-compte);
-   buf=ligne+12;
-   /* cas des spécials */
-   switch (ch) {
-      case '\\' : strncpy(buf,  "touche de commande explicite", len-13);
-      		  return -3;
-      case '@' : strncpy(buf, "touche de commande nocbreak", len-13);
-      		 return -3;
+static struct format_elem_menu fmt_keybind_menu2_e [] =
+       { { 0, 0, 11, 2, 0, 3 }, { 0, 0, 0, 12, 0, 3 }, { 0, 0, 0, 12, 0, 3 },
+	 { 0, 0, -1, 12, 0, 3 } };
+struct format_menu fmt_keybind_menu2 = { 4, &(fmt_keybind_menu2_e[0]) };
+
+/* 0 : un truc, -1 : rien -2 : trop court, -3 : spécial */
+int aff_ligne_binding(struct key_entry *key, int contexte, 
+	flrn_char ***ligne, struct format_menu **fmt_menu) {
+   int i=0, taille, j;
+   int ch;
+   int *cmd=NULL;
+   const flrn_char *special=NULL;
+
+   if (Screen_Cols<20) return -2;
+   if (*fmt_menu==NULL) {
+       if (contexte==-1) {
+	   *fmt_menu=&fmt_keybind_menu2;
+	   taille=(Screen_Cols-12)/NUMBER_OF_CONTEXTS;
+	   fmt_keybind_menu2_e[1].maxwidth=taille-1;
+	   fmt_keybind_menu2_e[2].maxwidth=taille-1;
+	   fmt_keybind_menu2_e[3].maxwidth=taille-1;
+	   fmt_keybind_menu2_e[2].coldeb=taille+12;
+	   fmt_keybind_menu2_e[3].coldeb=2*taille+12;
+       } else {
+	   *fmt_menu=&fmt_keybind_menu1;
+       }
+   } else 
+   if (contexte==-1) *fmt_menu=&fmt_keybind_menu2;
+   else *fmt_menu=&fmt_keybind_menu1;
+   if (key->entry==ENTRY_SLANG_KEY) {
+       /* cas des spécials */
+       ch=key->value.slang_key;
+       switch (ch) {
+	   case '\\' : special=
+			   fl_static("touche de commande explicite");
+			  /* FIXME : francais */
+		       break;
+	   case '@' : special=
+		         fl_static("touche de commande nocbreak");
+			  /* FIXME : francais */
+		      break;
+           default : if ((ch<256) && (strchr(DENIED_CHARS,ch)) && (ch!='-'))
+			 special=fl_static("touche de prefixe de commande");
+			  /* FIXME : francais */
+       }
    }
-   if ((ch<256) && (strchr(DENIED_CHARS,ch)) && (ch!='-')) {
-       strncpy(buf, "touche de préfixe de commande", len-13);
+   if (special==NULL) {
+       i=(contexte==-1 ? 0 : contexte);
+       cmd=get_adrcmd_from_key(i, key,  0);
+       if (cmd==NULL) return -1;
+       if ((contexte!=-1) && ((*cmd)==FLCMD_UNDEF)) return -1;
+   } else *fmt_menu=&fmt_keybind_menu1;
+   *ligne=safe_calloc((*fmt_menu)->nbelem,sizeof(flrn_char *));
+   (*ligne)[0]=safe_flstrdup(get_name_key(key,0));
+   if (special) {
+       (*ligne)[1]=safe_flstrdup(special);
        return -3;
    }
-   i=(contexte==-1 ? 0 : contexte);
+   j=1;
    do {
-      if ((cmd=Flcmd_rev[i][ch])==-1) strncpy(buf,"undef",taille-1); else {
-        ret=0;
-        if (cmd & FLCMD_MACRO) {
-	   if (Flcmd_macro[cmd ^ FLCMD_MACRO].next_cmd!=-1) 
-	     strncpy(buf,"(mult.) ",taille-1);
-	   else if (contexte==-1) 
-	     strncpy(buf,"(macro)", taille-1); else *buf='\0';
+      if (*cmd==-1) (*ligne)[j]=safe_flstrdup(fl_static("undef")); else {
+        if ((*cmd) & FLCMD_MACRO) {
 	   if (contexte!=-1) {
-	      int cmd2;
-	      cmd2=Flcmd_macro[cmd ^ FLCMD_MACRO].cmd;
-	      compte=strlen(buf);
+	       size_t len;
+	       int cmd2;
+               if (Flcmd_macro[(*cmd) ^ FLCMD_MACRO].next_cmd!=-1)
+		   len=17;
+	       else len=3;
+	       cmd2=Flcmd_macro[(*cmd) ^ FLCMD_MACRO].cmd;
 #ifdef USE_SLANG_LANGUAGE
-              if (Flcmd_macro[cmd ^ FLCMD_MACRO].fun_slang==NULL) {
+              if (Flcmd_macro[(*cmd) ^ FLCMD_MACRO].fun_slang==NULL) {
 #endif
 	      switch (i) {
-	        case CONTEXT_COMMAND : strncat(buf,Flcmds[cmd2].nom,taille-compte-1); 
+	        case CONTEXT_COMMAND : special=Flcmds[cmd2].nom;
 				break;
-                case CONTEXT_PAGER : strncat(buf,Flcmds_pager[cmd2],taille-compte-1); 
+                case CONTEXT_PAGER : special=Flcmds_pager[cmd2];
 				break;
-                case CONTEXT_MENU : strncat(buf,Flcmds_menu[cmd2],taille-compte-1); 
+                default : special=Flcmds_menu[cmd2];
 				break;
 	      }
+	      len+=strlen(special);
 #ifdef USE_SLANG_LANGUAGE
               } else 
-	      {
-	        strncat (buf, "[", taille-compte-1);
-	        strncat (buf, Flcmd_macro[cmd ^ FLCMD_MACRO].fun_slang, taille-compte-2);
-	        compte=strlen(buf);
-		if (compte<taille-2) {
-		   strcat (buf, "]");
-                }
+	        len+=fl_strlen(Flcmd_macro[(*cmd) ^ FLCMD_MACRO].fun_slang)+3;
+#endif	      
+	      if (Flcmd_macro[(*cmd) ^ FLCMD_MACRO].arg) 
+		  len+=strlen(Flcmd_macro[(*cmd) ^ FLCMD_MACRO].arg)+1;
+	      (*ligne)[j]=safe_malloc(len*sizeof(flrn_char));
+	      if (Flcmd_macro[(*cmd) ^ FLCMD_MACRO].next_cmd!=-1)
+		  fl_strcpy((*ligne)[j],fl_static("(mult.)"));
+	      else (*ligne)[j][0]=fl_static('\0');
+#ifdef USE_SLANG_LANGUAGE
+              if (Flcmd_macro[(*cmd) ^ FLCMD_MACRO].fun_slang==NULL) {
+#endif
+		  fl_strcat((*ligne)[j],fl_static_tran(special));
+#ifdef USE_SLANG_LANGUAGE
+              } else {
+		  fl_strcat((*ligne)[j],fl_static("["));
+		  fl_strcat((*ligne)[j],
+			  Flcmd_macro[(*cmd) ^ FLCMD_MACRO].fun_slang);
+		  fl_strcat((*ligne)[j],fl_static("]"));
+	        
               }
 #endif	      
-	      compte=strlen(buf);
-	      if (compte<taille-2) {
-	         strcat(buf," ");
-		 if (Flcmd_macro[cmd ^ FLCMD_MACRO].arg) 
-		    strncat(buf,Flcmd_macro[cmd ^ FLCMD_MACRO].arg,
-		                taille-compte-1);
-	         else if (Flcmd_macro[cmd ^ FLCMD_MACRO].next_cmd!=-1) 
-		    strncat(buf,"...",taille-compte-1);
-              }
-	   }
+	      fl_strcat((*ligne)[j],fl_static(" "));
+	      if (Flcmd_macro[(*cmd) ^ FLCMD_MACRO].arg)
+		  fl_strcat((*ligne)[j],Flcmd_macro[(*cmd) ^ FLCMD_MACRO].arg);
+	      if (Flcmd_macro[(*cmd) ^ FLCMD_MACRO].next_cmd!=-1) 
+		  fl_strcat((*ligne)[j],fl_static(" ..."));
+	   } else
+	     if (Flcmd_macro[(*cmd) ^ FLCMD_MACRO].next_cmd!=-1) 
+	        (*ligne)[j]=safe_flstrdup(fl_static("(mult.)"));
+	     else (*ligne)[j]=safe_flstrdup(fl_static("(macro)"));
 	} else {
           switch (i) {
-	    case CONTEXT_COMMAND : strncpy(buf,Flcmds[cmd].nom,taille-1); break;
-	    case CONTEXT_PAGER : strncpy(buf,Flcmds_pager[cmd],taille-1); break;
-	    case CONTEXT_MENU : strncpy(buf,Flcmds_menu[cmd],taille-1); break;
+	    case CONTEXT_COMMAND : 
+		(*ligne)[j]=safe_flstrdup(fl_static_tran(Flcmds[*cmd].nom));
+		break;
+	    case CONTEXT_PAGER : 
+		(*ligne)[j]=safe_flstrdup(fl_static_tran(Flcmds_pager[*cmd]));
+		break;
+	    case CONTEXT_MENU :
+		(*ligne)[j]=safe_flstrdup(fl_static_tran(Flcmds_menu[*cmd]));
+		break;
 	  }
         }
       }
-      compte=strlen(buf);
-      while (compte<taille) {
-         buf[compte++]=' ';
-      }
-      buf=buf+taille;
       i++;
-   } while ((contexte==-1) && (i<NUMBER_OF_CONTEXTS));
-   *buf='\0';
-   return ret;
+      j++;
+      if ((contexte!=-1) || (i==NUMBER_OF_CONTEXTS)) return 0;
+      cmd++; /* pas super propre, mais on va faire avec */
+   } while (1);
 }
 
 /* II) : complétion d'une commande quelconque */
 
 
 /* TODO : généraliser ça mieux */
-static char * get_command_name_tout(void * rien, int num) {
+static flrn_char * get_command_name_tout(void * rien, int num) {
+    static flrn_char flbla[25];
+    char *bla;
     int n;
-    if ((n=num-NB_FLCMD)<0) return Flcmds[num].nom; else
-    if ((num=n-NB_FLCMD_PAGER)<0) return Flcmds_pager[n]; else
-	return Flcmds_menu[num];
+    if ((n=num-NB_FLCMD)<0) bla=Flcmds[num].nom; else
+    if ((num=n-NB_FLCMD_PAGER)<0) bla=Flcmds_pager[n]; else
+	bla=Flcmds_menu[num];
+    strcpy(flbla,fl_static_tran(bla));
+    return flbla;
 }
 
 /* Comp_cmd_explicite ne s'occupe pas de connaitre le contexte. C'est */
 /* ennuyeux. Il faudrait améliorer ça un jour...		      */
-int Comp_cmd_explicite(char *str, int len, Liste_Chaine *debut)
+int Comp_cmd_explicite(flrn_char *str, size_t len, Liste_Chaine *debut)
 {
   int res,res2=-2,i,nbflcmd, bon;
   char *suite;
   Liste_Chaine *courant, *pere, *suivant;
   int result[NB_FLCMD+NB_FLCMD_PAGER+NB_FLCMD_MENU];
 
-  if (*str=='\\') {
-    str++; strcat(debut->une_chaine,"\\");
+  if (*str==fl_static('\\')) {
+    str++; fl_strcat(debut->une_chaine,fl_static("\\"));
   }
   /* TODO : améliorer ça */
   nbflcmd=NB_FLCMD+NB_FLCMD_PAGER+NB_FLCMD_MENU;
   for (i=0;i<nbflcmd;i++) result[i]=0;
   res = Comp_generic(debut,str,len,NULL,nbflcmd, get_command_name_tout,
-	      " ",result,1);
+	      fl_static(" "),result,1);
   if (res==-3) return 0;
   if (res>=0) {
     if ((res<NB_FLCMD) && (Flcmds[res].comp)) {
        return (*Flcmds[res].comp)(str,len,debut);
     } else {
-      strcat(debut->une_chaine,str);
+      fl_strcat(debut->une_chaine,str);
       if (str[0]) debut->complet=0;
       return 0;
     }
@@ -342,7 +481,7 @@ int Comp_cmd_explicite(char *str, int len, Liste_Chaine *debut)
        if (result[i]==0) continue;
        res2=0;
        if (Flcmds[i].comp) {
-         suite=safe_strdup(str);
+         suite=safe_flstrdup(str);
          res2=(*Flcmds[i].comp)(suite,len,courant);
          free(suite);
          if (res2<-1) {
@@ -354,7 +493,7 @@ int Comp_cmd_explicite(char *str, int len, Liste_Chaine *debut)
             continue;
          }
        } else {
-         strcat(courant->une_chaine,str);
+         fl_strcat(courant->une_chaine,str);
          if (str[0]) courant->complet=0;
        }
        if (res2==-1) bon+=2; else bon++;
@@ -366,7 +505,7 @@ int Comp_cmd_explicite(char *str, int len, Liste_Chaine *debut)
     for (i=NB_FLCMD;i<NB_FLCMD+NB_FLCMD_PAGER+NB_FLCMD_MENU;i++) {
        if (result[i]==0) continue;
        res2=0;
-       strcat(courant->une_chaine,str);
+       fl_strcat(courant->une_chaine,str);
        if (str[0]) courant->complet=0;
        bon++;
        pere=courant;
@@ -401,58 +540,64 @@ int Comp_cmd_explicite(char *str, int len, Liste_Chaine *debut)
 /*         -2 si rien                                                    */
 /*         -3 si l'état est déjà défini...                               */
 
-char *Noms_contextes[NUMBER_OF_CONTEXTS] = {
-   "command", "pager", "menu" };
+flrn_char *Noms_contextes[NUMBER_OF_CONTEXTS] = {
+   fl_static("command"), fl_static("pager"), fl_static("menu") };
 #define MAX_CHAR_STRING 100
 /* on ne met pas le '-', hélas, pour des raisons classiques */
 
-int get_command_nocbreak(int, int, int, int, Cmd_return *);
-int get_command_explicite(char *, int, int, int, Cmd_return *);
-int get_command_newmode(int, int, int, int, Cmd_return *);
-int Lit_cmd_key(int, int, int, Cmd_return *);
-int Lit_cmd_explicite(char *, int, int, Cmd_return *);
+int get_command_nocbreak(struct key_entry *, int, int, int, Cmd_return *);
+int get_command_explicite(flrn_char *, int, int, int, Cmd_return *);
+int get_command_newmode(struct key_entry *, int, int, int, Cmd_return *);
+int Lit_cmd_key(struct key_entry *, int, int, Cmd_return *);
+int Lit_cmd_explicite(flrn_char *, int, int, Cmd_return *);
 
 static int aff_context(int princip, int second) {
-   char chaine[18];
+   flrn_char chaine[18];
 
-   sprintf(chaine,"(%s",Noms_contextes[princip]);
+   chaine[0]=fl_static('(');
+   fl_strcpy(&(chaine[1]),Noms_contextes[princip]);
    if (second>=0) {
-      strcat(chaine,"/");
-      strcat(chaine,Noms_contextes[second]);
+      fl_strcat(chaine,fl_static("/"));
+      fl_strcat(chaine,Noms_contextes[second]);
    }
-   strcat(chaine,") : ");
+   fl_strcat(chaine,fl_static(") : "));
    return Aff_fin(chaine);
 }
 
-static void add_str_to_description (const char *str, Cmd_return *la_commande) {
+static void add_str_to_description (const flrn_char *str,
+	Cmd_return *la_commande) {
+   if (str==NULL) return;
    if (la_commande->len_desc>0) {
-      strncat(la_commande->description, str, la_commande->len_desc);
-      la_commande->len_desc-=strlen(str);
-      if (la_commande->len_desc<=0) {
-         free(la_commande->description);
-         la_commande->description=NULL;
+      if (fl_strlen(str)>=la_commande->len_desc) {
+	  free(la_commande->description);
+	  la_commande->description=NULL;
+	  la_commande->len_desc=0;
+      } else {
+          fl_strncat(la_commande->description, str, la_commande->len_desc);
+          la_commande->len_desc-=strlen(str);
       }
    }
 }
 
 int save_command (Cmd_return *la_commande) {
     int i=-1,len;
-    char *created,*tmp;
+    flrn_char *created,*tmp;
     
-    if (la_commande->len_desc<=0) return -1;
-    len = (la_commande->after ? strlen(la_commande->after) : 0) +
-	  (la_commande->before ? strlen(la_commande->before) : 0) +
-	  strlen(la_commande->description) + 3;
-    created=safe_malloc(len);
-    if (la_commande->before) strcpy(created,la_commande->before);
-       else created[0]='\0';
-    strcat(created, la_commande->description);
+    if (la_commande->len_desc==0) return -1;
+    len = (la_commande->after ? fl_strlen(la_commande->after) : 0) +
+	  (la_commande->before ? fl_strlen(la_commande->before) : 0) +
+	  fl_strlen(la_commande->description) + 3;
+    created=safe_malloc(len*sizeof(flrn_char));
+    if (la_commande->before) fl_strcpy(created,la_commande->before);
+       else created[0]=fl_static('\0');
+    fl_strcat(created, la_commande->description);
     if (la_commande->after) {
-	 if (la_commande->after[0]!=' ') strcat(created," ");
-	 strcat(created,la_commande->after);
+	 if (la_commande->after[0]!=fl_static(' ')) 
+	    fl_strcat(created,fl_static(" "));
+	 fl_strcat(created,la_commande->after);
     }
     for (i=0; i<=cmd_hist_max; i++) 
-	if (strcmp(created, cmd_historique[i])==0) break;
+	if (fl_strcmp(created, cmd_historique[i])==0) break;
     if (i<=cmd_hist_max) {
 	/* on l'a trouvé */
 	free(created);
@@ -489,15 +634,17 @@ int save_command (Cmd_return *la_commande) {
    free (la_commande->description);
 }
    
-int get_command(int key_depart, int princip, int second, 
+int get_command(struct key_entry *key_depart, int princip, int second, 
 		Cmd_return *la_commande) {
-   int key, col,i, res;
+   int col,i, res, slk=-1;
+   struct key_entry key;
 
-   la_commande->description=safe_malloc(MAX_CHAR_STRING);
+   key.entry=ENTRY_ERROR_KEY;
+   la_commande->description=safe_malloc(MAX_CHAR_STRING*sizeof(flrn_char));
    la_commande->len_desc=MAX_CHAR_STRING;
    la_commande->before=la_commande->after=NULL;
    la_commande->flags=0;
-   la_commande->description[0]='\0';
+   la_commande->description[0]=fl_static('\0');
    for (i=0; i<NUMBER_OF_CONTEXTS; i++) 
       la_commande->cmd[i]=FLCMD_UNDEF;
 #ifdef USE_SLANG_LANGUAGE
@@ -508,100 +655,119 @@ int get_command(int key_depart, int princip, int second,
       res=get_command_nocbreak(key_depart,col,princip,second,
                                         la_commande);
    } else {
-     if (key_depart) key=key_depart; else key=Attend_touche();
-     if (key==fl_key_nocbreak) {
+     if (key_depart) memcpy(&key,key_depart,sizeof(struct key_entry));
+     else {
+	 Attend_touche(&key);
+     }
+     if (key.entry==ENTRY_SLANG_KEY) slk=key.value.slang_key;
+     if (slk==fl_key_nocbreak) {
         col=aff_context(princip, second);
-        res= get_command_nocbreak(fl_key_nocbreak,col,princip,second,
-					la_commande);
+        res= get_command_nocbreak(&key,col,princip,second, la_commande);
      } else
-     if (key==fl_key_explicite) {
+     if (slk==fl_key_explicite) {
         col=aff_context(princip, second);
         res=get_command_explicite(NULL,col,princip,second,la_commande);
      } else {
         /* Beurk pour '-' */
-        if ((key=='-') || (strchr(DENIED_CHARS,key)==NULL)) {
-                   res=Lit_cmd_key(key,princip,second,la_commande);
-		   if ((res>=0) && (key!='\r')) la_commande->flags|=1;
+        if ((slk==-1) || (slk==(int)'-') || 
+		(strchr(DENIED_CHARS,slk)==NULL)) {
+                   res=Lit_cmd_key(&key,princip,second,la_commande);
+		   if ((res>=0) && (slk!='\r')) la_commande->flags|=1;
         } else {
            col=aff_context(princip, second);
-           res=get_command_newmode(key,col,princip,second,la_commande);
+           res=get_command_newmode(&key,col,princip,second,la_commande);
         }
      }
    }
+   Free_key_entry(&key);
    return res;
 }
 
 /* Renvoie le nom d'une commande par touche raccourcie */
 /* on ne peut pas obtenir une fonction slang, par exemple, autrement */
 /* que par une commande de macro, alors non indiquée */
-int Lit_cmd_key(int key, int princip, int second, Cmd_return *la_commande) {
+int Lit_cmd_key(struct key_entry *key, int princip, int second,
+	Cmd_return *la_commande) {
    int res=-1, j, context;
-   if ((key <0) || (key >= MAX_FL_KEY)) return -1;
+   int *cmd;
+   if (key==NULL) return -1;
    for (j=0; j<2; j++) {
       context=(j==0 ? princip : second);
       if (context==-1) break;
       /* CAS PARTICULIER : la touche entrée */
-      if ((key=='\r') && (la_commande->before) && (context==CONTEXT_COMMAND))
+      if ((key->entry==ENTRY_SLANG_KEY) && (key->value.slang_key=='\r')
+	      && (la_commande->before) && (context==CONTEXT_COMMAND))
       {
 	  res=(res==-1 ? j : res);
 	  la_commande->cmd[CONTEXT_COMMAND]=FLCMD_VIEW;
-      } else
-      if ((la_commande->cmd[context]=Flcmd_rev[context][key])!=FLCMD_UNDEF)
-          res=(res==-1 ? j : res);
+      } else {
+	  cmd=get_adrcmd_from_key(context,key,0);
+	  if (cmd==NULL) 
+	      la_commande->cmd[context]=FLCMD_UNDEF;
+	  else {
+	      la_commande->cmd[context]=*cmd;
+	      if (*cmd!=FLCMD_UNDEF) res=(res==-1 ? j : res);
+	  }
+      }
    }
-   add_str_to_description(get_name_char(key,1),la_commande);
+   add_str_to_description(get_name_key(key,1),la_commande);
    return res;
 }
 
 
 /* Lit le nom explicite d'une commande */
-int Lit_cmd_explicite(char *str, int princip, int second, Cmd_return *la_commande) {
-   int i, j, res=-1;
+int Lit_cmd_explicite(flrn_char *str, int princip, int second,
+	Cmd_return *la_commande) {
+   int i, j, res=-1, ini, final;
+   flrn_char *flncmd;
      
    la_commande->flags|=2;
    /* Hack pour les touches fleches en no-cbreak */
-   if (strncmp(str, "key-", 4)==0) {
-       char *buf;
+   if (fl_strncmp(str, "key-", 4)==0) {
+       flrn_char *buf;
        int key;
-       buf=strchr(str,' ');
-       if (buf) *buf='\0';
+       struct key_entry ke;
+       buf=fl_strchr(str,fl_static(' '));
+       if (buf) *buf=fl_static('\0');
        key = parse_key_name(str+4);
-       if (buf) *buf=' ';
-       if (key) return Lit_cmd_key(key,princip,second,la_commande);
+       if (buf) *buf=fl_static(' ');
+       ke.entry=ENTRY_SLANG_KEY;
+       ke.value.slang_key=key;
+       if (key) return Lit_cmd_key(&ke,princip,second,la_commande);
    }
    /* cas "normal" */
    
 #ifdef USE_SLANG_LANGUAGE
-   if (str[0]=='[') {
-      char *end_str, *comma;
+   if (str[0]==fl_static('[')) {
+      flrn_char *end_str, *comma;
       int ctxt=-1, flg=0;
       str++;
-      if ((end_str=strchr(str,']'))==NULL) return -1;
-      *end_str='\0';
+      if ((end_str=fl_strchr(str,fl_static(']')))==NULL) return -1;
+      *end_str=fl_static('\0');
       add_str_to_description(str,la_commande);
-      add_str_to_description("]",la_commande);
-      comma=strchr(end_str,',');
+      add_str_to_description(fl_static("]"),la_commande);
+      comma=strchr(end_str,fl_static(','));
       if (comma) {
-	 *comma='\0';     
+	 *comma=fl_static('\0');     
          for (i=0;i<NUMBER_OF_CONTEXTS;i++) {
-           if (strcmp(str, Noms_contextes[i])==0) {
+           if (fl_strcmp(str, Noms_contextes[i])==0) {
  	      ctxt=i;
 	      break;
            }
 	 }
 	 if (ctxt!=-1) {
 	    str=comma+1;
-	    *comma=',';
+	    *comma=fl_static(',');
 	    if ((ctxt!=princip) && (ctxt!=second)) {
-	       *end_str=']';
+	       *end_str=fl_static(']');
 	       return -1;
 	    }
 	 }
       }
-      la_commande->fun_slang=safe_strdup(str);
-      comma=strchr(str,',');
+      la_commande->fun_slang=safe_flstrdup(str);
+      comma=fl_strchr(str,fl_static(','));
       if (comma) flg = Parse_type_fun_slang(comma+1);
-      *end_str=']';
+      *end_str=fl_static(']');
       la_commande->cmd[CONTEXT_COMMAND]=NB_FLCMD+flg;
       la_commande->cmd[CONTEXT_PAGER]=NB_FLCMD_PAGER+flg;
       la_commande->cmd[CONTEXT_MENU]=NB_FLCMD_MENU+flg;
@@ -609,38 +775,23 @@ int Lit_cmd_explicite(char *str, int princip, int second, Cmd_return *la_command
    }
 #endif      
    for (j=0;j<2;j++) {
+      ini=0; final=NB_FLCMD;
       switch (j==0 ? princip : second) {
-      /* TODO : unifier un peu mieux ça. C'est vrai quoâ ! */
-         case CONTEXT_COMMAND : for (i=0;i<NB_FLCMD;i++) 
-                if ((strncmp(str, Flcmds[i].nom, strlen(Flcmds[i].nom))==0)
-                    && ((str[strlen(Flcmds[i].nom)]=='\0') ||
-                    (isblank(str[strlen(Flcmds[i].nom)])))) {
-                  add_str_to_description(Flcmds[i].nom,la_commande);
-		  la_commande->cmd[CONTEXT_COMMAND]=i;
-		  res=(res==-1 ? j : res);
-		  break;
-		}
-		break;
-         case CONTEXT_MENU : for (i=0;i<NB_FLCMD_MENU;i++) 
-                if ((strncmp(str, Flcmds_menu[i], strlen(Flcmds_menu[i]))==0)
-                    && ((str[strlen(Flcmds_menu[i])]=='\0') ||
-                    (isblank(str[strlen(Flcmds_menu[i])])))) {
-                  add_str_to_description(Flcmds_menu[i],la_commande);
-		  la_commande->cmd[CONTEXT_MENU]=i;
-		  res=(res==-1 ? j : res);
-		  break;
-		}
-		break;
-         case CONTEXT_PAGER : for (i=0;i<NB_FLCMD_PAGER;i++) 
-                if ((strncmp(str, Flcmds_pager[i], strlen(Flcmds_pager[i]))==0)
-                    && ((str[strlen(Flcmds_pager[i])]=='\0') ||
-                    (isblank(str[strlen(Flcmds_pager[i])])))) {
-                  add_str_to_description(Flcmds_pager[i],la_commande);
-		  la_commande->cmd[CONTEXT_PAGER]=i;
-		  res=(res==-1 ? j : res);
-		  break;
-		}
-		break;
+	  case CONTEXT_MENU  : ini=NB_FLCMD_PAGER;
+			       final+=NB_FLCMD_MENU;  /* fall */
+	  case CONTEXT_PAGER : ini+=NB_FLCMD;
+			       final+=NB_FLCMD_PAGER;
+      }
+      for (i=ini;i<final;i++) {
+	  flncmd=get_command_name_tout(NULL,i);
+	  if ((fl_strncmp(str,flncmd,fl_strlen(flncmd))==0) 
+		  && ((str[fl_strlen(flncmd)]==fl_static('\0')) ||
+		      (fl_isblank(str[fl_strlen(flncmd)])))) {
+	      add_str_to_description(flncmd, la_commande);
+	      la_commande->cmd[j==0 ? princip : second]=i-ini;
+	      res=(res==-1 ? j : res);
+	      break;
+	  }
       }
    }
    return res;
@@ -648,115 +799,166 @@ int Lit_cmd_explicite(char *str, int princip, int second, Cmd_return *la_command
 
 /* Prend une commande explicite */
 /* retourne -2 si rien */
-int get_command_explicite(char *start, int col, int princip, int second, Cmd_return *la_commande) {
-   int res=0, ret=0;
+int get_command_explicite(flrn_char *start, int col, int princip, int second, Cmd_return *la_commande) {
+   int res=0, ret=0, ecart=0;
+   struct key_entry key;
+   flrn_char flcmd_line[MAX_CHAR_STRING], *flstr=flcmd_line;
    char cmd_line[MAX_CHAR_STRING], *str=cmd_line;
-   int prefix_len=0;
+   size_t prefix_len=0, prefix_afflen=0;
+
+   key.entry=ENTRY_ERROR_KEY;
    la_commande->flags |= 2;
-   cmd_line[0]='\0';
+   flcmd_line[0]=fl_static('\0');
    if (start) {
-     prefix_len = strlen(start);
-     strncpy (cmd_line, start, MAX_CHAR_STRING-2);
+     prefix_len = fl_strlen(start);
+     fl_strncpy (flcmd_line, start, MAX_CHAR_STRING-2);
    }
-   strcat(cmd_line,"\\");
+   fl_strcat(flcmd_line,fl_static("\\"));
    prefix_len++;
+   conversion_to_terminal(flstr,&str,MAX_CHAR_STRING-1,prefix_len);
+   prefix_afflen=strlen(str);
+   ecart=str_estime_width(str,col,prefix_afflen);
+   str+=prefix_afflen;
    do {
-     Aff_ligne_comp_cmd(str,strlen(str),col);
-     if ((res=magic_flrn_getline(str+prefix_len,MAX_CHAR_STRING-prefix_len,
-         Screen_Rows2-1,col+prefix_len,"\011",0,ret))<0)
-       return -2;
-     ret=0;
-     if (res>0) ret=Comp_general_command(str+prefix_len,MAX_CHAR_STRING-prefix_len,col+prefix_len,Comp_cmd_explicite, Aff_ligne_comp_cmd);
+     Aff_ligne_comp_cmd(flstr,(size_t)(-1),col);
+     conversion_to_terminal(flstr+prefix_len,&str,
+	     MAX_CHAR_STRING-prefix_afflen,(size_t)(-1));
+     if ((res=magic_flrn_getline(flstr+prefix_len,MAX_CHAR_STRING-prefix_len,
+		     str,MAX_CHAR_STRING-prefix_afflen,
+         Screen_Rows2-1,col+ecart,"\011",0,(ret==1 ? &key : NULL),NULL))<0) {
+	 Free_key_entry(&key);
+         return -2;
+     }
+     if (res>0) ret=Comp_general_command(flstr+prefix_len,
+	     MAX_CHAR_STRING-prefix_len,col+ecart,Comp_cmd_explicite,
+	     Aff_ligne_comp_cmd,&key);
      if (ret<0) ret=0;
    } while (res!=0);
-   res=Lit_cmd_explicite(str+prefix_len, princip, second, la_commande);
-   str=strchr(str,' ');
-   if (str) {
-       la_commande->after=safe_strdup(str+1);
+   res=Lit_cmd_explicite(flstr+prefix_len, princip, second, la_commande);
+   flstr=fl_strchr(flstr,fl_static(' '));
+   if (flstr) {
+       la_commande->after=safe_strdup(flstr+1);
    }
+   Free_key_entry(&key);
    return res;
 }
 
 /* Prend une commande en nocbreak */
-int get_command_nocbreak(int asked,int col, int princip, int second, Cmd_return *la_commande) {
-   char cmd_line[MAX_CHAR_STRING];
-   char *str=cmd_line,*buf, *save_str=NULL;
-   int res, key, hist_chosen=-1, correct=0, chang;
+int get_command_nocbreak(struct key_entry *asked,int col, int princip, int second, Cmd_return *la_commande) {
+   flrn_char flcmd_line[MAX_CHAR_STRING], *flstr=flcmd_line;
+   char cmd_line[MAX_CHAR_STRING], *str=cmd_line;
+   flrn_char *buf, *save_str=NULL, first;
+   int res, hist_chosen=-1, correct=0, chang;
+   int key_nocb=0;
+   struct key_entry key;
 
+   key.entry=ENTRY_ERROR_KEY;
+   memset(flstr,0,8*sizeof(flrn_char));
    /* Dans le cas où asked='\r', et vient donc directement d'une interruption */
    /* on ne prend pas de ligne de commande : on l'a déjà...                   */
-   if (asked=='\r') return Lit_cmd_key('\r',princip,second,la_commande);
-   if (asked) Screen_write_char(asked);
-   if (asked && (asked!=fl_key_nocbreak))  *(str++)=asked;
-   *str='\0';
-   str=cmd_line;
+   if (asked) {
+       if (asked->entry==ENTRY_SLANG_KEY) {
+	   if (asked->value.slang_key==(int)'\r')
+	       return Lit_cmd_key(asked,princip,second,la_commande);
+	   if (asked->value.slang_key==fl_key_nocbreak) {
+	       key_nocb=1;
+	       Screen_write_char(fl_key_nocbreak);
+               Screen_erase_eol();
+	   } else *flstr=(char)asked->value.slang_key;
+	      /* special characters should not be used in nocbreak mode */
+       } else if (asked->entry==ENTRY_STATIC_STRING) 
+	   fl_strncpy(flstr,asked->value.ststr,4);
+       else if (asked->entry==ENTRY_ALLOCATED_STRING)
+	   fl_strcpy(flstr,asked->value.allocstr);
+   }
+   if (*flstr) {
+       conversion_to_terminal(flstr,&str,MAX_CHAR_STRING,(size_t)(-1));
+       Screen_write_string(str);
+       Screen_erase_eol();
+   } else *str='\0';
    res=0;
    while (!correct) {
      chang=0;
-     if ((res=magic_flrn_getline(str,MAX_CHAR_STRING,Screen_Rows2-1,
-                      col+(asked && (asked==fl_key_nocbreak)),"",2,0))<0) {
+     if ((res=magic_flrn_getline(flstr,MAX_CHAR_STRING,
+		     str,MAX_CHAR_STRING, Screen_Rows2-1,
+                      col+key_nocb,"",2,NULL,&key))<0) {
        if (save_str) free(save_str);
        return -2;
      }
      chang=0;
+     if (res>1) { 
+	 if (key.entry==ENTRY_SLANG_KEY) res=key.value.slang_key;
+	   /* en théorie c'est obligatoire */
+         Free_key_entry(&key);
+     }
      if (res==FL_KEY_UP) {
 	 if (cmd_hist_max>=0) {
 	     if (hist_chosen==-1) {
 		 hist_chosen=cmd_hist_curr;
-		 save_str=safe_strdup(str);
-		 strcpy(str,cmd_historique[hist_chosen]);
+		 save_str=safe_flstrdup(str);
+		 fl_strcpy(flstr,cmd_historique[hist_chosen]);
              } else { 
 		 hist_chosen--;
 		 if (hist_chosen==-1) hist_chosen=cmd_hist_max;
-		 strcpy(str,cmd_historique[hist_chosen]);
+		 fl_strcpy(flstr,cmd_historique[hist_chosen]);
 	     }
 	     chang=1;
 	 }
      } else if (res==FL_KEY_DOWN) {
 	 if ((cmd_hist_max>=0) && (hist_chosen!=-1)) {
 	     if (hist_chosen==cmd_hist_curr) {
-		 strcpy(str,save_str);
+		 fl_strcpy(str,save_str);
 		 hist_chosen=-1;
 		 free(save_str);
 		 save_str=NULL;
              } else {
 		 hist_chosen++;
 		 if (hist_chosen>cmd_hist_max) hist_chosen=0;
-		 strcpy(str,cmd_historique[hist_chosen]);
+		 fl_strcpy(str,cmd_historique[hist_chosen]);
              }
 	     chang=1;
 	 }
      } else correct=(res==0);
      if (chang) {
-	 Cursor_gotorc(Screen_Rows2-1,col+(asked && (asked==fl_key_nocbreak)));
+	 Cursor_gotorc(Screen_Rows2-1,col+key_nocb);
+         conversion_to_terminal(flstr,&str,MAX_CHAR_STRING,(size_t)(-1));
 	 Screen_write_string(str);
 	 Screen_erase_eol();
      }
    }
-   while(*str==fl_key_nocbreak) str++;
-   if (str[0]=='\0') {
+   while(*flstr==(flrn_char)fl_key_nocbreak) str++;
+   if (flstr[0]==fl_static('\0')) {
        if (save_str) free(save_str);
-       return Lit_cmd_key('\r',princip,second,la_commande);
+       key.entry=ENTRY_SLANG_KEY;
+       key.value.slang_key=(int)'\r';
+       return Lit_cmd_key(&key,princip,second,la_commande);
    }
    /* Beurk pour le '-' */
-   if ((str[0]=='-') && (str[1]=='\0')) {
+   if ((flstr[0]==fl_static('-')) && (flstr[1]==fl_static('\0'))) {
        if (save_str) free(save_str);
-       return Lit_cmd_key('-',princip,second,la_commande);
+       key.entry=ENTRY_SLANG_KEY;
+       key.value.slang_key=(int)'-';
+       return Lit_cmd_key(&key,princip,second,la_commande);
    }
-   buf=str+strspn(str,DENIED_CHARS);
-   key=(*buf ? *buf : '\r');
-   if (*buf) *(buf++)='\0';
-   if (*str) {
-       la_commande->before=safe_strdup(str);
+   buf=flstr+fl_strspn(str,fl_static(DENIED_CHARS));
+   first=(*buf ? *buf : fl_static('\r'));
+   *buf=fl_static('\0');
+   if (*flstr) {
+       la_commande->before=safe_strdup(flstr);
    }
-   if (key==fl_key_explicite) {
-       char bla[2];
-       bla[0]=fl_key_explicite;
-       bla[1]='\0';
+   *buf=first;
+   if (first==(flrn_char)fl_key_explicite) {
+       flrn_char bla[2];
+       bla[0]=(flrn_char)fl_key_explicite;
+       bla[1]=fl_static('\0');
        add_str_to_description(bla,la_commande);
+       buf++;
        res=Lit_cmd_explicite(buf, princip, second, la_commande);
-       buf=strchr(buf,' '); if (buf) buf++;
-   } else res=Lit_cmd_key(key,princip,second,la_commande);
+       buf=fl_strchr(buf,fl_static(' ')); if (buf) buf++;
+   } else {
+       buf+=parse_key_string(buf,&key);
+       res=Lit_cmd_key(&key,princip,second,la_commande);
+   }
    /* Ne pas oublier !!!!! */
    /* dans Lit_cmd_key le cas très particulier de \r qui devient 'v' pour un */
    /* contexte particulier...						     */
@@ -764,35 +966,44 @@ int get_command_nocbreak(int asked,int col, int princip, int second, Cmd_return 
        la_commande->after=safe_strdup(buf);
    }
    if (save_str) free(save_str);
+   Free_key_entry(&key);
    return res;
 }
 
 /* Prend une commande dans le nouveau mode */
-int get_command_newmode(int key,int col, int princip, int second, Cmd_return *la_commande) {
+int get_command_newmode(struct key_entry *key_ini,int col, int princip, int second, Cmd_return *la_commande) {
    int res;
+   flrn_char flcmd_line[MAX_CHAR_STRING];
    char cmd_line[MAX_CHAR_STRING];
+   flrn_char *flstr=flcmd_line;
    char *str=cmd_line;
+   struct key_entry key;
 
-   cmd_line[0]=key; cmd_line[1]='\0';
-   Screen_write_char(key);
+   key.entry=ENTRY_ERROR_KEY;
+   cmd_line[0]='\0';
+   flcmd_line[0]='\0';
    /* On appelle magic_flrn_getline avec flag=1 */
-   if ((key=magic_flrn_getline(str,MAX_CHAR_STRING,Screen_Rows2-1,col,DENIED_CHARS,1,0))<0)
+   if ((res=magic_flrn_getline(flstr,MAX_CHAR_STRING,str,MAX_CHAR_STRING,
+		   Screen_Rows2-1,col,DENIED_CHARS,1,key_ini,&key))<0)
       return -2;
-   if (*str) { 
-       la_commande->before=safe_strdup(str);
+   if (*flstr) { 
+       la_commande->before=safe_strdup(flstr);
        la_commande->flags|=2;
    }
-   if (key==fl_key_explicite) {
-       char bla[2];
-       bla[0]=fl_key_explicite;
-       bla[1]='\0';
+   if ((res==1) && (key.entry==ENTRY_SLANG_KEY) && 
+	   (key.value.slang_key==fl_key_explicite)) {
+       flrn_char bla[2];
+       bla[0]=(flrn_char)fl_key_explicite;
+       bla[1]=fl_static('\0');
        add_str_to_description(bla,la_commande);
-       return get_command_explicite(cmd_line,col,princip,second,
+       return get_command_explicite(flcmd_line,col,princip,second,
 	       la_commande); 
    }
    else 
-       res=Lit_cmd_key(key,princip,second,la_commande);
-   if ((res>=0) && (key!='\r')) la_commande->flags |=1;
+       res=Lit_cmd_key(&key,princip,second,la_commande);
+   if ((res>=0) && ((key.entry!=ENTRY_SLANG_KEY) || 
+	             (key.value.slang_key!=(int)'\r')))
+       la_commande->flags |=1;
+   Free_key_entry(&key);
    return res;
 }
-

@@ -32,6 +32,7 @@
 #include "flrn_shell.h"
 #include "tty_display.h"
 #include "tty_keyboard.h"
+#include "enc/enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 
@@ -45,7 +46,6 @@ void sigwinch_while_fork(int sig) {
 }   
 
 int Launch_Editor (int flag, char *name) {
-    char *home;
     char *editor;
     pid_t pid;
     int retval=0, ret;
@@ -83,23 +83,32 @@ int Launch_Editor (int flag, char *name) {
 
 /* ouvre le pipe et renvoie un file descr. */
 /* si flag est !=0, on met la sortie std dans un fichier */
-int Pipe_Msg_Start (int flagin ,int flagout, char *cmdline, char *name) {
+int Pipe_Msg_Start (int flagin ,int flagout, flrn_char *cmd, char *name) {
     char *home,*tmpchr;
     pid_t pid;
     int fd[2];
     int fdfile;
+    char *cmdline;
+    int rc=1;
 
-    if (!cmdline) {
+    if (!cmd) {
        cmdline=getenv("PAGER");
        if (!cmdline)
            cmdline="less";
+    } else rc=conversion_to_file(cmd,&cmdline,0,(size_t)(-1));
+
+    if (flagin && (pipe(fd)<0)) {
+	if (rc==0) free(cmdline); 
+	return -1;
     }
-    if (flagin && (pipe(fd)<0)) return -1;
 
     if (flagout) {
       if (NULL == (home = getenv ("FLRNHOME")))
               home = getenv ("HOME");
-      if (home==NULL) return -1;  /* TRES improbable :-) */
+      if (home==NULL) {
+	  if (rc==0) free(cmdline);
+	  return -1;  /* TRES improbable :-) */
+      }
 #ifdef USE_MKSTEMP
       strncpy(name,home,MAX_PATH_LEN-10-strlen(TMP_PIPE_FILE));
 #else
@@ -141,11 +150,13 @@ int Pipe_Msg_Start (int flagin ,int flagout, char *cmdline, char *name) {
                     _exit(-1);
                   _exit(0);
                 }
-       default : if (flagin) {
+       default : if (rc==0) free(cmdline);
+		 if (flagin) {
                    close(fd[0]);
                    return fd[1];
                  } else return 0;
     }
+    if (rc==0) free(cmdline);
     if (flagin) {
       close(fd[0]);
       Pipe_Msg_Stop(fd[1]);

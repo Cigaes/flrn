@@ -30,10 +30,10 @@ union element {
 
 /* gestion des tags */
 extern int is_tag_valid (Flrn_Tag *, Newsgroup_List **);
-extern int goto_tag (int, union element *, Newsgroup_List **);
-extern int put_tag (Article_List *, int);
+extern int goto_tag (Flrn_Tag *, union element *, Newsgroup_List **);
+extern int put_tag (Article_List *, Flrn_Tag *);
 
 /* gestion des groupes */
-extern int get_group (Newsgroup_List **, int, char *);
+extern int get_group (Newsgroup_List **, int, flrn_char *);
 
 #endif

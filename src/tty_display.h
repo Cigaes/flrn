@@ -13,8 +13,10 @@
 #ifndef FLRN_TTY_DISPLAY_H
 #define FLRN_TTY_DISPLAY_H
 
+#include "enc/enc_base.h"
 #include "group.h"
 #include "art_group.h"
+#include "tty_keyboard.h"
 
 extern int error_fin_displayed;
 
@@ -25,23 +27,23 @@ extern int Init_screen(int);
 extern void sig_winch(int );
 extern int Aff_article_courant(int);
 extern int Aff_grand_thread(int);
-extern void Aff_newsgroup_name(int /* erase_scr */);
+extern void Aff_newsgroup_name(int);
 extern void Aff_newsgroup_courant(void);
 extern void aff_try_reconnect(void);
 extern void aff_end_reconnect(void);
 extern void Aff_not_read_newsgroup_courant(void);
-extern char * Prepare_summary_line(Article_List * /*article*/,
-    char * /*prev_subject*/, int /*level*/, char * /*buf*/, int /*buflen*/, int);
-extern int Aff_summary_line(Article_List * /*article*/,int * /*row*/,
-    char * /*prev_subject*/, int /*level*/);
-extern Article_List * Menu_summary (int /*deb*/, int /*fin*/, int /*thread*/);
-extern int Aff_fin(const char * /*str*/);
-extern int Aff_error(const char * /*str*/);
-extern int Aff_error_fin(const char * /*str*/, int /*s_beep*/ , int );
-extern int Aff_file(FILE * /*file*/, char *, char *);
-extern int Liste_groupe(int /*n*/, char * /*mat*/, Newsgroup_List **);
+extern int Aff_summary_line(Article_List * ,int * ,
+    flrn_char * , int );
+extern Article_List * Menu_summary (int , int , int );
+extern int Aff_fin(const flrn_char * ); 
+extern int Aff_error(const flrn_char * );
+extern int Aff_error_fin(const flrn_char * , int  , int );
+extern int Aff_file(FILE * , char *, flrn_char *, struct key_entry *);
+extern int Liste_groupe(int , flrn_char * , Newsgroup_List **);
 /* extern int Aff_arbre(int,int,Article_List *, int, int, int, unsigned short **, int); */
 extern void Aff_help_line(int);
 extern int screen_changed_size(void);
+
+extern void Manage_progress_bar(int);
 
 #endif

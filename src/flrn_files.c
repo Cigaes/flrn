@@ -17,6 +17,7 @@
 #include <strings.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <ctype.h>
 
 #include <sys/types.h>
 #include <signal.h>
@@ -26,6 +27,8 @@
 #include "flrn_tcp.h"
 #include "flrn_files.h"
 #include "flrn_filter.h"
+#include "rfc2047.h"
+#include "enc/enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 
@@ -176,13 +179,25 @@ void rename_flnewsfile (char *old_link,char *new_link)
        strncat(name1,old_link,MAX_PATH_LEN-strlen(name1));
    else {
        strncat(name1,DEFAULT_FLNEWS_FILE,MAX_PATH_LEN-strlen(name1));
-       if (Options.flnews_ext) strncat(name1,Options.flnews_ext,MAX_PATH_LEN-strlen(name1));
+       if (Options.flnews_ext) {
+	   int rc;
+	   char *trad;
+	   rc=conversion_to_file(Options.flnews_ext,&trad,0,(size_t)(-1));
+	   strncat(name1,trad,MAX_PATH_LEN-strlen(name1));
+	   if (rc==0) free(trad);
+       }
    }
    if (new_link)
        strncat(name2,new_link,MAX_PATH_LEN-strlen(name2));
    else {
        strncat(name2,DEFAULT_FLNEWS_FILE,MAX_PATH_LEN-strlen(name2));
-       if (Options.flnews_ext) strncat(name2,Options.flnews_ext,MAX_PATH_LEN-strlen(name2));
+       if (Options.flnews_ext) {
+	   int rc;
+	   char *trad;
+	   rc=conversion_to_file(Options.flnews_ext,&trad,0,(size_t)(-1));
+	   strncat(name2,trad,MAX_PATH_LEN-strlen(name2));
+	   if (rc==0) free(trad);
+       }
    }
 
    name1[MAX_PATH_LEN-1]=name2[MAX_PATH_LEN-1]='\0';
@@ -245,9 +260,18 @@ FILE *open_flhelpfile (char ext)
 
 
 /* Copie le contenu d'un article dans un fichier */
-void Copy_article (FILE *dest, Article_List *article, int copie_head, char *avant, int with_sig) {
-   int res, code;
-   char *num, *buf;
+/* encoding = 0 -> on envoie l'article directement */
+/* encoding = 1 -> on traduit le fichier vers le charset de files */
+/* encoding = 2 -> on traduit le fichier vers le charset de l'éditeur */
+/* encoding = 3 ou 4 -> idem, mais on traduit les entêtes via la rfc2047 */
+void Copy_article (FILE *dest, Article_List *article, int copie_head,
+	char *avant, int with_sig, int encoding) {
+   int res, code, resconv=1;
+   char *newline;
+   flrn_char *newheader;
+   size_t newheader_len=0, newline_len=0;
+   char *num, *buf, *trad=NULL;
+   int in_headers = (copie_head==1) || (encoding>0), quit_headers=0;
    int flag=2; /* flag & 1 : debut de ligne     */
                /*      & 2 : fin de ligne       */
 
@@ -255,43 +279,133 @@ void Copy_article (FILE *dest, Article_List *article, int copie_head, char *avan
    if (article->numero>0) sprintf(num, "%d", article->numero); else
       if (article->msgid) strcpy(num,article->msgid); else
       return;
-   res=write_command(copie_head ? CMD_ARTICLE : CMD_BODY, 1, &num);
+   res=write_command(in_headers ? CMD_ARTICLE : CMD_BODY, 1, &num);
    free(num);
    if (res<0) return;
    code=return_code();
    if (code==423) { /* bad article number ? */
       num=safe_malloc(260*sizeof(char));
       strcpy(num,article->msgid);
-      res=write_command(copie_head ? CMD_ARTICLE : CMD_BODY, 1, &num);
+      res=write_command(in_headers ? CMD_ARTICLE : CMD_BODY, 1, &num);
       free(num);
       if (res<0) return;
       code=return_code();
    }
+   if (encoding) parse_ContentType_header(NULL);
    if ((code<0) || (code>300)) return;
+   newline=NULL; newheader=NULL;
    do {
       res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
       buf=tcp_line_read;
-      if (res<1) return;
-      if (res==1) { flag=2; putc('\n', dest); continue; }  /* On a lu '\n' */
+      if (res<1) break;
       if (flag & 2) {
-        if (strncmp(tcp_line_read, ".\r\n", 3)==0) return;
-	if ((!with_sig) && (strncmp(tcp_line_read, "-- \r\n", 5)==0)) {
-	   discard_server();
-	   return;
-	}
+        if (strncmp(tcp_line_read, ".\r\n", 3)==0) break;
         if (*buf=='.') buf++;
 	flag=1;
       } else flag=0;
-      flag|=2*(tcp_line_read[res-2]=='\r');
-      if ((flag & 1) && avant) {
-	if ((*avant=='>') && Options.smart_quote && (*buf=='>'))
-	  putc('>',dest); else
-	  fputs(avant, dest);
+      if (tcp_line_read[res-2]=='\r') {
+	  tcp_line_read[res-2]='\n';
+	  tcp_line_read[--res]='\0';
+      } else if (tcp_line_read[res-1]=='\r') tcp_line_read[--res]='\0';
+                      /* cas limite de ligne longue, on lira '\n' après */
+      if ((in_headers) && (encoding)) {
+	  if (newline==NULL) {
+	      newline=safe_strdup(buf);
+	      newline_len=strlen(buf)+1;
+	  } else {
+	      if ((flag==1) && ((!isblank(tcp_line_read[0])) || 
+		     (tcp_line_read[0]=='\n'))) {
+		  /* on reprend newline */
+		  if (newheader==NULL) {
+		      newheader_len = 3*strlen(newline)+3;
+		      newheader=safe_malloc(newheader_len*sizeof(flrn_char));
+		  } else {
+		      size_t newsize=3*strlen(newline)+3;
+		      if (newsize>newheader_len) {
+			  newheader=safe_realloc(newheader,
+				  newsize*sizeof(flrn_char));
+			  newheader_len=newsize;
+		      }
+		  }
+		  {  int raw;
+		     int i;
+		     for (i=0;i<NB_UTF8_HEADERS;i++) {
+			 if (strncasecmp(newline,Headers[i].header,
+				     Headers[i].header_len)==0) break;
+		     }
+		     if (i==NB_UTF8_HEADERS) raw=(encoding<3);
+		       else raw=2;
+		     newheader_len=
+		        rfc2047_decode(newheader,newline,newheader_len,
+				  raw);
+		  }
+		  if (fl_strncasecmp(newheader,
+			      fl_static("content-type:"),13)==0) {
+		      parse_ContentType_header(newheader+13);
+		  }
+		  if (encoding%2==1) 
+		     resconv=conversion_to_file(newheader,&trad,0,(size_t)(-1));
+		  else
+		     resconv=conversion_to_editor(newheader,&trad,0,(size_t)(-1));
+		  if ((flag==1) && (tcp_line_read[0]=='\n')) quit_headers=1;
+		  if (strlen(buf)>=newline_len) {
+		      free(newline);
+		      newline=safe_strdup(buf);
+		      newline_len=strlen(buf)+1;
+		  } else strcpy(newline,buf);
+	      } else {
+		  if (strlen(buf)+strlen(newline)>=newline_len) {
+		      newline=safe_realloc(newline,strlen(buf)+
+			      strlen(newline)+1);
+		      newline_len=strlen(buf)+strlen(newline)+1;
+		  }
+		  strcat(newline,buf);
+	      }
+	 }
+      } else {
+	 if (encoding) {
+	     int resconv2;
+	     flrn_char *trad2;
+	     resconv2=conversion_from_message(buf,&trad2,0,(size_t)(-1));
+	     if (encoding%2==1)
+	       resconv=conversion_to_file(trad2,&trad,0,(size_t)(-1));
+	     else
+	       resconv=conversion_to_editor(trad2,&trad,0,(size_t)(-1));
+	     if (resconv2==0) free(trad2);
+	 } else {
+	     trad=buf;
+	     resconv=1;
+	 }
       }
-      if (flag & 2) tcp_line_read[res-2]='\0';
-      fputs(buf, dest);
-      if (flag & 2) putc('\n', dest);
-    } while (1);
+      if (trad) {
+        if (flag==1) {
+	   if ((!with_sig) && (strncmp(trad, "-- \n", 4)==0)) {
+	      discard_server();
+	      break;
+	   }
+	   if (((copie_head) || (!in_headers)) && (avant)) {
+	       if ((*avant=='>') && Options.smart_quote && (*trad=='>'))
+		   putc('>',dest); else
+		   fputs(avant, dest);
+	   }
+        }
+	if ((copie_head) || (!in_headers)) fputs(trad,dest);
+	if (resconv==0) free(trad);
+	trad=NULL;
+      }
+      if (tcp_line_read[res-1]=='\n') flag=2;
+      if (quit_headers==1) {
+	  in_headers=0;
+	  quit_headers=0;
+	  if (copie_head) {
+	      if (avant) fputs(avant,dest);
+	      putc('\n',dest);
+	  }
+      }
+   } while (1);
+   if ((trad) && (resconv==0)) free(trad);
+   if (newheader) free(newheader);
+   if (newline) free(newline);
 }
 
 /* TODO à écrire correctement */
@@ -311,12 +425,17 @@ int read_list_file(char *name, Flrn_liste *liste) {
   FILE *blah = open_flrnfile(name,"r",0,NULL);
   char buf1[MAX_BUF_SIZE];
   char *buf2;
+  flrn_char *trad;
+  int rc;
   if (blah) {
     while (fgets(buf1, MAX_BUF_SIZE,blah)) {
       buf2=strchr(buf1,'\n');
       if (buf2) *buf2=0;
-      if (*buf1) /* on vire les lignes vides... */
-	add_to_liste(liste,buf1);
+      if (*buf1) {/* on vire les lignes vides... */
+	rc=conversion_from_utf8(buf1,&trad,0,(size_t)(-1));
+	add_to_liste(liste,trad);
+	if (rc==0) free(trad);
+      }
     }
   } else {
     return -1;

@@ -28,18 +28,18 @@ typedef struct command_desc {
 		  32: demande à avoir un groupe valide */
 #define CMD_NEED_GROUP 32
    int (*appel)(int);
-   int (*comp)(char *, int, Liste_Chaine *);
+   int (*comp)(flrn_char *, size_t, Liste_Chaine *);
 } Flcmd;
 
 
 /* Les fonctions : */
 
-extern int fonction_to_number(char *);
-extern int call_func(int, char *);
-extern int loop(char * /*opt*/);
-extern int aff_opt_c(char *, int);
+extern int call_func(int, flrn_char *);
+extern int loop(flrn_char * );
+extern int aff_opt_c(flrn_char *, int);
 extern void init_Flcmd_rev(void);
-extern int Bind_command_explicite(char * /*nom*/, int /*key*/, char *, int);
+extern int Bind_command_explicite(flrn_char *, struct key_entry *,
+	flrn_char *, int);
 extern void save_etat_loop(void);
 extern void restore_etat_loop(void);
 

@@ -34,25 +34,25 @@
 static UNUSED char rcsid[] = "$Id$";
 
 const Known_Headers Headers[NB_KNOWN_HEADERS] = {
-   { "From:", 5 },
-   { "References:", 11 },
-   { "Subject:", 8 },
-   { "Date:", 5 },
    { "Newsgroups:", 11 },
    { "Followup-To:", 12 },
-   { "Organization:", 13 },
+   { "Date:", 5 },
    { "Lines:", 6 },
+   { "Expires:", 8 },
+   { "Xref:", 5 },
+   { "X-Trace:", 8 },
+   { "From:", 5 },
+   { "Subject:", 8 },
+   { "Organization:", 13 },
    { "Sender:", 7 },
    { "Reply-To:", 9 },
-   { "Expires:", 8 },
    { "X-Newsreader:", 13 },
    { "To:", 3 },
    { "Cc:", 3 },
    { "Bcc:", 4 },
-   { "Xref:", 5 },
-   { "Message-Id:", 11 },
    { "X-Censorship:", 13 },
-   { "X-Trace:", 8 },
+   { "References:", 11 },
+   { "Message-Id:", 11 },
 };
 
 
@@ -76,9 +76,12 @@ static void free_article_headers(Article_Header *headers) {
   int i;
   if (!headers) return;
   /* attention au message-id */
-  for (i=0; i<NB_KNOWN_HEADERS; i++) 
-    if ((i!=MESSAGE_ID_HEADER) && (headers->k_headers[i]))
+  for (i=0; i<NB_DECODED_HEADERS; i++) 
+    if (headers->k_headers[i])
       free(headers->k_headers[i]);
+  for (i=0; i<NB_RAW_HEADERS; i++)
+    if ((i!=MESSAGE_ID_HEADER) && (headers->k_raw_headers[i]))
+	free(headers->k_raw_headers[i]);
   if (headers->reponse_a) free(headers->reponse_a);
   free(headers);
 }
@@ -278,7 +281,7 @@ int cree_liens() {
     second=0;
     arret=0;
     if (!creation->headers ||
-	!(buf=creation->headers->k_headers[REFERENCES_HEADER]))
+	!(buf=creation->headers->k_raw_headers[REFERENCES_HEADER]))
       continue;
     while ((buf2=strrchr(buf,'<'))) {
        if (buf3) *buf3='<';
@@ -308,7 +311,7 @@ int cree_liens() {
 	       creation2->flag=FLAG_READ;
 	       if (Article_exte_deb) Article_exte_deb->prev=creation2;
 	       Article_exte_deb=creation2;
-	       creation2->msgid = safe_strdup(buf2);
+	       creation2->msgid = safe_flstrdup(buf2);
 	       creation2->thread=parcours_hash->thread;
 	       parcours_hash->article=creation2;
 	       free(parcours_hash->msgid);
@@ -324,7 +327,7 @@ int cree_liens() {
           parcours_hash=safe_calloc(1,sizeof(Hash_List));
           parcours_hash->prev_hash=(*Hash_table)[hash];
 	  (*Hash_table)[hash]=parcours_hash;
-          if (!premier) parcours_hash->msgid=safe_strdup(buf2);
+          if (!premier) parcours_hash->msgid=safe_flstrdup(buf2);
           parcours_hash->thread=save_hash->thread;
 	  parcours_hash->next_in_thread=parcours_hash->thread->premier_hash;
 	  parcours_hash->thread->premier_hash=parcours_hash;
@@ -335,7 +338,7 @@ int cree_liens() {
 	     creation2->next=Article_exte_deb;
 	     if (Article_exte_deb) Article_exte_deb->prev=creation2;
 	     Article_exte_deb=creation2;
-	     creation2->msgid = safe_strdup(buf2);
+	     creation2->msgid = safe_flstrdup(buf2);
 	     creation2->thread=parcours_hash->thread;
 	     parcours_hash->article=creation2;
 	     parcours_hash->msgid=creation2->msgid;
@@ -352,14 +355,6 @@ int cree_liens() {
     }
     if (buf3) *buf3='<';
   }
-/*  fprintf(stderr,"\n");
-  for (thread_creation=Thread_deb; thread_creation; thread_creation=thread_creation->next_thread)
-  {
-     parcours_hash=thread_creation->premier_hash;
-     while (parcours_hash->article==NULL ||
-      parcours_hash->article->numero<=0) parcours_hash=parcours_hash->next_in_thread;
-     fprintf(stderr,"%d %d %s\n",thread_creation->number, parcours_hash->article->numero,parcours_hash->article->headers->k_headers[SUBJECT_HEADER]);
-  }  */
   return 0;
 }
 
@@ -387,7 +382,8 @@ static void Free_Last_head_cmd () {
    tmp=Last_head_cmd.headers;
    while (tmp) {
      tmp2=tmp->next;
-     free(tmp->header);
+     free(tmp->header_head);
+     free(tmp->header_body);
      free(tmp);
      tmp=tmp2;
    }
@@ -407,6 +403,8 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others, in
    Article_Header *creation;
    Header_List **actuel=NULL;
    char *num;
+   char *cur_header=NULL;
+   size_t cur_header_len=0;
 
   /* Ecriture de la commande */
    num=safe_malloc(260*sizeof(char)); /* ca peut aussi etre une reference */
@@ -434,7 +432,7 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others, in
 
    free_article_headers(article->headers);
    article->headers=creation=new_header();
-   article->headers->k_headers[MESSAGE_ID_HEADER]=article->msgid;
+   article->headers->k_raw_headers[MESSAGE_ID_HEADER]=article->msgid;
    article->headers->k_headers_checked[MESSAGE_ID_HEADER]=1;
    if (others) {
      Free_Last_head_cmd();
@@ -444,7 +442,7 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others, in
   /* Resultats */
    do {
       res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
-      if (res<0) return NULL; 
+      if (res<0) return NULL;  /* TODO : ceci est une erreur fatale */
       flag=(flag & 2 ? 1 : 0); 
       if (res>1) {
         flag|=2*(tcp_line_read[res-2]=='\r');
@@ -452,41 +450,62 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others, in
       } else continue;  /* ca signifie tcp_line_read='\n' */
 /*      rfc2047_decode(tcp_line_read,tcp_line_read,MAX_READ_SIZE); */
 
-      if ((flag & 1) && (!isblank(tcp_line_read[0]))) 
-	                     header_courant=NULL_HEADER; 
-                                                   /* On a affaire à un */
-      						   /* nouveau header    */
-      else {
-	if (header_courant!=NULL_HEADER) {
-	  if (header_courant!=UNKNOWN_HEADER) { 
-	    creation->k_headers[header_courant]=
-	      safe_realloc(creation->k_headers[header_courant],
-		 (strlen(creation->k_headers[header_courant])+
-		  strlen(tcp_line_read)+2)*sizeof(char));
-	    if (flag & 1) strcat(creation->k_headers[header_courant], "\n");
-	    strcat(creation->k_headers[header_courant], tcp_line_read);
-	  } else { /* others==1 */
-	    (*actuel)->header=
-	      safe_realloc((*actuel)->header, 
-		  (strlen((*actuel)->header)+
-		  strlen(tcp_line_read)+2)*sizeof(char));
-	    if (flag & 1) strcat((*actuel)->header, "\n");
-	    strcat((*actuel)->header, tcp_line_read);
+      if ((flag & 1) && (!isblank(tcp_line_read[0]))) {
+	  /* finir l'ancien header, en le décodant de suite */
+	  if (header_courant!=NULL_HEADER) {
+	      if (header_courant>=NB_DECODED_HEADERS) {
+		  header_courant-=NB_DECODED_HEADERS;
+		  creation->k_raw_headers[header_courant]=
+		      safe_strdup(cur_header);
+	      } else {
+	        size_t ll = 3*strlen(cur_header)+3;
+	        flrn_char *nouv_header;
+	        nouv_header=safe_malloc(ll*sizeof(flrn_char));
+	        ll=rfc2047_decode(nouv_header,cur_header, ll, 
+			((header_courant>=0)
+			 && (header_courant<NB_UTF8_HEADERS)) ? 2 : 0);
+	        nouv_header=safe_realloc(nouv_header,
+		      (1+ll)*sizeof(flrn_char));
+	        if (header_courant!=UNKNOWN_HEADER) {
+		    creation->k_headers[header_courant]=nouv_header;
+                } else {
+		    (*actuel)->header_body=nouv_header;
+                }
+	      }
 	  }
-	} 
+          header_courant=NULL_HEADER; 
+      } else {
+	if ((header_courant!=NULL_HEADER) ||
+		( (cur_header ? strlen(cur_header) : 0)+
+		  strlen(tcp_line_read)+2>cur_header_len)) {
+	    cur_header_len=(cur_header ? strlen(cur_header) : 0)+
+		strlen(tcp_line_read)+2;
+	    cur_header = safe_realloc(cur_header,
+		    cur_header_len);
+	    if (flag & 1) strcat(cur_header, "\n");
+	    strcat(cur_header, tcp_line_read);
+	}
    	continue;
       }	
       for (i=0; i<NB_KNOWN_HEADERS; i++) {
 	 if (strncasecmp(tcp_line_read, Headers[i].header, 
 	                      Headers[i].header_len)==0) {
 	   if (creation->k_headers[i]) {
+/* TODO : on peut avoir un message de warning ici, 
+ * *** EXCEPTE POUR LE MID ****/
 /*               if (debug) fprintf(stderr, "Double header %s ???", 
 		                            Headers[i].header);    */
 	       header_courant=NULL_HEADER;
 	   } else {
+	      char *ch=tcp_line_read+Headers[i].header_len;
+	      while (*ch==' ') ch++;
 	      header_courant=i;
-	      creation->k_headers[i]=safe_malloc(strlen(tcp_line_read+Headers[i].header_len)*sizeof(char));
-	      strcpy(creation->k_headers[i], tcp_line_read+Headers[i].header_len+1);
+              if (cur_header_len<=strlen(ch)+1)
+	      {
+		  cur_header_len=strlen(ch)+1;
+		  cur_header=safe_realloc(cur_header, cur_header_len);
+	      }
+	      strcpy(cur_header, ch);
 	   }
 	   break;
 	 }
@@ -494,48 +513,53 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others, in
       if ((i==NB_KNOWN_HEADERS) && (!(flag & 1) || (tcp_line_read[0]!='.'))) 
       {
         if (others) {
-	   header_courant=UNKNOWN_HEADER;
-	   if (actuel) { 
-	     (*actuel)->next=safe_malloc(sizeof(Header_List));
-	     actuel=&((*actuel)->next);
-	   } else {
-	     actuel=&(Last_head_cmd.headers);
-	     (*actuel)=safe_malloc(sizeof(Header_List));
+	   char *ch, sch;
+	   size_t ll;
+	   ch=strchr(tcp_line_read,':');
+	   if (ch==NULL) /* TODO : on pourrait mettre un warning ici */
+	       header_courant=NULL_HEADER;
+	   else {
+	     header_courant=UNKNOWN_HEADER;
+	     if (actuel) { 
+	       (*actuel)->next=safe_malloc(sizeof(Header_List));
+	       actuel=&((*actuel)->next);
+	     } else {
+	       actuel=&(Last_head_cmd.headers);
+	       (*actuel)=safe_malloc(sizeof(Header_List));
+	     }
+	     ch++; sch=*ch; *ch='\0';
+	     ll=4*strlen(tcp_line_read)+4;
+	     (*actuel)->header_head=safe_malloc(
+			ll*sizeof(flrn_char));
+	     ll=rfc2047_decode((*actuel)->header_head,tcp_line_read,ll,1);
+	     (*actuel)->header_head=safe_realloc((*actuel)->header_head,
+		(ll+1)*sizeof(flrn_char));
+	     *ch=sch; while (*ch==' ') ch++;
+             if (cur_header_len<=strlen(ch))
+	     {
+		  cur_header_len=strlen(ch)+1;
+		  cur_header=safe_realloc(cur_header, cur_header_len);
+	     }
+	     strcpy(cur_header, ch);
 	   }
-	   (*actuel)->header=safe_strdup(tcp_line_read);
         } else  header_courant=NULL_HEADER;
       }
    } while (!(flag & 1) || (tcp_line_read[0]!='.'));
+   if (cur_header) free(cur_header);
 
    if ((others) && (actuel)) (*actuel)->next=NULL;
 
    /* tous les headers sont valides */
-   /* on décode tout ! */
    for (i=0; i<NB_KNOWN_HEADERS; i++) {
      creation->k_headers_checked[i]=1;
-     /* Enfin, pas references ou message-ID parce que ca ne sert à rien */
-     if ((i==REFERENCES_HEADER) || (i==MESSAGE_ID_HEADER)) continue;
-     if(creation->k_headers[i]) {
-      rfc2047_decode(creation->k_headers[i],creation->k_headers[i],
-	  strlen(creation->k_headers[i]));
-      creation->k_headers[i]=
-	safe_realloc(creation->k_headers[i],strlen(creation->k_headers[i])+1);
-     }
    }
    creation->all_headers=1;
    if (others) {
      actuel=&(Last_head_cmd.headers);
-     while(actuel && (*actuel)) {
-        rfc2047_decode((*actuel)->header,(*actuel)->header,
-	  strlen((*actuel)->header));
-       (*actuel)->header=
-	 safe_realloc((*actuel)->header,strlen((*actuel)->header)+1);
-       actuel=&(*actuel)->next;
-     }
    }
 
    if (creation->k_headers[LINES_HEADER]) 
-       creation->nb_lines=atoi(creation->k_headers[LINES_HEADER]);
+       creation->nb_lines=fl_atoi(creation->k_headers[LINES_HEADER]);
 
   /* Recherche de reponse a */
    if (rech_pere) ajoute_reponse_a(article);
@@ -558,8 +582,9 @@ void ajoute_reponse_a(Article_List *article) {
       cree_header(article->pere,0,0,0);
    if (article->pere->headers && article->pere->headers->k_headers[FROM_HEADER]) {
        article->headers->reponse_a=safe_malloc(
-	        (strlen(article->pere->headers->k_headers[FROM_HEADER])+1)*sizeof(char));
-       strcpy(article->headers->reponse_a, 
+	        (fl_strlen(article->pere->headers->k_headers[FROM_HEADER])+1)
+		*sizeof(flrn_char));
+       fl_strcpy(article->headers->reponse_a, 
 	         article->pere->headers->k_headers[FROM_HEADER]);
    }
    article->headers->reponse_a_checked=1;
@@ -567,31 +592,51 @@ void ajoute_reponse_a(Article_List *article) {
    return;
 }
 
-char *get_one_header(Article_List *article, Newsgroup_List *newsgroup,
-                         char *name) {
+/* il est important d'utiliser get_one_header sur l'instant, ou (mieux)
+ * de le réallouer, à cause du risque de traduction "statique" */
+flrn_char *get_one_header(Article_List *article, Newsgroup_List *newsgroup,
+                         flrn_char *name, int *tofree) {
    int i,len;
-   char *buf;
+   flrn_char *buf;
    Header_List *parcours;
 
-   buf=strchr(name,':');
-   if (buf) len=buf-name; else len=strlen(name);
+   *tofree=0;
+   buf=fl_strchr(name,fl_static(':'));
+   if (buf) len=buf-name; else len=fl_strlen(name);
    for (i=0;i<NB_KNOWN_HEADERS;i++) 
        if ((len+1==Headers[i].header_len) &&
-           (strncasecmp(Headers[i].header,name,len)==0)) break;
+           (fl_strncasecmp(Headers[i].header,name,len)==0)) break;
    if ((article->headers==NULL) || 
        ((i<NB_KNOWN_HEADERS) && (article->headers->k_headers_checked[i]==0)) ||
        ((i>=NB_KNOWN_HEADERS) && (Last_head_cmd.Article_vu!=article))) {
        if (cree_header(article,0,(i==NB_KNOWN_HEADERS),
-               newsgroup==Newsgroup_courant ? 0 : 1)==NULL) return "";
+               newsgroup==Newsgroup_courant ? 0 : 1)==NULL) 
+	   return fl_static("");
    }
-   if (i<NB_KNOWN_HEADERS) return (article->headers->k_headers[i] ? article->headers->k_headers[i] : "");
+   if (i<NB_DECODED_HEADERS) {
+       if (article->headers->k_headers[i]==NULL) return fl_static("");
+       else return article->headers->k_headers[i];
+   }
+   if (i<NB_KNOWN_HEADERS) 
+   {
+       flrn_char *resstr;
+       if (article->headers->k_raw_headers[i-NB_DECODED_HEADERS]==NULL)
+	   return fl_static("");
+       *tofree=0;
+       resstr=fl_dynamic_tran(article->headers->k_raw_headers[i-NB_DECODED_HEADERS],tofree);
+       return resstr;
+   }
    parcours=Last_head_cmd.headers;
    while (parcours) {
-      if ((strncasecmp(parcours->header,name,len)==0) &&
-          ((parcours->header)[len]==':')) return parcours->header+len+2;
+      if ((fl_strncasecmp(parcours->header_head,name,len)==0) &&
+          ((parcours->header_head)[len]==':')) 
+      {
+	  if (parcours->header_body==NULL) return fl_static("");
+	  return parcours->header_body;
+      }
       parcours=parcours->next;
    }
-   return "";
+   return fl_static("");
 }
           
 
@@ -642,7 +687,7 @@ Article_List *ajoute_message (char *msgid, int *should_retry) {
 
   /* j'espere que stat va marcher */
    *should_retry=0;
-   buf=strchr(msgid,'>');
+   buf=strchr(msgid,fl_static('>'));
    if (buf) *(++buf)='\0'; else return NULL;
    res=write_command(CMD_STAT, 1, &msgid);
    if (res<1) return NULL;
@@ -674,7 +719,7 @@ Article_List *ajoute_message (char *msgid, int *should_retry) {
       if (creation->headers->k_headers[XREF_HEADER]!=NULL) {
           if ((buf=strstr(creation->headers->k_headers[XREF_HEADER],
 	        Newsgroup_courant->name))) {
-	      buf=strchr(buf,':');
+	      buf=strchr(buf,fl_static(':'));
 	      if (buf) creation->numero=strtol(buf+1, NULL, 10);
 	  }
       }
@@ -1231,7 +1276,7 @@ void recherche_article_par_msgid(Article_List **larticle,
 /* retour : 1 si oui, 0 si non, -1 si bug */
 int Est_proprietaire(Article_List *article) {
 #ifndef MODE_EXPERT
-  char *la_chaine, *ladresse, *buf;
+  flrn_char *la_chaine, *ladresse, *buf;
    
   if (!article->headers) {
      cree_header(article,0,0,0);
@@ -1243,27 +1288,27 @@ int Est_proprietaire(Article_List *article) {
       la_chaine=article->headers->k_headers[FROM_HEADER];
       if (!la_chaine) return -1;
       if ((Options.alternate) 
-	       && (regcomp(&reg, Options.alternate, REG_EXTENDED)==0)) {
+	       && (fl_regcomp(&reg, Options.alternate, REG_EXTENDED)==0)) {
          int ret;
-	 ret = regexec(&reg, la_chaine, 0, NULL, 0);
-	 regfree(&reg);
+	 ret = fl_regexec(&reg, la_chaine, 0, NULL, 0);
+	 fl_regfree(&reg);
 	 if (ret==0) return 1;
       }
   }
 #ifndef DOMAIN
   /* On veut une adresse EXACTE */
-  ladresse=safe_malloc(257+strlen(flrn_user->pw_name));
+  ladresse=safe_malloc((257+strlen(flrn_user->pw_name))*sizeof(flrn_char));
   Get_user_address(ladresse);
-  buf=strstr(la_chaine,ladresse);
+  buf=fl_strstr(la_chaine,ladresse);
   if (buf==NULL) {
     free(ladresse);
     return 0;
   }
-  if ((buf!=la_chaine) && (isalnum(*(buf-1)))) {
+  if ((buf!=la_chaine) && (fl_isalnum(*(buf-1)))) {
     free(ladresse);
     return 0;
   }
-  if (isalnum(*(buf+strlen(ladresse)))) {
+  if (fl_isalnum(*(buf+strlen(ladresse)))) {
     free(ladresse);
     return 0;
   }
@@ -1271,14 +1316,14 @@ int Est_proprietaire(Article_List *article) {
 #else
   ladresse=NULL;
   /* on veut un login plus un nom de domaine */
-  buf=strstr(la_chaine,flrn_user->pw_name);
+  buf=fl_strstr(la_chaine,fl_static_tran(flrn_user->pw_name));
   if (buf==NULL) return 0;
-  if ((buf!=la_chaine) && (isalnum((int) *(buf-1)))) return 0;
-  if (isalnum((int) *(buf+strlen(flrn_user->pw_name)))) return 0;
-  buf=strstr(la_chaine,DOMAIN);
+  if ((buf!=la_chaine) && (fl_isalnum(*(buf-1)))) return 0;
+  if (fl_isalnum((buf+strlen(flrn_user->pw_name)))) return 0;
+  buf=fl_strstr(la_chaine,fl_static_tran(DOMAIN));
   if (buf==NULL) return 0;
-  if ((*(buf-1))!='.') return 0;
-  if (isalnum((int) *(buf+strlen(DOMAIN)))) return 0;
+  if ((*(buf-1))!=fl_static('.')) return 0;
+  if (fl_isalnum(*(buf+strlen(DOMAIN)))) return 0;
 #endif
 #endif
   return 1; /* C'est bon */

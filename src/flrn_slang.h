@@ -14,6 +14,35 @@
 
 #define FLRN_SLANG_H
 
+#include <slang.h>
+
+typedef SLsmg_Char_Type Colored_Char_Type;
+
+/* Gestion des scrolls */
+typedef struct _Line_Elem_Type
+{
+    struct _Line_Elem_Type *next;
+    int col;
+    Colored_Char_Type *data;
+    Colored_Char_Type *data_save;
+    flrn_char *data_base;
+    size_t data_len;
+    size_t base_len;
+    size_t data_mlen;
+    size_t base_mlen;
+} Line_Elem_Type;
+
+typedef struct _File_Line_Type
+{
+      struct _File_Line_Type *next;
+      struct _File_Line_Type *prev;
+      Line_Elem_Type *line;
+}
+File_Line_Type;
+
+extern File_Line_Type *Text_scroll;
+
+
 /* Je recode les touches flèches */
 #define FL_KEY_UP 	0x101
 #define FL_KEY_DOWN 	0x102
@@ -33,6 +62,7 @@
 /* Les fonctions */
 
 #include "flrn_glob.h"
+#include "enc/enc_base.h"
 
 extern void Screen_suspend(void);
 extern void Screen_resume(void);
@@ -65,24 +95,37 @@ extern int Keyboard_getkey(void);
 extern void Reset_keyboard(void);
 extern void free_text_scroll(void);
 extern void Init_Scroll_window(int /*num*/, int /*beg*/, int /*nrw*/);
-extern File_Line_Type *Ajoute_line(char * /*buf*/);
-extern File_Line_Type *Change_line(int, char * /*buf*/);
-extern File_Line_Type *Ajoute_form_Ligne(char * /*buf*/, int /*field*/);
-extern File_Line_Type *Ajoute_color_Line(unsigned short *, int, int);
-extern File_Line_Type *Rajoute_color_Line(unsigned short *, int, int, int);
-extern char *Read_Line(char * /*out*/, File_Line_Type * /*line*/);
+extern File_Line_Type *Ajoute_line(flrn_char *, int, int);
+extern File_Line_Type *Ajoute_formated_line (flrn_char *, char *,
+	size_t, size_t, int, int, int, int, File_Line_Type *);
+extern File_Line_Type *Change_line(File_Line_Type *,
+	int,flrn_char *,Colored_Char_Type *, size_t);
+extern File_Line_Type *Ajoute_color_Line(Colored_Char_Type *, flrn_char *,
+	           size_t,size_t,size_t,size_t,int);
+extern File_Line_Type *Rajoute_color_Line(Colored_Char_Type *, flrn_char *,
+	                        int, size_t, size_t, int);
+/* extern char *Read_Line(char * , File_Line_Type * ); */
 extern int New_regexp_scroll (char *);
 extern File_Line_Type *Search_in_Lines (File_Line_Type *);
-extern void Retire_line(File_Line_Type * /*line*/);
+extern void Retire_line(File_Line_Type *);
+extern void Swap_lines(File_Line_Type *, File_Line_Type *);
 extern int Do_Scroll_Window(int /*n*/, int /*ob_update*/);
 extern int Do_Search(int,int *,int);
 extern int Number_current_line_scroll(void);
-extern void Screen_write_color_chars(unsigned short * /*s*/,unsigned int /*n*/);
-extern int parse_key_name(char *);
-extern const char *get_name_char(int,int);
+extern void Screen_write_color_chars(Colored_Char_Type * /*s*/,
+	                                    unsigned int /*n*/);
+extern int parse_key_name(flrn_char *);
+extern const flrn_char *get_name_char(int,int);
 extern void Screen_beep(void);
 extern void Screen_set_screen_start(int * /*r*/, int * /*c*/);
 extern int Parcours_du_menu(int);
 extern void set_Display_Eight_Bit (int);
+
+extern Colored_Char_Type create_Colored_Char_Type (const char **, int);
+extern size_t Transpose_Colored_String (Colored_Char_Type **,
+	char *, int, size_t);
+static inline Colored_Char_Type build_Colored_Ascii (char c, int col) {
+    return SLSMG_BUILD_CHAR(c,col);
+}
 
 #endif

@@ -16,6 +16,7 @@
 #include <pwd.h>
 
 #include "flrn_config.h"
+#include "enc/enc_base.h"
 
 #ifdef CHECK_MAIL
 extern char *mailbox;
@@ -49,24 +50,11 @@ extern int Screen_Rows, Screen_Cols, Screen_Rows2; /* Taille de l'écran */
 extern int Screen_Tab_Width;		/* Taille du tab (8) */
 extern int num_help_line;
 
-/* Gestion des scrolls */
-typedef struct _File_Line_Type
-{
-   struct _File_Line_Type *next;
-   struct _File_Line_Type *prev;
-   unsigned short *data;                       
-   unsigned short *data_save;
-   unsigned long data_len;
-}
-File_Line_Type;
-
-extern File_Line_Type *Text_scroll;
-
 extern int overview_usable;
 
 /* pour toute recherche : pager, menu */
 
 #define SIZE_PATTERN_SEARCH 80
-extern char pattern_search[SIZE_PATTERN_SEARCH];
+extern flrn_char pattern_search[SIZE_PATTERN_SEARCH];
 
 #endif

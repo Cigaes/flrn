@@ -122,6 +122,24 @@ void *__safe_strdup(const char *s, char *f, char *fi, int l) {
 }
 
 #ifndef DEBUG_MALLOC
+void *safe_flstrdup(const flrn_char *s) {
+#else
+void *__safe_flstrdup(const flrn_char *s, char *f, char *fi, int l) {
+#endif
+   char *res;
+#ifdef DEBUG_MALLOC
+   { char blah[1024]="*safe_flstrdup* ";
+     strcat(blah,f);
+     res=__safe_malloc((strlen(s)+1)*sizeof(flrn_char),blah,fi,l);
+   }
+#else
+   res=safe_malloc((strlen(s)+1)*sizeof(flrn_char));
+#endif
+   fl_strcpy(res,s);
+   return res;
+}
+
+#ifndef DEBUG_MALLOC
 void *safe_strappend(char *s, const char *a) {
 #else
 void *__safe_strappend(char *s,const char *a, char *f, char *fi, int l) {

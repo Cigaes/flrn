@@ -14,20 +14,29 @@
 #define FLRN_TAGS_H
 
 #include "art_group.h"
+#include "tty_keyboard.h"
 
 typedef struct {
   long article_deb_key;
   Article_List *article;
   long numero;
-  char *newsgroup_name; /*[MAX_NEWSGROUP_LEN + 1];*/
+  flrn_char *newsgroup_name; /*[MAX_NEWSGROUP_LEN + 1];*/
 } Flrn_Tag;
 
-#define NUM_SPECIAL_TAGS 256
-#define MAX_TAGS 256+NUM_SPECIAL_TAGS
+typedef struct flrn_special_tag {
+  struct key_entry key;
+  Flrn_Tag tag;
+  struct flrn_special_tag *next;
+} Flrn_Special_Tag;
+
+#define MAX_TAGS 256
 
 extern Flrn_Tag tags[MAX_TAGS];
 extern int max_tags_ptr,tags_ptr;
+extern Flrn_Special_Tag *special_tags;
 
+Flrn_Tag *add_special_tags(struct key_entry *, Flrn_Tag *);
+Flrn_Tag *get_special_tags(struct key_entry *);
 extern void save_history(void);
 extern void load_history(void);
 

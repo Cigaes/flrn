@@ -23,31 +23,41 @@
 
 static UNUSED char rcsid[]="$Id$";
 
+/* TODO : à revoir pour cause des entrées */
 static char hl_chars[]="0123456789mq";
-static char hl_mesgs[]="Aide de flrn, à vous [0-9qm] :";
+static flrn_char hl_mesgs[]=fl_static("Aide de flrn, à vous [0-9qm] :");
 
 void Aide () {
    FILE *file;
-   char key='m';
+   int key=(int) 'm';
+   struct key_entry ke;
 
-   while (key!='q') {
+   ke.entry=ENTRY_ERROR_KEY;
+   while (key!=(int)'q') {
       file=open_flhelpfile(key);
-      key='\0';
+      key=0;
       if (file==NULL) { 
          num_help_line=16;
-         Aff_error("Erreur : ne trouve pas le fichier d'aide cherché."); 
-	 if (key=='m') return; 
+	 /* TODO : français */
+         Aff_error(
+	   fl_static("Erreur : ne trouve pas le fichier d'aide cherchÃ©.")); 
+	 if (key==(int)'m') { Free_key_entry(&ke); return; }
       } else {
-         key=Aff_file(file,hl_chars,hl_mesgs);
+         Aff_file(file,hl_chars,hl_mesgs,&ke);
+	 if (ke.entry!=ENTRY_SLANG_KEY) key=-1;
+	    else key=ke.value.slang_key;
          fclose(file);
          num_help_line=16;
          Aff_help_line(Screen_Rows-1);
       }
       if (key==0) Aff_fin(hl_mesgs);
       while ((key==0) || (!strchr(hl_chars,key))) {
-         key=(char)Attend_touche();
-	 if (KeyBoard_Quit) key='q';
-	 if (key=='h') key='m';
+         Attend_touche(&ke);
+	 if (ke.entry!=ENTRY_SLANG_KEY) key=-1;
+	      else key=ke.value.slang_key;
+	 if (KeyBoard_Quit) key=(int)'q';
+	 if (key==(int)'h') key=(int)'m';
       } 
    }
+   Free_key_entry(&ke);
 }

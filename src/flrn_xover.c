@@ -21,6 +21,7 @@
 #include "flrn_format.h"
 #include "flrn_xover.h"
 #include "rfc2047.h"
+#include "tty_display.h"
 
 static UNUSED char rcsid[]="$Id$";
 
@@ -60,22 +61,21 @@ int get_overview_fmt() {
          discard_server();
 	 return -1;
       }
-      if (strncasecmp(tcp_line_read, "Message-Id:",11)==0)
-      {
-	   overview_list[num]=-1;
-	 /* C'est moche mais on ne s'est pas donné la peine de gérer ce cas */
-	   if (strstr(tcp_line_read,"full"))
-	     return -1;
-	   good++;
-      } else
       for (i=0; i<NB_KNOWN_HEADERS; i++)
         if (strncasecmp(tcp_line_read, Headers[i].header,
 		          Headers[i].header_len)==0) {
-	   overview_list[num]=i;
-	   if (strstr(tcp_line_read,"full"))
-	     overview_list[num]|=FULL_HEADER_OVER;
-	   if (i==REFERENCES_HEADER) good++;
-	   break;
+	   if (i>=NB_DECODED_HEADERS) good++; /* M-id ou references */
+	   if (i==NB_DECODED_HEADERS+MESSAGE_ID_HEADER) {
+	       overview_list[num]=-1;
+	       if (strstr(tcp_line_read,"full"))
+	 /* C'est moche mais on ne s'est pas donné la peine de gérer ce cas */
+		   return -1;
+	   } else {
+	       overview_list[num]=i;
+	       if (strstr(tcp_line_read,"full"))
+		   overview_list[num]|=FULL_HEADER_OVER;
+	       break;
+	   }
 	}
       num++;
       res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
@@ -110,10 +110,14 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin, 
     char *buf, *buf2;
     Article_List *creation, *article=input_article?*input_article:NULL;
     Range_List *msg_lus=Newsgroup_courant->read;
-    int i,lus_index=0;
+    int num_hdr=0,lus_index=0;
     int new_article=0; /* s'il y a du neuf, pour cree_liens */
-    int out=0;
+    int out=0, progress=0, progress_step;
+    char *hdr=NULL;
 
+    Manage_progress_bar(1);
+    progress_step=(n2-n1)/9;
+    if (progress_step==0) progress_step=1;
     *newmin=*newmax=-1;
     buf=safe_malloc(50*sizeof(char)); /* De toute façon, on devra */
     	/* gérer des lignes TRES longues cette fois :-( */
@@ -142,6 +146,10 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin, 
 	 *buf2='\0';
          creation = safe_calloc (1,sizeof(Article_List));
 	 creation->numero=strtol(buf,NULL,10);
+	 while ((creation->numero-n1)/progress_step>progress) {
+	      progress++;
+	      Manage_progress_bar(0);
+	 }
 	 creation->flag=FLAG_NEW; /* pour le kill_file */
 	 /* on le recherche */
 	 if ((article) && (article->numero > creation->numero)) {
@@ -210,14 +218,17 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin, 
 	  if (buf2) *buf2='\0';
 	  if (*buf) {
 	    if (new_article && (overview_list[num]==-1)) {
+	      hdr=NULL;
 	      /* article->msgid est == NULL ssi suite_ligne==0, non ? */
 	      article->msgid=safe_strappend(article->msgid,buf);
-	      article->headers->k_headers[MESSAGE_ID_HEADER]=article->msgid;
-	      article->headers->k_headers_checked[MESSAGE_ID_HEADER]=1;
+	      article->headers->k_raw_headers[MESSAGE_ID_HEADER]=
+		  article->msgid;
+	      article->headers->
+		  k_headers_checked[NB_DECODED_HEADERS+MESSAGE_ID_HEADER]=1;
 	    } else
 	    if (overview_list[num]>=0) {
-	      i=overview_list[num] & ~FULL_HEADER_OVER;
-	      if ((article->headers->k_headers[i]==NULL) &&
+	      num_hdr=overview_list[num] & ~FULL_HEADER_OVER;
+	      if ((hdr==NULL) &&
 		  (overview_list[num] & FULL_HEADER_OVER)) {
 		buf=strchr(buf,':');
 		if (buf) {
@@ -226,11 +237,10 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin, 
 		}
               } 
 	      if ((buf) && (buf !=buf2)) {
-		article->headers->k_headers[i]=
-		  safe_strappend(article->headers->k_headers[i],buf);
+		hdr=safe_strappend(hdr,buf);
 	      }
 	      /* ca peut être trop tot, mais c'est pas grave */
-	      article->headers->k_headers_checked[i]=1;
+	      article->headers->k_headers_checked[num_hdr]=1;
 	    }
 	  } else /* faut mettre a jour checked pour des headers vides */
 	    if (overview_list[num]>=0) {
@@ -239,6 +249,23 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin, 
 	    }
 	  if (buf2) {
 	    buf=buf2+1;
+	    if ((overview_list[num]>=0) && (hdr)) {
+		  if (num_hdr>=NB_DECODED_HEADERS) {
+		      article->headers->k_raw_headers[num_hdr-
+			  NB_DECODED_HEADERS]= hdr;
+		  } else {
+		      size_t ll = 3*strlen(hdr)+3;
+		      article->headers->k_headers[num_hdr]=
+			  safe_calloc(ll, sizeof(flrn_char));
+		      ll=rfc2047_decode(article->headers->k_headers[num_hdr],
+			      hdr, ll, 
+			      (num_hdr<NB_UTF8_HEADERS ? 2 : 0));
+		      article->headers->k_headers[num_hdr]=
+			  safe_realloc(article->headers->k_headers[num_hdr],
+				  (1+ll)*sizeof(flrn_char));
+		  }
+		  hdr=NULL;
+	    }
 	    if (*buf=='\n') /* finissons-en */ {
 	       out=1; suite_ligne=0;
 	    } else {
@@ -257,13 +284,6 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin, 
 	  }
        }
        if (!suite_ligne) {
-	 /* On décode le header subject */
-	 /* C'est un peu limité, mais bon, faudra voir ça avec Jo */
-	 /* On parse la date aussi */
-	 if (article->headers->k_headers[SUBJECT_HEADER])
-	   rfc2047_decode(article->headers->k_headers[SUBJECT_HEADER],
-	       article->headers->k_headers[SUBJECT_HEADER],
-	       strlen(article->headers->k_headers[SUBJECT_HEADER]));
 	 if (article->headers->k_headers[DATE_HEADER])
 	    article->headers->date_gmt=
 	      parse_date(article->headers->k_headers[DATE_HEADER]);
@@ -290,13 +310,14 @@ int cree_liste_xover(int n1, int n2, Article_List **input_article, int *newmin, 
 
 
 int va_dans_groupe() {
-   int res;
+   int res,rc;
    char *buf;
 
    if (Newsgroup_courant==NULL) return 0;
    /* On change le newsgroup courant pour le serveur */
-   buf=Newsgroup_courant->name;
+   rc=conversion_to_utf8(Newsgroup_courant->name,&buf,0,(size_t)(-1));
    res=write_command(CMD_GROUP, 1, &buf);
+   if (rc==0) free(buf);
    if (res<0) return -1;
    return 0;
 }
@@ -310,7 +331,11 @@ int cree_liste_noxover(int min, int max, Article_List *start_article, int *newmi
    Article_List *creation,*article=start_article;
    Range_List *msg_lus=Newsgroup_courant->read;
    int lus_index=0;
+   int progress=0, progress_step;
    
+   Manage_progress_bar(1);
+   progress_step=(max-min)/4;
+   if (progress_step==0) progress_step=1;
    *newmin=min;
    *newmax=max;
    /* Envoie de la commande XHDR
@@ -343,6 +368,10 @@ int cree_liste_noxover(int min, int max, Article_List *start_article, int *newmi
 	 continue;
       }
 
+      while ((creation->numero-min)/progress_step>progress) {
+	      progress++;
+	      Manage_progress_bar(0);
+      }
 
       creation->flag = FLAG_NEW;
       /* on regarde si le message est lu */
@@ -373,6 +402,8 @@ int cree_liste_noxover(int min, int max, Article_List *start_article, int *newmi
       						      /* quand même buggué...*/
    }
 
+   Manage_progress_bar(0);
+   progress=0;
    /* Recherche des parents */
    sprintf(buf, "References %d-%d", min, max);
    res=write_command(CMD_XHDR, 1, &buf);
@@ -393,14 +424,20 @@ int cree_liste_noxover(int min, int max, Article_List *start_article, int *newmi
     /* Si article=NULL, on ignore ce qu'il y a encore a lire */
 	if (!article) { discard_server(); break; }
       }
+      while ((article->numero-min)/progress_step>progress) {
+	      progress++;
+	      Manage_progress_bar(0);
+      }
       if (code == article->numero) {
 	/* on construit le champ References */
 	article->headers=new_header();
-	article->headers->k_headers[MESSAGE_ID_HEADER]=article->msgid;
-	article->headers->k_headers_checked[MESSAGE_ID_HEADER]=1;
-	article->headers->k_headers_checked[REFERENCES_HEADER] = 1;
+	article->headers->k_raw_headers[MESSAGE_ID_HEADER]=article->msgid;
+	article->headers->k_headers_checked
+	    [MESSAGE_ID_HEADER+NB_DECODED_HEADERS]=1;
+	article->headers->k_headers_checked
+	    [REFERENCES_HEADER+NB_DECODED_HEADERS] = 1;
 	if ((buf2 = strchr(buf2,'<')))
-	  article->headers->k_headers[REFERENCES_HEADER] =
+	  article->headers->k_raw_headers[REFERENCES_HEADER] =
 	      safe_strdup(buf2);
       }
       res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
@@ -569,46 +606,75 @@ int launch_xhdr(int min, int max, char *header_name) {
 
 /* return the number of the article obtained */
 /* -1 :erreur   -2 : the end */
-int get_xhdr_line(int num, char **ligne, int num_hdr, Article_List *art) {
-   int res, number;
+int get_xhdr_line(int num, flrn_char **flligne, int *tofree,
+	int num_hdr, Article_List *art) {
+   int res, number,rc;
    Article_List *artbis=art;
-   *ligne=NULL;
+   char *ligne;
+   *tofree=0;
+   ligne=NULL;
    while (1) {
       res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
       if (res<2) return -1;
       if (res<4) return -2;
       tcp_line_read[res-2]='\0';
-      number=strtol(tcp_line_read,ligne,10);
-      if (*ligne) while (**ligne==' ') (*ligne)++;
-      if ((*ligne) && (strcmp(*ligne,"(none)")==0)) *ligne="";
+      number=strtol(tcp_line_read,&ligne,10);
+      if (ligne) while (*ligne==' ') ligne++;
+      if (ligne && (strcmp(ligne,"(none)")==0)) ligne="";
       if (number<num) continue;
       if (num_hdr!=-1) 
           while ((artbis) && (artbis->numero>number)) artbis=artbis->next;
       if ((artbis) && (number==artbis->numero) && (num_hdr!=-1)) {
          if (artbis->headers==NULL) {
 	   artbis->headers=new_header();
-	   artbis->headers->k_headers[MESSAGE_ID_HEADER]=artbis->msgid;
-	   artbis->headers->k_headers_checked[MESSAGE_ID_HEADER]=1;
+	   artbis->headers->k_raw_headers[MESSAGE_ID_HEADER]=artbis->msgid;
+	   artbis->headers->k_headers_checked
+	       [MESSAGE_ID_HEADER+NB_DECODED_HEADERS]=1;
 	 }
 	 if (artbis->headers->k_headers_checked[num_hdr]==1) {
-	    *ligne=artbis->headers->k_headers[num_hdr];
-	    return number;
+	     if (num_hdr<NB_DECODED_HEADERS) {
+	         *flligne=artbis->headers->k_headers[num_hdr];
+	     } else {
+		 rc=conversion_from_utf8(
+			 artbis->headers->k_raw_headers
+			                  [num_hdr-NB_DECODED_HEADERS],
+			 flligne, 0,(size_t)(-1));
+		 *tofree=(rc==0);
+	     }
+	     return number;
 	 } else {
 	    artbis->headers->k_headers_checked[num_hdr]=1;
-	    artbis->headers->k_headers[num_hdr]=safe_strdup(*ligne);
-	    if (num_hdr==SUBJECT_HEADER) {
-	        rfc2047_decode(artbis->headers->k_headers[SUBJECT_HEADER],
-		   artbis->headers->k_headers[SUBJECT_HEADER],
-		   strlen(artbis->headers->k_headers[SUBJECT_HEADER]));
-		*ligne=artbis->headers->k_headers[SUBJECT_HEADER];
+	    if (num_hdr<NB_DECODED_HEADERS) {
+		size_t ll=3*strlen(ligne)+3;
+		artbis->headers->k_headers[num_hdr]=
+		    safe_calloc(ll,sizeof(flrn_char));
+		ll=rfc2047_decode(artbis->headers->k_headers[num_hdr],
+			ligne, ll, (num_hdr<NB_UTF8_HEADERS) ? 2 : 0);
+		artbis->headers->k_headers[num_hdr]=safe_realloc(
+			artbis->headers->k_headers[num_hdr],
+			(1+ll)*sizeof(flrn_char));
+	        if (num_hdr==DATE_HEADER) {
+	           artbis->headers->date_gmt=
+		      parse_date(artbis->headers->k_headers[DATE_HEADER]);
+	        }
+		*flligne=artbis->headers->k_headers[num_hdr];
+	    } else {
+		artbis->headers->k_raw_headers
+		    [num_hdr-NB_DECODED_HEADERS]=safe_strdup(ligne);
+		rc=conversion_from_utf8(
+			ligne,flligne,0,(size_t)(-1));
+		*tofree=(rc==0);
 	    }
-	    if (num_hdr==DATE_HEADER) {
-	        artbis->headers->date_gmt=
-		   parse_date(artbis->headers->k_headers[DATE_HEADER]);
-	    }
+	    return number;
 	 }
+      } 
+      if (number>=num) {
+	  size_t ll=3*strlen(ligne)+3;
+	  *flligne=safe_calloc(ll,sizeof(flrn_char));
+	  ll=rfc2047_decode(*flligne,ligne,ll,0);
+	  *tofree=1;
+	  return number;
       }
-      if (number>=num) return number;
    }
    /* unreachable */
 }

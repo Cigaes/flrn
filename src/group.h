@@ -45,10 +45,14 @@ typedef struct Group_List
 #define GROUP_READONLY_FLAG		0x008
 #define GROUP_MODERATED_FLAG            0x010
 #define GROUP_MODE_TESTED		0x020
+/* ce mode pourrait servir à gérer des groupes partiellement construits, *
+ * dans le cas de l'option max_group_size */
+#define GROUP_NOT_EXHAUSTED             0x040
 
-   char name[MAX_NEWSGROUP_LEN + 1];
+   flrn_char name[MAX_NEWSGROUP_LEN + 1];
 
-   char *description;   /* Description du newsgroup (quand c'est defini :( ) */
+   flrn_char *description;   
+       /* Description du newsgroup (quand c'est defini :( ) */
    int min;             /* Le numero de l'article minimum disponible */
    int max;		/* Le max du newsgroup */
    int not_read, virtual_in_not_read, important;	/* nombre d'articles à lire... */
@@ -71,30 +75,31 @@ extern time_t Last_check;
 extern void init_groups(void);
 extern void free_groups(int /*save_flnewsrc*/);
 extern void new_groups(int /*opt_c*/);
-extern Newsgroup_List *cherche_newsgroup(char * /*name*/, int /*exact*/, int);
-extern Newsgroup_List *cherche_newsgroup_re (char * /*name*/, 
+extern Newsgroup_List *cherche_newsgroup(flrn_char * /*name*/, int /*exact*/,
+	int);
+extern Newsgroup_List *cherche_newsgroup_re (flrn_char * /*name*/, 
     regex_t /*reg*/, int );
-extern Liste_Menu *menu_newsgroup_re (char * /*name*/, regex_t /*reg*/,
+extern Liste_Menu *menu_newsgroup_re (flrn_char * /*name*/, regex_t /*reg*/,
     int /*avec_reg*/);
 extern void zap_newsgroup(Newsgroup_List * /*group*/);
 extern int NoArt_non_lus(Newsgroup_List * /*group*/, int);
 extern int cherche_newnews(void);
 extern void add_read_article(Newsgroup_List * /*group*/, int /*numero*/);
-extern char *truncate_group (char *, int);
+extern flrn_char *truncate_group (flrn_char *, int);
 extern void test_readonly(Newsgroup_List *);
 extern void zap_group_non_courant (Newsgroup_List *);
-extern void Ligne_carac_du_groupe (void *, char *, int );
+extern int Ligne_carac_du_groupe (void *, flrn_char **);
 extern void get_group_description(Newsgroup_List *);
-extern int calcul_order(char *, void *);
-extern int calcul_order_re(char *, void *);
+extern int calcul_order(flrn_char *, void *);
+extern int calcul_order_re(flrn_char *, void *);
 
-extern int cherche_newsgroups_base (char *, regex_t, int, 
-	         int (void *, int, int, void **),
-		 int (char *, void *),
+extern int cherche_newsgroups_base (flrn_char *, regex_t, int, 
+	         int (char *, int, int, void **),
+		 int (flrn_char *, void *),
 		 void **);
-extern int cherche_newsgroups_in_list (char *, regex_t, int,
-	         int (void *, int, int, void **),
-		 int (char *, void *),
+extern int cherche_newsgroups_in_list (flrn_char *, regex_t, int,
+	         int (Newsgroup_List *, int, int, void **),
+		 int (flrn_char *, void *),
 		 void **);
 
 #endif

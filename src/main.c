@@ -34,9 +34,7 @@
 #include "flrn_pager.h"
 #include "flrn_filter.h"
 #include "flrn_color.h"
-#ifdef WITH_CHARACTER_SETS
-#include "rfc2045.h"
-#endif
+#include "enc/enc_strings.h"
 /* les langages. Les #iddef sont directement dans les fichiers inclus */
 #include "slang_flrn.h"
 
@@ -47,7 +45,7 @@ int debug;
 int stupid_terminal=0;
 struct passwd *flrn_user;
 char *mailbox;
-char *name_program;
+flrn_char *name_program;
 
 void Usage(char *argv[])
 {
@@ -93,15 +91,17 @@ void save_and_free_all(int res) {
 
 int main(int argc, char *argv[])
 {
-  int code, res=0, res_opt_c=0;
+  int code, res, res_opt_c=0, rc;
   int opt_c=0;
   int i;
-  char *newsgroup=NULL, *serveur_impose=NULL, *buf;
+  flrn_char *newsgroup=NULL;
+  char *newsgroup_opt=NULL,*serveur_impose=NULL, *buf;
+  char *tmp_name_program;
 
   debug=0; with_direc=-1;
-  name_program=strrchr(argv[0],'/');
-  if (name_program) name_program++; else
-  name_program=argv[0];
+  tmp_name_program=strrchr(argv[0],'/');
+  if (tmp_name_program) tmp_name_program++; else
+  tmp_name_program=argv[0];
   /* J'aime pas les sigpipe */
   {
     struct sigaction ign;
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
     {debug=1; continue;}
     if ((strncmp(argv[i],"-n",2)==0)||(strcmp(argv[i],"--name")==0)) {
       if ((i+1!=argc) && (*(argv[i+1])!='-'))
-        name_program=argv[++i];  
+        tmp_name_program=argv[++i];  
       continue;
     }
     if ((strncmp(argv[i],"-v",2)==0)||(strcmp(argv[i],"--version")==0))
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
         serveur_impose=argv[++i];  
       continue;
     }
-    if (argv[i][0]!='-') { newsgroup=argv[i]; continue; }
+    if (argv[i][0]!='-') { newsgroup_opt=argv[i]; continue; }
     printf("Option non reconnue :%s\n",argv[i]);
     Usage(argv);
     exit(1);
@@ -152,14 +152,17 @@ int main(int argc, char *argv[])
      strcat(mailbox,flrn_user->pw_gecos);
   }
 #endif
-#ifdef WITH_CHARACTER_SETS
   init_charsets ();
-#endif
+  init_conv_base ();
+  res=conversion_from_terminal(tmp_name_program, &name_program,0,(size_t)(-1));
+  if (res>0) name_program=safe_flstrdup(name_program);
+  res=0;
 #ifdef USE_SLANG_LANGUAGE
   if (flrn_init_SLang()<0) {
      fprintf(stdout, "Erreur dans l'initialisation du langage SLang.\nImpossible d'utiliser le langage.\n");
   }
 #endif
+  init_assoc_key_cmd();
   init_Flcmd_rev();
   init_Flcmd_pager_rev();
   init_Flcmd_menu_rev();
@@ -170,7 +173,7 @@ int main(int argc, char *argv[])
      Options.port=DEFAULT_NNTP_PORT;
      if (buf) {
         *(buf++)='\0';
-	Options.port=atoi(buf);
+	Options.port=(int)strtol(buf,NULL,10);
      }
      fprintf(stdout,"Serveur : %s    port : %i\n",Options.serveur_name,
         Options.port);
@@ -182,6 +185,7 @@ int main(int argc, char *argv[])
   if ((code!=200) && (code!=201)) {
      fprintf(stderr, "La connexion au serveur a échoué...\n");
      if (code>500) fprintf(stderr, "Le serveur refuse la connexion.\n");
+     free(name_program);
      return 1;
   }
   adjust_time();
@@ -189,21 +193,26 @@ int main(int argc, char *argv[])
   if (code==-2) {
      fprintf(stderr, "Il semble que le serveur cherche une authentification pour continuer...\n");
      quit_server();
+     free(name_program);
      return 1;
   }
 
   init_groups(); /* on y voit un exit */
   		 /* donc il faut le faire avant l'init de l'ecran */
-  if ((opt_c==0) || (newsgroup==NULL)) new_groups(opt_c); 
+  if ((opt_c==0) || (newsgroup_opt==NULL)) new_groups(opt_c); 
   if (opt_c==0) {
      load_history();
      res=Init_screen(stupid_terminal);
-     if (res==0) return 1;
+     if (res==0) { free(name_program); return 1; }
      res=Init_keyboard(1);
-     if (res<0) return 1;
+     if (res<0) { free(name_program); return 1; }
   }
 
+  if (newsgroup_opt) 
+      rc=conversion_from_terminal(newsgroup_opt,&newsgroup,0,(size_t)(-1));
+  else rc=1;
   if (!opt_c) res=loop(newsgroup); else res_opt_c=aff_opt_c(newsgroup,opt_c==1);
+  if (rc==0) free(newsgroup);
   if (!opt_c) {
     Reset_screen();
     Reset_keyboard();
@@ -213,5 +222,6 @@ int main(int argc, char *argv[])
   /* On fait la fin séparément */
   save_and_free_all(res);
   if (!opt_c) fprintf(stdout,"That's all folks !\n");
+  free(name_program);
   return 0;
 }

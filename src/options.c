@@ -30,43 +30,41 @@
 #include "options.h"
 #include "site_config.h"
 #include "slang_flrn.h"
-
-#ifdef WITH_CHARACTER_SETS
-#include "rfc2045.h"
-#endif
+#include "tty_keyboard.h"
+#include "enc/enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 
-static char *delim = "=: \t\n";
+static flrn_char *delim = fl_static("=: \t\n");
 
 Known_Headers unknown_Headers[MAX_HEADER_LIST];
 
 static void free_string_list_type (string_list_type *s_l_t);
 static int parse_option_file (char *name, int flags, int flag_option);
 
-static char *option_ligne=NULL;
+static flrn_char *option_ligne=NULL;
 static int deep_inclusion=0;
 
-int var_comp(char *var, int len, Liste_Chaine *debut)
+int var_comp(flrn_char *var, size_t len, Liste_Chaine *debut)
 {
   Liste_Chaine *courant=debut, *nouveau;
-  char *buf=var;
+  flrn_char *buf=var;
   int used;
   char *guess=NULL;
   int prefix_len=0;
   int match=0;
   int i,j;
-  if (strncmp(buf,"no",2)==0) {
+  if (fl_strncmp(buf,"no",2)==0) {
      buf +=2;
-     strcat(debut->une_chaine,"no");
+     fl_strcat(debut->une_chaine,fl_static("no"));
   }
-  used=strlen(buf);
+  used=fl_strlen(buf);
   if (used==0) return 0;
   for (i=0; i< NUM_OPTIONS; i++)
-    if(strncmp(buf, All_options[i].name,used)==0)
+    if(fl_strncmp(buf, fl_static_tran(All_options[i].name),used)==0)
       if (!All_options[i].flags.lock) {
 	if (match) {
-	  if (!prefix_len) prefix_len=strlen(guess);
+	  if (!prefix_len) prefix_len=fl_strlen(guess);
 	  for (j=0;j<prefix_len;j++)
 	    if (guess[j] != All_options[i].name[j]){
 	      prefix_len=j; break;
@@ -75,10 +73,10 @@ int var_comp(char *var, int len, Liste_Chaine *debut)
 	guess=All_options[i].name;
 	match++;
 	nouveau=safe_calloc(1,sizeof(Liste_Chaine));
-	nouveau->une_chaine=safe_malloc((len+1)*sizeof(char));
-	strcpy(nouveau->une_chaine,debut->une_chaine);
-	strcat(nouveau->une_chaine,guess);
-        strcat(nouveau->une_chaine," ");
+	nouveau->une_chaine=safe_malloc((len+1)*sizeof(flrn_char));
+	fl_strcpy(nouveau->une_chaine,debut->une_chaine);
+	fl_strcat(nouveau->une_chaine,fl_static_tran(guess));
+        fl_strcat(nouveau->une_chaine,fl_static(" "));
 	nouveau->complet=1;
 	nouveau->suivant=courant->suivant;
 	courant->suivant=nouveau;
@@ -88,30 +86,34 @@ int var_comp(char *var, int len, Liste_Chaine *debut)
     free(debut->une_chaine);
     debut->une_chaine=courant->une_chaine;
     debut->suivant=courant->suivant;
-    var[0]='\0';
+    var[0]=fl_static('\0');
     free(courant);
     return 0;
   } else if (match >1) {
     debut->complet=0;
-    used=strlen(debut->une_chaine);
-    strncat(debut->une_chaine,guess,prefix_len);
-    debut->une_chaine[used+prefix_len]='\0';
-    var[0]='\0';
+    used=fl_strlen(debut->une_chaine);
+    fl_strncat(debut->une_chaine,fl_static_tran(guess),prefix_len);
+    debut->une_chaine[used+prefix_len]=fl_static('\0');
+    var[0]=fl_static('\0');
     return -1;
   }
   debut->complet=-1;
   return -2;
 }
 
-static char *get_optcmd_name(void * ptr,int num)
+static flrn_char *get_optcmd_name(void * ptr,int num)
 {
-  return ((struct _Optcmd *)ptr)[num].name;
+    static flrn_char result[30];
+    char *bla;
+    bla=((struct _Optcmd *)ptr)[num].name;
+    strcpy(result,fl_static_tran(bla));
+    return result;
 }
 /* on fait maintenant les checks sur len...
  * on pourait ajouter pour la completude la completion apres color
  * mais ca veut dire reecrire le code qui gere ca... */
 
-int options_comp(char *str, int len, Liste_Chaine *debut)
+int options_comp(char *str, size_t len, Liste_Chaine *debut)
 {
   int res,res2,bon,i;
   Liste_Chaine *courant, *pere, *suivant;
@@ -172,46 +174,47 @@ int options_comp(char *str, int len, Liste_Chaine *debut)
   return -2;
 }
 
-static char *bindarg_names[] = {
-  "add",
-  "menu",
-  "pager",
-  "command"
+static flrn_char *bindarg_names[] = {
+  fl_static("add"),
+  fl_static("menu"),
+  fl_static("pager"),
+  fl_static("command")
 };
 
 static char *get_name_liste(void *p,int i) {
   return ((char **)p)[i];
 }
 
-int bind_comp(char *str, int len, Liste_Chaine *debut)
+int bind_comp(flrn_char *str, size_t len, Liste_Chaine *debut)
 {
   int res,res2,i,bon,offset;
-  char *suite;
+  flrn_char *suite;
   Liste_Chaine *courant, *pere, *suivant;
   int result[sizeof(bindarg_names)/sizeof(bindarg_names[0])];
   for (i=0;i<sizeof(bindarg_names)/sizeof(bindarg_names[0]);i++)
     result[i]=0;
-  if (len-strlen(debut->une_chaine)<2) return -2;
-  if ((str[1]==' ')||(str[1]=='\0')) {
-    debut->une_chaine[strlen(debut->une_chaine)+2]='\0';
-    strncat(debut->une_chaine,str,2);
-    if (str[1]==' ') return Comp_cmd_explicite(str+2,len,debut); else {
+  if (len-fl_strlen(debut->une_chaine)<2) return -2;
+  if ((str[1]==fl_static(' '))||(str[1]==fl_static('\0'))) {
+    debut->une_chaine[strlen(debut->une_chaine)+2]=fl_static('\0');
+    fl_strncat(debut->une_chaine,str,2);
+    if (str[1]==fl_static(' ')) 
+	return Comp_cmd_explicite(str+2,len,debut); else {
        debut->complet=0;
        return 0;
     }
   }
-  if (str[0]=='\\') {
-    offset=strcspn(str,delim);
+  if (str[0]==fl_static('\\')) {
+    offset=fl_strcspn(str,delim);
     if (offset< len) {
-      offset += strspn(str+offset,delim);
-      str[offset-1]='\0';
-      strcat(debut->une_chaine,str);
-      strcat(debut->une_chaine," ");
+      offset += fl_strspn(str+offset,delim);
+      str[offset-1]=fl_static('\0');
+      fl_strcat(debut->une_chaine,str);
+      fl_strcat(debut->une_chaine,fl_static(" "));
       return Comp_cmd_explicite(str+offset,len,debut);
     }
-    strcat(debut->une_chaine,str);
-    strcat(debut->une_chaine," ");
-    str[0]='\0';
+    fl_strcat(debut->une_chaine,str);
+    fl_strcat(debut->une_chaine,fl_static(" "));
+    str[0]=fl_static('\0');
     return 0;
   }
   res = Comp_generic(debut,str,len,(void *)bindarg_names,
@@ -228,7 +231,7 @@ int bind_comp(char *str, int len, Liste_Chaine *debut)
     suivant=courant->suivant;
     for (i=0;i<sizeof(bindarg_names)/sizeof(bindarg_names[0]);i++) {
        if (result[i]==0) continue;
-       suite=safe_strdup(str);
+       suite=safe_flstrdup(str);
        res2=bind_comp(suite,len,courant);
        free(suite);
        if (res2<-1) {
@@ -258,51 +261,70 @@ int bind_comp(char *str, int len, Liste_Chaine *debut)
 }
 
 /* ajout d'un header, éventuellement a unknown_header */
-int Le_header(char *buf) {
+int Le_header(flrn_char *buf) {
   int i,l;
-  char *buf2;
+  flrn_char *buf2;
 
-  if ((i=atoi(buf))>0) return i-1;
-  if (strcasecmp(buf,"others")==0) return NB_KNOWN_HEADERS;
-  buf2=strpbrk(buf,delim);
-  if (buf2==NULL) l=strlen(buf); else l=buf2-buf;
+  if ((i=fl_strtol(buf,NULL,10))>0) return i-1;
+  if (fl_strcasecmp(buf,fl_static("others"))==0) return NB_KNOWN_HEADERS;
+  buf2=fl_strpbrk(buf,delim);
+  if (buf2==NULL) l=fl_strlen(buf); else l=buf2-buf;
   for (i=0;i<NB_KNOWN_HEADERS;i++) {
-    if ((l==Headers[i].header_len-1) && (strncasecmp(buf,Headers[i].header,l)==0))
+    if ((l==Headers[i].header_len-1) && (fl_strncasecmp(buf,
+		    fl_static_tran(Headers[i].header),l)==0))
       return i;
   }
   for (i=0;i<MAX_HEADER_LIST;i++) {
-    if ((l==unknown_Headers[i].header_len-1) && (strncasecmp(buf,unknown_Headers[i].header,l)==0))
+    if ((l==unknown_Headers[i].header_len-1) && 
+	    (fl_strncasecmp(buf,
+	fl_static_tran(unknown_Headers[i].header),l)==0))
       return -i-2;
     if (unknown_Headers[i].header_len==0) break;
   }
-  if (i==MAX_HEADER_LIST) return -i-2; /* Pas grave... */
+  if (i==MAX_HEADER_LIST) return -i-2; /* Pas grave... */ /* TODO : changer */
   unknown_Headers[i].header=safe_malloc(l+2);
-  strncpy(unknown_Headers[i].header,buf,l);
+  /* unknown headers est une liste de chaînes en us-ascii... un
+   * header n'est pas censé contenir d'accents */
+  /* Note : on en tirera les conséquences quand il s'agira de les utiliser */
+  strncpy(unknown_Headers[i].header,fl_static_rev(buf),l);
   unknown_Headers[i].header[l]=':';
   unknown_Headers[i].header[l+1]='\0';
   unknown_Headers[i].header_len=l+1;
   return -i-2;
 }
 
-int opt_do_include(char *buf, int flag)
+int opt_do_include(flrn_char *buf, int flag)
 {
-  char *buf2;
+  flrn_char *buf2;
   int found;
 
   if (buf == NULL) return -1;
-  if (*buf=='"') {
+  if (*buf==fl_static('"')) {
     buf++;
-    buf2=strchr(buf,'"'); 
-    if (buf2) *buf2='\0';  /* Pour enlever le '"' en fin */
+    buf2=fl_strchr(buf,fl_static('"')); 
+    if (buf2) *buf2=fl_static('\0');  /* Pour enlever le '"' en fin */
   }
   if (*buf) {
     deep_inclusion++;
-    if (deep_inclusion<10)
-      found=parse_option_file(buf,0,flag); /* Attention, on change ici option_ligne */
+    if (deep_inclusion<10) {
+      char *traduction;
+      int resconv;
+      resconv=conversion_to_file(buf,&traduction,0,(size_t)(-1));
+      if (resconv>=0) {
+        found=parse_option_file(buf,0,flag);
+	/* Attention, on change ici option_ligne */
+	if (resconv==0) free(traduction);
+      } else found=-1;
+    }
     else found=-1;
     deep_inclusion--;
     if ((found==-1) && (!flag)) {
+      char *traduction;
+      int resconv;
+      resconv=conversion_to_terminal(buf,&traduction,0,(size_t)(-1));
       fprintf(stderr,"Erreur : include %s impossible !\n",buf);
+      if (deep_inclusion>=10) fprintf(stderr,"Trop d'inclusions imbriquées.\n");
+      if (resconv==0) free(traduction);
       sleep(1);
     }
     return found;
@@ -311,64 +333,116 @@ int opt_do_include(char *buf, int flag)
 }
 
 #ifdef USE_SLANG_LANGUAGE
-int opt_do_slang_parse(char *str, int flag)
+int opt_do_slang_parse(flrn_char *str, int flag)
 {
-   if (source_SLang_file(str)<0) {
-      if (!flag) { fprintf(stderr,"erreur du parse SLang de %s\n", str);
-                   sleep(1); }
+   char *traduction;
+   int resconv;
+   resconv=conversion_to_file(str,&traduction,0,(size_t)(-1));
+   if (source_SLang_file(traduction)<0) {
+      if (!flag) {
+        if (resconv==0) free(traduction);
+        resconv=conversion_to_terminal(str,&traduction,0,(size_t)(-1));
+        fprintf(stderr,"erreur du parse SLang de %s\n", traduction);
+        sleep(1); 
+      }
+      if (resconv==0) free(traduction);
       return -1;
    }
+   if (resconv==0) free(traduction);
    return 0;
 }
 #endif
   
+/* 0 : OK   -1 : erreur, error a libérer */
+int test_charset_modified(int i, flrn_char **error) {
+        int ret_charset=0;
+	/* cas des charsets */
+	if (All_options[i].value.string==&(Options.terminal_charset)) {
+	   ret_charset=Parse_termcharset_line(Options.terminal_charset);
+	}
+	if (All_options[i].value.string==&(Options.files_charset)) {
+	   ret_charset=Parse_filescharset_line(Options.files_charset);
+	}
+	if (All_options[i].value.string==&(Options.post_charsets)) {
+	   ret_charset=Parse_postcharsets_line(Options.post_charsets);
+	}
+	if (All_options[i].value.string==&(Options.editor_charset)) {
+	   ret_charset=Parse_editorcharset_line(Options.editor_charset);
+	}
+	if (ret_charset==-1) {
+	    flrn_char *msg=safe_malloc(/* FIXME */ 60+
+		    fl_strlen(*All_options[i].value.string));
+	    /* FIXME : francais */
+	    strcpy(msg,fl_static("Jeu de caractere non reconnu : "));
+	    strcat(msg,*All_options[i].value.string);
+	    *error=msg;
+	    return -1;
+	}
+	return 0;
+}
 
-int opt_do_set(char *str, int flag)
+int opt_do_set(flrn_char *str, int flag)
 {
   int reverse, found;
-  char *buf;
-  char *end;
-  char *end2;
+  flrn_char *buf;
+  flrn_char *end;
+  flrn_char *end2;
+  flrn_char *dummy;
   int i;
 
-  buf=strtok(str,delim);
+  buf=fl_strtok_r(str,delim,&dummy);
   if (buf==NULL) {
     if (!flag) { fprintf(stderr,"set utilisé sans argument\n");
       sleep(1);}
     return -1;
   }
-  end = strtok(NULL,"\n");
-  if (end) end += strspn(end,delim);
+  end = fl_strtok_r(NULL,fl_static("\n"),&dummy);
+  if (end) end += fl_strspn(end,delim);
 
-  if (strncmp(buf,"no",2)==0) { buf +=2; reverse=1;}
+  if (fl_strncmp(buf,fl_static("no"),2)==0) { buf +=2; reverse=1;}
     else reverse=0;
 
   for (i=0; i< NUM_OPTIONS; i++){
     found=0;
     /* on cherche le nom de la variable */
-    if ((strncmp(buf, All_options[i].name, strlen(All_options[i].name))==0)
-     && (!isalpha((int)*(buf+strlen(All_options[i].name))))) {
+    if ((fl_strncmp(buf, fl_static_tran(All_options[i].name),
+		    strlen(All_options[i].name))==0)
+     && (!fl_isalpha((int)*(buf+strlen(All_options[i].name))))) {
       if(flag && All_options[i].flags.lock) {
-	Aff_error_fin("On ne peut changer cette variable",1,-1);
+	Aff_error_fin(fl_static("On ne peut changer cette variable"),1,-1);
 	return -1;
+      }
+      if (All_options[i].flags.obsolete) {
+         if (flag) {
+	    Aff_error_fin(fl_static_tran(All_options[i].desc),1,-1);
+	    return -1;
+         }
+	 fprintf(stderr,"Option %s obsolète : %s\n",
+		 All_options[i].name,All_options[i].desc);
+	 if (All_options[i].value.integer==NULL) return -1; /* cool_arrows */
+	 sleep(1);
       }
       /* variable entiere ? */
       if ((All_options[i].type==OPT_TYPE_BOOLEAN) ||
 	  (All_options[i].type==OPT_TYPE_INTEGER)) {
 	int oldvalue=*All_options[i].value.integer;
 
-	buf=strtok(end,delim);
+	buf=fl_strtok_r(end,delim,&dummy);
 
 	if (buf) {
 	  *All_options[i].value.integer=0;
 	  if (All_options[i].type==OPT_TYPE_INTEGER)
-	    *All_options[i].value.integer=atoi(buf);
-	  else *All_options[i].value.integer=atoi(buf)?1:0;
-	  if (strncmp(buf,"on",3)==0) *All_options[i].value.integer=1;
-	  if (strncmp(buf,"yes",4)==0) *All_options[i].value.integer=1;
-	  if (strncmp(buf,"oui",4)==0) *All_options[i].value.integer=1;
+	    *All_options[i].value.integer=fl_strtol(buf,NULL,10);
+	  else *All_options[i].value.integer=fl_strtol(buf,NULL,10)?1:0;
+	  if (fl_strncmp(buf,fl_static("on"),3)==0) 
+	      *All_options[i].value.integer=1;
+	  if (fl_strncmp(buf,fl_static("yes"),4)==0)
+	      *All_options[i].value.integer=1;
+	  if (fl_strncmp(buf,fl_static("oui"),4)==0)
+	      *All_options[i].value.integer=1;
 	    /* hack, pour color !!! */
-	  if (strncmp(buf,"auto",5)==0) *All_options[i].value.integer=-1;
+	  if (fl_strncmp(buf,fl_static("auto"),5)==0)
+	      *All_options[i].value.integer=-1;
 	} else *All_options[i].value.integer=1;
 
 	if (reverse != All_options[i].flags.reverse)
@@ -378,126 +452,147 @@ int opt_do_set(char *str, int flag)
 	return 0; /* Ok, tout s'est bien passé */
       } else if (All_options[i].type==OPT_TYPE_STRING) {
 	/* pour aller apres le strtok :( */
-	if (end && (*end=='"')) {
+	if (end && (*end==fl_static('"'))) {
 	  end++;
-	  end2=strchr(end,'"'); 
-	  if (end2) *end2='\0';  /* Pour enlever le '"' en fin */
+	  end2=strchr(end,fl_static('"')); 
+	  if (end2) *end2=fl_static('\0');  /* Pour enlever le '"' en fin */
 	}
 	if (end && *end) {
 	  if (All_options[i].flags.allocated)
 	    *All_options[i].value.string=
 	      safe_realloc(*All_options[i].value.string,
-		(strlen(end)+1));
+		(fl_strlen(end)+1)*sizeof(flrn_char));
 	  else
 	    *All_options[i].value.string=
-	      safe_malloc((strlen(end)+1));
+	      safe_malloc((fl_strlen(end)+1)*sizeof(flrn_char));
 
 	  All_options[i].flags.allocated=1;
-          strcpy(*All_options[i].value.string,end);
+          fl_strcpy(*All_options[i].value.string,end);
 	} else {
 	  if (All_options[i].flags.allocated)
 	    free(*All_options[i].value.string);
 	  *All_options[i].value.string=NULL;
 	}
 	All_options[i].flags.modified=1;
-#ifdef WITH_CHARACTER_SETS
-	if (All_options[i].value.string==&(Options.character_set)) {
-	   int ret_charset;
-	   ret_charset=Parse_charset_line(Options.character_set);
-	   if (ret_charset==-1) {
-	      if (flag) Aff_error_fin ("Jeu de caractère non reconnu.",1,-1);
-	      else {
-	         fprintf(stderr,"Jeu non reconnu : %s\n",Options.character_set);
-		 sleep(1);
-	      }
-	   }
+	/* cas des charsets */
+	{
+	    flrn_char *bla;
+	    if (test_charset_modified(i,&bla)==-1) {
+	       if (flag) Aff_error_fin (bla,1,-1);
+	       else {
+		  char *trad;
+		  int rc;
+		  rc=conversion_to_terminal(bla,&trad,0,(size_t)(-1));
+	          fprintf(stderr,"Jeu de caractère non reconnu : %s\n",trad);
+		  if (rc==0) free(trad);
+	          sleep(1);
+	       }
+	       free(bla);
+	    }
 	}
-#endif
 	return 0;
       }
     }
   }
-  if(flag) Aff_error_fin ("Variable non reconnue",1,-1);
-  else { fprintf(stderr,"Variable non reconnue : %s\n",buf);
-      sleep(1);}
+  if(flag) Aff_error_fin (fl_static("Variable non reconnue"),1,-1);
+  else { char *traduction;
+         int resconv;
+	 resconv=conversion_to_terminal(buf,&traduction,0,(size_t)(-1));
+         fprintf(stderr,"Variable non reconnue : %s\n",traduction);
+	 if (resconv==0) free(traduction);
+         sleep(1);}
   return -1;
 }
 
 static int opt_aff_color_error(int res, int flag) {
   if (res <0) {
-    char *err="Echec de *color : erreur inconnue";
+      /* FIXME : français */
+    flrn_char *err=fl_static("Echec de *color : erreur inconnue");
     switch(res) {
-      case -1:  err = "Echec de *color. Pas assez de champs";
+      case -1:  err = fl_static("Echec de *color. Pas assez de champs");
 		break;
-      case -2:  err = "Echec de *color. Fields invalides";
+      case -2:  err = fl_static("Echec de *color. Fields invalides");
 		break;
-      case -3:  err = "Echec de *color. Flags invalides";
+      case -3:  err = fl_static("Echec de *color. Flags invalides");
 		break;
-      case -4:  err = "Echec de *color. Regexp invalide";
+      case -4:  err = fl_static("Echec de *color. Regexp invalide");
 		break;
-      case -5:  err = "Echec de *color. Attribut bugué";
+      case -5:  err = fl_static("Echec de *color. Attribut bugué");
 		break;
-      case -6:  err = "Echec de *color. Pas assez de sous-expressions";
+      case -6:  err = 
+		   fl_static("Echec de *color. Pas assez de sous-expressions");
 		break;
     }
     if (flag)
 	Aff_error_fin(err,1,-1);
     else {
-      fprintf(stderr,"%s: %s\n",option_ligne,err);
+      char *trad1,*trad2;
+      int resc1, resc2;
+      resc1=conversion_to_terminal(option_ligne,&trad1,0,(size_t)(-1));
+      resc2=conversion_to_terminal(err,&trad2,0,(size_t)(-1));
+      fprintf(stderr,"%s: %s\n",trad1,trad2);
+      if (resc1==0) free(trad1);
+      if (resc2==0) free(trad2);
       sleep(1);
     }
   }
   return (res==0)?0:-1;
 }
 
-int opt_do_color(char * str, int flag)
+int opt_do_color(flrn_char * str, int flag)
 {
   int res;
   res=parse_option_color(2,str);
   return opt_aff_color_error(res,flag);
 }
 
-int opt_do_mono(char * str, int flag)
+int opt_do_mono(flrn_char * str, int flag)
 {
   int res;
   res=parse_option_color(3,str);
   return opt_aff_color_error(res,flag);
 }
 
-int opt_do_regcolor(char * str, int flag)
+int opt_do_regcolor(flrn_char * str, int flag)
 {
   int res;
   res=parse_option_color(1,str);
   return opt_aff_color_error(res,flag);
 }
 
-int opt_do_my_hdr(char * str, int flag)
+int opt_do_my_hdr(flrn_char * str, int flag)
 {
-  char *buf2;
+  flrn_char *buf2;
   string_list_type *parcours, *parcours2;
   int len;
 
   if (str==NULL) return -1;
-  buf2=strchr(str,':');
-  if ((buf2==NULL) || (buf2!=strpbrk(str,delim))) {
-    char *err="Echec de my_hdr : header invalide.";
+  buf2=fl_strchr(str,fl_static(':'));
+  if ((buf2==NULL) || (buf2!=fl_strpbrk(str,delim))) {
+    char *err=fl_static("Echec de my_hdr : header invalide.");
     if (flag)
       Aff_error_fin(err,1,-1);
     else {
-      fprintf(stderr,"%s: %s\n",option_ligne,err);
+      char *trad1,*trad2;
+      int resc1, resc2;
+      resc1=conversion_to_terminal(option_ligne,&trad1,0,(size_t)(-1));
+      resc2=conversion_to_terminal(err,&trad2,0,(size_t)(-1));
+      fprintf(stderr,"%s: %s\n",trad1,trad2);
+      if (resc1==0) free(trad1);
+      if (resc2==0) free(trad2);
       sleep(1);
     }
     return -1;
   }
 
   len=(++buf2)-str;
-  buf2+=strspn(buf2," \t");
+  buf2+=fl_strspn(buf2,fl_static(" \t"));
 
   parcours2=NULL;
   parcours=Options.user_header;
 
   while (parcours) {
-    if (strncasecmp(parcours->str,str,len)==0) break;
+    if (fl_strncasecmp(parcours->str,str,len)==0) break;
     parcours2=parcours;
     parcours=parcours->next;
   }
@@ -508,17 +603,18 @@ int opt_do_my_hdr(char * str, int flag)
 	Options.user_header=parcours->next;
       free(parcours);
     } else {
-      parcours->str=safe_realloc(parcours->str,len+strlen(buf2)+2);
-      strncpy(parcours->str,str,len);
-      (parcours->str)[len]=' ';
-      strcpy(parcours->str+len+1,buf2);
+      parcours->str=safe_realloc(parcours->str,(len+fl_strlen(buf2)+2)
+	       *sizeof(flrn_char));
+      fl_strncpy(parcours->str,str,len);
+      (parcours->str)[len]=fl_static(' ');
+      fl_strcpy(parcours->str+len+1,buf2);
     }
-  } else if (*buf2!='\0') {
+  } else if (*buf2!=fl_static('\0')) {
     parcours=safe_malloc(sizeof(string_list_type));
-    parcours->str=safe_malloc(len+strlen(buf2)+2);
-    strncpy(parcours->str,str,len);
-    (parcours->str)[len]=' ';
-    strcpy(parcours->str+len+1,buf2);
+    parcours->str=safe_malloc((len+strlen(buf2)+2)*sizeof(flrn_char));
+    fl_strncpy(parcours->str,str,len);
+    (parcours->str)[len]=fl_static(' ');
+    fl_strcpy(parcours->str+len+1,buf2);
     parcours->next=NULL;
     if (parcours2) parcours2->next=parcours; else
       Options.user_header=parcours;
@@ -526,12 +622,12 @@ int opt_do_my_hdr(char * str, int flag)
   return 0;
 }
 
-int opt_do_my_flags(char *str, int flag)
+int opt_do_my_flags(flrn_char *str, int flag)
 {
   string_list_type *parcours, *parcours2;
 
   if (str==NULL) return -1;
-  if (strncasecmp(str,"clear",5)==0) {
+  if (fl_strncasecmp(str,fl_static("clear"),5)==0) {
     free_string_list_type(Options.user_flags);
     Options.user_flags=NULL;
     return 0;
@@ -540,7 +636,7 @@ int opt_do_my_flags(char *str, int flag)
   while (parcours2 && (parcours2->next)) 
     parcours2=parcours2->next;
   parcours=safe_malloc(sizeof(string_list_type));
-  parcours->str=safe_strdup(str);
+  parcours->str=safe_flstrdup(str);
   parcours->next=NULL;
   if (parcours2) parcours2->next=parcours; else
     Options.user_flags=parcours;
@@ -548,22 +644,24 @@ int opt_do_my_flags(char *str, int flag)
 }
 
 
-int opt_do_header(char *str, int flag)
+int opt_do_header(flrn_char *str, int flag)
 {
   int weak=0, hidden=0;
   int i=0;
-  char *buf;
+  flrn_char *buf;
+  flrn_char *dummy;
 
-  buf=strtok(str,delim);
+  buf=fl_strtok_r(str,delim,&dummy);
   if (buf==NULL) {
     Options.header_list[0]=-1;
     return 0;
   }
-  if (strcasecmp(buf,"weak")==0) weak=1; else
-    if (strcasecmp(buf,"hide")==0) hidden=1; else
-	if (strcasecmp(buf,"list")!=0) Options.header_list[i++]=Le_header(buf);
+  if (fl_strcasecmp(buf,fl_static("weak"))==0) weak=1; else
+    if (fl_strcasecmp(buf,fl_static("hide"))==0) hidden=1; else
+	if (fl_strcasecmp(buf,fl_static("list"))!=0) 
+     Options.header_list[i++]=Le_header(buf);
 
-  while((buf=strtok(NULL,delim)) && (i<MAX_HEADER_LIST-1))
+  while((buf=fl_strtok_r(NULL,delim,&dummy)) && (i<MAX_HEADER_LIST-1))
   {
     if (weak)
       Options.weak_header_list[i++]=Le_header(buf);
@@ -582,107 +680,132 @@ int opt_do_header(char *str, int flag)
   return 0;
 }
 
-int opt_do_bind(char *str, int flag)
+int opt_do_bind(flrn_char *str, int flag)
 {
-  int lettre;
-  char *buf, *buf2, *buf3;
+  flrn_char *buf, *buf2, *buf3, *dummy;
   int res, mode=-1; /* mode=0 : commande mode=1 : menu mode=2 : pager */
-  int add=0;
+  int add=0, lettre;
+  struct key_entry key;
+  size_t ntc;
 
-  buf=strtok(str,delim);
+  buf=fl_strtok_r(str,delim,&dummy);
   if (!buf) return -1;
-  if (strcasecmp(buf,"add")==0) {
+  if (fl_strcasecmp(buf,fl_static("add"))==0) {
     add =1;
-    buf=strtok(NULL,delim);
+    buf=fl_strtok_r(NULL,delim,&dummy);
     if (!buf) return -1;
   }
-  if (strcasecmp(buf,"menu")==0) mode=CONTEXT_MENU; else
-    if (strcasecmp(buf,"pager")==0) mode=CONTEXT_PAGER; else
-      if (strcasecmp(buf,"command")==0) mode=CONTEXT_COMMAND;
-  if (mode!=-1) buf=strtok(NULL,delim); else
+  if (fl_strcasecmp(buf,fl_static("menu"))==0) mode=CONTEXT_MENU; else
+    if (fl_strcasecmp(buf,fl_static("pager"))==0) mode=CONTEXT_PAGER; else
+      if (fl_strcasecmp(buf,fl_static("command"))==0) mode=CONTEXT_COMMAND;
+  if (mode!=-1) buf=fl_strtok_r(NULL,delim,&dummy); else
     mode=0;
   if (!buf) return -1;
-  if (strcasecmp(buf,"add")==0) {
+  if (fl_strcasecmp(buf,fl_static("add"))==0) {
     add =1;
-    buf=strtok(NULL,delim);
+    buf=fl_strtok_r(NULL,delim,&dummy);
     if (!buf) return -1;
   }
-  lettre = *buf;
-  if (buf[1]) {
-    if (*buf == '\\') buf++;
-    if (isdigit((int) *buf))
-      lettre = strtol(buf,NULL,0);
+
+  ntc=next_flch(buf,0);
+  if (buf[ntc]==fl_static('\0')) {
+      parse_key_string(buf,&key);
+  } else {
+    if (*buf == fl_static('\\')) buf++;
+    if (fl_isdigit((int) *buf))
+      lettre = fl_strtol(buf,NULL,0);
     else
       lettre = parse_key_name(buf);
     if (lettre <0) lettre =0;
     if (lettre >=MAX_FL_KEY) lettre = MAX_FL_KEY-1;
+    key.entry=ENTRY_SLANG_KEY;
+    key.value.slang_key=lettre;
   }
-  buf2=strtok(NULL,delim);
+  buf2=fl_strtok_r(NULL,delim,&dummy);
   if (!buf2) return -1;
-  if (*buf2=='\\') buf2++;
-  buf3=strtok(NULL,"\n");
+  if (*buf2==fl_static('\\')) buf2++;
+  buf3=fl_strtok_r(NULL,fl_static("\n"),&dummy);
   if (buf3) 
-    buf3+=strspn(buf3, delim);
+    buf3+=fl_strspn(buf3, delim);
 
-  res=(mode==CONTEXT_MENU ? Bind_command_menu(buf2,lettre,buf3,add) :
-	mode==CONTEXT_PAGER ? Bind_command_pager(buf2,lettre,buf3,add) : 
-		  Bind_command_explicite(buf2,lettre,buf3,add));
+  res=(mode==CONTEXT_MENU ? Bind_command_menu(buf2,&key,buf3,add) :
+	mode==CONTEXT_PAGER ? Bind_command_pager(buf2,&key,buf3,add) : 
+		  Bind_command_explicite(buf2,&key,buf3,add));
+  Free_key_entry(&key);
   if (res <0) {
-    if (flag) Aff_error_fin("Echec de la commande bind.",1,-1); else
+      /* FIXME: français */
+    if (flag) Aff_error_fin(fl_static("Echec de la commande bind."),1,-1); else
     {
-      fprintf(stderr,"Echec du bind : %s\n",option_ligne);
+      char *trad1;
+      int resc1;
+      resc1=conversion_to_terminal(option_ligne,&trad1,0,(size_t)(-1));
+      /* FIXME: français */
+      fprintf(stderr,"Echec du bind : %s\n",trad1);
+      if (resc1==0) free(trad1);
       sleep(1);
     }
   }
   return (res <0) ? -1 : 0;
 }
 
-int opt_do_autocmd(char *str, int flag)
+int opt_do_autocmd(flrn_char *str, int flag)
 {
-   char *buf,*buf2;
+   flrn_char *buf,*buf2,*dummy;
    autocmd_list_type *newautocmd;
    int i;
 
-   buf=strtok(str,delim);
+   buf=fl_strtok_r(str,delim,&dummy);
    if (!buf) return -1;
    newautocmd=safe_calloc(1,sizeof(autocmd_list_type));
-   if (strcasecmp(buf,"enter")==0) newautocmd->flag=AUTOCMD_ENTER;
-      else if (strcasecmp(buf,"leave")==0) newautocmd->flag=AUTOCMD_LEAVE;
+   if (fl_strcasecmp(buf,fl_static("enter"))==0) 
+       newautocmd->flag=AUTOCMD_ENTER;
+      else if (fl_strcasecmp(buf,fl_static("leave"))==0)
+	  newautocmd->flag=AUTOCMD_LEAVE;
         else {
-	  if (flag) Aff_error_fin("autocmd invalide.",1,-1); else
+	  if (flag) Aff_error_fin(fl_static("autocmd invalide."),1,-1); else
 	  {
-	     fprintf(stderr,"Mot inconnu pour autocmd : %s\n",buf);
+	     char *trad1;
+	     int resc1;
+	     resc1=conversion_to_terminal(buf,&trad1,0,(size_t)(-1));
+	     fprintf(stderr,"Mot inconnu pour autocmd : %s\n",trad1);
+	     if (resc1==0) free(trad1);
 	     sleep(1);
 	  }
 	  free(newautocmd);
 	  return -1;
         }
-   buf=strtok(NULL,delim);
+   buf=fl_strtok_r(NULL,delim,&dummy);
    if (!buf) {
       free(newautocmd);
       return -1;
    }
-   if (regcomp(&(newautocmd->match),buf,REG_EXTENDED|REG_NOSUB)) {
-      if (flag) Aff_error_fin("Regexp invalide pour autocmd.",1,-1);
+   if (fl_regcomp(&(newautocmd->match),buf,REG_EXTENDED|REG_NOSUB)) {
+      if (flag) Aff_error_fin(fl_static("Regexp invalide pour autocmd.")
+	      ,1,-1);
       else {
-         fprintf(stderr,"Regexp invalide pour autocmd : %s\n",buf);
+	 char *trad1;
+	 int resc1;
+	 resc1=conversion_to_terminal(buf,&trad1,0,(size_t)(-1));
+         fprintf(stderr,"Regexp invalide pour autocmd : %s\n",trad1);
+	 if (resc1==0) free(trad1);
          sleep(1);
       }
       free(newautocmd);
       return -1;
    }
-   buf=strtok(NULL,delim);
+   buf=fl_strtok_r(NULL,delim,&dummy);
    if (!buf) {
-     regfree(&(newautocmd->match));
+     fl_regfree(&(newautocmd->match));
      free(newautocmd);
      return -1;
    }
-   buf2=strtok(NULL,"\n");
-   if (buf2) buf2+=strspn(buf2,delim);
+   buf2=fl_strtok_r(NULL,fl_static("\n"),&dummy);
+   if (buf2) buf2+=fl_strspn(buf2,delim);
    for (i=0;i<NB_FLCMD;i++) {
-      if (strcmp(buf,Flcmds[i].nom)==0) {
+       /* FIXME : lecture d'une vraie commande via Lit_commande_explicite */
+      if (fl_strcmp(buf,fl_static_tran(Flcmds[i].nom))==0) {
          newautocmd->cmd=i;
-	 newautocmd->arg=safe_strdup(buf2);
+	 newautocmd->arg=safe_flstrdup(buf2);
 	 if (Options.user_autocmd==NULL)
 	    Options.user_autocmd=newautocmd;
 	 else {
@@ -694,10 +817,15 @@ int opt_do_autocmd(char *str, int flag)
 	 return 0;
        }
    }
-   regfree(&(newautocmd->match));
-   if (flag) Aff_error_fin("Commande invalide pour autocmd.",1,-1);
+   fl_regfree(&(newautocmd->match));
+   if (flag) Aff_error_fin(fl_static("Commande invalide pour autocmd.")
+	   ,1,-1);
    else {
-      fprintf(stderr,"Commande invalide pour autocmd : %s\n",buf);
+      char *trad1;
+      int resc1;
+      resc1=conversion_to_terminal(buf,&trad1,0,(size_t)(-1));
+      fprintf(stderr,"Commande invalide pour autocmd : %s\n",trad1);
+      if (resc1==0) free(trad1);
       sleep(1);
    }
    free(newautocmd);
@@ -706,37 +834,38 @@ int opt_do_autocmd(char *str, int flag)
 
 /* Analyse d'une ligne d'option. Prend en argument la ligne en question */
 /* on fait maintenant appel aux fonctions do_opt_* pour faire le boulot */
-static void raw_parse_options_line (char *ligne, int flag)
+static void raw_parse_options_line (flrn_char *ligne, int flag)
 {
-  char *buf;
-  char *eol;
+  flrn_char *buf;
+  flrn_char *eol;
+  flrn_char *dummy;
   int i;
 
-  if (ligne[0]==OPT_COMMENT_CHAR) return;
+  if ((char) ligne[0]==OPT_COMMENT_CHAR) return;
 
 
-  buf=strtok(ligne,delim);
+  buf=fl_strtok_r(ligne,delim,&dummy);
   if (buf==NULL) return;
 /* recherche du name * */
-  if (strcmp(buf,WORD_NAME_PROG)==0) {
-     buf=strtok(NULL,delim);
+  if (fl_strcmp(buf,fl_static(WORD_NAME_PROG))==0) {
+     buf=fl_strtok_r(NULL,delim,&dummy);
      if (buf==NULL) {
        if (!flag) { fprintf(stderr,"name utilisé sans argument\n");
 	 sleep(1);}
        return;
      }
-     if (strcmp(name_program,buf)!=0) return;
-     buf=strtok(NULL,delim);
+     if (fl_strcmp(name_program,buf)!=0) return;
+     buf=fl_strtok_r(NULL,delim,&dummy);
      if (buf==NULL) return;
   }
 
   /* le reste de la ligne, a passer a opt_do_* */
-  eol=strtok(NULL,"\n");
-  if (eol) eol += strspn(eol,delim);
+  eol=fl_strtok_r(NULL,"\n",&dummy);
+  if (eol) eol += fl_strspn(eol,delim);
 
   /* recherche de l'option */
   for (i=0; i< NUMBER_OF_OPT_CMD; i++) {
-    if(strcmp(buf,Optcmd_liste[i].name)==0) {
+    if(fl_strcmp(buf,fl_static_tran(Optcmd_liste[i].name))==0) {
       (void) (*Optcmd_liste[i].parse)(eol,flag);
       return;
     }
@@ -744,7 +873,12 @@ static void raw_parse_options_line (char *ligne, int flag)
   /* on n'a pas trouve */
   if (flag) Aff_error_fin("Option non reconnue",1,-1); else
   {
-    fprintf(stderr,"Option non reconnue : %s\n",buf);
+    char *bla=NULL; int res;
+    res = conversion_to_terminal(buf,&bla,0,(size_t)(-1));
+    if (bla) {
+      fprintf(stderr,"Option non reconnue : %s\n",bla);
+      if (res==0) free(bla);
+    }
     sleep(1);
   }
   /* On peut se le permettre : flrn n'est pas lancé */
@@ -753,75 +887,47 @@ static void raw_parse_options_line (char *ligne, int flag)
 /* pour afficher des messages plus clairs */
 /* seul "truc" : avec des includes, il ne faut pas oublier le free AVANT
    un nouveau strdup, pour éviter deux free sur le meme pointeur */
-void parse_options_line (char *ligne, int flag)
+void parse_options_line (flrn_char *ligne, int flag)
 {
   if (option_ligne) free(option_ligne);
-  option_ligne = safe_strdup(ligne);
+  option_ligne = safe_flstrdup(ligne);
   raw_parse_options_line (ligne, flag);
   free(option_ligne);
   option_ligne=NULL;
   return;
 }
 
-static char *print_option(int i, char *buf, int buflen) {
+static flrn_char * print_option(int i, flrn_char *buf, size_t buflen) {
   if ((All_options[i].type==OPT_TYPE_INTEGER) ||
       (All_options[i].type==OPT_TYPE_BOOLEAN)) {
     if (*All_options[i].value.integer == All_options[i].flags.reverse) {
-      snprintf(buf,buflen,"no%s\n",All_options[i].name);
+      fl_snprintf(buf,buflen,fl_static("no%s"),All_options[i].name);
     } else {
       if ((All_options[i].type==OPT_TYPE_BOOLEAN) ||
 	  (*All_options[i].value.integer == !All_options[i].flags.reverse)) {
-	snprintf(buf,buflen,"%s\n",All_options[i].name);
+	fl_snprintf(buf,buflen,fl_static("%s"),All_options[i].name);
     } else
-      snprintf(buf,buflen,"%s=%d\n",All_options[i].name,
+      fl_snprintf(buf,buflen,fl_static("%s=%d"),All_options[i].name,
 	  (All_options[i].flags.reverse)?(!*All_options[i].value.integer):
 	  (*All_options[i].value.integer));
     }
   } else if (All_options[i].type==OPT_TYPE_STRING) {
     /* on met un format beton pour éviter les pb si en fait
      * on utilise sprintf */
-    if (*All_options[i].value.string)
-      snprintf(buf,buflen,"%.15s=\"%.60s\"\n",All_options[i].name,
-	  *All_options[i].value.string);
-    else snprintf(buf,buflen,"%s=\"\"\n",All_options[i].name);
+    if (*All_options[i].value.string) {
+	 size_t rest;
+         fl_snprintf(buf,buflen,fl_static("%s=\""),All_options[i].name);
+	 rest=buflen-fl_strlen(buf);
+	 fl_strncat(buf,*All_options[i].value.string, rest);
+	 if (fl_strlen(*All_options[i].value.string)<rest-2) 
+	    fl_strcat(buf,fl_static("\""));
+	 buf[buflen-1]=fl_static('\0');
+    }
+    else fl_snprintf(buf,buflen,fl_static("%s=\"\""),All_options[i].name);
   }
   return buf;
 }
 
-/* affiche les options */
-void dump_variables(FILE *file) {
-  int i;
-  char buf[80];
-  string_list_type *parcours;
-  fprintf(file,"# Variables :\n");
-  for (i=0; i< NUM_OPTIONS; i++){
-    fprintf(file,"set %s",print_option(i,buf,80));
-  }
-  fprintf(file,"\nheader list: ");
-  for (i=0; i<MAX_HEADER_LIST; i++) {
-    if (Options.header_list[i]+1) fprintf(file," %d",Options.header_list[i]+1);
-    else break;
-  }
-  fprintf(file,"\nheader weak: ");
-  for (i=0; i<MAX_HEADER_LIST; i++) {
-    if (Options.weak_header_list[i]+1) fprintf(file," %d",Options.weak_header_list[i]+1);
-    else break;
-  }
-  fprintf(file,"\nheader hide: ");
-  for (i=0; i<MAX_HEADER_LIST; i++) {
-    if (Options.hidden_header_list[i]+1) fprintf(file," %d",Options.hidden_header_list[i]+1);
-    else break;
-  }
-  parcours=Options.user_header;
-  while (parcours) {
-    fprintf(file,"\nmy_hdr %s",parcours->str);
-    parcours=parcours->next;
-  }
-  fprintf(file,"\n\n# C'est tout, il ne manque plus que les couleurs.\n");
-  return;
-}
-
-/* Affiche le nom d'un header */
 void print_header_name(FILE *file, int i) {
   if (i>=0) {
     if (i==NB_KNOWN_HEADERS) fputs("others",file); else
@@ -833,73 +939,95 @@ void print_header_name(FILE *file, int i) {
   }
 }
 
-/* Affiche les options modifiées, comme un beau .flrn(rc) */
-void dump_flrnrc(FILE *file) {
-  int i;
-  char buf[80];
-  string_list_type *parcours;
+/* affiche les options */
+void dump_variables(FILE *file) {
+  int i,resc;
+  flrn_char buf[80];
+  char *trad;
+  /* FIXME : francais */
   fprintf(file,"# Variables, modifiables avec set :\n\n");
-  for (i=0; i< NUM_OPTIONS; i++){
-    if (!All_options[i].flags.modified) continue;
-    fprintf(file,"# %s\n",All_options[i].desc);
-    fprintf(file,"set %s",print_option(i,buf,80));
+  for (i=0; i< NUM_OPTIONS; i++) {
+    if (!All_options[i].flags.obsolete) {
+	resc=conversion_to_file(
+		print_option(i,buf,80),&trad,0,(size_t)(-1));
+        fprintf(file,"set %s",trad);
+	if (resc==0) free(trad);
+    }
   }
-  fprintf(file,"\n\n# Affichage des headers\nheader list: ");
+  /* FIXME : français */
+  fprintf(file,"\n\n# Affichage des headers");
+  fprintf(file,"\nheader list: ");
   for (i=0; i<MAX_HEADER_LIST; i++) {
-    if (Options.header_list[i]+1)  {
-        putc(' ',file);
-    	print_header_name(file,Options.header_list[i]);
-    } else break;
+    if (Options.header_list[i]==-1) break;
+    putc(' ',file);
+    print_header_name(file,Options.header_list[i]);
   }
   fprintf(file,"\nheader weak: ");
   for (i=0; i<MAX_HEADER_LIST; i++) {
-    if (Options.header_list[i]+1)  {
-        putc(' ',file);
-    	print_header_name(file,Options.header_list[i]);
-    } else break;
+    if (Options.weak_header_list[i]==-1) break;
+    putc(' ',file);
+    print_header_name(file,Options.weak_header_list[i]);
   }
   fprintf(file,"\nheader hide: ");
   for (i=0; i<MAX_HEADER_LIST; i++) {
-    if (Options.header_list[i]+1)  {
-        putc(' ',file);
-    	print_header_name(file,Options.header_list[i]);
-    } else break;
+    if (Options.hidden_header_list[i]==-1) break;
+    putc(' ',file);
+    print_header_name(file,Options.hidden_header_list[i]);
   }
+  return;
+}
+
+/* Affiche le nom d'un header */
+/* Affiche les options modifiées, comme un beau .flrn(rc) */
+void dump_flrnrc(FILE *file) {
+  int rc;
+  char *trad;
+  string_list_type *parcours;
+  dump_variables(file);
+  /* FIXME : français */
   fprintf(file,"\n\n# Headers ajoutés dans les posts");
   parcours=Options.user_header;
   while (parcours) {
-    fprintf(file,"\nmy_hdr %s",parcours->str);
+    rc=conversion_to_file(parcours->str,&trad,0,(size_t)(-1));
+    fprintf(file,"\nmy_hdr %s",trad);
+    if (rc==0) free(trad);
     parcours=parcours->next;
   }
+  /* FIXME : français */
   fprintf(file,"\n\n# Flags ajoutés pour voir les messages");
   parcours=Options.user_flags;
   while (parcours) {
-    fprintf(file,"\nmy_flags %s",parcours->str);
+    rc=conversion_to_file(parcours->str,&trad,0,(size_t)(-1));
+    fprintf(file,"\nmy_flags %s",trad);
+    if (rc==0) free(trad);
     parcours=parcours->next;
   }
+  /* FIXME : français */
   fprintf(file,"\n\n# Il reste les couleurs...\n");
   dump_colors_in_flrnrc(file);
   if (Options.user_autocmd)
+  /* FIXME : français */
     fprintf(file,"\n\n# Il reste les autocmd aussi, qui peuvent changer les options par défaut :-(\n");
   return;
 }
 
-int change_value(Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int len, Cmd_return *la_commande, int *affiche) {
+/* TODO : changer ça, mais avec les menus */
+int change_value(Liste_Menu *debut_menu, Liste_Menu **courant, 
+	flrn_char **name, int *tofree, Cmd_return *la_commande) {
   int num=(int)(long)((*courant)->lobjet);
-  char buf[80];
+  char buf[60];
+  flrn_char flbuf[80];
   int changed =0;
-  char **nom=&((*courant)->nom);
 
-  *affiche=0;
+  *name=NULL; *tofree=0;
   if (la_commande->cmd[CONTEXT_MENU]==-1) {
      if (la_commande->before) free(la_commande->before);
      if (la_commande->after) free(la_commande->after);
      return -2;
   }
   if (All_options[num].flags.lock) {
-    snprintf(name,len,"   L'option %s ne peut pas être changée",
-	All_options[num].name);
-    *affiche=1;
+    *name=fl_static("   L'option %s ne peut pas être changée");
+    /* FIXME : français */
     return 0;
   }
   switch (All_options[num].type) {
@@ -912,10 +1040,12 @@ int change_value(Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int l
 	buf[0]='\0';
 	Cursor_gotorc(Screen_Rows-2,0);
 	Screen_erase_eol();
+	/* FIXME : français, et conversion vers terminal */
 	Screen_write_string("Nouvelle valeur: ");
-	ret=flrn_getline(buf,60,Screen_Rows-2,17);
+	/* FIXME : colonne initiale (le 17) */
+	ret=flrn_getline(flbuf,80,buf,60,Screen_Rows-2,/* FIXME */ 17 /* */);
 	if (ret!=0) break;
-	new_value=strtol(buf,NULL,10);
+	new_value=fl_strtol(flbuf,NULL,10);
 	changed=(new_value!=*All_options[num].value.integer);
 	*All_options[num].value.integer=new_value;
 	break;
@@ -925,70 +1055,74 @@ int change_value(Liste_Menu *debut_menu, Liste_Menu **courant, char *name, int l
 	buf[0]='\0';
 	Cursor_gotorc(Screen_Rows-2,0);
 	Screen_erase_eol();
+	/* FIXME : français, et conversion vers terminal */
 	Screen_write_string("Nouvelle valeur: ");
-	ret=flrn_getline(buf,60,Screen_Rows-2,17);
+	ret=flrn_getline(flbuf,80,buf,60,Screen_Rows-2,/* FIXME */ 17);
 	if (ret!=0) break;
 	if (*All_options[num].value.string) 
-	  changed=(strcmp(buf,*All_options[num].value.string)!=0);
-	else changed=(strlen(buf)!=0);
+	  changed=(fl_strcmp(flbuf,*All_options[num].value.string)!=0);
+	else changed=(fl_strlen(flbuf)!=0);
 	if (changed) {
 	   if (All_options[num].flags.allocated) 
 	   	free(*All_options[num].value.string);
-	   if (strlen(buf)!=0) {
+	   if (fl_strlen(flbuf)!=0) {
 	     All_options[num].flags.allocated=1;
-	     *All_options[num].value.string=safe_strdup(buf);
+	     *All_options[num].value.string=safe_flstrdup(flbuf);
 	   } else {
 	     All_options[num].flags.allocated=0;
 	     *All_options[num].value.string=NULL;
 	   }
-#ifdef WITH_CHARACTER_SETS
-           if (All_options[num].value.string==&(Options.character_set)) {
-             int ret_charset;
-             ret_charset=Parse_charset_line(Options.character_set);
-             if (ret_charset==-1) {
-                strncpy(name, "   Jeu de caracteres non reconnu.", len);
-                *affiche=1;
-             }
-           }
-#endif
+	   {
+	       flrn_char *bla;
+	       if (test_charset_modified(num,&bla)==-1) {
+		   *name=bla;
+		   *tofree=1;
+	       }
+	   }
 	}
 	break;
 	}
     default : {
-    	strncpy
-	   (name,"   Impossible de changer cette option. Non implémenté.",len);
-	*affiche=1;
+		  /* FIXME : francais */
+	  *name=fl_static
+	      ("   Impossible de changer cette option. Non implémenté.");
     }
   }
   if (changed) {
-    free(*nom);
-    print_option(num,buf,80);
-    *nom = safe_strdup(buf);
-    (*courant)->changed=1;
+      print_option(num,flbuf,80);
+      change_menu_line(*courant,0,flbuf);
   }
   return changed;
 }
 
-void aff_desc_option (void *value, char *ligne, int len) {
+int aff_desc_option (void *value, flrn_char **ligne) {
   int num=(int)(long) value;
-
-  snprintf(ligne,len,All_options[num].desc);
+  int res;
+  res=conversion_from_utf8(All_options[num].desc,ligne,0,(size_t)(-1));
+  return (res==0);
 }
 
+static struct format_elem_menu fmt_option_menu_e [] =
+    { { 80, 80, -1, 2, 0, 7 } };
+struct format_menu fmt_option_menu = { 1, &(fmt_option_menu_e[0]) };
 void menu_config_variables() {
   int i;
-  char buf[80];
+  flrn_char buf[80], *ptr;
   Liste_Menu *menu=NULL, *courant=NULL;
   int *valeur;
 
+  ptr=&(buf[0]);
   for (i=0; i< NUM_OPTIONS; i++){
+    if (All_options[i].flags.obsolete) continue;
     print_option(i,buf,80);
-    courant=ajoute_menu(courant,safe_strdup(buf),(void *)i);
+    courant=ajoute_menu(courant,&fmt_option_menu,&ptr,(void *)i);
     if (!menu) menu=courant;
   }
   num_help_line=13;
-  valeur = (int *) Menu_simple(menu, NULL, aff_desc_option, change_value, "<entrée> pour changer une option, q pour quitter.");
-  Libere_menu_noms(menu);
+  valeur = (int *) Menu_simple(menu, NULL, aff_desc_option, change_value, 
+	  /* FIXME : francais */
+	  fl_static("<entrée> pour changer une option, q pour quitter."));
+  Libere_menu(menu);
   return;
 }
 
@@ -997,16 +1131,26 @@ void menu_config_variables() {
 /* flag_option = flag d'appel pour parse_option_line */
 static int parse_option_file (char *name, int flags, int flag_option) {
   char buf1[MAX_BUF_SIZE];
+  flrn_char *traduction=NULL;
   FILE *flrnfile;
+  int res;
 
   flrnfile=open_flrnfile(name,"r",flags,NULL);
   if (flrnfile==NULL) return -1;
-  while (fgets(buf1,MAX_BUF_SIZE,flrnfile)) 
-    parse_options_line(buf1,flag_option);
+  while (fgets(buf1,MAX_BUF_SIZE,flrnfile)) {
+    /* traduction -> flrn_char */
+    res=conversion_from_file(buf1,&traduction,0,(size_t)(-1));
+    if (traduction) {
+      parse_options_line(traduction,flag_option);
+      if (res==0) free(traduction);
+    }
+  }
   fclose(flrnfile);
   return 0;
 }
 
+/* TODO TODO TODO TODO : changer ça */
+/* FIXME: français */
 const char *Help_Lines[17];
 const char *menu_default_help_line=" Menu: \\quit : quitter le menu     \\select : selectionner un element";
 

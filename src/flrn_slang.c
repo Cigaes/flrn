@@ -20,6 +20,11 @@
 #include "flrn.h"
 #include "flrn_slang.h"
 #include "flrn_color.h"
+#include "enc/enc_strings.h"
+#ifdef HAVE_WCHAR_H
+#include <wchar.h>
+#endif
+
 
 static UNUSED char rcsid[]="$Id$";
 
@@ -46,7 +51,7 @@ void Set_term_cannot_scroll (int a) { SLtt_Term_Cannot_Scroll=a; }
 void Screen_write_char(char c) { SLsmg_write_char(c); }
 void Screen_write_string(char *s) { SLsmg_write_string(s); }
 void Screen_write_nstring(char *s, int n) { SLsmg_write_nstring(s,n); }
-void Screen_write_color_chars(unsigned short *s, unsigned int n) 
+void Screen_write_color_chars(Colored_Char_Type *s, unsigned int n) 
 		{ SLsmg_write_color_chars(s,n); }
 void Cursor_gotorc(int r, int c) { SLsmg_gotorc(r,c); }
 void Screen_erase_eol()	{ SLsmg_erase_eol(); }
@@ -116,12 +121,21 @@ static Scroll_Window_Type Line_Window; /* On va essayer de limiter */
 
 void free_text_scroll() {
      File_Line_Type *line, *next;
+     Line_Elem_Type *lline, *lnext;
      
      line=Text_scroll;
      while (line != NULL) {
         next=line->next;
-        if (line->data != NULL) free (line->data);
-        if (line->data_save != NULL) free (line->data_save);
+	lline=line->line;
+	while (lline != NULL) {
+	    lnext=lline->next;
+            if (lline->data != NULL) free (lline->data);
+            if (lline->data_save != NULL) free (lline->data_save);
+	    if ((lline->data_base != NULL) 
+		    && (lline->base_mlen!=0)) free (lline->data_base);
+	    free(lline);
+	    lline=lnext;
+	}
         free(line);
         line=next;
      }
@@ -134,50 +148,132 @@ void free_text_scroll() {
 }
 
 /* fonction de compatibilité... */
-static File_Line_Type *create_line (char *buf) {
-   File_Line_Type *line;
-   int i;
+static File_Line_Type *ajoute_line (File_Line_Type *lini,
+	flrn_char *buf, char *cbuf, 
+	size_t data_len, size_t base_len, int flag,
+	int col, int field) {
+   File_Line_Type *line=lini;
+   Line_Elem_Type *lline;
+   int resconv,i;
+   char *trad=NULL;
      
-   line = (File_Line_Type *) safe_calloc (1,sizeof (File_Line_Type));
-/*   line->data = SLmake_string (buf); */  /* use a slang routine */
-   line->data = safe_malloc(sizeof(short) * (strlen(buf)+1));
-   for(i=0;buf[i];i++) {
-     line->data[i]=(unsigned char)buf[i];
+   if (line==NULL) {
+     line = (File_Line_Type *) safe_calloc (1,sizeof (File_Line_Type));
+     lline = (Line_Elem_Type *) safe_calloc (1,sizeof (Line_Elem_Type));
+     line->line=lline;
+   } else {
+       lline=line->line;
+       if (lline) {
+	   while (lline->next) lline=lline->next;
+	   lline->next=
+	       (Line_Elem_Type *) safe_calloc (1,sizeof (Line_Elem_Type));
+	   lline=lline->next;
+       } else 
+	   lline=(Line_Elem_Type *) safe_calloc (1,sizeof (Line_Elem_Type));
    }
-   line->data[i]=buf[i];
-   line->data_len=i;
+/*   line->data = SLmake_string (buf); */  /* use a slang routine */
+   if (cbuf==NULL) {
+       resconv=conversion_to_terminal(buf,&trad,0,(size_t)(-1));
+   } else {
+       trad=cbuf;
+       resconv=1;
+   }
+   if (data_len==0) data_len=strlen(trad);
+   lline->data = safe_calloc(data_len+1,sizeof(Colored_Char_Type));
+   lline->data_mlen=data_len;
+   i=0;
+   {
+     const char *ptr=trad;
+     while ((*ptr) && (i<data_len)) {
+       lline->data[i++]=create_Colored_Char_Type(&ptr,field);
+     }
+   }
+   lline->data_len=i;
+   if (resconv==0) free(trad);
+   if (flag) {
+       lline->data_base=buf;
+       lline->base_mlen=0;
+   } else 
+   if (base_len==0) {
+       lline->data_base=safe_flstrdup(buf);
+       lline->base_mlen=fl_strlen(buf);
+   } else {
+       lline->data_base=safe_calloc(base_len+1,sizeof(flrn_char));
+       fl_strncpy(lline->data_base,buf,base_len);
+       lline->base_mlen=base_len;
+   }
+   lline->base_len=fl_strlen(buf);
+   lline->col=col;
    return line;
 }
 
-/* on refait un malloc... */
-static File_Line_Type *create_color_line (unsigned short *buf, int len,
-						int a_allouer) {
+File_Line_Type *Ajoute_formated_line (flrn_char *flbuf, char *buf,
+	size_t flbuf_len, size_t buflen, int flag, int col, int field,
+	int nm, File_Line_Type *ini) {
+    int i;
+    File_Line_Type *line;
+    File_Line_Type *created=ajoute_line
+	(ini, flbuf, buf, flbuf_len, buflen, flag, col, field);
+    if (created==NULL) return NULL;
+    if (ini==NULL) {
+	Line_Window.num_lines++;
+	if ((Text_scroll==NULL) || (nm==0)) {
+	    created->next=Text_scroll;
+	    if (Text_scroll) Text_scroll->prev=created;
+	    Text_scroll=created;
+	    return Text_scroll;
+	}
+	line=Text_scroll;
+	i=1;
+	while ((line->next) && ((i<nm) || (nm==-1))) { line=line->next; i++; }
+	created->prev=line;
+	created->next=line->next;
+	if (line->next) line->next->prev=created;
+	line->next=created;
+    }
+    return created;
+}
+	
+
+
+/* on fait des mallocs. mlen>=len et mfllen>=fllen... */
+static File_Line_Type *create_color_line (Colored_Char_Type *buf,
+	flrn_char *flbuf, size_t len, size_t mlen, 
+	size_t fllen, size_t mfllen, int col) {
    File_Line_Type *line;
-   int i;
+   Line_Elem_Type *lline;
      
    line = (File_Line_Type *) safe_calloc (1,sizeof (File_Line_Type));
-   line->data = safe_malloc(sizeof(short) * a_allouer);
-   for(i=0;i<len;i++) {
-     line->data[i]=buf[i];
-   }
-   line->data_len=len;
+   lline = (Line_Elem_Type *) safe_calloc (1,sizeof (Line_Elem_Type));
+   line->line=lline;
+   lline->data = safe_calloc((mlen+1),sizeof(Colored_Char_Type));
+   lline->data_base = safe_calloc((mfllen+1),sizeof(Colored_Char_Type));
+   lline->data_mlen=mlen;
+   lline->base_mlen=mfllen;
+   if (buf) memcpy(lline->data,buf,sizeof(Colored_Char_Type) * len);
+   lline->data[len]=(Colored_Char_Type)0;
+   lline->data_len=len;
+   if (flbuf) memcpy(lline->data_base,flbuf,sizeof(flrn_char) * fllen);
+   lline->data_base[fllen]=(Colored_Char_Type)0;
+   lline->base_len=fllen;
+   lline->col=col;
    return line;
 }
 
 /* Cette fonction ajoute une ligne au texte a scroller */
 /* Elle renvoie NULL en cas d'échec.                   */
-File_Line_Type *Ajoute_line(char *buf) {
+File_Line_Type *Ajoute_line(flrn_char *buf, int col, int field) {
     File_Line_Type *line=Text_scroll;
 
     if (line==NULL) {
-       Text_scroll=create_line(buf);
+       Text_scroll=ajoute_line(NULL,buf,NULL,0,0,0,col,field);
        if (Text_scroll) {
           Line_Window.num_lines++;
        }
        return Text_scroll;
     }
     while (line->next) line=line->next;
-    line->next=create_line(buf);
+    line->next=ajoute_line(NULL,buf,NULL,0,0,0,col,field);
     if (line->next) {
         Line_Window.num_lines++;
         line->next->prev=line;
@@ -188,35 +284,54 @@ File_Line_Type *Ajoute_line(char *buf) {
 /* Cette fonction ajoute une ligne au texte a scroller */
 /* Elle renvoie NULL en cas d'échec.                   */
 /* si a_allouer!=0, on veut allouer plus...	       */
-File_Line_Type *Ajoute_color_Line(unsigned short *buf, int len, 
-					int a_allouer) {
+/* si flbuf==NULL, on recrée la chaîne directement */
+File_Line_Type *Ajoute_color_Line(Colored_Char_Type *buf,
+	        flrn_char *flbuf, size_t len, size_t mlen,
+	        size_t fllen, size_t mfllen, int col) {
     File_Line_Type *line=Text_scroll;
+    int allocated=0;
 
-    if (a_allouer==0) a_allouer=len;
+    if (mlen==0) mlen=len;
+    if ((flbuf==NULL) && (buf!=NULL)) {
+	size_t i;
+	mfllen=mlen;
+	fllen=len;
+	flbuf=safe_malloc(sizeof(flrn_char)*(mlen+1));
+	for (i=0;i<len;i++) 
+          flbuf[i]=(flrn_char) (buf[i] & 0xFF);
+	flbuf[i]=(flrn_char)0;
+	allocated=1;
+    }
+    else if (mfllen==0) mfllen=fllen;
     if (line==NULL) {
-       Text_scroll=create_color_line(buf,len,a_allouer);
+       Text_scroll=create_color_line(buf,flbuf,len,mlen,fllen,mfllen,
+	       col);
        if (Text_scroll) {
           Line_Window.num_lines++;
        }
+       if (allocated) free(flbuf);
        return Text_scroll;
     }
     while (line->next) line=line->next;
-    line->next=create_color_line(buf,len,a_allouer);
+    line->next=create_color_line(buf,flbuf,len,mlen,fllen,mfllen,col);
     if (line->next) {
         Line_Window.num_lines++;
         line->next->prev=line;
     }
+    if (allocated) free(flbuf);
     return (line->next);
 } 
 
 /* Cette fonction rajoute un bout à la n-ième ligne du scrolling */
 /* Elle suppose que suffisammenent de place a été alloué */
 /* deb est la colonne du début du rajout (-1 si suite)	*/
-/* si n=-1, on rajoute en fin...			*/
+/* si n=-1, on rajoute en fin */
 /* Elle renvoie NULL en cas d'échec.                   */
-File_Line_Type *Rajoute_color_Line(unsigned short *buf, int n, 
-					int len, int deb) {
+File_Line_Type *Rajoute_color_Line(Colored_Char_Type *buf, 
+	flrn_char *flbuf, int n, size_t len, size_t fllen, int deb) {
     File_Line_Type *line=Text_scroll;
+    Line_Elem_Type *lline;
+    int allocated=0;
     int i=0;
 
     if (line==NULL) return NULL; /* pas de ligne */
@@ -225,72 +340,107 @@ File_Line_Type *Rajoute_color_Line(unsigned short *buf, int n,
        if (line==NULL) return NULL; /* pas de ligne */
        i++;
     }
-    if (deb==-1) deb=line->data_len;
-    if (line->data_len<deb)   /* faut completer... je vais essayer :-( */
-       for (i=line->data_len;i<deb;i++) line->data[i]=(buf[0] & 256)+32;
-    for (i=0;i<len;i++) {
-       line->data[deb+i]=buf[i];
+    lline=line->line;
+    while (lline->next) lline=lline->next;
+    if (deb!=-1) {
+	lline->next=(Line_Elem_Type *) safe_calloc (1,sizeof (Line_Elem_Type));
+	lline=lline->next;
+	lline->col=deb;
     }
-    line->data_len=deb+len;
+
+    if ((flbuf==NULL) && (buf!=NULL)) {
+	size_t i;
+	fllen=len;
+	flbuf=safe_malloc(sizeof(flrn_char)*(fllen+1));
+	for (i=0;i<len;i++) 
+          flbuf[i]=(flrn_char) (buf[i] & 0xFF);
+	flbuf[i]=(flrn_char)0;
+	allocated=1;
+    }
+
+    if (len+lline->data_len>lline->data_mlen) {
+         lline->data=safe_realloc(lline->data,
+		 sizeof(Colored_Char_Type)*(len+lline->data_len+1));
+	 lline->data_mlen=len+lline->data_len;
+    }
+    if (buf) memcpy(lline->data+lline->data_len,buf,len*
+	    sizeof(Colored_Char_Type));
+    lline->data_len+=len;
+    lline->data[lline->data_len]=(Colored_Char_Type)0;
+
+    if (fllen+lline->base_len>lline->base_mlen) {
+         lline->data_base=safe_realloc(lline->data_base,
+		 sizeof(flrn_char)*(fllen+lline->base_len+1));
+	 lline->base_mlen=fllen+lline->base_len;
+    }
+    if (flbuf) memcpy(lline->data_base+lline->base_len,flbuf,fllen*sizeof(flrn_char));
+    lline->base_len+=fllen;
+    lline->data_base[lline->base_len]=(flrn_char)0;
+
     return line;
 } 
 
 /* Applique la regexp_scroll sur une ligne */
 static void Apply_regexp_scroll (File_Line_Type *line) {
-    unsigned short *retour=NULL;
-    char *out;
+    Colored_Char_Type  *retour=NULL;
+    Line_Elem_Type *lline;
    
-    if (line->data_save) {
-       if (line->data) free(line->data);
-       line->data=line->data_save;
-       line->data_save=NULL;
-    }
-    if (line->data==NULL) return;
-    if (regexp_scroll) {
-       out=safe_malloc(line->data_len+1);
-       Read_Line(out,line);
-       retour=Search_in_line (line->data,out,line->data_len,regexp_scroll);
-       free(out);
-    }
-    if (retour) {
-       line->data_save=line->data;
-       line->data=retour;
-    }
+    lline=line->line;
+    while (lline) {
+      if (lline->data_save) {
+         if (lline->data) free(lline->data);
+         lline->data=lline->data_save;
+         lline->data_save=NULL;
+      }
+      if (lline->data==NULL) { lline=lline->next; continue; }
+      if (regexp_scroll) {
+         retour=Search_in_line (lline->data,lline->data_base,lline->data_mlen,
+		 regexp_scroll);
+      }
+      if (retour) {
+         lline->data_save=lline->data;
+         lline->data=retour;
+	 retour=NULL;
+      }
+      lline=lline->next;
+   }
 }
 
-File_Line_Type *Change_line(int n,char *buf) {
-    File_Line_Type *line=Text_scroll;
+File_Line_Type *Change_line(File_Line_Type * line,int a,flrn_char *buf,
+	Colored_Char_Type *cbuf, size_t cclen) {
+    Line_Elem_Type *lline;
     int i;
+    /*
     for(i=0;i<n;i++) {
       if(line==NULL) return NULL;
       line=line->next;
-    }
+    }  */
     if (line==NULL) {
        return NULL;
     }
-    free(line->data);
-    if (line->data_save) {
-       free(line->data_save);
-       line->data_save=NULL;
+    lline=line->line;
+    for (i=0;i<a;i++) {
+       if (lline==NULL) return NULL;
+       lline=lline->next;
     }
-    line->data = safe_malloc(sizeof(short) * (strlen(buf)+1));
-    for(i=0;(buf[i]) && (buf[i]!='\n');i++) {
-      line->data[i]=(unsigned char)buf[i];
+    if (lline->data_save) {
+       free(lline->data_save);
+       lline->data_save=NULL;
     }
-    line->data[i]=(unsigned char)buf[i];
-    line->data_len=i;
+    memset(lline->data_base,0,sizeof(flrn_char)*lline->base_mlen);
+    if (buf) fl_strncpy(lline->data_base,buf,lline->base_mlen-1);
+    lline->base_len=fl_strlen(lline->data_base);
+    memset(lline->data,0,sizeof(Colored_Char_Type)*lline->data_mlen);
+    if (cbuf)
+      for(i=0;(i<lline->data_mlen) && (i<cclen) && (cbuf[i]);i++) {
+        lline->data[i]=cbuf[i];
+      }
+    lline->data_len=cclen;
     if (regexp_scroll) Apply_regexp_scroll(line);
     return (line);
 } 
 
-File_Line_Type *Ajoute_form_Ligne(char *buf, int field) {
-  File_Line_Type *line=Ajoute_line(buf);
-  int i;
-  for(i=0;i<line->data_len;i++)
-    line->data[i] += field<<8;
-  return line;
-}
-
+#if 0
 char * Read_Line(char * out, File_Line_Type *line) {
   int i;
   for(i=0;i<line->data_len;i++)
@@ -298,16 +448,45 @@ char * Read_Line(char * out, File_Line_Type *line) {
   out[line->data_len]='\0';
   return out;
 }
+#endif
+
+/* échange de deux lignes */
+void Swap_lines(File_Line_Type *line1,File_Line_Type *line2) {
+    File_Line_Type *n1,*p1;
+     /* Text_scroll */
+    if (Text_scroll==line1) Text_scroll=line2;
+    else if (Text_scroll==line2) Text_scroll=line1;
+    if (Line_Window.top_window_line==line1) Line_Window.top_window_line=line2;
+    else if (Line_Window.top_window_line==line2)
+	Line_Window.top_window_line=line1;
+    if (Line_Window.lines==line1) Line_Window.lines=line2;
+    else if (Line_Window.lines==line2) Line_Window.lines=line1;
+    /* on modifie les next et prev des voisins */
+    n1=line1->next; p1=line1->prev;
+    if ((n1) && (n1!=line2)) n1->prev=line2;
+    if ((p1) && (p1!=line2)) p1->next=line2;
+    n1=line2->next; p1=line2->prev;
+    if ((n1) && (n1!=line1)) n1->prev=line1;
+    if ((p1) && (p1!=line1)) p1->next=line1;
+    /* on modifie les lignes elle-meme */
+    if (line1->next!=line2) line2->next=line1->next;
+    else line2->next=line1;
+    if (line1->prev!=line2) line2->prev=line1->prev;
+    else line2->prev=line1;
+    if (n1!=line1) line1->next=n1; else line1->next=line2;
+    if (p1!=line1) line1->prev=p1; else line1->prev=line2;
+}
+
 
 /* Recherche de quelque chose... mais quoi ? */
 /* retour : -1 si le pattern est faux , 0 s'il est bon */
-int New_regexp_scroll (char *pattern) {
+int New_regexp_scroll (flrn_char *pattern) {
      File_Line_Type *line=Text_scroll;
     
      if (regexp_scroll) {
         regfree(regexp_scroll);
      } else regexp_scroll=safe_calloc(1,sizeof(regex_t));
-     if (regcomp(regexp_scroll,pattern,REG_EXTENDED)) {
+     if (fl_regcomp(regexp_scroll,pattern,REG_EXTENDED)) {
         free(regexp_scroll);
 	regexp_scroll=NULL;
      }
@@ -324,25 +503,34 @@ int New_regexp_scroll (char *pattern) {
 File_Line_Type *Search_in_Lines (File_Line_Type *start) {
     File_Line_Type *line=start->next;
     
-    while ((line) && (line->data_save==NULL)) {
+    while ((line) && (line->line->data_save==NULL)) {
        line=line->next;
     }
     if (line) return line;
     line=Text_scroll;
-    while ((line) && (line!=start) && (line->data_save==NULL)) {
+    while ((line) && (line!=start) && (line->line->data_save==NULL)) {
        line=line->next;
     }
-    if ((line==NULL) || (line->data_save)) return line;
+    if ((line==NULL) || (line->line->data_save)) return line;
     return NULL;
 }
 
 /* Libere la derniere ligne de line */
 void Retire_line(File_Line_Type *line) {
+    Line_Elem_Type *lline,*nll;
      
     if (line==NULL) return;
     while (line->next) line=line->next;
-    if (line->data) 
-      free(line->data);
+    lline=line->line;
+    while (lline) {
+      if (lline->data) 
+        free(lline->data);
+      if (lline->data_save) free(lline->data_save);
+      if (lline->data_base) free(lline->data_base);
+      nll=lline->next;
+      free(lline);
+      lline=nll;
+    }
     if (line->prev) line->prev->next=NULL;
     Line_Window.num_lines--;
     if (line==Text_scroll) Text_scroll=NULL;
@@ -365,6 +553,7 @@ void Init_Scroll_window(int num, int beg, int nrw){
 static void Update_scroll_display() {
    int row;
    File_Line_Type *line;
+   Line_Elem_Type *lline;
 	     
    /* On va bloquer les signaux temporairement */
    SLsig_block_signals ();
@@ -372,13 +561,17 @@ static void Update_scroll_display() {
    line= Line_Window.top_window_line;
    while (row < Line_Window.nrows+Line_Window.window_row) 
    {
-       SLsmg_gotorc(row, 0);
-       if (line != NULL)
+       SLsmg_gotorc(row,0);
+       SLsmg_erase_eol();
+       if ((line) && ((lline=line->line))) 
        {
-	  SLsmg_write_color_chars(line->data, line->data_len);
+	  while (lline) {
+	     if (lline->col>=0) SLsmg_gotorc(row,lline->col);
+             SLsmg_write_color_chars(lline->data, lline->data_len);
+	     lline=lline->next;
+	  }
           line=line->next;
        }
-       SLsmg_erase_eol();
        row++;
    }
 /* SLsmg_refresh();     Le refresh est fait séparément désormais */
@@ -428,7 +621,7 @@ int Do_Search(int just_do, int *le_scroll, int from_top) {
 	 i=-Line_Window.line_num+1-from_top;
       }
    }
-   while (line->data_save==NULL) {
+   while (line->line->data_save==NULL) {
       if (line->next) {
          line=line->next;
          i++;
@@ -439,7 +632,7 @@ int Do_Search(int just_do, int *le_scroll, int from_top) {
       if (i==0) break;
    }
    *le_scroll=i;
-   if (line->data_save==NULL) return -2;
+   if (line->line->data_save==NULL) return -2;
    return 0;
 }
 
@@ -453,7 +646,7 @@ int Parcours_du_menu(int a) {
       if (line==NULL) line=Line_Window.lines;
       a--;
    }
-   return (line->data_save!=NULL);
+   return (line->line->data_save!=NULL);
 }
 
 int Number_current_line_scroll() {
@@ -467,66 +660,122 @@ static const char *fl_key_names[] = {
   "up","down","left","right",
   "pageup","pagedown","home","end",
   "a1","a2","b2","c1",
-  "c3","redo","undo"};
+  "c3","redo","undo","backspace","Enter","ic","delete"};
 #define FIRST_FN_OFFSET 0x200
 
   /* Parse Ca, C-a, F10 */
-int parse_key_name(char *name) {
+int parse_key_name(flrn_char *name) {
   int i;
-  if (strcmp(name,"espace")==0) return 32;
-  if (strcmp(name,"enter")==0) return '\r';
+  if (fl_strcmp(name,"espace")==0) return 32;
+  if (fl_strcmp(name,"enter")==0) return '\r';
   for (i=0;i<sizeof(fl_key_names)/sizeof(fl_key_names[0]);i++)
-    if (strcmp(name,fl_key_names[i])==0) return i+FIRST_FL_KEY_OFFSET;
-  if ((*name=='F') || (*name =='f'))
-    return strtol(name+1,NULL,10) + FIRST_FN_OFFSET;
-  if ((*name=='M') || (*name =='m')) {
-    if (strcmp(name,"M-esp")==0) return 160;
-    if ((name[1] == '-') && name[2]) return name[2]|128;
-    return name[1]|128;
+    if (fl_strcmp(name,
+		fl_static_tran(fl_key_names[i]))==0)
+	return i+FIRST_FL_KEY_OFFSET;
+  if ((*name==fl_static('F')) || (*name ==fl_static('f')))
+    return fl_strtol(name+1,NULL,10) + FIRST_FN_OFFSET;
+  if ((*name==fl_static('M')) || (*name ==fl_static('m'))) {
+    if (fl_strcmp(name,"M-esp")==0) return 160;
+    if ((name[1] == fl_static('-')) && name[2]) 
+	return ((unsigned char)name[2])|128;
+    return ((unsigned char)name[1])|128;
   }
-  if ((*name=='C') || (*name =='c') || (*name == '^')) {
-    if ((name[1] == '-') && name[2]) return toupper(name[2])-'A'+1;
-    return toupper(name[1])-'A'+1;
+  if ((*name==fl_static('C')) || (*name ==fl_static('c'))
+	  || (*name == fl_static('^'))) {
+    if ((name[1] == fl_static('-')) && name[2])
+	return toupper((char)(name[2]))-'A'+1;
+    return toupper((char)(name[1]))-'A'+1;
   }
   return 0;
 }
 
 /* Taille maximum de la chaine rendue : 9 */
 /* Tout est envoyé non alloué */
-const char *get_name_char(int ch,int flag) {
-  static char chaine[16];
+const flrn_char *get_name_char(int ch,int flag) {
+  static flrn_char chaine[16];
 
-  if (flag) strcpy(chaine,"\\key-"); else chaine[0]='\0';
+  if (flag) fl_strcpy(chaine,"\\key-"); else chaine[0]='\0';
   if ((ch<0) || (ch>=MAX_FL_KEY)) return NULL;
   if (ch<FIRST_FL_KEY_OFFSET) {
-     if (ch==32) { strcat(chaine,"espace"); return chaine; }
-     if (ch=='\r') { strcat(chaine,"enter"); return chaine; }
+     if (ch==32) { fl_strcat(chaine,fl_static("espace")); return chaine; }
+     if (ch=='\r') { fl_strcat(chaine,fl_static("enter")); return chaine; }
      if ((ch<32) || (ch==127)) {
-        strcat(chaine,"C-?");
-	if (ch!=127) chaine[2+flag*5]=(ch==127 ? '?' : (char)(ch+'@'));
+        fl_strcat(chaine,fl_static("C-?"));
+	if (ch!=127) chaine[2+flag*5]=(ch==127 ? fl_static('?') :
+		(flrn_char)(ch+'@'));
         return chaine;
      }
      if (ch<127) {
-        chaine[0]=(char) ch;
-	chaine[1]='\0';
+        chaine[0]=(flrn_char) ch;
+	chaine[1]=fl_static('\0');
 	return chaine;
      }
-     if (ch==160) return "M-esp";
+     if (ch==160) return fl_static("M-esp");
      if ((ch>160) && (ch<255)) {
-        strcat(chaine,"M- ");
-	chaine[2+flag*5]=(char)(ch-128);
+        fl_strcat(chaine,fl_static("M- "));
+	chaine[2+flag*5]=(flrn_char)(ch-128);
 	return chaine;
      }
   } else {
      if (ch-FIRST_FL_KEY_OFFSET<sizeof(fl_key_names)/sizeof(fl_key_names[0])) {
-	 strcat(chaine,fl_key_names[ch-FIRST_FL_KEY_OFFSET]);
+	 fl_strcat(chaine,fl_key_names[ch-FIRST_FL_KEY_OFFSET]);
          return chaine;
      }
      if ((ch>=FIRST_FN_OFFSET) && (ch<FIRST_FN_OFFSET+21)) {
-        sprintf(chaine,"%sF%i",(flag ? "\\key-" : ""),ch-FIRST_FN_OFFSET);
+        fl_snprintf(chaine,15,fl_static("%sF%i"),
+		(flag ? "\\key-" : ""),ch-FIRST_FN_OFFSET);
 	return chaine;
      }
   }
-  sprintf(chaine,"%s(%4i)",(flag ? "\\key-" : ""),ch);
+  fl_snprintf(chaine,15,"%s(%4i)",(flag ? "\\key-" : ""),ch);
   return chaine;
 }
+
+
+/* Creation d'un caractère coloré */
+Colored_Char_Type create_Colored_Char_Type (const char **str, int field) {
+    char c;
+#ifdef HAVE_WCHAR_H
+    /* trichons gaiement, mais ce serait mieux en config, même si
+     * l'optimisation de gcc analyse le code en direct */
+    if (SLSMG_BUILD_CHAR(0,1)==0x100) { /* slang de base */
+#endif
+      c=**str; (*str)++;
+      return SLSMG_BUILD_CHAR(c,field);
+#ifdef HAVE_WCHAR_H
+    }
+    /* cas du patch slang */
+    {
+        wchar_t ch;
+	mbstate_t ps;
+	size_t d;
+	mbrtowc(NULL,NULL,0,&ps);
+	d=mbrtowc(&ch,*str,strlen(*str)+1,&ps);
+	if (d==0) return (Colored_Char_Type)0;
+	if (d==(size_t)(-1)) {
+	    (*str)++; return SLSMG_BUILD_CHAR(L'?',field);
+	}
+	if (d==(size_t)(-2)) {
+	    (*str)+=strlen(*str); return SLSMG_BUILD_CHAR(L'?',field);
+	}
+	(*str)+=d; return SLSMG_BUILD_CHAR(ch,field);
+    }
+#endif
+}
+
+size_t Transpose_Colored_String (Colored_Char_Type **cstr,
+	char *guide, int field, size_t len) {
+    Colored_Char_Type cch;
+    const char *ptr=guide;
+    size_t r=0;
+    while ((*ptr) && (r<len) && (**cstr)) {
+	cch=create_Colored_Char_Type(&ptr, (field==-1 ? 0 : field));
+	if (cch==(Colored_Char_Type)0) break;
+	if (field!=-1) **cstr=cch;
+	(*cstr)++;
+	r++;
+    }
+    return r;
+}
+
+

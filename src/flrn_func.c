@@ -68,8 +68,8 @@ int is_tag_valid (Flrn_Tag *tag, Newsgroup_List **group) {
 }
        
 
-/* int goto_tag (int tag, union element *article, Newsgroup_List **group)
-   cette fonction prend un numéro de tag, et renvoie l'article
+/* int goto_tag (Flrn_Tag *tag, union element *article, Newsgroup_List **group)
+   cette fonction prend un tag, et renvoie l'article
    considéré, éventuellement avec un nouveau groupe.
    Retour : 0 : ok, sans changer de groupe (article.article)
    	    1 : changement de groupe avec article (article et group modifié)
@@ -79,36 +79,35 @@ int is_tag_valid (Flrn_Tag *tag, Newsgroup_List **group) {
 	    -3 : tag innexistant
 	    -4 : numéro de tag incorrect
 */
-int goto_tag (int tag, union element *article, Newsgroup_List **group) {
+int goto_tag (Flrn_Tag *tag,
+	union element *article, Newsgroup_List **group) {
    int ret;
 
-   if (tag >= MAX_TAGS) return -4;
-   if (tag < 0) return -4;
-   ret = is_tag_valid(&(tags[tag]),group);
+   if (tag==NULL) return -4;
+   ret = is_tag_valid(tag,group);
    if (ret==-2) return -3;
    if (ret==-1) return -2;
    if (ret==0) return -1;
    if (ret==1) {
-      (*article).number=tags[tag].numero;
+      (*article).number=tag->numero;
       return 2;
    }
-   (*article).article=tags[tag].article;
+   (*article).article=tag->article;
    return ((*group==Newsgroup_courant) ? 0 : 1);
 }
 
-/* int put_tag (Article_List *article, int tag)
+/* int put_tag (Article_List *article, Flrn_Tag *tag)
    Cette fonction met l'article article dans le tag tag...
    Retour : 0 : ok
    	   -1 : numéro de tag invalide
    ATTENTION : le nom du groupe n'est pas dupliqué
 */
-int put_tag (Article_List *article, int tag) {
-   if (tag >= MAX_TAGS) return -1;
-   if (tag < 0) return -1;
-   tags[tag].article_deb_key = Newsgroup_courant->article_deb_key;
-   tags[tag].article = article;
-   tags[tag].numero = article -> numero;
-   tags[tag].newsgroup_name=Newsgroup_courant->name;
+int put_tag (Article_List *article, Flrn_Tag *tag) {
+   if (tag==NULL) return -1;
+   tag->article_deb_key = Newsgroup_courant->article_deb_key;
+   tag->article = article;
+   tag->numero = article -> numero;
+   tag->newsgroup_name=Newsgroup_courant->name;
    return 0;
 }
 
@@ -128,20 +127,23 @@ int put_tag (Article_List *article, int tag) {
 	   -3 : chaine vide
 	   -4 : regexp invalide
 */
-int get_group (Newsgroup_List **group, int flags, char *name) {
-   char *gpe=name;
+static struct format_elem_menu fmt_getgrp_menu_e [] =
+    { { 0, 0, -1, 2, 0, 1 } };
+struct format_menu fmt_getgrp_menu = { 1, &(fmt_getgrp_menu_e[0]) };
+int get_group (Newsgroup_List **group, int flags, flrn_char *name) {
+   flrn_char *gpe=name;
    Newsgroup_List *my_group=Newsgroup_courant, *tmpmygroup=NULL;
    regex_t reg;
    int correct, order=-1, best_order=-1;
    Liste_Menu *lemenu=NULL, *courant=NULL;
-   char *tmp_name=NULL;
+   flrn_char *tmp_name=NULL;
 
-   while (*gpe==' ') gpe++;
-   if (*gpe=='\0') return -3;
-   if (flags & 4) if (regcomp(&reg,gpe,REG_EXTENDED)) return -4;
+   while (*gpe==fl_static(' ')) gpe++;
+   if (*gpe==fl_static('\0')) return -3;
+   if (flags & 4) if (fl_regcomp(&reg,gpe,REG_EXTENDED)) return -4;
    if ((flags & 9)==9) {
       if (flags & 4) {
-         char *mustmatch;
+         flrn_char *mustmatch;
 	 mustmatch=reg_string(gpe,1);
 	 lemenu=menu_newsgroup_re(mustmatch, reg,1+(flags & 2));
 	 if (mustmatch) free(mustmatch);
@@ -160,7 +162,8 @@ int get_group (Newsgroup_List **group, int flags, char *name) {
 		 ((flags & 1) || !(my_group->flags & GROUP_UNSUBSCRIBED));
          if (correct) {
 	    if (flags & 8)
-	       courant=ajoute_menu_ordre(&lemenu,tmp_name,my_group,-1,order);
+	       courant=ajoute_menu_ordre(&lemenu,&fmt_getgrp_menu,
+		       &tmp_name,my_group,-1,order);
 	    else
 	       if ((best_order==-1) || (order<best_order)) {
 	          best_order=order;
@@ -182,7 +185,8 @@ int get_group (Newsgroup_List **group, int flags, char *name) {
 		((flags & 1) || !(my_group->flags & GROUP_UNSUBSCRIBED));
          if (correct) {
 	    if (flags & 8)
-	       courant=ajoute_menu_ordre(&lemenu,tmp_name,my_group,-1,order);
+	       courant=ajoute_menu_ordre(&lemenu,&fmt_getgrp_menu,
+		       &tmp_name,my_group,-1,order);
 	    else
 	       if ((best_order==-1) || (order<best_order)) {
 	          best_order=order;
@@ -232,7 +236,8 @@ int get_group (Newsgroup_List **group, int flags, char *name) {
      else {
         num_help_line=10;
 	my_group=Menu_simple(lemenu,NULL,Ligne_carac_du_groupe,NULL,
-	                      "Quel groupe ?");
+		/* FIXME : français */
+	                      fl_static("Quel groupe ?"));
      }
      Libere_menu(lemenu); /* on est bien d'accord qu'on ne libere PAS les noms*/
                           /* CAR action_select vaut NULL */

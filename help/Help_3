@@ -28,9 +28,11 @@ set <variable>=<valeur>
 header	list|weak|hide <une suite de chiffre ou de noms> 
 	donne l'ordre dans lequel les entêtes d'un
         article doivent être affichés. À chaque chiffre correspond un entête :
-	  1 : Auteur      2 : Réponse à     3 : Sujet         4 : Date
-	  5 : Newsgroups  6 : Followup-To   7 : Organization  8 : Lines  
-	  9 : Sender     10 : Reply-To     11 : Expires      12 : X-Newsreader
+         1 : Newsgroups   2 : Followup-To   3 : Date          4 : Lines
+         5 : Expires      6 : Xref          7 : X-Trace       8 : Auteur 
+         9 : Sujet       10 : Organisation 11 : Sender       12 : Reply-To    
+	13 :X-Newsreader 14 : To           15 : Cc           16 : Bcc
+	17 :X-Censorship 18 : References   19 : Message-ID
 	On peut mettre d'autres entêtes en donnant leur nom complet. 
 	On peut aussi mettre 'others' pour signifier tous les autres entêtes,
 	qui sont alors affiché dans un ordre quelconque.

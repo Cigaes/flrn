@@ -22,6 +22,7 @@
 #include "flrn_slang.h"
 #include "options.h"
 #include "flrn_color.h"
+#include "enc/enc_strings.h"
 
 static char UNUSED rcsid[]="$Id$";
 
@@ -62,7 +63,7 @@ struct Obj_color_struct Colors[NROF_FIELDS] =
 
 
 /* le délimiteur pour les options */
-static char *delim = "=: \t\n";
+static flrn_char *delim = fl_static("=: \t\n");
 
 /* une limite sur le numéro de () dans les regexp */
 #define REG_MAX_SUB 10
@@ -127,18 +128,19 @@ static int parse_std(char *buf, int field) {
  * */
 /* clear tout seul efface tout */
 /* func 1 = regcolor, 2=color, 3=mono */
-int parse_option_color(int func, char *line)
+int parse_option_color(int func, flrn_char *line)
 {
-  char *buf;
-  char *buf2;
+  flrn_char *buf;
+  flrn_char *buf2;
+  flrn_char *point;
   int i;
   struct Highlight *new_pat;
   int res;
   int field=0; /* le champ pour la couleur std */
 
-  buf = strtok(line,delim);
+  buf = fl_strtok_r(line,delim,&point);
   if (buf == NULL) return -1;
-  if (strcasecmp(buf,"clear")==0) {
+  if (fl_strcasecmp(buf,fl_static("clear"))==0) {
     free_highlights();
     return 0;
   }
@@ -147,17 +149,18 @@ int parse_option_color(int func, char *line)
   /* le premier champ, c'est field[,field] */
   /* on n'a pas de controle d'erreur pertinent... */
   while(buf) {
-    buf2=strchr(buf,',');
+    buf2=fl_strchr(buf,',');
     if (buf2) {*buf2=0; buf2++;}
     for (i=0;i<NROF_FIELDS;i++) {
-      if (strcasecmp(buf,Field_names[i])==0) {
+      if (fl_strcasecmp(buf,fl_static_tran(Field_names[i]))==0) {
 	new_pat->field_mask |= 1<<i; 
 	field=i;
 	break;
       }
     }
     if (i==NROF_FIELDS) {
-      if (strcasecmp(buf,"-") && strcasecmp(buf,"all")) {
+      if (fl_strcasecmp(buf,fl_static("-")) && 
+	      fl_strcasecmp(buf,fl_static("all"))) {
 	free(new_pat);
 	return -2;
       }
@@ -166,28 +169,29 @@ int parse_option_color(int func, char *line)
   }
   if (new_pat->field_mask == 0) { new_pat->field_mask = ~0;}
 
-  buf = strtok(NULL,delim);
+  buf = fl_strtok_r(NULL,delim,&point);
   if (func == 1) {
     if (buf == NULL) { free(new_pat); return -1;}
     /* le deuxième champ, ce sont les flags */
     for (i=0;i<NUM_FLAGS;i++) {
-      if (strstr(buf,flags_names[i])) new_pat->flags |= 1<<i; 
+      if (fl_strstr(buf,fl_static_tran(flags_names[i])))
+	  new_pat->flags |= 1<<i; 
     }
-    if ((buf2=strpbrk(buf,"0123456789"))) {
-      new_pat->pat_num = strtol(buf2,NULL,10);
+    if ((buf2=fl_strpbrk(buf,fl_static("0123456789")))) {
+      new_pat->pat_num = fl_strtol(buf2,NULL,10);
       if (new_pat->pat_num >= REG_MAX_SUB) { free(new_pat); return -3; }
     } else new_pat->pat_num=0;
-    buf = strtok(NULL,delim);
+    buf = fl_strtok_r(NULL,delim,&point);
   }
   if (func !=3) {
     if (buf == NULL) { free(new_pat); return -1;}
     /* le 2/3eme champ : fg */
-    strncpy(new_pat->colors.fg, buf, 14);
-    buf = strtok(NULL,delim);
+    flraw_strncpy(new_pat->colors.fg, buf, 14);
+    buf = fl_strtok_r(NULL,delim,&point);
     if (buf == NULL) { free(new_pat); return -1;}
     /* le 3/4eme champ : bg */
-    strncpy(new_pat->colors.bg, buf, 14);
-    buf = strtok(NULL,delim);
+    flraw_strncpy(new_pat->colors.bg, buf, 14);
+    buf = fl_strtok_r(NULL,delim,&point);
     if ((i=parse_std(new_pat->colors.fg,field)) >=0 )
       strncpy(new_pat->colors.fg,Colors[i].fg,14);
     if ((i=parse_std(new_pat->colors.bg,field)) >=0 )
@@ -195,52 +199,53 @@ int parse_option_color(int func, char *line)
   }
   /* le 2/4/5eme champ : attr */
   while(buf) {
-    buf2=strchr(buf,',');
-    if (buf2) {*buf2=0; buf2++;}
-    if ((i=parse_std(buf,field)) >=0 ) {
+    buf2=fl_strchr(buf,fl_static(','));
+    if (buf2) {*buf2=fl_static('\0'); buf2++;}
+    if ((i=parse_std(fl_static_rev(buf),field)) >=0 ) {
       new_pat->colors.attributs|=Colors[i].attributs;
       new_pat->colors.attributs_mono|=Colors[i].attributs_mono;
     }
     else
-    if (strcasecmp(buf,bold_str)==0) {
+    if (fl_strcasecmp(buf,fl_static_tran(bold_str))==0) {
       new_pat->colors.attributs|=FL_BOLD_MASK;
       new_pat->colors.attributs_mono|=FL_BOLD_MASK;
     }
     else
-    if (strcasecmp(buf,blink_str)==0) {
+    if (fl_strcasecmp(buf,fl_static_tran(blink_str))==0) {
       new_pat->colors.attributs|=FL_BLINK_MASK;
       new_pat->colors.attributs_mono|=FL_BLINK_MASK;
     }
     else
-    if (strcasecmp(buf,underline_str)==0) {
+    if (fl_strcasecmp(buf,fl_static_tran(underline_str))==0) {
       new_pat->colors.attributs|=FL_ULINE_MASK;
       new_pat->colors.attributs_mono|=FL_ULINE_MASK;
     }
     else
-    if (strcasecmp(buf,reverse_str)==0) {
+    if (fl_strcasecmp(buf,fl_static_tran(reverse_str))==0) {
       new_pat->colors.attributs|=FL_REV_MASK;
       new_pat->colors.attributs_mono|=FL_REV_MASK;
     }
     else
-    if (strcasecmp(buf,"-") && strcasecmp(buf,"normal"))
+    if (fl_strcasecmp(buf,fl_static("-")) && 
+	    fl_strcasecmp(buf,fl_static("normal")))
       return -5;
     buf=buf2;
   }
 
   if (func ==1 ) {
-    buf = strtok(NULL,"\n");
+    buf = fl_strtok_r(NULL,fl_static("\n"),&point);
     if (buf == NULL) { free(new_pat); return -1;}
-    buf += strspn(buf,delim);
-    if (*buf == '"') {
+    buf += fl_strspn(buf,delim);
+    if (*buf == fl_static('"')) {
       char *buf2;
       buf ++;
-      buf2 = rindex(buf,'"');
-      if(buf2) *buf2='\0';
+      buf2 = fl_strrchr(buf,fl_static('"'));
+      if(buf2) *buf2=fl_static('\0');
     }
-    if (*buf=='\0') { free(new_pat); return -4;}
+    if (*buf==fl_static('\0')) { free(new_pat); return -4;}
 
     /* le 6eme champ : regexp */
-    res = regcomp(&new_pat->regexp,buf,REG_EXTENDED|
+    res = fl_regcomp(&new_pat->regexp,buf,REG_EXTENDED|
       ((new_pat->flags&HIGH_FLAGS_LINE)?REG_NOSUB:0) |
       ((new_pat->flags&HIGH_FLAGS_CASE)?0:REG_ICASE));
     if (res !=0) {
@@ -249,7 +254,7 @@ int parse_option_color(int func, char *line)
     /* On est presque arrivé... Juste le cas des sous-exp à traiter... */
     if (!(new_pat->flags&HIGH_FLAGS_LINE) && 
     		(new_pat->pat_num>(new_pat->regexp).re_nsub)) {
-      regfree(&new_pat->regexp); free(new_pat); return -6;
+      fl_regfree(&new_pat->regexp); free(new_pat); return -6;
     }
     /*
     new_pat->colors.attributs_mono=new_pat->colors.attributs;
@@ -316,6 +321,133 @@ void Init_couleurs() {
 }
 
 
+/* Recherche les patterns pour la création d'une ligne en couleur.
+ * add_line_fun sert à envoyer un résultat
+ * field est le type de texte, line la ligne, len sa longueur
+ * on est toujours au début de la ligne.
+ * def_color : couleur du non_match
+ * flag  : 1 -> se limiter à une ligne
+ */
+struct High_Match {
+    int pre_len;
+    int mat_len;
+    struct Highlight *cur;
+};
+
+int create_Color_line (add_line_fun add_line,
+	int field, flrn_char *line, size_t len, int def_color) {
+    regmatch_t pmatch[REG_MAX_SUB];
+/*    wflrn_char *wide_line=NULL;  */
+    int color_line=def_color; /* la couleur du reste de la ligne */
+    struct Highlight *current=highlight_first,*cur=NULL;
+    int excl_line=0;	/* a 1 : ne pas highlighter la zone */
+    int matched_line=0;	/* on a matché une regexp de ligne */
+    int prefix_len=len,passe=0; /* la zone d'avant tous les matchs */
+    int match_len=0;	/* la taille de la zone a colorer */
+    struct High_Match *high;
+    struct High_Match *final;
+    int high_num,final_num,i;
+    flrn_char *pline=line;
+
+    high=safe_malloc(sizeof(struct High_Match)*(len+1));
+    final=safe_malloc(sizeof(struct High_Match)*(len+1));
+    high_num=0;
+    final_num=0;
+
+    /* une première chose à faire est de transcrire la ligne
+     * en wflrn_char, parce que ce n'est qu'avec ça qu'on a la bonne
+     * longueur */
+/*    flstring_to_widestr(line,len,&wide_line,&wl_len);  */
+    while ((len>0) && (current)) {
+       /* est-ce que la regexp match et field est bon ? */
+       if ((current->field_mask & (1<<field)) &&
+	  (fl_regexec(&current->regexp,pline,REG_MAX_SUB,
+		   pmatch,(pline==line)?0:REG_NOTBOL)==0))
+       {
+          if (current->flags & HIGH_FLAGS_LINE) {
+	/* on garde que le premier match ligne */
+	    if ((!matched_line) && (pline==line)) {
+	       color_line=current->col_num;
+	       excl_line = (current->flags & HIGH_FLAGS_EXCLUDE)?1:0;
+	       if (excl_line) break;
+	       matched_line=1;
+	    }
+          } else {
+	  /* on garde un autre match si il est entièrement avant */
+	     if ((pmatch[current->pat_num].rm_so != -1) &&
+	        (((cur==NULL) && (pmatch[current->pat_num].rm_so <= prefix_len))
+	         || (pmatch[current->pat_num].rm_eo <= prefix_len)
+	         || (match_len==0))) {
+	        if(cur != NULL) {
+	           high[high_num].pre_len=prefix_len+passe;
+	           high[high_num].mat_len=match_len;
+	           high[high_num].cur=cur;
+	           high_num++;
+	        }
+	        cur=current;
+	        prefix_len= pmatch[current->pat_num].rm_so;
+	        match_len = ((pmatch[current->pat_num].rm_eo <len)?
+	            pmatch[current->pat_num].rm_eo:len) - prefix_len;
+	  /* Dans le cas où prefix_len et match_len sont nuls, on "triche" */
+	  /* en mettant prefix_len à 1 */
+	  /* On fait ensuite une modif sur certains tests pour arranger les */
+	  /* choses */
+	        if ((match_len==0) && (prefix_len==0)) prefix_len=1;
+	     }
+          }
+       }
+       current=current->next;
+       if (current==NULL) {
+	   /* OK */
+	   if (cur==NULL) break; /* rien n'a matché du tout */
+	   if (match_len>0) {
+	      final[final_num].pre_len=prefix_len+passe;
+	      final[final_num].mat_len=match_len;
+	      final[final_num].cur=cur;
+	      final_num++;
+	   }
+	   len-=(prefix_len+match_len);
+	   passe+=(prefix_len+match_len);
+	   pline+=passe;
+	   high_num--;
+	   if (high_num>=0) {
+	       cur=high[high_num].cur;
+	       prefix_len=high[high_num].pre_len-passe;
+	       match_len=high[high_num].mat_len;
+	       current=cur->next; /* en toute logique, cur->next != NULL */
+	   } else {
+               cur=NULL;
+	       prefix_len=len;
+	       current=highlight_first;
+	       high_num=0;
+	   }
+       }
+    }
+    /* si j'ai bien fait les choses, on a tout ce qu'il faut dans final */
+    free(high);
+    /* Dans le cas où on a matché un "exclude", on met final_num à 0 */
+    if (excl_line) final_num=0;
+    pline=line;
+    len+=passe;
+    passe=0;
+    for (i=0;i<final_num;i++) {
+        if (final[i].pre_len>passe)
+	    add_line(pline,final[i].pre_len-passe,color_line);
+	passe=final[i].pre_len;
+	pline=line+passe;
+	if (final[i].mat_len>0)
+	    add_line(pline,final[i].mat_len,(final[i].cur)->col_num);
+	passe+=final[i].mat_len;
+	pline+=final[i].mat_len;
+    }
+    add_line(pline,len-passe,color_line);
+    free(final);
+    return color_line;
+}
+    
+
+
+#if 0
 /* affiche une ligne en couleur
  * to_print dit s'il faut afficher
  * la ligne est copiée dans format_line si format_line != NULL
@@ -325,8 +457,8 @@ void Init_couleurs() {
  * on retourne la couleur de base de la ligne, a repasser si on la continue */
 /* high est une liste {color,prefix_len,match_len} des patterns a considérer */
 int raw_Aff_color_line(int to_print, unsigned short *format_line,
-    int *format_len, int field, char *line, int len, int bol, int def_color,
-    int *high, int fill_to_len) {
+    int *format_len, int field, flrn_char *line, int len, int bol,
+    int def_color, int *high, int fill_to_len) {
   regmatch_t pmatch[REG_MAX_SUB];
   int prefix_len=len;	/* le nombre de caractères avant la zone a colorer */
   int match_len=0;	/* la taille de la zone a colorer */
@@ -447,20 +579,19 @@ int raw_Aff_color_line(int to_print, unsigned short *format_line,
   /* on a fini ! */
   return color_line;
 }
+#endif
 
-int Aff_color_line(int to_print, unsigned short *format_line, int *format_len,
-    int field, char *line, int len, int bol, int def_color) {
-  return raw_Aff_color_line(to_print,format_line,format_len,field,line,len,
-      bol,def_color,NULL,0);
-}
+Colored_Char_Type *cree_chaine_mono (const char *str, int field, size_t len,
+	size_t *nbcct) {
+   size_t j;
+   const char *buf=str;
+   Colored_Char_Type *toto;
 
-unsigned short *cree_chaine_mono (const char *str, int field, int len) {
-   int i;
-   unsigned short *toto;
-
-   if (len==-1) len=strlen(str);
-   toto=safe_malloc(len*sizeof(short));
-   for (i=0;i<len;i++) toto[i]=(field<<8) + (unsigned char)str[i];
+   if (len==(size_t)-1) len=strlen(str);
+   toto=safe_malloc(len*sizeof(Colored_Char_Type));
+   for (j=0;(*buf) && (buf-str<len);j++) 
+       toto[j]=create_Colored_Char_Type(&buf,field);
+   *nbcct=j;
    return toto;
 }
 
@@ -543,39 +674,45 @@ void dump_colors_in_flrnrc (FILE *file) {
   fprintf(file,"\n\nVoila, c'est fini...\n");
 }
 
+size_t Transpose_flchars_on_colchars(flrn_char **flstr, Colored_Char_Type 
+	**ccstr, size_t len, int field, size_t rst) {
+    int resconv;	
+    char *bla=NULL;
+    resconv=conversion_to_terminal(*flstr,&bla,0,len);
+    rst=Transpose_Colored_String(ccstr, bla, field, rst);
+    if (resconv==0) free(bla);
+    if (len==(size_t)(-1)) *flstr+=fl_strlen(*flstr);
+        else *flstr+=len;
+    return rst;
+}
 
-unsigned short *Search_in_line (unsigned short *line, char *out, long len, 
-				regex_t *sreg) {
-   char *ptr=out;
-   int ret=0, bol=1, i;
+Colored_Char_Type *Search_in_line (Colored_Char_Type *line,
+	flrn_char *out, size_t len, regex_t *sreg) {
+   flrn_char *ptr=out;
+   int ret=0, bol=1;
    regmatch_t pmatch[1];
-   unsigned short *result=NULL, *ptr2=line, *ptr3=NULL;
+   Colored_Char_Type *result=NULL, *ptr3=NULL;
+   size_t rst=0;
    
-   while ((ret==0) && (len!=0)) {
-     ret=regexec(sreg, ptr, 1, pmatch, bol ? 0 : REG_NOTBOL);
+   while ((ret==0) && (*ptr)) {
+     ret=fl_regexec(sreg, ptr, 1, pmatch, bol ? 0 : REG_NOTBOL);
      if (ret==0) {
         if (bol) {
-	   result=safe_malloc(sizeof(unsigned int)*len);
+	   result=safe_malloc(sizeof(Colored_Char_Type)*len);
+	   memcpy(result,line,sizeof(Colored_Char_Type)*len);
 	   ptr3=result;
+	   rst=len;
 	}
-	for (i=0;i<pmatch[0].rm_so;i++) {
-	   *(ptr3++)=*(ptr2++);
-	   ptr++;
-	}
-	for (;i<pmatch[0].rm_eo;i++) {
-	   *(ptr3++)=((unsigned char)(*ptr++))+(FIELD_SEARCH<<8);
-	   ptr2++;
-	}
-	if (pmatch[0].rm_eo==0) { /* un match vide :-( */
-	   *(ptr3++)=*(ptr2++); ptr++; len--;
-	}
-	len-=pmatch[0].rm_eo;
+	rst-=Transpose_flchars_on_colchars(&ptr,&ptr3,pmatch[0].rm_so,-1,rst);
+	if (pmatch[0].rm_eo!=0) {
+	  rst-=Transpose_flchars_on_colchars(&ptr,&ptr3,
+		pmatch[0].rm_eo-pmatch[0].rm_so,FIELD_SEARCH,rst);
+	} else 
+	  rst-=Transpose_flchars_on_colchars(&ptr,&ptr3,1,-1,rst);
      }
      bol=0;
    }
-   if (result) { /* On recopie la fin de la chaine*/
-      for (;*ptr;ptr++) 
-         *(ptr3++)=*(ptr2++);
-   }
+   if (result)
+       rst-=Transpose_flchars_on_colchars(&ptr,&ptr3,(size_t)(-1),-1,rst);
    return result;
 }

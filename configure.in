@@ -125,6 +125,35 @@ AC_TRY_LINK([], [SLang_init_tty ();],
   [AC_MSG_RESULT(yes)],
   [AC_MSG_ERROR(unable to compile.  check config.log)])
 
+dnl Checks for iconv
+flrn_iconv=no
+AC_ARG_WITH(iconv, [  --with-iconv[=DIR]        use libiconv ],
+	[if test $withval != yes; then
+	        if test -d $withval/lib; then
+		          flrn_iconv=$withval/lib
+			  CPPFLAGS="-I$withval/include $CPPFLAGS"
+		else
+		          flrn_iconv=$withval
+			  CPPFLAGS="-I$withval $CPPFLAGS"
+		fi
+	else 
+		flrn_iconv=yes
+        fi],
+	[AC_CHECK_FUNCS(iconv,,[flrn_iconv=yes])
+	])
+
+if test X$flrn_iconv != Xno; then
+	if test X$flrn_iconv != Xyes; then
+		LDFLAGS="$LDFLAGS -L$flrn_iconv"
+		if test X$solaris = Xyes; then
+			LDFLAGS="$LDFLAGS -R$flrn_iconv"
+		fi
+	fi
+        echo checking for libiconv... $flrn_cv_rx
+	AC_CHECK_LIB(iconv, iconv,,[
+	  AC_MSG_ERROR(You need to use the option --with-iconv)])
+fi
+
 
 dnl Checks for libraries.
 dnl Replace `main' with a function in -lslang:
@@ -166,7 +195,7 @@ TBLS_h=`echo $TBLS | sed 's%chrtrans/%%g;s%\.tbl%\.h%g'`
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(sys/time.h unistd.h ctype.h errno.h)
+AC_CHECK_HEADERS(sys/time.h unistd.h ctype.h errno.h wchar.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

@@ -14,9 +14,10 @@
 #define FLRN_FLRN_LISTE_H
 
 #include "flrn_config.h"
+#include "enc/enc_base.h"
 typedef struct _Flrn_liste_els {
   struct _Flrn_liste_els *next;
-  char *ptr;
+  flrn_char *ptr;
 } Flrn_liste_els;
 
 typedef struct _Flrn_liste {
@@ -25,9 +26,9 @@ typedef struct _Flrn_liste {
 
 extern Flrn_liste *alloue_liste(void);
 extern int free_liste(Flrn_liste *);
-extern int find_in_liste(Flrn_liste *, char *);
-extern int add_to_liste(Flrn_liste *, char *);
-extern int remove_from_liste(Flrn_liste *, char *);
+extern int find_in_liste(Flrn_liste *, flrn_char *);
+extern int add_to_liste(Flrn_liste *, flrn_char *);
+extern int remove_from_liste(Flrn_liste *, flrn_char *);
 extern int write_liste(Flrn_liste *, FILE *);
 
 #endif

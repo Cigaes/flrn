@@ -22,6 +22,7 @@
 #include "art_group.h"
 #include "group.h"
 #include "flrn_string.h"
+#include "flrn_func.h"
 #include "post.h"
 #include "options.h"
 #include "flrn_tcp.h"
@@ -33,6 +34,7 @@
 #include "flrn_menus.h"
 #include "rfc2047.h"
 #include "flrn_regexp.h"
+#include "enc/enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 
@@ -40,7 +42,12 @@ static UNUSED char rcsid[]="$Id$";
 
 extern char short_version_string[];
 
-Lecture_List *Deb_article;
+struct post_lecture {
+    struct post_lecture *suivant;
+    char *ligne;
+};
+
+struct post_lecture *Deb_article;
 Lecture_List *Deb_body;
 Article_List *Pere_post;
 int par_mail, supersedes;
@@ -50,14 +57,17 @@ Post_Headers *Header_post;
 
 /* Obtention du sujet d'un post. Pas de formatage pour l'instant */
 /* retour : 0 en cas de succes, -1 en cas d'annulation.		 */
-static int get_Sujet_post(char *str) {
+static int get_Sujet_post(flrn_char *str) {
    int res;
+   char affstr[MAX_SUJET_LEN+1];
    
    Cursor_gotorc(2,0);
+   /* FIXME : français et conversion, et la colonne pour le getline */
    Screen_write_string("Sujet : ");
    do {
-     str[0]='\0';
-     res=flrn_getline(str,MAX_SUJET_LEN,2,8); 
+     str[0]=fl_static('\0');
+     affstr[0]='\0';
+     res=flrn_getline(str,MAX_SUJET_LEN,affstr,MAX_SUJET_LEN,2,8); 
    } while (res==-2);   /* un backspace en debut de ligne ne fait rien */
    return res; 
 }
@@ -69,11 +79,7 @@ static int recalc_col (char *ligne, int flag) {
    int ret=0;
 
    if (flag && (*ligne=='\0')) return -1;
-   while (*(ligne+flag)) {
-      if (*ligne==9) ret=(ret/Screen_Tab_Width+1)*Screen_Tab_Width; else
-	 ret++;
-      ligne++;
-   }
+   ret=str_estime_width(ligne,0,strlen(ligne)-flag);
    return ret;
 }
 #endif
@@ -83,6 +89,7 @@ static int recalc_col (char *ligne, int flag) {
 void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
    Header_List *liste;
    Lecture_List *lecture_courant;
+   int rc=1; char *trad;
   
    if (Options.edit_all_headers) {
       int i;
@@ -92,44 +99,90 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
 	if (i==LINES_HEADER) continue;
 	if (i==XREF_HEADER) continue;
 	if (i==X_NEWSREADER_HEADER) continue;
-	if (i==MESSAGE_ID_HEADER) continue;
+	if (i==NB_DECODED_HEADERS+MESSAGE_ID_HEADER) continue;
+	if (i==X_TRACE_HEADER) continue;
 	if ((i==TO_HEADER) && (!par_mail)) continue;
 	if ((i==CC_HEADER) && (!par_mail)) continue;
 	if ((i==BCC_HEADER) && (!par_mail)) continue;
 	fprintf(tmp_file, "%s ", Headers[i].header);
-	if (Header_post->k_header[i])
-	   fputs(Header_post->k_header[i],tmp_file);
+	if (i<NB_DECODED_HEADERS) {
+	   if (Header_post->k_header[i]) {
+              rc=conversion_to_editor(Header_post->k_header[i],&trad,
+		      0,(size_t)(-1));
+	      fputs(trad,tmp_file);
+	      if (rc==0) free(trad);
+	   } 
+	} else if (Header_post->k_raw_header[i-NB_DECODED_HEADERS]) 
+	    fputs(Header_post->k_raw_header[i-NB_DECODED_HEADERS],tmp_file);
 	putc('\n',tmp_file);
       }
       liste=Header_post->autres;
       while (liste) {
-	 fprintf(tmp_file, "%s\n", liste->header);
+	 rc=conversion_to_editor(liste->header_head,&trad,
+		 0,(size_t)(-1));
+	 fputs(trad,tmp_file);
+	 if (rc==0) free(trad);
+	 putc(' ',tmp_file);
+	 rc=conversion_to_editor(liste->header_head,&trad,
+		 0,(size_t)(-1));
+	 fputs(trad,tmp_file);
+	 if (rc==0) free(trad);
+	 putc('\n',tmp_file);
 	 liste=liste->next;
       }
    } else {
+       /* FIXME : français */
       fputs("Groupes: ",tmp_file);
-      if (Header_post->k_header[NEWSGROUPS_HEADER]) 
-         fputs(Header_post->k_header[NEWSGROUPS_HEADER],tmp_file);
+      if (Header_post->k_header[NEWSGROUPS_HEADER]) {
+	  rc=conversion_to_editor(Header_post->k_header[NEWSGROUPS_HEADER],
+		  &trad, 0,(size_t)(-1));
+	  fputs(trad,tmp_file);
+	  if (rc==0) free(trad);
+      }
       putc('\n',tmp_file);
+       /* FIXME : français */
       fputs("Sujet: ",tmp_file);
-      if (Header_post->k_header[SUBJECT_HEADER])
-	 fputs(Header_post->k_header[SUBJECT_HEADER],tmp_file);
+      if (Header_post->k_header[SUBJECT_HEADER]) {
+	  rc=conversion_to_editor(Header_post->k_header[SUBJECT_HEADER],
+		  &trad, 0,(size_t)(-1));
+	  fputs(trad,tmp_file);
+	  if (rc==0) free(trad);
+      }
       putc('\n',tmp_file);
       liste=Header_post->autres;
       while (liste) {
-	 if (liste->num_af) fprintf(tmp_file, "%s\n", liste->header);
+	 if (liste->num_af) {
+	     rc=conversion_to_editor(liste->header_head,&trad,
+		 0,(size_t)(-1));
+	     fputs(trad,tmp_file);
+	     if (rc==0) free(trad);
+	     putc(' ',tmp_file);
+	     rc=conversion_to_editor(liste->header_head,&trad,
+		 0,(size_t)(-1));
+	     fputs(trad,tmp_file);
+	     if (rc==0) free(trad);
+	     putc('\n',tmp_file);
+	 }
 	 liste=liste->next;
       }
    }
    putc('\n', tmp_file);
    if (Pere_post && ((incl==1) || ((incl==-1) && (Options.include_in_edit)))) { 
        if ((!supersedes) && (Options.attribution)) Copy_format (tmp_file,Options.attribution,Pere_post,NULL,0);
-       Copy_article(tmp_file,Pere_post, Options.quote_all, (supersedes ? NULL : Options.index_string), (supersedes) || (Options.quote_all) || (Options.quote_sig));
+       if ((!supersedes) && (Options.index_string)) {
+	   rc=conversion_to_editor(Options.index_string,&trad,0,(size_t)(-1));
+       } else trad=NULL;
+       Copy_article(tmp_file,Pere_post, Options.quote_all, 
+	       trad, (supersedes) || (Options.quote_all) ||
+	       (Options.quote_sig), 4);
        putc('\n', tmp_file);
+       if ((trad) && (rc==0)) free(trad);
    }
    if ((incl==-1) && (Options.sig_file) && (!supersedes)) {
        FILE *sig_file;
-       sig_file=open_flrnfile(Options.sig_file,"r",0,NULL);
+       rc=conversion_to_file(Options.sig_file,&trad,0,(size_t)(-1));
+       sig_file=open_flrnfile(trad,"r",0,NULL);
+       if (rc==0) free(trad);
        if (sig_file) {
           char ligne[82];
 	  int deb;
@@ -149,8 +202,11 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
    while (lecture_courant) {
       if (lecture_courant==d_l)  
 	 lecture_courant->size=place;
-      lecture_courant->lu[lecture_courant->size]='\0';  /* Par précaution */
-      fputs(lecture_courant->lu, tmp_file);
+      lecture_courant->lu[lecture_courant->size]=fl_static('\0');
+      /* Par précaution */
+      rc=conversion_to_editor(lecture_courant->lu,&trad,0,(size_t)(-1));
+      fputs(trad, tmp_file);
+      if (rc==0) free(trad);
      /* J'utilise fprintf plutôt que fwrite par principe : fwrite est */
      /* a priori pour des fichiers binaires (et puis, j'ai commencé   */
      /* avec fprintf). Mais bon, on pourrait peut-être changer...     */
@@ -162,36 +218,66 @@ void Copie_prepost (FILE *tmp_file, Lecture_List *d_l, int place, int incl) {
 /* Lecture du fichier une fois l'édition finie */
 /* Renvoie -1 si le fichier est VRAIMENT trop moche */
 int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
-   char buf[513]; /* On suppose qu'un ligne ne peut pas faire plus de 512 */
+   char buf[1025]; /* On suppose qu'un ligne ne peut pas faire plus de 1024 */
    char *buf2, *buf3;
-   char **header_courant=NULL;
-   int header_connu;
+   char *hcur=NULL;
+   flrn_char **header_courant=NULL;
+   int header_connu=0;
    int taille;
+   int raw_head=0;
    Lecture_List *lecture_courant;
    int headers=1,read_something=0, i;
    Header_List *liste, *last_liste, **unk_header_courant=NULL;
+   int rc; flrn_char *trad;
 
    lecture_courant=Deb_body;
    lecture_courant->size=0;
-   lecture_courant->lu[0]='\0';
-   while (fgets(buf,513,tmp_file)) {
-      if (strlen(buf)==512) return -1;
+   lecture_courant->lu[0]=fl_static('\0');
+   while (fgets(buf,1025,tmp_file)) {
+      if (strlen(buf)==1024) return -1; 
+               /* TODO : faire sauter cette limitation */
       if (!read_something && (buf[0]=='\n')) continue; /* J'ignore les */
       		/* les lignes en debut fichier */
       read_something=1;
-      if ((buf[0]=='\n') && headers) {headers=0; continue;}
       if (headers) {
+	 if ((buf[0]=='\n') || (!isblank(buf[0]))) {
+	     if (header_courant) {
+	         if (hcur) {
+		    rc=conversion_from_editor(hcur,&trad,0,(size_t)(-1));
+		    *header_courant=trad;
+		    if (rc==0) free(hcur);
+		    hcur=NULL;
+	         } else {
+		    if (header_connu==0) {
+		       liste=(*unk_header_courant)->next;
+		       free((*unk_header_courant)->header_head);
+		       free(*unk_header_courant);
+		       *unk_header_courant=liste;
+	            }
+		 }
+		 header_courant=NULL;
+		 raw_head=0;
+	     } else if (raw_head) {
+		 Header_post->k_raw_header[raw_head-NB_DECODED_HEADERS]=
+		     hcur;
+		 hcur=NULL;
+		 raw_head=0;
+	     }
+             if (buf[0]=='\n') {headers=0; continue;}
+	 }
 	 if (isblank(buf[0])) {
-	   if (header_courant) {
-	     if (*header_courant) {
-	      *header_courant=safe_realloc(*header_courant, (strlen(*header_courant)+3+strlen(buf))*sizeof(char));
-	      strcat(*header_courant, "\n");
-	      strcat(*header_courant, buf);
-	      (*header_courant)[strlen(*header_courant)-1]='\0';
+	   if ((header_courant) || (raw_head)) {
+	     if (hcur) {
+	       hcur=safe_realloc(hcur,
+		      (strlen(hcur)+3+strlen(buf))*sizeof(char));
+	       strcat(hcur, "\n");
+	       strcat(hcur, buf);
+	       hcur[strlen(hcur)-1]='\0';
 	     } else 
-	       *header_courant=safe_strdup(buf);
+	       hcur=safe_strdup(buf);
 	   } else headers=0; /* On recopiera après */
 	 } else {
+	     /* on a fini un header */
            buf2=strchr(buf,':');
 	   buf3=strpbrk(buf, " \t");
 	   if ((buf2==NULL) || ((buf3) && (buf3-buf2<0))) headers=0; else {
@@ -199,72 +285,80 @@ int Lit_Post_Edit (FILE *tmp_file, Lecture_List **d_l, int *place) {
 	      for (i=0; i<NB_KNOWN_HEADERS; i++) 
 	        if (strncasecmp(buf,Headers[i].header,Headers[i].header_len)==0)
 		{
-		  header_courant=&(Header_post->k_header[i]); 
+		  if (i<NB_DECODED_HEADERS)
+		      header_courant=&(Header_post->k_header[i]); 
+		  else {
+		      raw_head=i;
+		      header_courant=NULL;
+		  }
 		  break;
 		}
               if (i==NB_KNOWN_HEADERS) {
+		  /* FIXME : francais */
 	         if ((strncasecmp(buf,"sujet:", 6)==0) && 
 		     !Options.edit_all_headers)
 		    header_courant=&(Header_post->k_header[SUBJECT_HEADER]); 
+		 /* FIXME : français */
 		 else if ((strncasecmp(buf,"groupes:", 8)==0) && 
 		     !Options.edit_all_headers)
 		    header_courant=&(Header_post->k_header[NEWSGROUPS_HEADER]); 
 		 else {
 		   header_connu=0;
-		   taille=buf2-buf;
+		   taille=buf2+1-buf;
+		   rc=conversion_from_editor(buf,&trad,0,taille);
                    liste=Header_post->autres;
 		   last_liste=NULL;
 		   while (liste) {
-		      if (strncasecmp(buf, liste->header, taille)==0) break;
+		      if (fl_strncasecmp(buf, liste->header_head,
+				  taille)==0) break;
 		      last_liste=liste;
 		      liste=liste->next;
 		   }
 		   if (liste) {
-		      header_courant=&(liste->header); 
+		      header_courant=&(liste->header_body); 
 		      if (last_liste) unk_header_courant=&(last_liste->next);
 		       else unk_header_courant=&(Header_post->autres);
+		      if (rc==0) free(trad);
 		   } else
 		   if (last_liste) {
-		      last_liste->next=safe_malloc(sizeof(Header_List));
-		      last_liste->next->next=NULL;
-		      last_liste->next->header=NULL;
-		      header_courant=&(last_liste->next->header);
+		      last_liste->next=safe_calloc(1,sizeof(Header_List));
+		      if (rc==0) last_liste->next->header_head=trad;
+		      else last_liste->next->header_head=safe_flstrdup(trad);
+		      header_courant=&(last_liste->next->header_body);
 		      unk_header_courant=&(last_liste->next);
 		   } else {
-		      Header_post->autres=safe_malloc(sizeof(Header_List));
-		      Header_post->autres->next=NULL;
-		      Header_post->autres->header=NULL;
-		      header_courant=&(Header_post->autres->header);
+		      Header_post->autres=safe_calloc(1,sizeof(Header_List));
+		      if (rc==0) Header_post->autres->header_head=trad;
+		      else Header_post->autres->header_head=safe_flstrdup(trad);
+		      header_courant=&(Header_post->autres->header_body);
 		      unk_header_courant=&(Header_post->autres);
 		   }
 		   (*unk_header_courant)->num_af=1;
 		 }
 	      }
 	      buf2++;
-	      while ((*buf2) && isblank(*buf2)) buf2++;
-	      if ((*buf2=='\0') || (*buf2=='\n')) {
-		  if (*header_courant) { 
-		     free(*header_courant);
-		     *header_courant=NULL;
+	      if (header_courant) {
+		  if (*header_courant) {
+		      free(*header_courant);
+		      *header_courant=NULL;
 		  }
-		  if (header_connu==0) {
-		     liste=(*unk_header_courant)->next;
-		     free(*unk_header_courant);
-		     *unk_header_courant=liste;
-	          }
-		  continue;
+	      } else if (raw_head) {
+		  if (Header_post->k_raw_header[raw_head-NB_DECODED_HEADERS])
+	            free (Header_post->k_raw_header
+			    [raw_head-NB_DECODED_HEADERS]);
+		  Header_post->k_raw_header[raw_head-NB_DECODED_HEADERS]=NULL;
 	      }
-	      *header_courant=safe_realloc(*header_courant,(strlen(header_connu ? buf2 : buf)+1)*sizeof(char));
-	      strcpy(*header_courant, (header_connu ? buf2 : buf));
-	      (*header_courant)[strlen(*header_courant)-1]='\0';
+	      while ((*buf2) && isblank(*buf2)) buf2++;
+	      if ((*buf2=='\0') || (*buf2=='\n')) continue;
+	      buf3=strchr(buf2,'\n'); if (buf3) *buf3='\0';
+	      hcur=safe_strdup(buf2);
 	   }
 	}
+        continue;
       }
-      if (headers==0) {
-        if (header_courant) 
-	    header_courant=NULL;
-        str_cat(&lecture_courant, buf);
-      }
+      rc=conversion_from_editor(buf,&trad,0,(size_t)(-1));
+      str_cat(&lecture_courant, trad);
+      if (rc==0) free(trad);
    }
    *d_l=lecture_courant;
    *place=lecture_courant->size;
@@ -288,6 +382,7 @@ static int Summon_Editor (Lecture_List **d_l, int *place, int incl) {
    Screen_erase_eos();
    tmp_file=open_postfile(TMP_POST_FILE,"w",name,1);
    if (tmp_file==NULL) {
+       /* FIXME : français */
       Screen_write_string("Echec dans l'ouverture du fichier temporaire.");
       return -1;
    }
@@ -295,20 +390,24 @@ static int Summon_Editor (Lecture_List **d_l, int *place, int incl) {
    fclose(tmp_file);
    if (stat(name,&before)<0) {
      /* ca doit jamais arriver */
+       /* FIXME : français */
      Screen_write_string("Echec dans la création du fichier temporaire.");
      return -1;
    }
    res=Launch_Editor(0,name);  
    if (res==-1) {
+       /* FIXME : français */
       Screen_write_string("Echec dans le lancement de l'éditeur.");
       return -1;
    }
    if (stat(name,&after)<0) {
      /* ca doit jamais arriver */
+       /* FIXME : français */
      Screen_write_string("Et le fichier temporaire louze.");
      return -1;
    }
    if (after.st_size == 0) {
+       /* FIXME : français */
      Screen_write_string("Fichier temporaire vide.");
 #ifdef USE_MKSTEMP
      unlink(name);
@@ -316,6 +415,7 @@ static int Summon_Editor (Lecture_List **d_l, int *place, int incl) {
      return 1;
    }
    if (after.st_mtime == before.st_mtime) {
+       /* FIXME : français */
      Screen_write_string("Message non modifié.");
 #ifdef USE_MKSTEMP
      unlink(name);
@@ -324,6 +424,7 @@ static int Summon_Editor (Lecture_List **d_l, int *place, int incl) {
    }
    tmp_file=fopen(name,"r");
    if (tmp_file==NULL) {
+       /* FIXME : français */
       Screen_write_string("Echec dans la réouverture du fichier temporaire");
       return -1;
    }
@@ -347,11 +448,13 @@ int charge_postfile (char *str) {
    Deb_body=lecture_courant=alloue_chaine();
    post_file=fopen(str,"r");
    if (post_file==NULL) {
+       /* FIXME : français */
        Aff_error("Echec en ouverture du fichier");
        return 0;
    }
    res=Lit_Post_Edit(post_file,&lecture_courant, &size);
    if (res<0) {
+       /* FIXME : français */
        Aff_error("Fichier incompréhensible...");
        return 0;
    }
@@ -360,6 +463,7 @@ int charge_postfile (char *str) {
 }
 
 #ifndef NO_INTERN_EDITOR
+/* TODO TODO TODO TODO */
 static void include_file(FILE *to_include, File_Line_Type **last, Lecture_List **d_l, int *row, int *inited, int *empty, int *size_max_line) {
    char buf[513]; /* On suppose qu'un ligne ne peut pas faire plus de 512 */
    int act_row=*row;
@@ -443,7 +547,8 @@ static int Screen_Start;
 
 static int get_Body_post() {
    Lecture_List *lecture_courant, *debut_ligne;
-   int key, incl_in_auto=-1;
+   int incl_in_auto=-1,key;
+   struct key_entry ke;
 #ifndef NO_INTERN_EDITOR
    int act_col=0, act_row=4, size_debligne, fin=0;
    int already_init=0;
@@ -463,6 +568,7 @@ static int get_Body_post() {
    {
       int place, res;
      
+      ke.entry=ENTRY_ERROR_KEY;
       place=res=0;
       while (res>=0) {
         res=Summon_Editor(&lecture_courant,&place, incl_in_auto);
@@ -471,27 +577,35 @@ static int get_Body_post() {
 	  		     /* message a deja ete modifié une fois...*/
 	incl_in_auto=0;
 	lecture_courant->size=place;
-	lecture_courant->lu[place]='\0';
+	lecture_courant->lu[place]=fl_static('\0');
         if (res==0) 
 	  while (res==0) {
   	    Cursor_gotorc(Screen_Rows2-1,0);
+	    /* FIXME : francais */
 	    Screen_write_string("(P)oster, (E)diter, (A)nnuler ? ");
-            key=Attend_touche();
-	    key=toupper(key);
-	    if (KeyBoard_Quit || (key=='A')) 
-               return 0;
-	    if (key=='E') res=1;
-	    if (key=='P' || key=='Y' || key=='\r' ) {
-              if (lecture_courant->suivant) free_chaine(lecture_courant->suivant);
-              return 1;
-	   }
+            Attend_touche(&ke);
+	    if (KeyBoard_Quit) return 0;
+	    if (ke.entry==ENTRY_SLANG_KEY) {
+		key=ke.value.slang_key;
+	        key=toupper(key);
+	        if (key=='A') 
+                   return 0;
+	        if (key=='E') res=1;
+	        if (key=='P' || key=='Y' || key=='\r' ) {
+                    if (lecture_courant->suivant) 
+			free_chaine(lecture_courant->suivant);
+                    return 1;
+	        }
+	    }
 	}
         else {
 	  if (res>0) return -1; /* C'est un message non valide */
 #ifdef NO_INTERN_EDITOR
 	  Cursor_gotorc(2,0);
+       /* FIXME : français */
 	  Screen_write_string("(erreur dans l'édition, vérifier la variable d'environnement EDITOR)");
 	  Cursor_gotorc(3,0);
+       /* FIXME : français */
 	  Screen_write_string("Pour poster, éditez le .article à la main, puis utilisez \\<cmd> .article");
 	  return -1;
 #else
@@ -754,14 +868,17 @@ static int get_Body_post() {
 
 /* Regarde l'existence d'un groupe dans un header... essaie une correction */
 /* sinon...								   */
-static char *check_group_in_header(char *nom, int *copy_pre, char *header, int in_newsgroup) {
-   char *nom2=nom;
+static flrn_char *check_group_in_header(flrn_char *nom, int *copy_pre, 
+	char *header, int in_newsgroup) {
+   flrn_char *nom2=nom;
    Newsgroup_List *groupe;
-   int key,alloue=0,ret,col,to_test=1;
-   regex_t reg;
-   Liste_Menu *lemenu;
+   int key,alloue=0,ret,col,to_test=1,rc;
+   struct key_entry ke;
+   char *trad;
 
-   if (strlen(nom)>=MAX_NEWSGROUP_LEN-(*copy_pre ? strlen(Options.prefixe_groupe) : 0))
+   ke.entry=ENTRY_ERROR_KEY;
+   if (fl_strlen(nom)>=MAX_NEWSGROUP_LEN-(*copy_pre ? 
+	       fl_strlen(Options.prefixe_groupe) : 0))
            return nom;
      /* Tant pis. Si le mec se fout de ma gueule, c'est réciproque */
    while (1) {
@@ -786,104 +903,87 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header, int i
      }
      Cursor_gotorc(Screen_Rows2-2,0);
      Screen_erase_eol();
+     /* FIXME : francais */
      Screen_write_string("Groupe inconnu dans ");
      Screen_write_string(header);
      Screen_write_string(" : ");
-     Screen_write_string(nom2);
+     rc=conversion_to_terminal(nom2,&trad,0,(size_t)(-1));
+     Screen_write_string(trad);
+     if (rc==0) free(trad);
      Cursor_gotorc(Screen_Rows2-1,0);
      Screen_erase_eol();
+     /* FIXME : francais */
      Screen_write_string("(L)aisser,(S)upprimer,(R)emplacer,(M)enu ? ");
-     key=Attend_touche();
-     key=toupper(key);
-     if (KeyBoard_Quit || (key=='S')) {
-        if (alloue) free(nom2);
-        return NULL;
+     Attend_touche(&ke);
+     if (KeyBoard_Quit) {
+	 if (alloue) free(nom2); 
+	 return NULL; 
      }
-     if (key=='L') 
-        return nom2;
-     if ((key=='R') || (key=='M')) {
-        Cursor_gotorc(Screen_Rows2-1,0);
-	if (!alloue) {
-	  nom2=safe_malloc(MAX_NEWSGROUP_LEN);
-	  alloue=1;
-	}
-	nom2[0]='\0';
-	Screen_erase_eol();
-	if (key=='R') {
-	  if (*copy_pre) strcpy(nom2,Options.prefixe_groupe);
-	  strcat(nom2,nom);
-	  Screen_write_string("Nom du groupe : ");
-	  Screen_write_string(nom2);
-	  ret=flrn_getline(nom2,MAX_NEWSGROUP_LEN,Screen_Rows2-1,16);
-	  if (ret<0) {
-	     strcpy(nom2,nom);
-	     to_test=0;
-	  } else {
-	     to_test=1;
-	     *copy_pre=0;
-	  }
-	  continue;
-	} 
-	/* key=='M' */
-	col=(Options.use_regexp ? 9 : 14);
-	Screen_write_string(Options.use_regexp ? "Regexp : " :
-						 "Sous-chaîne : ");
-	ret=flrn_getline(nom2,MAX_NEWSGROUP_LEN,Screen_Rows2-1,col);
-	if (ret<0) {
-	   strcpy(nom2,nom);
-	   to_test=0;
-	   continue;
-	}
-	if (Options.use_regexp) {
-	   char *mustmatch;
-	   if (regcomp(&reg,nom2,REG_EXTENDED)) {
-	      strcpy(nom2,nom);
-	      to_test=0;
-	      continue;
-	   }
-	   mustmatch=reg_string(nom2,1);
-	   lemenu=menu_newsgroup_re(mustmatch, reg,
-	     				1+((*copy_pre)*2));
-	    if ((*copy_pre) && (lemenu==NULL)) {
-		lemenu=menu_newsgroup_re(mustmatch,reg,1);
-		if (lemenu) *copy_pre=0;
-            }
-	   if (mustmatch!=NULL) free(mustmatch);
-	   regfree(&reg);
-	} else {
-	    lemenu=menu_newsgroup_re(nom2,reg,((*copy_pre)*2));
-	    if ((*copy_pre) && (lemenu==NULL)) {
-		lemenu=menu_newsgroup_re(nom2,reg,0);
-		if (lemenu) *copy_pre=0; 
-            }
-	}
-	     /* On passe n'importe quoi pour reg */
-	if (lemenu) {
-	  if (lemenu->suiv==NULL) {
-	     strcpy(nom2,((Newsgroup_List *) (lemenu->lobjet))->name);
-             if (in_newsgroup && (((Newsgroup_List *)(lemenu->lobjet))->flags &
-	                                        GROUP_MODERATED_FLAG))
-                 in_moderated_group=1;
-	     *copy_pre=0;
-	     return nom2;
-	  }
-	  else {
-	    num_help_line=11;
-	    groupe=Menu_simple(lemenu,NULL,Ligne_carac_du_groupe,NULL,"Quel groupe ?");
-	  }
-	  Libere_menu(lemenu); /* On ne libere PAS les noms */
-	  	/* voir à prendre change_group ici, c'est la même fonction */
-	} else groupe=NULL;
-	if (groupe) {
-	   if (in_newsgroup && (groupe->flags & GROUP_MODERATED_FLAG))
-	      in_moderated_group=1;
-	   strcpy(nom2,groupe->name);
-	   *copy_pre=0;
-	   return nom2;
-	}
-	strcpy(nom2,nom);
-     }
-     to_test=0;
+     if (ke.entry==ENTRY_SLANG_KEY) {
+	 key=ke.value.slang_key;
+         key=toupper(key);
+	 if (key=='S') {
+	     if (alloue) free(nom2);
+	     return NULL;
+	 }
+         if (key=='L') 
+            return nom2;
+	 if ((key=='R') || (key=='M')) {
+	     Cursor_gotorc(Screen_Rows2-1,0); 
+	     if (!alloue) {
+		 nom2=safe_calloc(MAX_NEWSGROUP_LEN,sizeof(flrn_char));
+		 alloue=1;
+	     } else nom2[0]=fl_static('\0');
+	     Screen_erase_eol();
+	     if (key=='R') {
+		 if (*copy_pre) strcpy(nom2,Options.prefixe_groupe);
+		 fl_strcat(nom2,nom);
+		 /* FIXME : francais et colonne */
+		 Screen_write_string("Nom du groupe : ");
+		 trad=safe_malloc(MAX_NEWSGROUP_LEN+1);
+		 rc=conversion_to_terminal(nom2,&trad,MAX_NEWSGROUP_LEN,
+			 (size_t)(-1));
+		 Screen_write_string(trad);
+		 ret=flrn_getline(nom2,MAX_NEWSGROUP_LEN,
+			 trad,MAX_NEWSGROUP_LEN,Screen_Rows2-1,16);
+		 free(trad);
+		 if (ret<0) {
+		     fl_strcpy(nom2,nom);
+		     to_test=0;
+		 } else {
+		     to_test=1;
+		     *copy_pre=0;
+		 }
+		 continue;
+	     } 
+	     /* key=='M' */
+	     col=(Options.use_regexp ? 9 : 14);
+	     /* FIXME : francais et colonne */
+	     Screen_write_string(Options.use_regexp ? "Regexp : " :
+		"Sous-chaîne : ");
+	     trad=safe_malloc(MAX_NEWSGROUP_LEN+1);
+	     trad[0]='\0';
+	     ret=flrn_getline(nom2,MAX_NEWSGROUP_LEN,
+		     trad,MAX_NEWSGROUP_LEN,Screen_Rows2-1,col);
+	     free(trad);
+	     if (ret<0) {
+		 fl_strcpy(nom2,nom);
+		 to_test=0;
+		 continue;
+	     }
+	     ret=get_group(&groupe,1+(*copy_pre)*2+Options.use_regexp*4+8,
+		     nom2);
+	     if ((ret==0) && (groupe)) {
+		 if (in_newsgroup && (groupe->flags & GROUP_MODERATED_FLAG))
+		     in_moderated_group=1;
+		 fl_strcpy(nom2,groupe->name);
+		 *copy_pre=0;
+		 return nom2;
+	     }
+	     fl_strcpy(nom2,nom);
+	 }
+	 to_test=0;
+      }
    }
 }
 	
@@ -894,221 +994,372 @@ static char *check_group_in_header(char *nom, int *copy_pre, char *header, int i
 /* 0 : bon, -1 : annuler */
 static int Format_headers() {
    int len1, len2, copy_pre, i,j, nb_groups;
-   char *real_name=safe_strdup(flrn_user->pw_gecos), *buf, *buf2;
-   static char *delim2=" ,;\t";
+   char *real_name=safe_strdup(flrn_user->pw_gecos), *buf;
+   static flrn_char *delim2=fl_static(" ,;\t");
+   flrn_char *dummy, *flb1, *flb2, *flb3;
 
    buf=strchr(real_name,','); if (buf) *buf='\0';
 
    /* Sender */
    len1=257+strlen(flrn_user->pw_name);
    if (Options.post_name)
-     len2=4+strlen(Options.post_name);
+     len2=4+fl_strlen(Options.post_name);
    else
      len2=4+strlen(real_name);
    Header_post->k_header[SENDER_HEADER]=
-        safe_realloc(Header_post->k_header[SENDER_HEADER],(len1+len2)*sizeof(char));
+        safe_realloc(Header_post->k_header[SENDER_HEADER],
+		(len1+len2)*sizeof(flrn_char));
    Get_user_address(Header_post->k_header[SENDER_HEADER]);
-   strcat(Header_post->k_header[SENDER_HEADER]," (");
+   fl_strcat(Header_post->k_header[SENDER_HEADER],fl_static(" ("));
    if (Options.post_name)
-     strcat(Header_post->k_header[SENDER_HEADER], Options.post_name);
-   else
-     strcat(Header_post->k_header[SENDER_HEADER], real_name);
-   strcat(Header_post->k_header[SENDER_HEADER],")");
-   if (strcmp(Header_post->k_header[SENDER_HEADER], 
+     fl_strcat(Header_post->k_header[SENDER_HEADER], Options.post_name);
+   else {
+       int rc; flrn_char *trad;
+       rc=conversion_from_utf8(real_name,&trad,0,(size_t)(-1));
+       fl_strcat(Header_post->k_header[SENDER_HEADER], trad);
+       if (rc==0) free(trad);
+   }
+   fl_strcat(Header_post->k_header[SENDER_HEADER],fl_static(")"));
+   if (fl_strcmp(Header_post->k_header[SENDER_HEADER], 
               Header_post->k_header[FROM_HEADER])==0) {
       free(Header_post->k_header[SENDER_HEADER]);
       Header_post->k_header[SENDER_HEADER]=NULL;
    }
+   free(real_name);
 
    /* X-NEWSREADER */
    Header_post->k_header[X_NEWSREADER_HEADER]=
-        safe_realloc(Header_post->k_header[X_NEWSREADER_HEADER], (strlen(short_version_string)+1)*sizeof(char));
-   strcpy(Header_post->k_header[X_NEWSREADER_HEADER], short_version_string);
-   free(real_name);
+        safe_realloc(Header_post->k_header[X_NEWSREADER_HEADER], (strlen(short_version_string)+1)*sizeof(flrn_char));
+   {
+       int rc; flrn_char *trad;
+       rc=conversion_from_utf8(short_version_string,&trad,0,(size_t)(-1));
+       fl_strcpy(Header_post->k_header[X_NEWSREADER_HEADER], 
+	       trad);
+       if (rc==0) free(trad);
+   }
 
    /* Newsgroups , Followup-To*/
    in_moderated_group=0;
    for (i=0; i<2; i++) {
      j=(i==0 ? NEWSGROUPS_HEADER : FOLLOWUP_TO_HEADER);
      if (Header_post->k_header[j]) {
-       if ((j==FOLLOWUP_TO_HEADER) && (strcasecmp(Header_post->k_header[j],"poster")==0)) continue;
-       buf=strtok(Header_post->k_header[j],delim2);
-       real_name=NULL;
+       if ((j==FOLLOWUP_TO_HEADER) && (fl_strcasecmp(Header_post->k_header[j],
+		       fl_static("poster"))==0)) continue;
+       flb1=fl_strtok_r(Header_post->k_header[j],delim2,&dummy);
+       flb3=NULL;
        len1=0;
-       while (buf) {
-         copy_pre=((Options.prefixe_groupe) && (strncmp(buf,Options.prefixe_groupe,strlen(Options.prefixe_groupe))!=0));
-	 buf2=check_group_in_header(buf,&copy_pre,Headers[j].header,(i==0));
-	 if (buf2==NULL) {
-	   buf=strtok(NULL,delim2);
+       while (flb1) {
+         copy_pre=((Options.prefixe_groupe) && 
+		 (fl_strncmp(flb1,Options.prefixe_groupe,fl_strlen
+			  (Options.prefixe_groupe))!=0));
+	 flb2=check_group_in_header(flb1,&copy_pre,Headers[j].header,(i==0));
+	 if (flb2==NULL) {
+	   flb1=strtok(NULL,delim2);
 	   continue;
 	 }
-         real_name=safe_realloc(real_name,len1+(copy_pre?strlen(Options.prefixe_groupe):0)+strlen(buf2)+2);
-         if (len1==0) real_name[0]='\0';
-         len1+=(copy_pre?strlen(Options.prefixe_groupe):0)+strlen(buf2)+1;
-         if (copy_pre) strcat(real_name,Options.prefixe_groupe);
-         strcat(real_name,buf2);
-         strcat(real_name,",");
-	 if (buf2!=buf) free(buf2);
-         buf=strtok(NULL,delim2);
+         flb3=safe_realloc(flb3,len1+(copy_pre?fl_strlen(Options.prefixe_groupe):0)+fl_strlen(flb2)+2);
+         if (len1==0) flb3[0]=fl_static('\0');
+         len1+=(copy_pre?fl_strlen(Options.prefixe_groupe):0)+
+	     fl_strlen(flb2)+1;
+         if (copy_pre) fl_strcat(flb3,Options.prefixe_groupe);
+         fl_strcat(flb3,flb2);
+         fl_strcat(flb3,fl_static(","));
+	 if (flb2!=flb1) free(flb2);
+         flb1=fl_strtok_r(NULL,delim2,&dummy);
        }
-       if (len1>0) real_name[len1-1]='\0'; /* Enlevons la dernière , */
+       if (len1>0) flb3[len1-1]='\0'; /* Enlevons la dernière , */
        free(Header_post->k_header[j]);
-       Header_post->k_header[j]=real_name;
+       Header_post->k_header[j]=flb3;
     }
   }
   /* Test du newsgroups */
-  buf=Header_post->k_header[NEWSGROUPS_HEADER];
+  flb1=Header_post->k_header[NEWSGROUPS_HEADER];
   nb_groups=0;
-  while (buf) {
-     buf=strchr(buf,',');
-     if (buf) buf++;
+  while (flb1) {
+     flb1=strchr(flb1,',');
+     if (flb1) flb1++;
      nb_groups++;
   }
   if (nb_groups>1) {
+     struct key_entry ke;
      int key;
      Liste_Menu *lemenu,*courant;
-     char *buf3;
+     ke.entry=ENTRY_ERROR_KEY;
      while (Header_post->k_header[FOLLOWUP_TO_HEADER]==NULL) {
        Cursor_gotorc(Screen_Rows2-2,0);
        Screen_erase_eol();
+       /* FIXME : français */
        Screen_write_string("Attention : crosspost sans suivi-à.");
        Cursor_gotorc(Screen_Rows2-1,0);
        Screen_erase_eol();
+       /* FIXME : français */
        Screen_write_string("(L)aisser, (A)nnuler, (C)hoisir un suivi-à ? ");
-       key=Attend_touche();
+       while (1) {
+          Attend_touche(&ke);
+	  if (KeyBoard_Quit) return -1;
+	  if (ke.entry==ENTRY_SLANG_KEY) {
+	      key=ke.value.slang_key;
+	      break;
+	  }
+       }
        key=toupper(key);
        if (key=='L') return 0;
        if (key=='A') return -1;
        {
          lemenu=NULL; courant=NULL;
-	 buf2=Header_post->k_header[NEWSGROUPS_HEADER];
-	 while (buf2) {
-	    buf=buf2;
-	    buf2=strchr(buf2,',');
-	    if (buf2) *buf2='\0';
-	    buf3=safe_strdup(buf);
-            courant=ajoute_menu(courant,buf3,buf3);
+	 flb2=Header_post->k_header[NEWSGROUPS_HEADER];
+	 while (flb2) {
+	    flb1=flb2;
+	    flb2=fl_strchr(flb2,fl_static(','));
+	    if (flb2) *flb2='\0';
+            courant=ajoute_menu(courant,&fmt_option_menu,&flb1,flb1);
 	    if (lemenu==NULL) lemenu=courant;
-	    if (buf2) *(buf2++)=',';
+	    if (flb2) *(flb2++)=fl_static(',');
 	 }
 	 num_help_line=11;
-	 buf3=(char *)Menu_simple(lemenu,lemenu,NULL,NULL,"Choix du groupe. <entrée> pour choisir, q pour quitter...");
-	 if (buf3) Header_post->k_header[FOLLOWUP_TO_HEADER]=safe_strdup(buf3);
-	 Libere_menu_noms(lemenu);
+		 /* FIXME : francais */
+	 flb1=(flrn_char *)Menu_simple(lemenu,lemenu,NULL,NULL,
+  	     fl_static("Choix du groupe. <entrée> pour choisir, q pour quitter..."));
+	 Libere_menu(lemenu);
+	 if (flb1) {
+	     flb2=fl_strchr(flb1,fl_static(','));
+	     if (flb2) *flb2='\0';
+	     Header_post->k_header[FOLLOWUP_TO_HEADER]=safe_strdup(flb1);
+	     if (flb2) *flb2=fl_static(',');
+	 }
+
        }
      }
   } 
   if (in_moderated_group) {
-     int key;
      Cursor_gotorc(Screen_Rows2-3,0);
+     /* FIXME : français */
      Screen_write_string("Vous postez dans un groupe modéré : il peut se passer un certain temps avant");
      Cursor_gotorc(Screen_Rows2-2,0);
+     /* FIXME : français */
+     
      Screen_write_string("que votre message n'apparaisse.");
      Cursor_gotorc(Screen_Rows2-1,0);
      Screen_erase_eol();
+     /* FIXME : français */
      Screen_write_string("Appuyez sur une touche pour envoyer le message, ^C pou annuler.");
-     key=Attend_touche();
+     Attend_touche(NULL);
      if (KeyBoard_Quit) return -1;
   }
   return 0;
 }
 
-
-
 /* Formatage du message à des fins de post */
-/* On fait la gestion des points doubles   */
+/* On fait la gestion des points doubles, l'encodage des headers */
+/* et les autres encodages */
 /* Si to_cancel n'est pas NULL, on rajoute le header Control */
 /* ou supersedes, selon la valeur de supersedes */
 static int Format_article(char *to_cancel) {
-   Lecture_List *ecriture_courant, *lecture_courant;
-   char *buf1;
+   Lecture_List *lecture_courant;
+   struct post_lecture *ecriture_courant;
    int place_lu=0, deb_ligne=1, i;
    Header_List *liste;
+   size_t elen;
 
    if (debug) fprintf(stderr, "Appel a format_article\n");
    lecture_courant=Deb_body;
-   ecriture_courant=Deb_article=alloue_chaine();
+   ecriture_courant=Deb_article=safe_calloc(1,sizeof(struct post_lecture));
+
   /* Ecriture des headers */
   /* Attention : ici les headers sont plutôt buggués : il faudrait */
   /* formater, et remplacer les \n par des \r\n... Mais bon...     */
    i=Format_headers();
    if (i<0) return i;
-   for (i=0; i<NB_KNOWN_HEADERS; i++) 
+   for (i=0; i<NB_DECODED_HEADERS; i++) 
       if (Header_post->k_header[i]) {
-	str_cat(&ecriture_courant, Headers[i].header);
-	ajoute_char(&ecriture_courant, ' ');
-	str_cat(&ecriture_courant, Header_post->k_header[i]);
-	str_cat(&ecriture_courant, "\r\n");
+	  int crit, rc;
+	  char *trad;
+	  size_t len;
+	  /* FIXME : nombre absurde */
+	  len=Headers[i].header_len+140+
+	      fl_strlen(Header_post->k_header[i])*2; 
+	  ecriture_courant->ligne=safe_malloc(len+1);
+	  strcpy(ecriture_courant->ligne,Headers[i].header);
+	  strcat(ecriture_courant->ligne," ");
+	  trad=ecriture_courant->ligne+Headers[i].header_len+1;
+	  len-=Headers[i].header_len+1;
+	  if (i<NB_UTF8_HEADERS) {
+	      rc=conversion_to_utf8(Header_post->k_header[i],
+		      &trad, len-3, (size_t)(-1));
+	  } else {
+	      crit=(i==FROM_HEADER) || (i==SENDER_HEADER) ||
+		  (i==REPLY_TO_HEADER) || ((i>=TO_HEADER) && (i<=BCC_HEADER));
+	      rfc2047_encode_string(trad,Header_post->k_header[i],
+		      len-3,crit);
+	  }
+	  strcat(ecriture_courant->ligne,"\r\n");
+	  len=strlen(ecriture_courant->ligne);
+	  ecriture_courant->ligne=safe_realloc(ecriture_courant->ligne,
+		  len+1);
+	  ecriture_courant->suivant=safe_calloc(1,sizeof(struct post_lecture));
+	  ecriture_courant=ecriture_courant->suivant;
+      }
+   for (i=0; i<NB_RAW_HEADERS; i++) 
+      if (Header_post->k_raw_header[i]) {
+	  size_t len;
+	  len=Headers[i+NB_DECODED_HEADERS].header_len+5+
+	      strlen(Header_post->k_raw_header[i]);
+	  ecriture_courant->ligne=safe_malloc(len+1);
+	  snprintf(ecriture_courant->ligne,len+1,
+		  "%s %s\r\n",Headers[i+NB_DECODED_HEADERS].header,
+		  Header_post->k_raw_header[i]);
+	  ecriture_courant->suivant=safe_calloc(1,sizeof(struct post_lecture));
+	  ecriture_courant=ecriture_courant->suivant;
       }
    liste=Header_post->autres;
    while (liste) {
+	  int rc;
+	  char *trad;
+	  size_t len;
 #ifndef MODE_EXPERT
-      if ((strncasecmp(liste->header,"Control:",8)==0) ||
-	  (strncasecmp(liste->header,"Also-Control:",13)==0) ||
-	  (strncasecmp(liste->header,"Supersedes:",11)==0)) {
-	  	liste=liste->next;
-	  	continue; 
-      }
+          if ((fl_strncasecmp(liste->header_head,
+		      fl_static("Control:"),8)==0) ||
+	      (fl_strncasecmp(liste->header_head,
+	  	      fl_static("Also-Control:"),13)==0) ||
+	      (fl_strncasecmp(liste->header_head,
+		      fl_static("Supersedes:"),11)==0)) {
+	     	  liste=liste->next;
+	  	  continue; 
+	  }
       				/* pas abuser non plus */
 #endif
-      str_cat(&ecriture_courant, liste->header);
-      str_cat(&ecriture_courant, "\r\n");
-      liste=liste->next;
+	  /* FIXME: nombre absurde */
+	  len=fl_strlen(liste->header_head)*2+140+
+	      fl_strlen(liste->header_body)*2;
+	  ecriture_courant->ligne=safe_malloc(len+1);
+	  trad=ecriture_courant->ligne;
+	  rc=conversion_to_utf8(liste->header_head,
+		  &trad, len-6, (size_t)(-1));
+	  {
+	      size_t l=strlen(trad);
+	      trad+=l;
+	      len-=l;
+	  }
+	  strcpy(trad," "); trad++; len--;
+	  rfc2047_encode_string(trad,liste->header_body,
+		      len-3,0);
+	  strcat(ecriture_courant->ligne,"\r\n");
+	  len=strlen(ecriture_courant->ligne);
+	  ecriture_courant->ligne=safe_realloc(ecriture_courant->ligne,
+		  len+1);
+	  ecriture_courant->suivant=safe_calloc(1,sizeof(struct post_lecture));
+	  ecriture_courant=ecriture_courant->suivant;
+          liste=liste->next;
    }
    if (to_cancel) {
-      if (supersedes) str_cat(&ecriture_courant, "Supersedes: ");
-	else str_cat(&ecriture_courant, "Control: cancel ");
-      str_cat(&ecriture_courant, to_cancel);
-      str_cat(&ecriture_courant, "\r\n");
+      ecriture_courant->ligne=safe_malloc(20+strlen(to_cancel));
+      strcpy(ecriture_courant->ligne,
+	      (supersedes ? "Supersedes: " : "Control: cancel "));
+      strcat(ecriture_courant->ligne, to_cancel);
+      strcat(ecriture_courant->ligne, "\r\n");
+      ecriture_courant->suivant=safe_calloc(1,sizeof(struct post_lecture));
+      ecriture_courant=ecriture_courant->suivant;
+      liste=liste->next;
    }
    
-   str_cat(&ecriture_courant, "\r\n");
+   ecriture_courant->ligne=safe_strdup("\r\n");
+   ecriture_courant->suivant=safe_calloc(1,sizeof(struct post_lecture));
+   ecriture_courant=ecriture_courant->suivant;
 
-   if (debug) fprintf(stderr, "Fin de l'écriture des headers : %s\n", ecriture_courant->lu);
+   if (debug) {
+       fprintf(stderr, "Fin de l'écriture des headers : \n");
+       ecriture_courant=Deb_article;
+       while (ecriture_courant->suivant) {
+	   fprintf(stderr,"%s",ecriture_courant->ligne);
+	   ecriture_courant=ecriture_courant->suivant;
+       }
+   }
+
 
   /* Copie du corps du message */
    lecture_courant=Deb_body;
+   elen=0;
    while (lecture_courant->lu[place_lu]!='\0') {
       if (lecture_courant->lu[place_lu]=='\n') {
 	  deb_ligne=1;
-	  str_cat(&ecriture_courant,"\r\n");
+	  if (ecriture_courant->ligne) {
+	    ecriture_courant->ligne=
+		safe_realloc(ecriture_courant->ligne,elen+3);
+	    strcat(ecriture_courant->ligne,"\r\n");
+	  } else ecriture_courant->ligne=safe_strdup("\r\n");
+	  ecriture_courant->suivant=safe_calloc(1,sizeof(struct post_lecture));
+	  ecriture_courant=ecriture_courant->suivant;
+	  elen=0;
 	  place_lu++; if (place_lu==lecture_courant->size) {
 	     lecture_courant=lecture_courant->suivant;
 	     if (lecture_courant==NULL) break;
 	     place_lu=0;
 	  }
+	  continue;
       }
-      else if ((lecture_courant->lu[place_lu]=='.') && (deb_ligne)) {
-          ajoute_char(&ecriture_courant,'.');
-	  deb_ligne=0;
-      }	else {
-	deb_ligne=0;
-	str_ch_cat(&ecriture_courant, lecture_courant, place_lu, '\n');
-	while (lecture_courant->lu[place_lu]!='\n') {
-	   buf1=strchr(lecture_courant->lu+place_lu,'\n');
-	   if (buf1==NULL) {
-	      lecture_courant=lecture_courant->suivant;
-	      place_lu=0;
-	      if (lecture_courant==NULL) break;
-	   } else place_lu=buf1-lecture_courant->lu;
-	}
+      else if ((lecture_courant->lu[place_lu]==fl_static('.')) &&
+	      (deb_ligne)) {
+	  ecriture_courant->ligne=safe_strdup(".");
+	  elen=1;
+      }	
+      {
+	 flrn_char *buf;
+	 int rc; char *trad;
+	 size_t bla;
+	 buf=fl_strchr(lecture_courant->lu+place_lu,fl_static('\n'));
+	 if (buf) 
+	    bla=buf-(lecture_courant->lu+place_lu);
+	 else bla=strlen(lecture_courant->lu+place_lu);
+   	 rc=conversion_to_message(lecture_courant->lu+place_lu,
+			&trad,0,bla);
+	 elen+=strlen(trad)+(buf ? 3 : 1);
+	 if (ecriture_courant->ligne) {
+		ecriture_courant->ligne=
+		    safe_realloc(ecriture_courant->ligne,elen+1);
+		strcat(ecriture_courant->ligne,
+			trad);
+	 } else {
+		ecriture_courant->ligne=safe_malloc(elen+1);
+		strcpy(ecriture_courant->ligne, trad);
+	 }
+	 if (buf) {
+	    strcat(ecriture_courant->ligne,"\r\n");
+	    ecriture_courant->suivant=safe_calloc
+		    (1,sizeof(struct post_lecture));
+	    ecriture_courant=ecriture_courant->suivant;
+	    elen=0;
+	    if (*(buf+1)) place_lu+=bla+1;
+	    else {
+		lecture_courant=lecture_courant->suivant;
+		place_lu=0;
+		if (lecture_courant==NULL) break;
+	    }
+	    deb_ligne=1;
+	 } else {
+	     lecture_courant=lecture_courant->suivant;
+	     place_lu=0;
+	     if (lecture_courant==NULL) break;
+	     deb_ligne=0;
+	 }
      }	
-     if (lecture_courant==NULL) break;
    }
-   if (get_char(ecriture_courant,1)!='\n') 
-      str_cat(&ecriture_courant, "\r\n");
-   str_cat(&ecriture_courant, ".\r\n");
-   ecriture_courant->lu[ecriture_courant->size]='\0';
-   if (debug) fprintf(stderr, "Fin de l'appel... %s\n", ecriture_courant->lu);
+   if (ecriture_courant->ligne) {
+       ecriture_courant->ligne=
+	           safe_realloc(ecriture_courant->ligne,elen+3);
+       strcat(ecriture_courant->ligne,"\r\n");
+       ecriture_courant->suivant=safe_calloc(1,sizeof(struct post_lecture));
+       ecriture_courant=ecriture_courant->suivant;
+   }
+   ecriture_courant->ligne=safe_strdup(".\r\n");
+   if (debug) fprintf(stderr, "Fin de l'appel... \n");
    return 0;
 }
 
-
-static void Save_failed_article() {
+static void Save_failed_initial_article() {
     FILE *tmp_file;
     Lecture_List *lecture_courant;
     char name[MAX_PATH_LEN];
-    
+
     tmp_file=open_postfile(REJECT_POST_FILE,"w",name,0);
     if (tmp_file==NULL) return;
     lecture_courant=Deb_body;
@@ -1117,12 +1368,28 @@ static void Save_failed_article() {
     fclose(tmp_file);
 }
 
+static void Save_failed_article() {
+    FILE *tmp_file;
+    struct post_lecture *lecture_courant;
+    char name[MAX_PATH_LEN];
+    
+    tmp_file=open_postfile(REJECT_POST_FILE,"w",name,0);
+    if (tmp_file==NULL) return;
+    lecture_courant=Deb_article;
+    while (lecture_courant) {
+	fputs(lecture_courant->ligne,tmp_file);
+	lecture_courant=lecture_courant->suivant;
+    }
+    fclose(tmp_file);
+}
+
 /* Poste un mail */
 /* Retour : 1 : bon */
 /* 	   -1 : pas bon */
 static int Mail_article() {
-   Lecture_List *a_ecrire=Deb_article;
+   struct post_lecture *a_ecrire=Deb_article;
    int fd, res;
+   size_t len;
    char name[MAX_PATH_LEN];
 
    fd=Pipe_Msg_Start (1,0,MAILER_CMD,name); 
@@ -1130,8 +1397,10 @@ static int Mail_article() {
    	/* par mail...				*/
    if (fd==-1) return -1;
    do {
-     res=write(fd,a_ecrire->lu,a_ecrire->size);
-     if (res!=a_ecrire->size) return -1;
+     len=strlen(a_ecrire->ligne);
+       /* TODO : reformater certains headers */
+     res=write(fd,a_ecrire->ligne,len);
+     if (res!=len) return -1;
      a_ecrire=a_ecrire->suivant;
    } while (a_ecrire);
    Pipe_Msg_Stop(fd);
@@ -1158,8 +1427,9 @@ static int Mail_article() {
 /* -12 : post dans le futur */
 /* -13 : erreur inconnue	       */
 static int Post_article() {
-    Lecture_List *a_ecrire=Deb_article;
+    struct post_lecture  *a_ecrire=Deb_article;
     int res;
+    size_t len;
     char *buf;
     
     Screen_set_color(FIELD_NORMAL);
@@ -1170,8 +1440,9 @@ static int Post_article() {
     if ((res<0) || (res>400)) return ((res<0) || (res>499) ? -1 : -2);
     
     do {
-       res=raw_write_server(a_ecrire->lu, a_ecrire->size);
-       if (res!=a_ecrire->size) return -1; /* on laisse tomber de toute facon */
+       len=strlen(a_ecrire->ligne);
+       res=raw_write_server(a_ecrire->ligne, len);
+       if (res!=len) return -1; /* on laisse tomber de toute facon */
        a_ecrire=a_ecrire->suivant;
     } while (a_ecrire);
 
@@ -1199,16 +1470,22 @@ static int Post_article() {
 
 /* Libere la memoire allouee */
 static void Libere_listes() {
+   struct post_lecture  *pc=Deb_article, *pc2;
 
-   free_chaine(Deb_article);
+   while (pc) {
+       if (pc->ligne) free(pc->ligne);
+       pc2=pc;
+       pc=pc->suivant;
+       free(pc2);
+   }
    free_chaine(Deb_body);
 }
 
 
 /* Place l'adresse e-mail de l'utilisateur dans str*/
 /* taille maxi admise : 256 + length(nom) + 1 */
-void Get_user_address(char *str) {
-   char hostname[256];
+void Get_user_address(flrn_char *str) {
+   flrn_char hostname[256];
    char *buf1;
  
    strcpy(str, flrn_user->pw_name);
@@ -1351,25 +1628,31 @@ static int Get_base_headers_supersedes (Article_List *article) {
    }
    /* on garde tout, sauf X-ref, Path, NNTP-Posting_Host,
       	     X-Trace, NNTP-Posting-Date, X-Complaints-To et Message-ID, To, Cc, Bcc */
-   for (i=0;i<NB_KNOWN_HEADERS;i++) {
+   for (i=0;i<NB_DECODED_HEADERS;i++) {
       if (i==XREF_HEADER) continue;
-      if (i==MESSAGE_ID_HEADER) continue;
       if (i==TO_HEADER) continue;
       if (i==CC_HEADER) continue;
       if (i==BCC_HEADER) continue;
-      if (i==X_TRACE) continue;
+      if (i==X_TRACE_HEADER) continue;
       if (article->headers->k_headers[i])
           Header_post->k_header[i]=safe_strdup(article->headers->k_headers[i]);
    }
+   Header_post->k_raw_header[REFERENCES_HEADER]=
+       safe_strdup(article->headers->k_raw_headers[REFERENCES_HEADER]);
+
    tmp=Last_head_cmd.headers;
    liste=Header_post->autres;
    if (liste) while (liste->next) liste=liste->next;
    while (tmp) {
       tmp2=tmp; tmp=tmp->next;
-      if (strncasecmp(tmp2->header,"Path:",5)==0) continue;
-      if (strncasecmp(tmp2->header,"NNTP-Posting-Host:",18)==0) continue;
-      if (strncasecmp(tmp2->header,"NNTP-Posting-Date:",18)==0) continue;
-      if (strncasecmp(tmp2->header,"X-Complaints-To:",16)==0) continue;
+      if (fl_strncasecmp(tmp2->header_head,
+		  fl_static("Path:"),5)==0) continue;
+      if (fl_strncasecmp(tmp2->header_head,
+		  fl_static("NNTP-Posting-Host:"),18)==0) continue;
+      if (fl_strncasecmp(tmp2->header_head,
+		  fl_static("NNTP-Posting-Date:"),18)==0) continue;
+      if (fl_strncasecmp(tmp2->header_head,
+		  fl_static("X-Complaints-To:"),16)==0) continue;
       if (liste==NULL) 
          liste=Header_post->autres=safe_malloc(sizeof(Header_List));
       else {
@@ -1377,15 +1660,19 @@ static int Get_base_headers_supersedes (Article_List *article) {
 	 liste=liste->next;
       }
       liste->next=NULL;
-      liste->header=safe_strdup(tmp2->header);
+      liste->header_head=safe_flstrdup(tmp2->header_head);
+      liste->header_body=safe_flstrdup(tmp2->header_body);
       liste->num_af=0;
    }
+   Cursor_gotorc(1,0);
+   Screen_erase_eos();
    return 0;
 }
    
 static int Get_base_headers(int flag, Article_List *article) {
    int res, len1, len2=0, len3, key, i, from_perso=0;
-   char *real_name, *buf, *buf2;
+   char *real_name;
+   flrn_char *buf, *buf2;
    string_list_type *parcours;
 
    Header_post=safe_calloc(1,sizeof(Post_Headers));
@@ -1401,22 +1688,24 @@ static int Get_base_headers(int flag, Article_List *article) {
    if (flag!=-1) {
       parcours=Options.user_header;
       while (parcours) {
-        buf=strchr(parcours->str,':');
+        buf=fl_strchr(parcours->str,fl_static(':'));
+	if (buf==NULL) { parcours = parcours->next; continue; }
 	len1=buf-parcours->str+1;
-	for (i=0;i<NB_KNOWN_HEADERS;i++) 
-	  if (strncasecmp(parcours->str,Headers[i].header,
+	for (i=0;i<NB_DECODED_HEADERS;i++) 
+	  if (fl_strncasecmp(parcours->str,Headers[i].header,
 	                          Headers[i].header_len)==0) break;
-        if ((i!=NB_KNOWN_HEADERS) && (is_modifiable(i))) 
+        if ((i!=NB_DECODED_HEADERS) && (is_modifiable(i))) 
 	  /* c'est a revoir... */
 	{
-	   Header_post->k_header[i]=safe_malloc(513);
+	   Header_post->k_header[i]=safe_malloc(513*sizeof(flrn_char));
 	   Copy_format (NULL, buf+2, article, Header_post->k_header[i], 512);
 	   /* on reformate */
 	   buf2=Header_post->k_header[i];
-	   while ((buf2=strchr(buf2,'\n'))) *buf2=' ';
+	   while ((buf2=fl_strchr(buf2,fl_static('\n')))) 
+	       *buf2=fl_static(' ');
 	   if (i==FROM_HEADER) from_perso=1;
 	}
-	else if (i==NB_KNOWN_HEADERS) {
+	else if (i==NB_DECODED_HEADERS) {
 	   Header_List *parcours2=Header_post->autres;
 	   while (parcours2 && (parcours2->next)) parcours2=parcours2->next;
 	   if (Header_post->autres==NULL) 
@@ -1426,12 +1715,16 @@ static int Get_base_headers(int flag, Article_List *article) {
 	     parcours2=parcours2->next;
 	   }
 	   parcours2->next=NULL;
-	   parcours2->header=safe_malloc(513);
-	   Copy_format (NULL, parcours->str, article, 
-	                   parcours2->header, 512);
+	   parcours2->header_head=safe_malloc((len1+1)*sizeof(flrn_char));
+	   strncpy(parcours2->header_head,parcours->str,len1);
+	   parcours2->header_head[len1]=fl_static('\0');
+	   parcours2->header_head=safe_malloc(513*sizeof(flrn_char));
+	   Copy_format (NULL, buf+2, article, 
+	                   parcours2->header_head, 512);
 	   /* on reformate */
-	   buf2=parcours2->header;
-	   while ((buf2=strchr(buf2,'\n'))) *buf2=' ';
+	   buf2=parcours2->header_head;
+	   while ((buf2=fl_strchr(buf2,fl_static('\n')))) 
+	       *buf2=fl_static(' ');
 	   parcours2->num_af=0;
 	}
 	parcours=parcours->next;
@@ -1446,112 +1739,135 @@ static int Get_base_headers(int flag, Article_List *article) {
       }
       /* Determiner si on doit faire la réponse par mail en priorité */
       if ((flag==0) && (Pere_post->headers->k_headers[FOLLOWUP_TO_HEADER])) {
-        if  (strcasecmp(Pere_post->headers->k_headers[FOLLOWUP_TO_HEADER],"poster")==0) {
+        if  (fl_strcasecmp(Pere_post->headers->k_headers[FOLLOWUP_TO_HEADER],
+		    fl_static("poster"))==0) {
 	  while (flag==0) {
+	    struct key_entry ke;
+	    ke.entry=ENTRY_ERROR_KEY;
 	    Cursor_gotorc(Screen_Rows2-1,0);
+	    /* FIXME : français */
 	    Screen_write_string("Répondre par mail (O/N/A) ? ");
-	    key=Attend_touche();
-	    key=toupper(key);
-	    if (KeyBoard_Quit || (key=='A')) return -1;
-	    if (key=='O') flag=1;
-	    if (key=='N') break;
+	    Attend_touche(&ke);
+	    if (KeyBoard_Quit) return -1;
+	    if (ke.entry==ENTRY_SLANG_KEY) {
+		key=ke.value.slang_key;
+	        key=toupper(key);
+		if (key=='A') return -1;
+		if (key=='O') flag=1;
+		if (key=='N') break;
+	    }
 	  }
 	  par_mail=flag; /* 0 ou 1 */
-        } else if (strcasecmp(Newsgroup_courant->name,Pere_post->headers->k_headers[FOLLOWUP_TO_HEADER])!=0) { 
+        } else if (fl_strcasecmp(Newsgroup_courant->name,
+		    Pere_post->headers->k_headers[FOLLOWUP_TO_HEADER])!=0) { 
 			/* On ne demande rien si on est dans le bon groupe */
 	  while (1) {
+	    struct key_entry ke;
+	    ke.entry=ENTRY_ERROR_KEY;
 	    Cursor_gotorc(Screen_Rows2-1,0);
+	    /* FIXME: français */
 	    Screen_write_string("Suivre le followup (O/N/A) ? ");
-	    key=Attend_touche();
-	    key=toupper(key);
-	    if (KeyBoard_Quit || (key=='A')) return -1;
-	    if (key=='O') {
-	        Header_post->k_header[NEWSGROUPS_HEADER]=
-		 safe_strdup(Pere_post->headers->k_headers[FOLLOWUP_TO_HEADER]);
-		break;
+	    Attend_touche(&ke);
+	    if (KeyBoard_Quit) return -1;
+	    if (ke.entry==ENTRY_SLANG_KEY) {
+		key=ke.value.slang_key; 
+		key=toupper(key);
+		if (key=='A') return -1;
+		if (key=='O') {
+		    Header_post->k_header[NEWSGROUPS_HEADER]=
+			safe_flstrdup(Pere_post->headers->k_headers
+				[FOLLOWUP_TO_HEADER]);
+		    break;
+		}
+		if (key=='N') break;	  
 	    }
-	    if (key=='N') break;	  
 	  }
         } 
       }
       /* References */
-      if (!supersedes) { /* Pas de References pour un supersedes ? */
-        len3=strlen(Pere_post->msgid);
-        if (Pere_post->headers->k_headers[REFERENCES_HEADER]) 
-	     Header_post->k_header[REFERENCES_HEADER]=extract_post_references(Pere_post->headers->k_headers[REFERENCES_HEADER], len3);
-        else { 
-	  Header_post->k_header[REFERENCES_HEADER]=safe_malloc((len3+1)*sizeof(char));
-	  *(Header_post->k_header[REFERENCES_HEADER])='\0';
-        }
-        strcat(Header_post->k_header[REFERENCES_HEADER], Pere_post->msgid);
-      } else   /* Si... on duplique le header références... pour que "Re: "
-		   ne soit pas injustifié */
-	if (Pere_post->headers->k_headers[REFERENCES_HEADER]) 
-	  Header_post->k_header[REFERENCES_HEADER]=safe_strdup(Pere_post->headers->k_headers[REFERENCES_HEADER]);
+      len3=strlen(Pere_post->msgid);
+      if (Pere_post->headers->k_raw_headers[REFERENCES_HEADER]) 
+	     Header_post->k_raw_header[REFERENCES_HEADER]=extract_post_references(Pere_post->headers->k_raw_headers[REFERENCES_HEADER], len3);
+      else { 
+	  Header_post->k_raw_header[REFERENCES_HEADER]=safe_malloc(len3+1);
+	  *(Header_post->k_raw_header[REFERENCES_HEADER])='\0';
+      }
+      strcat(Header_post->k_raw_header[REFERENCES_HEADER], Pere_post->msgid);
       /* Sujet */
       if (Pere_post->headers->k_headers[SUBJECT_HEADER]) {
-	if (!supersedes) {
-	  len1=strlen(Pere_post->headers->k_headers[SUBJECT_HEADER]);
-	  if (strncasecmp(Pere_post->headers->k_headers[SUBJECT_HEADER],"re: ",4)!=0)
+	  len1=fl_strlen(Pere_post->headers->k_headers[SUBJECT_HEADER]);
+	  if (fl_strncasecmp(Pere_post->headers->k_headers[SUBJECT_HEADER],
+		      fl_static("re: "),4)!=0)
 	    len2=4; else len2=0;
 	  Header_post->k_header[SUBJECT_HEADER]=
-		       safe_malloc((len1+len2+1)*sizeof(char));
+		       safe_malloc((len1+len2+1)*sizeof(flrn_char));
 	  if (len2==4)
-	    strcpy(Header_post->k_header[SUBJECT_HEADER], "Re: "); else
-	      Header_post->k_header[SUBJECT_HEADER][0]='\0';
-	  strcat(Header_post->k_header[SUBJECT_HEADER],
+	    fl_strcpy(Header_post->k_header[SUBJECT_HEADER], 
+		    fl_static("Re: ")); else
+	      Header_post->k_header[SUBJECT_HEADER][0]=fl_static('\0');
+	  fl_strcat(Header_post->k_header[SUBJECT_HEADER],
 	      Pere_post->headers->k_headers[SUBJECT_HEADER]);
-	} else 
-	  Header_post->k_header[SUBJECT_HEADER]=
-	     safe_strdup(Pere_post->headers->k_headers[SUBJECT_HEADER]);
       }
    }
    /* Newsgroups */
    if (Header_post->k_header[NEWSGROUPS_HEADER]==NULL) {
-	 if  (
-#ifndef GNKSA_NEWSGROUPS_HEADER
-	     (!supersedes) ||
-#endif
-	     (!Pere_post) ||
+#ifdef GNKSA_NEWSGROUPS_HEADER
+	 if  ((!Pere_post) ||
 	         (!(Pere_post->headers->k_headers[NEWSGROUPS_HEADER])))
+#endif
          {
 	    if (Newsgroup_courant->flags & GROUP_READONLY_FLAG) 
-	        Header_post->k_header[NEWSGROUPS_HEADER]=safe_strdup("junk");
+	        Header_post->k_header[NEWSGROUPS_HEADER]=safe_flstrdup(
+			fl_static("junk"));
 	    else
-	 	Header_post->k_header[NEWSGROUPS_HEADER]=safe_strdup(Newsgroup_courant->name);
-	 } else
+	 	Header_post->k_header[NEWSGROUPS_HEADER]=safe_flstrdup
+		    (Newsgroup_courant->name);
+	 } 
+#ifdef GNKSA_NEWSGROUPS_HEADER
+	 else
 	    Header_post->k_header[NEWSGROUPS_HEADER]=safe_strdup(Pere_post->headers->k_headers[NEWSGROUPS_HEADER]);
+#endif
    }
    /* Headers To: et In-Reply-To: */
    Cursor_gotorc(1,0);
    Screen_erase_eos();
    if (par_mail) {   /* Ceci suppose que Pere_post soit défini */
+     int rc;
+     char *trad;
      Header_List *parcours2=Header_post->autres;
 
      if (Pere_post->headers->k_headers[REPLY_TO_HEADER])
-       Header_post->k_header[TO_HEADER]=safe_strdup(Pere_post->headers->k_headers[REPLY_TO_HEADER]); else
-       Header_post->k_header[TO_HEADER]=safe_strdup(Pere_post->headers->k_headers[FROM_HEADER]); 
+       Header_post->k_header[TO_HEADER]=safe_flstrdup(Pere_post->headers->k_headers[REPLY_TO_HEADER]); else
+       Header_post->k_header[TO_HEADER]=safe_flstrdup(Pere_post->headers->k_headers[FROM_HEADER]); 
      while (parcours2 && (parcours2->next)) parcours2=parcours2->next;
      if (parcours2) {
        parcours2->next=safe_malloc(sizeof(Header_List));
        parcours2=parcours2->next;
      } else Header_post->autres=parcours2=safe_malloc(sizeof(Header_List));
      parcours2->next=NULL;
-     parcours2->header=safe_malloc(15+strlen(Pere_post->msgid));
+     parcours2->header_head=safe_flstrdup(fl_static("In-Reply-To:"));
+     parcours2->header_body=safe_flstrdup(fl_static_tran(Pere_post->msgid));
      parcours2->num_af=0;
-     strcpy(parcours2->header,"In-Reply-To: ");
-     strcat(parcours2->header,Pere_post->msgid);
      Screen_write_string("To : ");
-     Screen_write_string(Header_post->k_header[TO_HEADER]);
+     rc=conversion_to_terminal(Header_post->k_header[TO_HEADER],
+	     &trad,0,(size_t)(-1));
+     Screen_write_string(trad);
+     if (rc==0) free(trad);
    } else {
+     int rc;
+     char *trad;
      Screen_write_string("Groupe : ");
-     Screen_write_string(Header_post->k_header[NEWSGROUPS_HEADER]);
+     rc=conversion_to_terminal(Header_post->k_header[NEWSGROUPS_HEADER],
+	     &trad,0,(size_t)(-1));
+     Screen_write_string(trad);
+     if (rc==0) free(trad);
    }
    /* Sujet */
    if (Header_post->k_header[SUBJECT_HEADER]==NULL) {
        Header_post->k_header[SUBJECT_HEADER]=
-	   safe_malloc((MAX_SUJET_LEN+1)*sizeof(char));
-     if (flag==-1) strcpy(Header_post->k_header[SUBJECT_HEADER],"Cancel"); else
+	   safe_calloc((MAX_SUJET_LEN+1),sizeof(flrn_char));
+     if (flag==-1) fl_strcpy(Header_post->k_header[SUBJECT_HEADER],
+	     fl_static("Cancel")); else
      {
        res=get_Sujet_post(Header_post->k_header[SUBJECT_HEADER]); 
        if (res==-1) return -1;
@@ -1560,21 +1876,28 @@ static int Get_base_headers(int flag, Article_List *article) {
    /* From */
    if (from_perso==0)
    {
+     char *bf;
      real_name=safe_strdup(flrn_user->pw_gecos);
-     buf=strchr(real_name,','); if (buf) *buf='\0';
+     bf=strchr(real_name,','); if (bf) *bf='\0';
      len1=257+strlen(flrn_user->pw_name);
      if (Options.post_name)
-       len2=4+strlen(Options.post_name);
+       len2=4+fl_strlen(Options.post_name);
      else
-       len2=4+strlen(real_name);
-     Header_post->k_header[FROM_HEADER]=safe_malloc((len1+len2)*sizeof(char));
+       len2=4+strlen(real_name)*2;
+     Header_post->k_header[FROM_HEADER]=safe_malloc((len1+len2)*
+	     sizeof(flrn_char));
      Get_user_address(Header_post->k_header[FROM_HEADER]);
-     strcat(Header_post->k_header[FROM_HEADER]," (");
+     fl_strcat(Header_post->k_header[FROM_HEADER],fl_static(" ("));
      if (Options.post_name) 
-       strcat(Header_post->k_header[FROM_HEADER], Options.post_name);
-     else 
-       strcat(Header_post->k_header[FROM_HEADER], real_name);
-     strcat(Header_post->k_header[FROM_HEADER],")");
+       fl_strcat(Header_post->k_header[FROM_HEADER], Options.post_name);
+     else {
+	 int rc;
+	 flrn_char *trad;
+	 rc=conversion_from_utf8(real_name,&trad,0,(size_t)(-1));
+         fl_strcat(Header_post->k_header[FROM_HEADER], trad);
+	 if (rc==0) free(trad);
+     }
+     fl_strcat(Header_post->k_header[FROM_HEADER],fl_static(")"));
      free(real_name);
    }
    return 0;
@@ -1590,13 +1913,18 @@ static void Free_post_headers() {
    liste1=Header_post->autres;
    while (liste1) {
      liste2=liste1->next;
-     if (liste1->header) free(liste1->header);
+     if (liste1->header_head) free(liste1->header_head);
+     if (liste1->header_body) free(liste1->header_body);
      free(liste1);
      liste1=liste2;
    }
-   for (i=0; i<NB_KNOWN_HEADERS; i++) {
+   for (i=0; i<NB_DECODED_HEADERS; i++) {
      if (Header_post->k_header[i]) 
         free(Header_post->k_header[i]);
+   }
+   for (i=0; i<NB_RAW_HEADERS; i++) {
+     if (Header_post->k_raw_header[i]) 
+        free(Header_post->k_raw_header[i]);
    }
    free(Header_post);
 }
@@ -1605,6 +1933,7 @@ static void Free_post_headers() {
 /* encode un header selon la rfc2047, sans se poser la question		 */
 /* des caractère spéciaux... (donc ne peut pour l'instant ne s'appliquer */
 /* qu'au sujet...)							 */
+#if 0
 static void encode_headers(char **header_to_encode) {
    char *place_to_put, *header_content=*header_to_encode;
 
@@ -1616,6 +1945,7 @@ static void encode_headers(char **header_to_encode) {
    strcpy(*header_to_encode, place_to_put);
    free(place_to_put);
 }
+#endif
 
 /* Cancel un message (fonction secondaire de ce fichier).		*/
 /* Renvoie : >0 si le message est effectivement cancelé... 0 si le      */
@@ -1634,6 +1964,9 @@ int cancel_message (Article_List *origine, int confirm) {
    /* On pourrait demander confirmation */
    /* L'équivalent d'un Aff_fin */
    if (confirm==0) {
+     struct key_entry ke;
+     ke.entry=ENTRY_ERROR_KEY;
+       /* FIXME: français */
      sprintf(line,"Canceler le message %d (O/N/T) : ",origine->numero);
      Cursor_gotorc(Screen_Rows2-1,0);
      Screen_set_color(FIELD_ERROR);
@@ -1641,8 +1974,11 @@ int cancel_message (Article_List *origine, int confirm) {
      Screen_set_color(FIELD_NORMAL);
      Screen_erase_eol();
      Cursor_gotorc(Screen_Rows2-1, strlen(line));
-     key=Attend_touche();
-     if (key=='T') confirm=1; else if (toupper(key)!='O') return 0;
+     Attend_touche(&ke);
+     if (ke.entry==ENTRY_SLANG_KEY) {
+	 key=ke.value.slang_key;
+         if (key=='T') confirm=1; else if (toupper(key)!='O') return 0;
+     } else return 0;
    }
    /* Bon... Tant pis */
    res=Get_base_headers(-1,origine);
@@ -1652,7 +1988,9 @@ int cancel_message (Article_List *origine, int confirm) {
    }
    /* On remplie un corps bidon */
    Deb_body=alloue_chaine();
-   strcpy(Deb_body->lu,"Cancel d'un message.\n");
+   fl_strcpy(Deb_body->lu,fl_static("This message is canceled by flrn.\n"));
+   Deb_body->size=fl_strlen(Deb_body->lu);
+   Change_message_conversion("utf-8");
    res=Format_article(origine->msgid);
    res=Post_article();
    Free_post_headers();
@@ -1662,30 +2000,93 @@ int cancel_message (Article_List *origine, int confirm) {
 }
 
 
+void Create_header_encoding () {
+    Lecture_List *lecture_courant;
+    Header_List *liste;
+    const char *result;
+    /* 1ere chose, existe-t-il une entête ContentType */
+    liste=Header_post->autres;
+    if (liste==NULL) {
+	liste=Header_post->autres=safe_calloc(1,sizeof(Header_List));
+    } else
+    while (liste) {
+	if (fl_strncasecmp(liste->header_head,
+		    fl_static("content-type:"),13)==0) break;
+	if (liste->next==NULL) {
+	    liste->next=safe_calloc(1,sizeof(Header_List));
+	    liste=liste->next;
+	    break;
+	}
+	liste=liste->next;
+    }
+    if (liste->header_head==NULL) 
+	liste->header_head=safe_flstrdup(fl_static("Content-Type:"));
+    if (liste->header_body) {
+	const char *tent;
+	tent=parse_ContentType_header(liste->header_body);
+	lecture_courant=Deb_body;
+	while (lecture_courant) {  
+	    find_best_conversion(lecture_courant->lu,lecture_courant->size,
+		    &result,tent);
+	    if (result==NULL) break;
+	    lecture_courant=lecture_courant->suivant;
+	}
+	find_best_conversion(NULL,0,NULL,NULL);
+	if (result) return; /* parse_ContentType_header a mis le
+			       message au bon encoding */
+	free(liste->header_body);
+	liste->header_body=NULL;
+    }
+    lecture_courant=Deb_body;
+    while (lecture_courant) {
+	find_best_conversion(lecture_courant->lu,lecture_courant->size,
+		&result,NULL);
+	if (result==NULL) break;
+	lecture_courant=lecture_courant->suivant;
+    }
+    if (result==NULL) result="utf-8";
+    {
+	char *bla;
+	size_t len;
+	bla=strchr(result,':');
+	if (bla) len=bla-result; else len=strlen(result);
+	bla=safe_malloc(len+1);
+	strncpy(bla,result,len); bla[len]='\0';
+	Change_message_conversion(bla);
+	liste->header_body=safe_malloc((25+strlen(bla))*sizeof(flrn_char));
+	fl_strcpy(liste->header_body,"text/plain; charset=");
+	fl_strcat(liste->header_body,fl_static_tran(bla));
+	free(bla);
+    }
+}
+
 /* Poste un message (fonction principale de ce fichier).		*/
 /* Renvoie : >0 en cas de message posté, 0 en cas d'annulation, <0 en   */
 /* en cas d'erreur.							*/
 /* renvoie positifs : & 1 : post envoyé... & 2 : mail envoyé...		*/
 /* flag est à 1 si demande de réponse par mail, a -1 si supersedes	*/
-int post_message (Article_List *origine, char *name_file,int flag) {
+int post_message (Article_List *origine, flrn_char *name_file,int flag) {
     int res=1, res_post=0, res_mail=0;
-    char *str=name_file;
+    flrn_char *str=name_file;
 
     if (origine && (origine->numero<0)) {
-       Aff_error_fin("L'article est hors du newsgroup !",1,-1);
+	/* FIXME : français */
+       Aff_error_fin(fl_static("L'article est hors du newsgroup !"),1,-1);
        return -1;
     }
     if (flag==-1) {
       res=Est_proprietaire(origine);
       if (res!=1) {
-	Aff_error_fin("Supersedes interdit !",1,-1);
+	/* FIXME : français */
+	Aff_error_fin(fl_static("Supersedes interdit !"),1,-1);
         return -1;
       }
     }
     supersedes=(flag==-1);
     Pere_post=origine;
     sigwinch_received=0;
-    Deb_article=Deb_body=NULL;
+    Deb_article=NULL;
+    Deb_body=NULL;
     /* On détermine les headers par défaut de l'article */
     /* D'ou l'intérêt de Followup-to			*/
     res=Get_base_headers(flag,origine);
@@ -1693,13 +2094,19 @@ int post_message (Article_List *origine, char *name_file,int flag) {
       Free_post_headers();
        return 0;
     }
-    while ((*str) && (isblank(*str))) str++;
-    if (*str!='\0') { 
-       res=charge_postfile(str);
+    while ((*str) && (fl_isblank(*str))) str++;
+    if (*str!=fl_static('\0')) { 
+       char *trad;
+       int rc;
+       rc=conversion_to_file(str,&trad,0,(size_t)(-1));
+       res=charge_postfile(trad);
+       if (rc==0) free(trad);
        if (res==0) return -1;
     } else {
       if (Pere_post) {
         Cursor_gotorc(2,0);
+	/* FIXME : français, mais de toute façon si l'éditeur */
+	/* est supprimé ça peut sauter */
         if (flag!=-1) Screen_write_string("Votre réponse : "); else
 	  Screen_write_string("Votre article de remplacement : ");
       }
@@ -1708,24 +2115,31 @@ int post_message (Article_List *origine, char *name_file,int flag) {
     }
 #ifdef GNKSA_ANALYSE_POSTS
     if (!Header_post->k_header[SUBJECT_HEADER]) {
-      Save_failed_article();
+      Save_failed_initial_article();
       Cursor_gotorc(1,0);
       Screen_erase_eos();
       Screen_set_color(FIELD_ERROR);
       Cursor_gotorc(Screen_Rows/2-1,3); /* Valeurs au pif */
+      /* FIXME : français */
       Screen_write_string("Ce message n'a pas de sujet. Post annulé.");
       Cursor_gotorc(Screen_Rows/2,3);
+      /* FIXME : français */
       Screen_write_string("Message sauvé dans ~/");
       Screen_write_string(REJECT_POST_FILE);
       res=-1;
     }
 #endif
-    if (res<=0) { Free_post_headers(); Libere_listes(); return res; }
-/* On n'encode que le sujet... C'est pas bo de toute façon */
-    if (Header_post->k_header[SUBJECT_HEADER])
-       encode_headers(&(Header_post->k_header[SUBJECT_HEADER]));
+    if (res<=0) { 
+	if (res==0) Save_failed_initial_article(); /* on sauve un 
+					  éventuel article annulé */
+	/* TODO ajouter un message là-dessus */
+	Free_post_headers(); Libere_listes(); return res; 
+    }
+    Create_header_encoding();
+    /* maintenant, il faut trouver le bon encodage */
     res=Format_article((supersedes ? origine->msgid : NULL));
-    if (res<0) { Free_post_headers(); Libere_listes(); return 0; }
+    if (res<0) { Save_failed_initial_article();
+	Free_post_headers(); Libere_listes(); return 0; }
     if (Header_post->k_header[TO_HEADER] ||
 	Header_post->k_header[CC_HEADER] ||
 	Header_post->k_header[BCC_HEADER]) res_mail=Mail_article();
@@ -1739,6 +2153,7 @@ int post_message (Article_List *origine, char *name_file,int flag) {
       Screen_erase_eos();
       Screen_set_color(FIELD_ERROR);
       Cursor_gotorc(Screen_Rows/2-1,3); /* Valeurs au pif */
+      /* FIXME : français */
       Screen_write_string("Post refusé... L'article est sauvé dans ~/");
       Screen_write_string(REJECT_POST_FILE);
       Cursor_gotorc(Screen_Rows/2,3);

@@ -17,6 +17,7 @@
 #include "flrn.h"
 #include "flrn_config.h"
 #include "flrn_lists.h"
+#include "enc/enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 
@@ -41,34 +42,34 @@ int free_liste(Flrn_liste *l) {
   return 0;
 }
 
-int find_in_liste(Flrn_liste *l, char *el) {
+int find_in_liste(Flrn_liste *l, flrn_char *el) {
   Flrn_liste_els *a;
   a=l->first;
   while(a) {
-    if (strcmp(a->ptr,el)==0) return 1;
+    if (fl_strcmp(a->ptr,el)==0) return 1;
     a=a->next;
   }
   return 0;
 }
 
-int add_to_liste(Flrn_liste *l, char *el) {
+int add_to_liste(Flrn_liste *l, flrn_char *el) {
   Flrn_liste_els *a,*b;
   a=l->first;
   /* on verifie qu'il n'y est pas deja */
   if (find_in_liste(l,el)) return -1;
   b=safe_calloc(1,sizeof(Flrn_liste_els));
-  b->ptr=safe_strdup(el);
+  b->ptr=safe_flstrdup(el);
   l->first=b;
   b->next=a;
   return 0;
 }
 
-int remove_from_liste(Flrn_liste *l, char *el) {
+int remove_from_liste(Flrn_liste *l, flrn_char *el) {
   Flrn_liste_els *a,*b;
   a=l->first;
   b=NULL;
   while(a) {
-    if (strcmp(a->ptr,el)==0) {
+    if (fl_strcmp(a->ptr,el)==0) {
       if (b) b->next=a->next;
       else l->first=a->next;
       free_liste_el(a);
@@ -82,10 +83,14 @@ int remove_from_liste(Flrn_liste *l, char *el) {
 
 int write_liste(Flrn_liste *l, FILE *fi) {
   Flrn_liste_els *a;
-  int res=0;
+  char *trad;
+  int res=0, rc;
   if (l) { a=l->first;
-    while(a) { if (fprintf(fi,"%s\n",a->ptr)<0) res=-1;
-      a=a->next;}
+    while(a) { 
+	rc=conversion_to_utf8(a->ptr,&trad,0,(size_t)(-1));
+        if (fprintf(fi,"%s\n",trad)<0) res=-1;
+	if (rc==0) free(trad);
+        a=a->next;}
   }
   return res;
 }

@@ -25,6 +25,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include "enc/enc_base.h"
 
 #ifdef HAVE_ERRNO_H
 #include <errno.h>
@@ -100,6 +101,13 @@ extern void *safe_strdup(const char *);
 #else
 #define safe_strdup(s) __safe_strdup(s,__PRETTY_FUNCTION__,__FILE__,__LINE__)
 extern void *__safe_strdup(const char *, char *, char *, int);
+#endif
+
+#ifndef DEBUG_MALLOC
+extern void *safe_flstrdup(const flrn_char *);
+#else
+#define safe_flstrdup(s) __safe_flstrdup(s,__PRETTY_FUNCTION__,__FILE__,__LINE__)
+extern void *__safe_flstrdup(const flrn_char *, char *, char *, int);
 #endif
 
 #ifndef DEBUG_MALLOC

@@ -24,15 +24,16 @@
 extern int flrn_SLang_inited;
 
 extern int flrn_init_SLang(void);
-extern int source_SLang_string(char *, char **);
+extern int source_SLang_string(flrn_char *, flrn_char **);
 extern int source_SLang_file (char *);
 extern int change_SLang_Error_Hook(int);
-extern SLang_Name_Type *Parse_fun_slang (char *, int *);
-extern int Parse_type_fun_slang(char *);
+extern SLang_Name_Type *Parse_fun_slang (flrn_char *, int *);
+extern int Parse_type_fun_slang(flrn_char *);
 extern int Push_article_on_stack (Article_List *, Newsgroup_List *);
 extern int Push_newsgroup_on_stack (Newsgroup_List *);
 
-extern int try_hook_newsgroup_string (char *, Newsgroup_List *, char **);
+extern int try_hook_newsgroup_string (char *, Newsgroup_List *, 
+	flrn_char **);
 
 
 #endif

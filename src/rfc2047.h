@@ -14,6 +14,7 @@
 #define FLRN_RFC_2047_H
 
 #include <stdio.h>
+#include "enc/enc_strings.h"
 
 #define SHORT_STRING 128
 #define ENCQUOTEDPRINTABLE 1
@@ -21,7 +22,7 @@
 
 /* les fonctions */
 
-extern void rfc2047_encode_string (char *, unsigned char *, size_t);
-extern void rfc2047_decode (char *, const char *, size_t);
+extern int rfc2047_encode_string (char *, flrn_char *, size_t, int);
+extern size_t rfc2047_decode (flrn_char *, char *, size_t, int);
 
 #endif

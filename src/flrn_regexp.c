@@ -23,6 +23,7 @@
 
 #include "flrn.h"
 #include "flrn_regexp.h"
+#include "enc/enc_base.h"
 
 static UNUSED char rcsid[]="$Id$";
 
@@ -31,62 +32,64 @@ static UNUSED char rcsid[]="$Id$";
  * flag=1 => possibilite de mettre des * dans la chaine
  * Attention : il faudra faire un free sur cette chaine */
 
-char *reg_string(char *pattern, int flag) {
-  char *ptr;
-  char *result;
+flrn_char *reg_string(flrn_char *pattern, int flag) {
+  flrn_char *ptr;
+  flrn_char *result;
   int len;
 
   /* c'est trop complique pour moi */
-  if (strchr(pattern,'|')) return NULL;
+  if (fl_strchr(pattern,fl_static('|'))) return NULL;
   result = safe_malloc(128);
 
   len=0;
   ptr=pattern;
   /* est-ce /^.../ ? */
-  if (flag && (*ptr!='^')) result[len++]='*';
+  if (flag && (*ptr!=fl_static('^'))) result[len++]=fl_static('*');
 
   while(*ptr && (len < 126)) {
     /* gestion des \truc */
-    if (*ptr=='\\') {
+    if (*ptr==fl_static('\\')) {
       ptr++;
       /* c'est un caractère a protéger */
-      if (index(".^$*[]+{}()\\",*ptr)) {result[len++]=*ptr;
-	ptr ++;
+      if (fl_strchr(fl_static(".^$*[]+{}()\\"),*ptr)) 
+      { result[len++]=*(ptr++);
 	continue;
       }
       else break; /* c'est probablement un truc special */
     }
-    if (*ptr=='[') { /* on traite [...] comme . et on fait gaffe a []] */
-      if (len) { if (flag) result[len++]='*'; else break; }
+    if (*ptr==fl_static('[')) { 
+	/* on traite [...] comme . et on fait gaffe a []] */
+      if (len) { if (flag) result[len++]=fl_static('*'); else break; }
       if (*(++ptr)) ptr++; /* on passe toujours un caractère, pour []] */
-      ptr=index(ptr,']');
+      ptr=fl_strchr(ptr,fl_static(']'));
       if (ptr) {ptr++; continue;}
       ptr=pattern; break;
     }
-    if (*ptr=='{') { /* c'est pour nous * ou + */
-      if (*(++ptr)=='0') {
+    if (*ptr==fl_static('{')) { /* c'est pour nous * ou + */
+      if (*(++ptr)==fl_static('0')) {
 	if (len) len--; 
       }
       if (len) {
-	if (flag) result[len++]='*'; else break;
+	if (flag) result[len++]=fl_static('*'); else break;
       }
-      ptr=index(ptr,'}');
+      ptr=fl_strchr(ptr,fl_static('}'));
       if (ptr) {ptr++; continue;}
       ptr=pattern; break;
     }
-    if (index("[]{}()",*ptr)) break; /* en fait ca devrait etre que (, les
+    if (fl_strchr(fl_static("[]{}()"),*ptr))
+	break; /* en fait ca devrait etre que (, les
 				      autres sont gérés avant */
-    if (index("*?",*ptr)) {if (len) len --;}
-    if (index("*?+.",*ptr)) {
-      if (len) { if (flag) result[len++]='*'; else break; }
+    if (fl_strchr(fl_static("*?"),*ptr)) {if (len) len --;}
+    if (fl_strchr(fl_static("*?+."),*ptr)) {
+      if (len) { if (flag) result[len++]=fl_static('*'); else break; }
     }
-    if (index("^$",*ptr)) { if (len) break; }
-    if (!index(".^$*?[]+\\{}()",*ptr))
+    if (fl_strchr(fl_static("^$"),*ptr)) { if (len) break; }
+    if (!fl_strchr(fl_static(".^$*?[]+\\{}()"),*ptr))
        result[len++]=*ptr;
     ptr++;
   }
-  if (flag && (*ptr != '$')) result[len++]='*';
-  result[len]='\0';
+  if (flag && (*ptr != fl_static('$'))) result[len++]=fl_static('*');
+  result[len]=fl_static('\0');
   if (len) return result;
   free(result);
   return NULL;
