@@ -596,19 +596,15 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 		      ptr_att=strchr(buf,'}'); 
 		      if (ptr_att) {
 		         /* on suppose le header connu */
-		         int n,len3;
+		         int len3;
 			 char *str;
 		         *ptr_att='\0';
 			 len3=strlen(buf);
 			 ptr_att++;
 			 if (article==NULL) break;
-			 for (n=0;n<NB_KNOWN_HEADERS;n++) {
-			    if ((len3!=Headers[n].header_len) &&
-			        (len3!=Headers[n].header_len-1)) continue;
-			    if (strncasecmp(buf,Headers[n].header,len3)!=0)
-			      continue;
-		            str=article->headers->k_headers[n];	
-			    if (str) {
+			 str = get_one_header(article, Newsgroup_courant,
+				                buf);
+			 if (str) {
 			       str=safe_strdup(str);
                                if (tmp_file) copy_bout(tmp_file,str); else
                                { strncat(result,str,len2); len2-=strlen(str); if
@@ -616,8 +612,6 @@ void Copy_format (FILE *tmp_file, char *chaine, Article_List *article,
 				             free(att); return; } else 
 			         result[len-len2]=0; }
 			       free(str);
-			    }
-			    break;
 			 }
 		         break;
 	  	      } else ptr_att=buf; /* -> default */

@@ -84,10 +84,10 @@ static void free_article_headers(Article_Header *headers) {
 }
 
 static int calcul_hash(char *id) {
-  int toto=0;
-  toto=0; for(; *id; id++) toto += *id;
+  unsigned int toto=0; /* éviter les valeurs négatives */
+  toto=0; for(; *id; id++) toto += ((unsigned char) *id);
   toto %= HASH_SIZE;
-  return toto;
+  return ((int)toto);
 }
 
 void free_one_article(Article_List *article,int flag) {
