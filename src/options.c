@@ -602,6 +602,73 @@ int opt_do_bind(char *str, int flag)
   return (res <0) ? -1 : 0;
 }
 
+int opt_do_autocmd(char *str, int flag)
+{
+   char *buf,*buf2;
+   autocmd_list_type *newautocmd;
+   int i;
+
+   buf=strtok(str,delim);
+   if (!buf) return -1;
+   newautocmd=safe_calloc(1,sizeof(autocmd_list_type));
+   if (strcasecmp(buf,"enter")==0) newautocmd->flag=AUTOCMD_ENTER;
+      else if (strcasecmp(buf,"leave")==0) newautocmd->flag=AUTOCMD_LEAVE;
+        else {
+	  if (flag) Aff_error_fin("autocmd invalide.",1,-1); else
+	  {
+	     fprintf(stderr,"Mot inconnu pour autocmd : %s\n",buf);
+	     sleep(1);
+	  }
+	  free(newautocmd);
+	  return -1;
+        }
+   buf=strtok(NULL,delim);
+   if (!buf) {
+      free(newautocmd);
+      return -1;
+   }
+   if (regcomp(&(newautocmd->match),buf,REG_EXTENDED|REG_NOSUB)) {
+      if (flag) Aff_error_fin("Regexp invalide pour autocmd.",1,-1);
+      else {
+         fprintf(stderr,"Regexp invalide pour autocmd : %s\n",buf);
+         sleep(1);
+      }
+      free(newautocmd);
+      return -1;
+   }
+   buf=strtok(NULL,delim);
+   if (!buf) {
+     regfree(&(newautocmd->match));
+     free(newautocmd);
+     return -1;
+   }
+   buf2=strtok(NULL,"\n");
+   if (buf2) buf2+=strspn(buf2,delim);
+   for (i=0;i<NB_FLCMD;i++) {
+      if (strcmp(buf,Flcmds[i].nom)==0) {
+         newautocmd->cmd=i;
+	 newautocmd->arg=safe_strdup(buf2);
+	 if (Options.user_autocmd==NULL)
+	    Options.user_autocmd=newautocmd;
+	 else {
+	    autocmd_list_type *parcours=Options.user_autocmd;
+   	    while (parcours->next) parcours=parcours->next;
+	    /* oui, on veut ajouter à la fin */
+	    parcours->next=newautocmd;
+	 }
+	 return 0;
+       }
+   }
+   regfree(&(newautocmd->match));
+   if (flag) Aff_error_fin("Commande invalide pour autocmd.",1,-1);
+   else {
+      fprintf(stderr,"Commande invalide pour autocmd : %s\n",buf);
+      sleep(1);
+   }
+   free(newautocmd);
+   return -1;
+}
+
 /* Analyse d'une ligne d'option. Prend en argument la ligne en question */
 /* on fait maintenant appel aux fonctions do_opt_* pour faire le boulot */
 static void raw_parse_options_line (char *ligne, int flag)
@@ -777,6 +844,8 @@ void dump_flrnrc(FILE *file) {
   }
   fprintf(file,"\n\n# Il reste les couleurs...\n");
   dump_colors_in_flrnrc(file);
+  if (Options.user_autocmd)
+    fprintf(file,"\n\n# Il reste les autocmd aussi, qui peuvent changer les options par défaut :-(\n");
   return;
 }
 
@@ -945,6 +1014,7 @@ void init_options() {
 /* ne sert a rien, mais bon */
 void free_options() {
   int i;
+  autocmd_list_type *parcours, *parcours2;
   for (i=0; i< NUM_OPTIONS; i++)
     if (All_options[i].flags.allocated) {
       free(*All_options[i].value.string);
@@ -953,6 +1023,14 @@ void free_options() {
     }
   free_string_list_type(Options.user_header);
   free_string_list_type(Options.user_flags);
+  parcours=Options.user_autocmd;
+  while (parcours) {
+     regfree(&(parcours->match));
+     if (parcours->arg) free(parcours->arg);
+     parcours2=parcours;
+     parcours=parcours->next;
+     free(parcours2);
+  }
 }
 
 void free_string_list_type (string_list_type *s_l_t) {

@@ -21,6 +21,7 @@ struct Option_struct Options = {
   {-1},			/* hidden headers */
   NULL,			/* user headers */
   NULL,			/* user_flags */
+  NULL,			/* user_autocmd */
   0,			/* headers scroll */
   1,			/* skip_line */
   -1,			/* color, -1 = autodetect */

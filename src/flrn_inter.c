@@ -168,6 +168,8 @@ void Get_option_line(char *argument);
 /* les trois fonctions suivantes sont inutilisées...
  * mais on les laisse tant que la bonne version 'est pas écrite */
 void zap_thread(Article_List *article,int all, int flag, int zap);
+
+static void apply_autocmd(int flag, char *name);
 #if 0
 int next_thread(int flags);
 #endif
@@ -311,7 +313,7 @@ static void Aff_message(int type, int num)
 int loop(char *opt) {
    int res=0, quit=0, ret;
    int to_build=0; /* il faut appeler cree_liste */
-   int change;
+   int change, a_change=1;
    Numeros_List *fin_de_param=NULL;
    char Str_macro[MAX_CHAR_STRING];
    
@@ -383,6 +385,12 @@ int loop(char *opt) {
       } else {
 	Article_courant=Article_deb;
       }
+      if ((Newsgroup_courant) && (a_change)) {
+          save_etat_loop();
+	  apply_autocmd(AUTOCMD_ENTER,Newsgroup_courant->name);
+	  restore_etat_loop();
+      }
+      a_change=0;
       if (Article_courant) {
 	if (etat_loop.hors_struct==1) etat_loop.hors_struct=0;
 	if (!(etat_loop.hors_struct & 8)) 
@@ -512,8 +520,17 @@ int loop(char *opt) {
 	   etat_loop.etat=2; etat_loop.num_message=-25;
 	}
       }
+      if ((Newsgroup_courant) && 
+          (((to_build) && (Newsgroup_courant!=etat_loop.Newsgroup_nouveau))
+	    || (quit))) {
+          save_etat_loop();
+	  apply_autocmd(AUTOCMD_LEAVE,Newsgroup_courant->name);
+	  restore_etat_loop();
+      }
+      a_change=0;
       if (to_build==1) {
         if (Article_deb && (Article_deb!=&Article_bidon)) detruit_liste(0);
+	if (Newsgroup_courant!=etat_loop.Newsgroup_nouveau) a_change=1;
 	Newsgroup_courant=etat_loop.Newsgroup_nouveau;
       }
       if (Newsgroup_courant==NULL) etat_loop.hors_struct=11;
@@ -550,6 +567,18 @@ int call_func(int number, char *arg) {
   res=number;
   res=parse_arg_string(arg,res,0);
   return (*Flcmds[res].appel)(res);
+}
+
+void apply_autocmd(int flag, char *name) {
+  autocmd_list_type *parcours=Options.user_autocmd;
+  while (parcours) {
+     if (flag & parcours->flag) {
+        if (regexec(&(parcours->match),name,0,NULL,0)==0) {
+	   call_func(parcours->cmd,parcours->arg);
+	}
+     }
+     parcours=parcours->next;
+  }
 }
 
 /* -1 commande non trouvee */

@@ -12,6 +12,7 @@
 #define FLRN_OPTIONS_H
 
 #include <stdio.h>
+#include "compatibility.h"
 #include "flrn_slang.h"
 #include "art_group.h"
 #include "flrn_color.h"
@@ -32,6 +33,7 @@ int opt_do_regcolor(char *, int);
 int opt_do_set(char *, int);
 int opt_do_bind(char *, int);
 int opt_do_my_flags(char *, int);
+int opt_do_autocmd(char *, int);
 
 /* pour la comptetion automatique */
 int var_comp(char *, int, Liste_Chaine *);
@@ -51,6 +53,7 @@ struct _Optcmd {
   {"regcolor", &opt_do_regcolor, NULL},
   {"set", &opt_do_set, &var_comp},
   {"bind", &opt_do_bind, &bind_comp},
+  {"autocmd", &opt_do_autocmd, NULL},
 };
 
 #define NUMBER_OF_OPT_CMD (sizeof(Optcmd_liste)/sizeof(Optcmd_liste[0]))
@@ -68,6 +71,15 @@ typedef struct string_list {
   struct string_list *next;
 } string_list_type;
 
+typedef struct autocmd_list {
+  int flag;
+#define AUTOCMD_ENTER 0x01
+#define AUTOCMD_LEAVE 0x02
+  regex_t match;
+  int cmd;
+  char *arg;
+  struct autocmd_list *next;
+} autocmd_list_type;
 
 struct Option_struct {
   char *serveur_name;     /* option serveur   */
@@ -79,6 +91,7 @@ struct Option_struct {
   int  hidden_header_list[MAX_HEADER_LIST]; /* headers a cacher */
   string_list_type *user_header;
   string_list_type *user_flags;
+  autocmd_list_type *user_autocmd;
   int  headers_scroll;
   int  skip_line;                /* nombre de lignes avant le header */
   int  color;
