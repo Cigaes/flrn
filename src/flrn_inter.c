@@ -1977,8 +1977,13 @@ int do_select(int res) {
       }
       if (art_ret) {
          Article_courant=root_of_thread(art_ret,1);
-	 etat_loop.etat=0;
-	 if (!(art_ret->flag & FLAG_READ)) do_deplace(FLCMD_SPACE);
+	 if ((!(art_ret->flag & FLAG_READ)) && 
+	       (Article_courant->flag & FLAG_READ)) {
+	    Article_List *myarticle;
+	    myarticle=next_in_thread(Article_courant,FLAG_READ,NULL,
+	    				0,0,0,1)
+	    if (myarticle) Article_courant=myarticle;
+	 }
       }
   } else
   if (Article_courant->flag & FLAG_READ) {
