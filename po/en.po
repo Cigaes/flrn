@@ -30,7 +30,7 @@ msgid "Quel groupe ?"
 msgstr "Which group, my Lord?"
 
 #: flrn_help.c:29
-msgid "Aide de flrn, à vous [0-9qm] :"
+msgid "Aide de flrn, Ã  vous [0-9qm] :"
 msgstr "flrn help. Your choice, my Lord [0-9qm]:"
 
 #: flrn_help.c:47
