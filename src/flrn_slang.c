@@ -756,7 +756,8 @@ Colored_Char_Type create_Colored_Char_Type (const char **str, int field) {
         wchar_t ch;
 	mbstate_t ps;
 	size_t d;
-	mbrtowc(NULL,NULL,0,&ps);
+	/* beurk la retransformation en utf8 */
+	memset(&ps,0,sizeof (mbstate_t));
 	d=mbrtowc(&ch,*str,strlen(*str)+1,&ps);
 	if (d==0) return (Colored_Char_Type)0;
 	if (d==(size_t)(-1)) {

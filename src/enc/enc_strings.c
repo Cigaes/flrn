@@ -282,7 +282,7 @@ int init_charsets() {
    UC_CHARSET_SETUP_iso_8859_15;
    UC_CHARSET_SETUP_utf_8;
    read_terminal_charset();
-   set_localeUTF8();
+/*   set_localeUTF8();   */ /* on garde la locale courante */
    return 0;
 }
 
@@ -1382,39 +1382,43 @@ size_t next_flch(flrn_char *str,size_t len) {
 }
 
 void width_termchar(char *str,int *wdt, size_t *len) {
+
     if (terminal_charset!=-1) {
 	if (UCInfo[terminal_charset].enc != UCT_ENC_UTF8) {
 	    *wdt=1;
 	    *len=1;
 	    return;
 	} else {
+#ifndef HAVE_WCHAR_H
+	    long uch;
 	    size_t a;
+	    a=UCGetUniFromUtf8String(&ucg,str,strlen(str));
+	    *len = ((int)a<=0? 1 : a);
+	    *wdt=1;
+	    return;
+#endif
+	}
+    }
 #ifdef HAVE_WCHAR_H
+    {
+	    size_t a;
+	    /* en fait, ce serait plutôt HAVE_WCWIDTH */
 	    mbstate_t ps;
 	    wchar_t ch;
 	    /* mbrtowc(NULL,NULL,0,&ps); */
 	    memset(&ps,0,sizeof(mbstate_t));
 	    a = mbrtowc(&ch,str,strlen(str),&ps);
-	    if ((int)a<=0) { *wdt=1; *len=1; return; }
+	    if ((int)a<=0) { *wdt=1; *len=1; }
 	    else {
 		*len=a;
 		*wdt=wcwidth((wint_t)ch);
 		if (*wdt<=0) *wdt=1;
-		return;
 	    }
+	    return;
+    }
 #else
-	    long uch;
-	    a=UCGetUniFromUtf8String(&ucg,str,strlen(str));
-	    if ((int)a<=0) { *wdt=1; *len=1; return; }
-	    else {
-		*len=a;
-		*wdt=1;
-		return;
-	    }
-#endif
-	}
-    } 
     *wdt=1; *len=1; return; /* FIXME : a corriger */
+#endif
 }
 
 #if 0
