@@ -11,7 +11,7 @@ static flrn_kill *flrn_kill_deb=NULL;
 static Flrn_liste *main_kill_list=NULL; /* la liste pour l'abonnement */
 static char *main_list_file_name=NULL;
 
-/* regarde si condition est vérifié */
+/* regarde si l'article correspond au filtre */
 /* renvoie -1, s'il manque des headers
  * 0 si ça matche
  * 1 si ça ne matche pas
@@ -56,9 +56,10 @@ int check_article(Article_List *article, flrn_filter *filtre, int flag) {
   return 0;
 }
 
+/* Fait l'action correspondant au filtre */
 void filter_do_action(flrn_filter *filt) {
   flrn_action *act;
-  if (filt->flag ==0) {
+  if (filt->flag ==0) { /* il s'agit de mettre un flag */
     Article_courant->flag |= filt->action.flag;
     return;
   }
@@ -74,6 +75,9 @@ flrn_filter *new_filter() {
   return (flrn_filter *)safe_calloc(1, sizeof(flrn_filter));
 }
 
+/* Parse une ligne commencant par F 
+ * Par exemple : Fread */
+/* TODO ajouter des flags supplémentaires */
 int parse_filter_flags(char * str, flrn_filter *filt) {
   if (strcmp(str,"unread") ==0 ) { filt->cond_mask |= FLAG_READ;
     filt->cond_res &= ~FLAG_READ;
@@ -88,6 +92,8 @@ int parse_filter_flags(char * str, flrn_filter *filt) {
   return 0;
 }
 
+/* Parse une ligne commençant par C
+ * Par exemple : Comet */
 int parse_filter_action(char * str, flrn_filter *filt) {
   flrn_action *act,*a2;
   char *buf=str, *buf2;
@@ -95,10 +101,13 @@ int parse_filter_action(char * str, flrn_filter *filt) {
   buf2=strchr(buf,' ');
   if (buf2) *(buf2++)='\0';
   act=safe_calloc(1,sizeof(flrn_action));
+  /* on retrouve la fonction */
   act->command_num=fonction_to_number(str);
   if (act->command_num == -1) {
     free(act); return -2;}
-  if (buf2) {act->arg=safe_strdup(buf2);}
+      /* on prend les arguments éventuels */
+  if (buf2) act->arg=safe_strdup(buf2);
+    /* on ajoute l'action... */
   if (filt->action.action==NULL) filt->action.action=act;
   else {
     a2=filt->action.action;
@@ -108,19 +117,22 @@ int parse_filter_action(char * str, flrn_filter *filt) {
   return 0;
 }
 
+/* Parse une ligne commençant par
+ * Par exemple Tread */
 int parse_filter_toggle_flag(char * str, flrn_filter *filt) {
   if (filt->flag) return -1;
   if (strcmp(str,"read") ==0 )
     filt->action.flag = FLAG_READ;
-  else
-  if (strcmp(str,"action") ==0 )   /* pour la mise au point */
-    filt->action.flag = FLAG_ACTION;
   else return -1;
+  /* on ajoute le flag au filtre */
   filt->cond_mask |= filt->action.flag;
   filt->cond_res &= ~filt->action.flag;
   return 0;
 }
 
+/* La, on parse une condition, du genre ^From: jo
+ * C'est utilisé pour les kill-files et les résumés
+ * Pour les kill-files, il y avait une * devant */
 int parse_filter(char * istr, flrn_filter *start) {
   flrn_condition *cond, *c2;
   char *str=istr;
@@ -128,21 +140,26 @@ int parse_filter(char * istr, flrn_filter *start) {
   int i;
   cond=safe_calloc(1,sizeof(flrn_condition));
 
+  /* si ça commence par ^ ou ~, on inverse la condition */
   if (*str == '~' || *str == '^') {
     cond->flags |= FLRN_COND_REV;
     str++;
   }
+  /* on cherche le header correspondant */
   for (i=0;i<NB_KNOWN_HEADERS;i++) {
     if (strncmp(str,Headers[i].header,Headers[i].header_len)==0) {
       cond->header_num=i; break;
     }
   }
+  /* FIXME: pour l'instant, on se limite aux known headers... */
   if (i == NB_KNOWN_HEADERS) { free(cond) ; return -1; }
   buf = str + Headers[cond->header_num].header_len;
   while(*buf==' ') buf++;
+  /* on parse la regexp */
   cond->condition = safe_malloc(sizeof(regex_t));
   if (regcomp(cond->condition,buf,REG_EXTENDED|REG_NOSUB|REG_ICASE))
   {free(cond) ; return -2;}
+  /* on l'ajoute au filtre */
   if (start->condition==NULL)
     start->condition=cond;
   else {
@@ -217,6 +234,8 @@ void free_kill(void) {
   flrn_kill_deb=NULL;
 }
 
+/* Parse un block du kill-file
+ * ie ce qui suit une ligne commençant par : */
 flrn_filter * parse_kill_block(FILE *fi,Flrn_liste *liste) {
   char buf1[MAX_BUF_SIZE];
   char *buf2;
@@ -224,7 +243,7 @@ flrn_filter * parse_kill_block(FILE *fi,Flrn_liste *liste) {
   int out=0;
 
   while (fgets(buf1,MAX_BUF_SIZE,fi)) {
-    if(buf1[0]=='\n') {return filt;}
+    if(buf1[0]=='\n') {return filt;} /* un block se finit par une ligne vide */
     buf2=strchr(buf1,'\n');
     if (buf2) *buf2=0;
     else out=1;
@@ -234,6 +253,7 @@ flrn_filter * parse_kill_block(FILE *fi,Flrn_liste *liste) {
       filt->cond_mask = FLAG_READ;
       filt->cond_res = 0;
     }
+    /* on appelle la bonne fonction suivant le type de ligne */
     if (buf1[0]=='*') out=parse_filter(buf1+1,filt);
     else if (buf1[0]=='F') out=parse_filter_flags(buf1+1,filt);
     else if (buf1[0]=='C') out=parse_filter_action(buf1+1,filt);
@@ -249,6 +269,8 @@ flrn_filter * parse_kill_block(FILE *fi,Flrn_liste *liste) {
   return filt;
 }
 
+/* Parse le fichier entier
+ * FIXME: il n'y a pas de retour d'erreur !!! */
 int parse_kill_file(FILE *fi) {
   char buf[MAX_BUF_SIZE];
   char *buf2,*buf1=buf;
@@ -277,26 +299,33 @@ int parse_kill_file(FILE *fi) {
 	/* buf2 pointe sur les flags */
 	kill->newsgroup_regexp=1;
 	if (strchr(buf2,'f')) {
+	  /* flag f, ce qui précède est un fichier ou trouver une liste */
 	  kill->newsgroup_regexp=0;
 	  kill->newsgroup_cond.liste=alloue_liste();
 	  read_list_file(buf1,kill->newsgroup_cond.liste);
 	  file=1;
 	}
 	if (strchr(buf2,'l')) {
+	  /* flag l, c'est une liste, et on en a donné le premier élément */
 	  kill->newsgroup_regexp=0;
 	  kill->newsgroup_cond.liste=alloue_liste();
 	  add_to_liste(kill->newsgroup_cond.liste,buf1);
 	}
 	if (strchr(buf2,'m')) {
+	  /* C'est la liste principale,
+	   * qui peut être modifiée intéractivement */
 	  if (kill->newsgroup_regexp == 0) {
 	    main_kill_list=kill->newsgroup_cond.liste;
+	    /* pour le cas ou un idiot utilise plusieurs fois le flag m ! */
+	    if (main_list_file_name)
+	      free (main_list_file_name);
+	    main_list_file_name=NULL;
 	    if (file)
 	      main_list_file_name=safe_strdup(buf1);
 	  }
 	  else out=1;
 	}
 	file=0;
-	/* FIXME : parser les listes */
 	if (kill->newsgroup_regexp==1) {
 	  kill->newsgroup_cond.regexp = safe_malloc(sizeof(regex_t));
 	  if (regcomp(kill->newsgroup_cond.regexp,buf1,REG_EXTENDED|REG_NOSUB))
@@ -344,8 +373,10 @@ static int check_group(flrn_kill *kill) {
   return 0;
 }
 
-/* flag = 1 -> appel cree_header */
-/* on s'applique a Article_courant. Il faut le FLAG_NEW */
+/* flag = 1 -> appel cree_header
+ * on s'applique a Article_courant pour les commandes qui peuvent être
+ * invoquées...
+ * Il faut le FLAG_NEW */
 void apply_kill(int flag) {
   flrn_kill *kill=flrn_kill_deb;
   int res;
