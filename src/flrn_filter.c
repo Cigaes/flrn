@@ -40,7 +40,7 @@ static char *main_list_file_name=NULL;
 int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
    int min, int max) {
   int with_xhdr,std_hdr,ret,reste=0;
-  char *ligne;
+  char *ligne, *saved_ligne=NULL;
   flrn_condition *cond=filtre->condition;
   Article_List *parcours=debut;
   int newmin=max,newmax,deja_test[NB_KNOWN_HEADERS],i;
@@ -77,10 +77,13 @@ int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
      }
      reste=0;
      parcours=debut;
+     ret=0;
      while (parcours->numero<=max) {
         if (parcours->flag & FLAG_TMP_KILL) {
 	   if (with_xhdr) {
-	      ret=get_xhdr_line(parcours->numero,&ligne,DATE_HEADER,parcours);
+	      if ((ret!=-2) && (ret<parcours->numero))
+	           ret=get_xhdr_line(parcours->numero,&ligne,
+			                 DATE_HEADER,parcours);
 	      if (ret==-1) with_xhdr=0;
 	      if (ligne==NULL) {
 	         if (reste==0) newmin=parcours->numero;
@@ -102,15 +105,12 @@ int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
 	        if (reste==0) newmin=parcours->numero;
 	        reste=1;
 	      }
-	   } else {
-	        if (reste==0) newmin=parcours->numero;
-	        reste=1;
-	   }
+	   } else parcours->flag &= ~FLAG_TMP_KILL; /* pas de match */
 	}
 	parcours=parcours->next;
         if (parcours==NULL) break;
      }
-     if (with_xhdr) end_xhdr_line();
+     if ((with_xhdr) && (ret!=-2)) end_xhdr_line();
   }
   min=newmin;
   while ((reste) && (cond)) {
@@ -129,11 +129,23 @@ int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
 	if (std_hdr!=-1) deja_test[std_hdr]=1;
 	if (ret==-1) with_xhdr=0;
      }
+     ret=0;
      parcours=debut;
      while (parcours->numero<=max) {
         if (parcours->flag & FLAG_TMP_KILL) {
 	   if (with_xhdr) {
-	       ret=get_xhdr_line(parcours->numero,&ligne,std_hdr,parcours);
+	       if ((ret!=-2) && (ret<parcours->numero)) {
+	          ret=get_xhdr_line(parcours->numero,&ligne,std_hdr,parcours);
+	          if (ret>parcours->numero) {
+		    saved_ligne=ligne;
+		    ligne="";
+	          }
+	       }
+	       else if (ret==parcours->numero) {
+		       ligne=saved_ligne;
+		       saved_ligne=NULL;
+		    }
+	       /* if ret==-2, ligne=NULL and will not change */
 	       if (ret==-1) {
 	          with_xhdr=0;
 		  if (std_hdr==-1) {
@@ -147,12 +159,7 @@ int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
 	       ligne=((parcours->headers) &&
 	       (parcours->headers->k_headers[cond->header_ns.header_num]) ?
 	       parcours->headers->k_headers[cond->header_ns.header_num] : "");
-	   } else {
-	       parcours=parcours->next;
-	       reste=1;
-               if (parcours==NULL) break;
-	       continue;
-	   }
+	   } else ligne="";
 	   if (!(cond->flags & FLRN_COND_STRING)) {
 	      if (regexec(cond->condition.regex,ligne,0,NULL,0)
 	             !=(cond->flags & FLRN_COND_REV)?REG_NOMATCH:0)
@@ -180,7 +187,7 @@ int check_article_list(Article_List *debut, flrn_filter *filtre, int flag,
 	parcours=parcours->next;
         if (parcours==NULL) break;
      }
-     if (with_xhdr) end_xhdr_line();
+     if ((with_xhdr) && (ret!=-2)) end_xhdr_line();
      cond=cond->next;
      min=newmin;
   }

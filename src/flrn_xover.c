@@ -551,47 +551,50 @@ int launch_xhdr(int min, int max, char *header_name) {
    return 0;
 }
 
+/* return the number of the article obtained */
+/* -1 :erreur   -2 : the end */
 int get_xhdr_line(int num, char **ligne, int num_hdr, Article_List *art) {
    int res, number;
+   Article_List *artbis=art;
    *ligne=NULL;
    while (1) {
       res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
-      if (res<4) return -1;
+      if (res<2) return -1;
+      if (res<4) return -2;
       tcp_line_read[res-2]='\0';
       number=strtol(tcp_line_read,ligne,10);
       if (*ligne) while (**ligne==' ') (*ligne)++;
       if ((*ligne) && (strcmp(*ligne,"(none)")==0)) *ligne="";
-      if ((number==num) && (num_hdr!=-1)) {
-         if (art->headers==NULL) {
-	   art->headers=new_header();
-	   art->headers->k_headers[MESSAGE_ID_HEADER]=art->msgid;
-	   art->headers->k_headers_checked[MESSAGE_ID_HEADER]=1;
+      if (number<num) continue;
+      if (num_hdr!=-1) 
+          while ((artbis) && (artbis->numero>number)) artbis=artbis->next;
+      if ((artbis) && (number==artbis->numero) && (num_hdr!=-1)) {
+         if (artbis->headers==NULL) {
+	   artbis->headers=new_header();
+	   artbis->headers->k_headers[MESSAGE_ID_HEADER]=artbis->msgid;
+	   artbis->headers->k_headers_checked[MESSAGE_ID_HEADER]=1;
 	 }
-	 if (art->headers->k_headers_checked[num_hdr]==1) {
-	    *ligne=art->headers->k_headers[num_hdr];
-	    break;
+	 if (artbis->headers->k_headers_checked[num_hdr]==1) {
+	    *ligne=artbis->headers->k_headers[num_hdr];
+	    return number;
 	 } else {
-	    art->headers->k_headers_checked[num_hdr]=1;
-	    art->headers->k_headers[num_hdr]=safe_strdup(*ligne);
+	    artbis->headers->k_headers_checked[num_hdr]=1;
+	    artbis->headers->k_headers[num_hdr]=safe_strdup(*ligne);
 	    if (num_hdr==SUBJECT_HEADER) {
-	        rfc2047_decode(art->headers->k_headers[SUBJECT_HEADER],
-		   art->headers->k_headers[SUBJECT_HEADER],
-		   strlen(art->headers->k_headers[SUBJECT_HEADER]));
-		*ligne=art->headers->k_headers[SUBJECT_HEADER];
+	        rfc2047_decode(artbis->headers->k_headers[SUBJECT_HEADER],
+		   artbis->headers->k_headers[SUBJECT_HEADER],
+		   strlen(artbis->headers->k_headers[SUBJECT_HEADER]));
+		*ligne=artbis->headers->k_headers[SUBJECT_HEADER];
 	    }
 	    if (num_hdr==DATE_HEADER) {
-	        art->headers->date_gmt=
-		   parse_date(art->headers->k_headers[DATE_HEADER]);
+	        artbis->headers->date_gmt=
+		   parse_date(artbis->headers->k_headers[DATE_HEADER]);
 	    }
 	 }
       }
-      if (number>=num) {
-         if (number>num) *ligne=NULL;
-	 else if (*ligne==NULL) *ligne="";
-	 break;
-      }
+      if (number>=num) return number;
    }
-   return 0;
+   /* unreachable */
 }
 
 int end_xhdr_line() {
