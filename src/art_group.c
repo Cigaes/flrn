@@ -124,6 +124,7 @@ static void relie_article(Article_List *pere, Article_List *fils) {
        } else {
          if (fils==temp) return; /* On ne sait jamais, mais en théorie non */
          fils->frere_prev=temp->frere_prev;
+	 if (fils->frere_prev) fils->frere_prev->frere_suiv=fils;
          temp->frere_prev=fils;
 	 fils->frere_suiv=temp;
        }
@@ -833,13 +834,14 @@ Article_List * raw_next_in_thread(Article_List *start, int *level)
  * modifie *level si level!=NULL;
  * set vaut 0 ou flag... */
 Article_List * next_in_thread(Article_List *start, long flag, int *level,
-    int deb, int fin, int set)
+    int deb, int fin, int set, int big_thread)
 {
   Article_List *famille;
   Article_List *famille2;
   int mylevel=1<<30;
   int mylevel2;
   
+  if (debug) fprintf(stderr,"appel a next_in_thread... %d\n",(level ? *level : -1));
   if (level) mylevel=*level;
   mylevel2=mylevel;
   if(fin ==0) fin=1<<30;
@@ -874,9 +876,31 @@ Article_List * next_in_thread(Article_List *start, long flag, int *level,
       }
       famille = raw_next_in_thread(famille,&mylevel);
     } while (famille && (famille != famille2));
+    /* On ne teste pas big_thread ici pour des raisons de cycle */
     return NULL;
   }
-  /* y'a plus rien a donner */
+  /* y'a plus rien a donner, sauf si big_thread=1 */
+  /* La c'est un truc lourd, bien lourd... */
+  if (big_thread) {
+     Hash_List *parcours=start->thread->premier_hash;
+     if (debug) fprintf(stderr,"Recherche dans le thread générique...\n");
+     while (1) {
+       while (parcours && ((parcours->article==NULL) || 
+     			   ((parcours->article->flag & flag)!=set) ||
+     			   (parcours->article->numero<deb) ||
+			   (parcours->article->numero>fin)))
+	  parcours=parcours->next_in_thread;
+       if (parcours) {
+          famille=root_of_thread(parcours->article,0);
+	  if (level) *level=1;
+	  famille2=next_in_thread(famille,flag,level,deb,fin,set,0);
+	  if (famille2) return famille2;
+       } else break;
+       parcours=parcours->next_in_thread;
+    }
+  }
+  if (debug) fprintf(stderr,"Echec :-(...\n");
+  /* Cette fois c'est bien fini */
   return NULL;
 }
 

@@ -311,12 +311,15 @@ int read_list_file(char *name, Flrn_liste *liste) {
 int write_list_file(char *name, Flrn_liste *liste) {
   char buf1[MAX_PATH_LEN];
   FILE *blah;
+  int res;
   strcpy(buf1,name);
   strcat(buf1,".swp");
   blah = open_flrnfile(buf1,"w",0,NULL);
   if (blah) {
-    write_liste(liste, blah);
-    rename_flnewsfile(buf1,name);
-  }
-  return 0;
+    res=write_liste(liste, blah);
+    if (res==0) res=(fclose(blah)==EOF ? -1 : 0);
+    if (res==0) rename_flnewsfile(buf1,name); 
+  } else res=-1;
+  if (res==-1) fprintf(stderr,"Erreur dans l'écriture de la liste de censure.\n");
+  return res;
 }

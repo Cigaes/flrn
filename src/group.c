@@ -298,6 +298,7 @@ void new_groups(int opt_c) {
 
 /* Creation du .flnewsrc a partir de la liste des newsgroups */
 /* libere la memoire occupee par les groupes */
+/* Renvoie -1 si il y a eu un problème en écriture */
 void free_groups(int save_flnewsrc) {
    FILE *flnews_file=NULL;
    Newsgroup_List *tmpgroup=NULL;
@@ -331,7 +332,7 @@ void free_groups(int save_flnewsrc) {
      if (write_flnewsrc) {
        int name_written;
        if (!(Newsgroup_courant->flags & GROUP_UNSUBSCRIBED)) {
-	 fprintf(flnews_file,"%s: ",Newsgroup_courant->name);
+	 if (fprintf(flnews_file,"%s: ",Newsgroup_courant->name)<0) write_flnewsrc=0;
 	 name_written=1;
        } else name_written=0;
        while (msg_lus)
@@ -340,18 +341,18 @@ void free_groups(int save_flnewsrc) {
 	  {
 	    if (msg_lus->min[lu_index]==0) continue;
 	    if (!name_written) {
-	      fprintf(flnews_file,"%s! ",Newsgroup_courant->name);
+	      if (fprintf(flnews_file,"%s! ",Newsgroup_courant->name)<0) write_flnewsrc=0;
 	      name_written=1;
 	    }
-	    if (!first) putc(',',flnews_file);
+	    if (!first) if (putc(',',flnews_file)==EOF) write_flnewsrc=0;
 	    first=0;
-	    fprintf(flnews_file,"%d",msg_lus->min[lu_index]);
+	    if (fprintf(flnews_file,"%d",msg_lus->min[lu_index])<0) write_flnewsrc=0;
 	    if (msg_lus->min[lu_index]<msg_lus->max[lu_index])
-	      fprintf(flnews_file,"-%d",msg_lus->max[lu_index]);
+	      if (fprintf(flnews_file,"-%d",msg_lus->max[lu_index])<0) write_flnewsrc=0;
 	  }
 	  msg_lus=msg_lus->next;
        }
-       if (name_written) putc('\n',flnews_file);
+       if (name_written) if (putc('\n',flnews_file)==EOF) write_flnewsrc=0;
      }
      /* on libere la liste des messages lus */
      tmprange=msg_lus=Newsgroup_courant->read;
@@ -374,12 +375,14 @@ void free_groups(int save_flnewsrc) {
      free(Newsgroup_courant);
    }
    if (write_flnewsrc) {
-     fclose(flnews_file);
-     if (debug) fprintf(stderr,"Ecriture du .flnewsrc.new finie.\n");
-     rename_flnewsfile(name,NULL);
-     if (debug) fprintf(stderr,"Renommage du .flnewsrc fini.\n");
-   }
+     if (fclose(flnews_file)!=EOF) {
+       if (debug) fprintf(stderr,"Ecriture du .flnewsrc.new finie.\n");
+       rename_flnewsfile(name,NULL);
+       if (debug) fprintf(stderr,"Renommage du .flnewsrc fini.\n");
+     } else write_flnewsrc=0;
+   } else if (flnews_file) fclose(flnews_file);
    if (debug) fprintf(stderr,"%s","C'est fini\n");
+   if (write_flnewsrc!=save_flnewsrc) fprintf(stderr,"Problème dans l'écriture du .flnewsrc.");
 }
 
 /* Demande au serveur l'existence d'un newsgroup         */
@@ -390,6 +393,7 @@ Newsgroup_List *cherche_newsgroup_re (char *name, regex_t reg, int flag)
 {
     int res, code;
     char *buf,*buf2;
+
     buf=safe_malloc((MAX_NEWSGROUP_LEN+12)*sizeof(char));
     strcpy(buf, "active ");
     if (flag) strcat(buf, Options.prefixe_groupe);

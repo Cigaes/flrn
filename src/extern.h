@@ -82,7 +82,7 @@ extern void libere_liste(void);
 extern void free_article_headers(Article_Header *);
 extern Article_List *next_in_thread(Article_List * /*start*/,
     long /*flag*/, int * /*level*/,
-    int /*deb*/, int /*fin*/, int /*set*/);
+    int /*deb*/, int /*fin*/, int /*set*/, int);
 extern Article_List *root_of_thread(Article_List * /*article*/, int /*flag*/);
 extern void article_read(Article_List * /*article*/);
 extern int Recherche_article (int /*num*/, Article_List ** /*retour*/,

@@ -124,11 +124,11 @@ int main(int argc, char *argv[])
   if (res) new_groups(0);
   quit_server();
   if (res) save_history();
-  free_groups(res);
   if (!opt_c) {
     Reset_screen();
     Reset_keyboard();
   }
+  free_groups(res);
   free_options();
   free_kill(); /* pour sauver le kill-file... */
 #ifdef CHECK_MAIL
