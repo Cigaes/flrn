@@ -22,10 +22,49 @@ Article_Courant : de type Article_Type, fait référence à l'article courant
 Fonctions
 ---------
 
-String get_header(Article_Type article, String string) :
+String get_header (Article_Type article, String string) :
    renvoie une chaîne contenant l'entête <string> de l'article <article>,
    "" si cette entête n'existe pas.
-   
+   Dans le cas particulier où <string> vaut " References", renvoie le
+   champ From de la première référence.
+
+Number get_flags_article (Article_Type article) 
+   renvoie les drapeaux de l'article (& 1 pour lu). Renvoie -1 si
+   l'article n'existe pas.
+
+Number set_flags_article (Article_Type article,Number flags)
+   change les drapeaux de l'article. Renvoie les nouveaux drapeaux.
+
+Number get_flags_group (Newsgroupe_Type group) :
+   renvoie les drapeaux du groupe courant :
+   (  & 1 : non abonné , & 4 : liste principale,
+      & 8 : lecture seule, & 16 : modéré (uniquement testé si & 32) )
+
+String get_description_group (Newsgroup_Type group) :
+   renvoie la description du groupe (sans la chercher)
+
+Number get_groups (String name, Number flags) :
+   place dans la pile les groupes matchant name, uniquement les abonnés, en
+   sous-chaîne, sans ordre particulier (TODO : utiliser flags)
+
+Number menu_groups (Number flags, Number num) :
+   fait un menu à l'aide des groupes poussés sur la pile (il doit y en
+   avoir /num/). Si flags=1, le premier nom sur la pile est celui d'une
+   fonction qui est appelée pour fixer ce qui est affiché sur la ligne du
+   menu. Seul le retour chariot est accepté, et change de groupe.
+
+Number get_option (String name) :
+   place sur la pile le contenu de l'option name, et renvoie le nombre
+   d'éléments placés. Ne gère pour l'instant que les variables.
+
+String get_program_name () :
+   renvoie le nom d'appel du programme (option -n au lancement).
+
+Number get_version_number () :
+   retourne le numéro de version, de la façon suivant : 
+   (majeur * 100 + mineur * 10 + patch)
+   (exemple : version 0.9.1 -> 91)
+
 
 error, verror, message et vmessage
 ----------------------------------
