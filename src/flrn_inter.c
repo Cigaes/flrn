@@ -476,8 +476,8 @@ int loop(flrn_char *opt) {
 	   if (ret<0) ret=0; /* Aff_article_courant a renvoyé une erreur */
 	   change=get_and_execute_command(ret, NULL,1);
 	   if (change<0) { 
+	       quit=-change;
 	       change=0;
-	       quit=1;
 	   }
 	   /* si on change de groupe VERS un article non existant, on ne */
 	   /* change pas de groupe */
@@ -532,7 +532,7 @@ int loop(flrn_char *opt) {
       change=0;
    } 
    if (Newsgroup_courant && Article_deb && (Article_deb!=&Article_bidon)) detruit_liste(0);
-   return (res==FLCMD_QUIT);
+   return (quit==1);
 }
 
 void init_Flcmd_rev() {
@@ -931,7 +931,8 @@ int get_and_execute_command (int ret, Cmd_return *ucmd, int usenxt) {
      }
      if ((usenxt==1)  || (etat_loop.next_cmd<0)) break;
   }
-  return (((res==FLCMD_QUIT) || (res==FLCMD_GQUT)) ? -1 : change);
+  return (((res==FLCMD_QUIT) || (res==FLCMD_GQUT)) ? 
+	  (res==FLCMD_QUIT ? -1 : -2) : change);
 }
 
 /* Prend une commande pour loop... Renvoie le code de la commande frappe */
