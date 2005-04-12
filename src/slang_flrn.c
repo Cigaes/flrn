@@ -195,9 +195,7 @@ static char *Article_Type_string_callback(unsigned char type, VOID_STAR addr)
 }
 static void Article_Type_destroy_callback(unsigned char type, VOID_STAR addr)
 {
-   SLang_MMT_Type *bla = *((SLang_MMT_Type **)addr);
-   Article_and_Group *larticle = 
-             (Article_and_Group *)SLang_object_from_mmt(bla);
+   Article_and_Group *larticle = (Article_and_Group *)addr;
    if (larticle) free(larticle);
    return; 
 }
@@ -288,6 +286,34 @@ int intrin_get_option(char *param) {
     return ret;
 }
 
+int intrin_get_flags_article(Article_and_Group *larticle) {
+    if ((larticle==NULL) || (larticle->article==NULL)) return -1;
+    return (int)(larticle->article->art_flags & 0x7F);
+}
+
+int intrin_set_flags_article(Article_and_Group *larticle, int *newflag) {
+    int oldflags;
+    Article_List *art;
+    if ((larticle==NULL) || (larticle->article==NULL)) return -1;
+    art = larticle->article;
+    oldflags = art->art_flags;
+    art->art_flags = (art->art_flags & (~0x7F)) | (*newflag & 0x7F);
+    if (art->art_flags & FLAG_KILLED) 
+	art->art_flags |= FLAG_READ;
+    if (art->art_flags & FLAG_READ) 
+	art->art_flags &= ~FLAG_IMPORTANT;
+    if ((art->numero>=0) && (larticle->groupe->not_read>=0)) {
+	if ((oldflags ^ art->art_flags) & FLAG_READ) {
+	    larticle->groupe->not_read += ((oldflags & FLAG_READ) ? 1 : -1);
+	    if (art->thread) art->thread->non_lu +=
+	 	                ((oldflags & FLAG_READ) ? 1 : -1);
+	}
+	if ((oldflags ^ art->art_flags) & FLAG_IMPORTANT) 
+	    larticle->groupe->important += ((oldflags & FLAG_IMPORTANT) ? 
+		    -1 : 1);
+    }
+    return (int)(art->art_flags & 0x7F);
+}
 
 SLang_Intrin_Fun_Type flrn_Intrin_Fun [] =
 {
@@ -295,6 +321,12 @@ SLang_Intrin_Fun_Type flrn_Intrin_Fun [] =
 /* 1) obtenir l'entête d'un article */
    MAKE_INTRINSIC_2("get_header", intrin_get_header, SLANG_STRING_TYPE,
    				ARTICLE_TYPE_NUMBER, SLANG_STRING_TYPE),
+/* 2) obtenir l'état d'un article */
+   MAKE_INTRINSIC_1("get_flags_article", intrin_get_flags_article, 
+	                        SLANG_INT_TYPE, ARTICLE_TYPE_NUMBER), 
+/* 3) changer l'état d'un article */
+   MAKE_INTRINSIC_2("set_flags_article", intrin_set_flags_article, 
+                       SLANG_INT_TYPE, ARTICLE_TYPE_NUMBER, SLANG_INT_TYPE), 
 /*** Groupes  ***/
 /* 1) obtenir l'état actuel d'un groupe */
    MAKE_INTRINSIC_1("get_flags_group", intrin_get_flags_group, SLANG_INT_TYPE,

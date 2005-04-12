@@ -136,13 +136,14 @@ struct file_and_int {
 static long min_kill_l, max_kill_l;
 
 int parse_arg_string(flrn_char *str,int command, int annu16);
-/* On prédéfinit ici les fonctions appelés par loop... A l'exception de */
-/* get_command, elles DOIVENT être de la forme int do_* (int res)       */ 
+
+/* On prédéfinit ici les fonctions appelés par loop... */
 #ifdef USE_SLANG_LANGUAGE
-int get_command_command(int get_com, SLang_Name_Type **slang_fun);
+int get_command_command(int get_com, SLang_Name_Type **slang_fun, 
+	 Cmd_return *ucmd);
 int Execute_function_slang_command(int, SLang_Name_Type *slang_fun);
 #else
-int get_command_command(int get_com);
+int get_command_command(int get_com, Cmd_return *ucmd);
 #endif
 int do_deplace(int res); 
 int do_goto(int res); /* renvoie change */
@@ -343,13 +344,7 @@ int loop(flrn_char *opt) {
    int res=0, quit=0, ret;
    int to_build=0; /* il faut appeler cree_liste */
    int change, a_change=1;
-   Numeros_List *fin_de_param=NULL;
-   flrn_char Str_macro[MAX_CHAR_STRING];
-#ifdef USE_SLANG_LANGUAGE
-   SLang_Name_Type *slang_fun;
-#endif
    
-   Str_macro[0]=fl_static('\0');
    etat_loop.hors_struct=11;
    etat_loop.etat=etat_loop.num_message=0;
    etat_loop.Newsgroup_nouveau=NULL;
@@ -479,51 +474,11 @@ int loop(flrn_char *opt) {
 	     to_build=0;
 	   }
 	   if (ret<0) ret=0; /* Aff_article_courant a renvoyé une erreur */
-	   if (etat_loop.next_cmd>=0) {
-	     res=etat_loop.next_cmd;
-	     etat_loop.next_cmd=-1; /* remis à jour ensuite */
-	     fl_strncpy(Arg_str,Str_macro,99);
-	     if (fin_de_param==NULL) Arg_do_funcs.numlst_flags=0; else
-	     if (fin_de_param->next) fin_de_param->next->numlst_flags=0;
-	   } else {
-#ifdef USE_SLANG_LANGUAGE
-	     res=get_command_command(ret-1,&slang_fun);
-#else
-	     res=get_command_command(ret-1);
-#endif
-	     if ((res>0) && (res & FLCMD_MACRO)) {
-	        fl_strncpy(Str_macro,Arg_str,99);
-	        fin_de_param=&Arg_do_funcs;
-		if (fin_de_param->numlst_flags==0) fin_de_param=NULL;
-		else
-		  while ((fin_de_param->next) && 
-			  (fin_de_param->next->numlst_flags))
-		      fin_de_param=fin_de_param->next;
- 	     }
+	   change=get_and_execute_command(ret, NULL,1);
+	   if (change<0) { 
+	       change=0;
+	       quit=1;
 	   }
-	   if ((res >0) && (res & FLCMD_MACRO)) {
-	     int num_macro= res ^FLCMD_MACRO;
-	     res = Flcmd_macro[num_macro].cmd;
-	     res = parse_arg_string(Flcmd_macro[num_macro].arg,res,0);
-	     etat_loop.next_cmd = Flcmd_macro[num_macro].next_cmd;
-	   }
-	   if (res==-2) etat_loop.etat=3; else
-	   if (res==FLCMD_UNDEF) 
-	        { etat_loop.etat=2; etat_loop.num_message=-9; }
-	   else  
-#ifdef USE_SLANG_LANGUAGE
-	   if (res>=NB_FLCMD) 
-	       change=Execute_function_slang_command(res-NB_FLCMD, slang_fun);
-	   else
-#endif
-	   {
-	     if ((Flcmds[res].cmd_flags & CMD_NEED_GROUP) &&
-		 (etat_loop.hors_struct & 8)) {
-	       etat_loop.etat=2; etat_loop.num_message=-3; change=0;
-	     } else
-	       change=(*Flcmds[res].appel)(res);
-	   }
-	   quit=((res==FLCMD_QUIT) || (res==FLCMD_GQUT));
 	   /* si on change de groupe VERS un article non existant, on ne */
 	   /* change pas de groupe */
 	   if ((change) && (etat_loop.num_futur_article!=0) &&
@@ -603,17 +558,6 @@ void init_Flcmd_rev() {
   }
   return;
 }
-
-/* a supprimer dès que possible */
-#if 0
-int fonction_to_number(char *nom) {
-  int i;
-  for (i=0;i<NB_FLCMD;i++)
-    if (strcmp(nom, Flcmds[i].nom)==0)
-      return i;
-  return -1;
-}
-#endif
 
 /* FIXME : passer à l'éxecution d'une commande */
 int call_func(int number, flrn_char *arg) {
@@ -928,17 +872,79 @@ static int get_str_arg(int res, Cmd_return *cmd, int tosave) {
    return 0;
 }
 
+/* Prend et execute une commande en mode COMMAND */
+/* retour >= 0 : change  ,  < 0 : quit */
+/* si ucmd = NULL, on demande la commande. avec usenxt, on utilise 
+ * etat_loop.next_cmd, sinon on execute les macros à la suite */
+int get_and_execute_command (int ret, Cmd_return *ucmd, int usenxt) {
+   int res,change=0;
+   static Numeros_List *fin_de_param=NULL;
+   static flrn_char Str_macro[MAX_CHAR_STRING]= fl_static("");
+#ifdef USE_SLANG_LANGUAGE
+   SLang_Name_Type *slang_fun;
+#endif
+
+   while (1) {
+     if ((usenxt) && (etat_loop.next_cmd>=0)) {
+         res=etat_loop.next_cmd;
+         etat_loop.next_cmd=-1; /* remis à jour ensuite */
+         fl_strncpy(Arg_str,Str_macro,99);
+         if (fin_de_param==NULL) Arg_do_funcs.numlst_flags=0; else
+         if (fin_de_param->next) fin_de_param->next->numlst_flags=0;
+     } else {
+#ifdef USE_SLANG_LANGUAGE
+         res=get_command_command(ret-1,&slang_fun,ucmd);
+#else
+         res=get_command_command(ret-1,ucmd);
+#endif
+         if ((res>0) && (res & FLCMD_MACRO)) {
+            fl_strncpy(Str_macro,Arg_str,99);
+            fin_de_param=&Arg_do_funcs;
+  	    if (fin_de_param->numlst_flags==0) fin_de_param=NULL;
+	    else
+	       while ((fin_de_param->next) && 
+	  	  (fin_de_param->next->numlst_flags))
+	       fin_de_param=fin_de_param->next;
+ 	 }
+     }
+     if ((res >0) && (res & FLCMD_MACRO)) {
+        int num_macro= res ^FLCMD_MACRO;
+        res = Flcmd_macro[num_macro].cmd;
+        res = parse_arg_string(Flcmd_macro[num_macro].arg,res,0);
+        etat_loop.next_cmd = Flcmd_macro[num_macro].next_cmd;
+     }
+     if (res==-2) etat_loop.etat=3; else
+     if (res==FLCMD_UNDEF) 
+          { etat_loop.etat=2; etat_loop.num_message=-9; }
+     else  
+#ifdef USE_SLANG_LANGUAGE
+     if (res>=NB_FLCMD) 
+         change=Execute_function_slang_command(res-NB_FLCMD, slang_fun);
+     else
+#endif
+     {
+       if ((Flcmds[res].cmd_flags & CMD_NEED_GROUP) &&
+	   (etat_loop.hors_struct & 8)) {
+         etat_loop.etat=2; etat_loop.num_message=-3; change=0;
+       } else
+         change=(*Flcmds[res].appel)(res);
+     }
+     if ((usenxt==1)  || (etat_loop.next_cmd<0)) break;
+  }
+  return (((res==FLCMD_QUIT) || (res==FLCMD_GQUT)) ? -1 : change);
+}
 
 /* Prend une commande pour loop... Renvoie le code de la commande frappe */
 /* Renvoie -1 si commande non défini				         */
 /*         -2 si rien							 */
 /*         -3 si l'état est déjà défini...				 */
 /*         -4 si on renvoie en fait une fonction slang                   */
-int get_command_command(int get_com
 #ifdef USE_SLANG_LANGUAGE
-                        , SLang_Name_Type **slang_fun
+int get_command_command(int get_com, SLang_Name_Type **slang_fun, Cmd_return *ucmd)
+#else
+int get_command_command(int get_com, Cmd_return *ucmd)
 #endif
-) {
+{
    int res, res2;
    struct key_entry key;
 #ifdef USE_SLANG_LANGUAGE
@@ -956,13 +962,16 @@ int get_command_command(int get_com
      Attend_touche(&key);
      if (KeyBoard_Quit) return -1;
      res=get_command(&key,CONTEXT_COMMAND,-1,&une_commande);
-   } else res=get_com;
+   } else {
+     res=get_com;
+     if (ucmd!=NULL) memcpy(&une_commande,ucmd,sizeof(Cmd_return));
+   }
    if (res<0) {
       if ((res==-1) && (une_commande.cmd_ret_flags & CMD_RET_KEEP_DESC)) {
 	  save_command(&une_commande);
       }
-      if (une_commande.before) free(une_commande.before);
-      if (une_commande.after) free(une_commande.after);
+      if ((!ucmd) && (une_commande.before)) free(une_commande.before);
+      if ((!ucmd) && (une_commande.after)) free(une_commande.after);
       return res;
    }
    /* res = 0 */
@@ -970,14 +979,14 @@ int get_command_command(int get_com
    if (une_commande.fun_slang) {
       if (debug) { fprintf(stderr,"slang parse: %s\n",une_commande.fun_slang); }
       *slang_fun = Parse_fun_slang(une_commande.fun_slang, &a);
-      free(une_commande.fun_slang);
+      if (!ucmd) free(une_commande.fun_slang);
       une_commande.fun_slang=NULL;
       if (*slang_fun==NULL) {
          if (une_commande.cmd_ret_flags & CMD_RET_KEEP_DESC) {
 	    save_command(&une_commande);
          }
-         if (une_commande.before) free(une_commande.before);
-	 if (une_commande.after) free(une_commande.after);
+         if ((!ucmd) && (une_commande.before)) free(une_commande.before);
+	 if ((!ucmd) && (une_commande.after)) free(une_commande.after);
 	 return -1;
       }
       res2=NB_FLCMD+a; /* pour signifier une fonction slang ,
@@ -992,7 +1001,7 @@ int get_command_command(int get_com
       save_command(&une_commande);
       une_commande.cmd_ret_flags &= ~CMD_RET_KEEP_DESC;
       res2=parse_arg_string(une_commande.after,res2,1);
-      free(une_commande.after);
+      if (!ucmd) free(une_commande.after);
    }
 #ifdef USE_SLANG_LANGUAGE
    if ((res2!=FLCMD_UNDEF) && (res2 & FLCMD_MACRO)) {
@@ -1002,7 +1011,7 @@ int get_command_command(int get_com
        if (res3>=NB_FLCMD) {
             /* fonction SLANG */
 	    *slang_fun = Parse_fun_slang(Flcmd_macro[res4].fun_slang, &a);
-            if ((Flcmd_macro[res4].arg==NULL) && 
+            if ((!ucmd) && (Flcmd_macro[res4].arg==NULL) && 
 		 (((res3-NB_FLCMD) & 1) 
 	      || ( ((!Options.forum_mode) && ((res3-NB_FLCMD) & 8))
               || ((Options.forum_mode) && ((res3-NB_FLCMD) & 4)) ))) {
@@ -1022,7 +1031,7 @@ int get_command_command(int get_com
        if (res==-1) res2=-2;
      }
    }
-   if (une_commande.before) free(une_commande.before);
+   if ((!ucmd) && (une_commande.before)) free(une_commande.before);
    return res2;
 }
 

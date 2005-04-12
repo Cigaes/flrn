@@ -25,7 +25,7 @@ char version_string[]=
 char short_version_string[]=
 "Flrn (0.9.1 - 05/04)";
 
-int version_number=90;
+int version_number=91;
 
 void print_version_defines(FILE *out)
 {

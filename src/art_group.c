@@ -600,20 +600,25 @@ void ajoute_reponse_a(Article_List *article) {
  * de le réallouer, à cause du risque de traduction "statique" */
 flrn_char *get_one_header(Article_List *article, Newsgroup_List *newsgroup,
                          flrn_char *name, int *tofree) {
-   int i,len;
+   int i,len,rep_a=0;
    flrn_char *buf;
    Header_List *parcours;
 
    *tofree=0;
    buf=fl_strchr(name,fl_static(':'));
    if (buf) len=buf-name; else len=fl_strlen(name);
+   /* cas particulier de la reponse */
+   if (fl_strncasecmp(fl_static(" References"),name,len)==0) {
+       i = NB_DECODED_HEADERS + REFERENCES_HEADER;
+       rep_a=1;
+   } else
    for (i=0;i<NB_KNOWN_HEADERS;i++) 
        if ((len+1==Headers[i].header_len) &&
            (fl_strncasecmp(Headers[i].header,name,len)==0)) break;
    if ((article->headers==NULL) || 
        ((i<NB_KNOWN_HEADERS) && (article->headers->k_headers_checked[i]==0)) ||
        ((i>=NB_KNOWN_HEADERS) && (Last_head_cmd.Article_vu!=article))) {
-       if (cree_header(article,0,(i==NB_KNOWN_HEADERS),
+       if (cree_header(article,rep_a,(i==NB_KNOWN_HEADERS),
                newsgroup==Newsgroup_courant ? 0 : 1)==NULL) 
 	   return fl_static("");
    }
@@ -624,6 +629,12 @@ flrn_char *get_one_header(Article_List *article, Newsgroup_List *newsgroup,
    if (i<NB_KNOWN_HEADERS) 
    {
        flrn_char *resstr;
+       if (rep_a) {
+	   if (!article->headers->reponse_a_checked)
+	       ajoute_reponse_a(article);
+	   if (article->headers->reponse_a==NULL) return fl_static("");
+	   else return article->headers->reponse_a;
+       }
        if (article->headers->k_raw_headers[i-NB_DECODED_HEADERS]==NULL)
 	   return fl_static("");
        *tofree=0;

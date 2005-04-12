@@ -43,7 +43,7 @@ typedef struct command_desc {
 
 /* Les fonctions : */
 
-extern int call_func(int, flrn_char *);
+extern int get_and_execute_command (int, Cmd_return *, int );
 extern int loop(flrn_char * );
 extern int aff_opt_c(flrn_char *, int);
 extern void init_Flcmd_rev(void);

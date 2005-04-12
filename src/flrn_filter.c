@@ -316,7 +316,8 @@ void filter_do_action(flrn_filter *filt) {
   act=filt->action.action;
   if (!act) return;
   while(act) {
-    call_func(act->command->cmd[CONTEXT_COMMAND],act->command->after);
+    (void) get_and_execute_command(act->command->cmd[CONTEXT_COMMAND],
+	   act->command, 0);
     act=act->next;
   }
 }
