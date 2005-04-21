@@ -463,6 +463,7 @@ int convert_decoded_word (char **d, flrn_char **res, const char *codeset,
   size_t inbl = strlen(*d);
   size_t res_t;
   flrn_char *dummy;
+  
 #if 0
 #else 
   if ((codeset) && (strcasecmp(codeset,"utf-8")==0)) {
@@ -484,21 +485,21 @@ int convert_decoded_word (char **d, flrn_char **res, const char *codeset,
   while (*slen>0) {
      dummy=*res;
      res_t=fl_conv_to_flstring (d,&inbl,&dummy,res,slen);
-     if (res_t==-1) {
+     if (res_t==(size_t)-1) {
            if (errno==EILSEQ) {
 #if 0
-	       *((*res)++)=L'?'; slen--;
+	       *((*res)++)=L'?'; (*slen)--;
 #else
-	       *((*res)++)='?'; slen--;
+	       *((*res)++)='?'; (*slen)--;
 #endif
 	       (*d)++; inbl--;
 	       continue;
 	   }
 	   if (errno==EINVAL) {
 #if 0
-	       *((*res)++)=L'?'; slen--;
+	       *((*res)++)=L'?'; (*slen)--;
 #else
-	       *((*res)++)='?'; slen--;
+	       *((*res)++)='?'; (*slen)--;
 #endif
 	       break;
 	   }
@@ -562,13 +563,19 @@ size_t rfc2047_decode (flrn_char *d, char *s, size_t dlen, int raw)
   
       n = strlen(p);
       tmpchr=safe_malloc(n+1);
-      rfc2047_decode_word (tmpchr, p, n, &codeset);
+      if (rfc2047_decode_word (tmpchr, p, n, &codeset)==-1) {
+	  free(codeset);
+	  codeset=NULL;
+	  strcpy(tmpchr,p);
+      }
       tmpchr[n]='\0';
       { 
 	  char *bla=tmpchr;
           convert_decoded_word(&bla,&d,codeset,&dlen);
       }
       free(tmpchr);
+      if (codeset) free(codeset);
+      codeset=NULL;
       found_encoded = 1;
       s = q + 2;
     }
