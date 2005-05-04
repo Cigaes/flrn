@@ -38,7 +38,7 @@ Newsgroup_List *Newsgroup_courant;
 Newsgroup_List *Newsgroup_deb;
 Newsgroup_List *Newsgroup_deleted=NULL;
 
-time_t Last_check;
+time_t Last_check, Last_mod=0;
 
 
 /* Lit les articles lus marques dans le .flnews */
@@ -111,7 +111,8 @@ void init_groups() {
        strcat(name,trad);
        if (rc==0) free(trad);
    }
-   flnews_file = open_flrnfile(name,"r",Options.default_flnewsfile ? 0 : 1,&Last_check);
+   flnews_file = open_flrnfile(name,"r",Options.default_flnewsfile ? 0 : 1,&Last_mod);
+   if (Last_mod) Last_check=Last_mod+Date_offset;
 
    if (flnews_file==NULL) {
      if (Options.default_flnewsfile) {
@@ -185,6 +186,23 @@ void init_groups() {
      Last_check=0;
    free(buf);
    fclose (flnews_file);
+}
+
+/* verifie si le fichier .flnewsrc a ete modifie depuis la derniere fois */
+int check_last_mod () {
+   char name[MAX_PATH_LEN];
+   int rc;
+   char *trad;
+   time_t temp_mod=0;
+   
+   strcpy(name,DEFAULT_FLNEWS_FILE);
+   if (Options.flnews_ext) {
+       rc=conversion_to_file(Options.flnews_ext,&trad,0,(size_t)(-1));
+       strcat(name,trad);
+       if (rc==0) free(trad);
+   }
+   (void) open_flrnfile(name,"r",-1,&temp_mod);
+   return (temp_mod!=Last_mod);
 }
 
 /* Ajoute un newsgroup a la liste... Appelé par les fonctions qui suivent */

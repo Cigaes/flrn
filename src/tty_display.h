@@ -38,14 +38,17 @@ extern Article_List * Menu_summary (int , int , int );
 extern int Aff_fin(const flrn_char * ); 
 extern int Aff_error(const flrn_char * );
 extern int Aff_error_fin(const flrn_char * , int  , int );
+extern int Ask_yes_no(const flrn_char *);
 #if 0
 extern int Aff_fin_utf8(const char * ); 
 extern int Aff_error_utf8(const char * );
+extern int Ask_yes_no_utf8(const char *);
 extern int Aff_error_fin_utf8(const char * , int  , int );
 #else
 #define Aff_fin_utf8 Aff_fin
 #define Aff_error_utf8 Aff_error
 #define Aff_error_fin_utf8 Aff_error_fin
+#define Ask_yes_no_utf8 Ask_yes_no
 #endif
 extern int put_string_utf8(char *);
 extern int Aff_file(FILE * , char *, flrn_char *, struct key_entry *);

@@ -1407,7 +1407,7 @@ static int Get_base_headers_supersedes (Article_List *article) {
 }
    
 static int Get_base_headers(int flag, Article_List *article) {
-   int res, len1, len2=0, len3, key, i, from_perso=0;
+   int res, len1, len2=0, len3, i, from_perso=0;
    char *real_name;
    flrn_char *buf, *buf2;
    string_list_type *parcours;
@@ -1486,45 +1486,29 @@ static int Get_base_headers(int flag, Article_List *article) {
         if  (fl_strcasecmp(Pere_post->headers->k_headers[FOLLOWUP_TO_HEADER],
 		    fl_static("poster"))==0) {
 	  while (flag==0) {
-	    struct key_entry ke;
-	    ke.entry=ENTRY_ERROR_KEY;
-	    Cursor_gotorc(Screen_Rows2-1,0);
-	    put_string_utf8(_("Répondre par mail (O/N/A) ? "));
-	    Attend_touche(&ke);
-	    if (KeyBoard_Quit) return -1;
-	    if (ke.entry==ENTRY_SLANG_KEY) {
-		key=ke.value.slang_key;
-	        key=toupper(key);
-		if (key=='A') return -1;
-		if ((key=='O')||(key=='Y')) flag=1;
-		if (key=='N') break;
-	    }
-	  }
+	    int ke;
+	    ke = Ask_yes_no_utf8(_("Répondre par mail (O/N/A) ? "));
+	    if (ke==-1) return -1;
+	    if (ke==1) flag=1;
+	    if (ke==0) break;
+	 }
 	  par_mail=flag; /* 0 ou 1 */
         } else if (fl_strcasecmp(Newsgroup_courant->name,
 		    Pere_post->headers->k_headers[FOLLOWUP_TO_HEADER])!=0) { 
 			/* On ne demande rien si on est dans le bon groupe */
+	  int ke;
 	  while (1) {
-	    struct key_entry ke;
-	    ke.entry=ENTRY_ERROR_KEY;
-	    Cursor_gotorc(Screen_Rows2-1,0);
-	    put_string_utf8(_("Suivre le followup (O/N/A) ? "));
-	    Attend_touche(&ke);
-	    if (KeyBoard_Quit) return -1;
-	    if (ke.entry==ENTRY_SLANG_KEY) {
-		key=ke.value.slang_key; 
-		key=toupper(key);
-		if (key=='A') return -1;
-		if ((key=='O')||(key=='Y')) {
+	    ke = Ask_yes_no_utf8(_("Suivre le followup (O/N/A) ? "));
+	    if (ke==-1) return -1;
+	    if (ke==1) {
 		    Header_post->k_header[NEWSGROUPS_HEADER]=
 			safe_flstrdup(Pere_post->headers->k_headers
 				[FOLLOWUP_TO_HEADER]);
 		    break;
-		}
-		if (key=='N') break;	  
 	    }
-	  }
-        } 
+	    if (ke==0) break;
+	 }
+       } 
       }
       /* References */
       len3=strlen(Pere_post->msgid);

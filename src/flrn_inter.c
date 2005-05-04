@@ -152,7 +152,7 @@ int do_omet(int res);
 int do_kill(int res); /* tue avec les crossposts */
 int do_zap_group(int res); /* la touche z... a revoir */
 int do_help(int res);
-int do_quit(int res); /* cette fonction est inutile */
+int do_quit(int res); 
 int do_summary(int res); /* Doit faire à la fois r, t, T */
 int do_save(int res);
 int do_pipe(int res);
@@ -931,8 +931,7 @@ int get_and_execute_command (int ret, Cmd_return *ucmd, int usenxt) {
      }
      if ((usenxt==1)  || (etat_loop.next_cmd<0)) break;
   }
-  return (((res==FLCMD_QUIT) || (res==FLCMD_GQUT)) ? 
-	  (res==FLCMD_QUIT ? -1 : -2) : change);
+  return change;
 }
 
 /* Prend une commande pour loop... Renvoie le code de la commande frappe */
@@ -1738,9 +1737,21 @@ int do_help(int res) {
   return 0; 
 }
 
-/* do_quit : ne fait rien */
+/* do_quit : fait quelques tests avant eventuellement de quitter 
+ * (retour 1 avec .flnewsrc sauvé, 2 sinon) */
 int do_quit(int res) { 
-  return 0; 
+  etat_loop.etat=3;
+  /* on peut mettre eventuellement une demande de confirmation */
+  if (res==FLCMD_GQUT) return -2;
+  /* on teste le .flnewsrc */
+  if (check_last_mod()) {
+      int k;
+      k = 
+       Ask_yes_no_utf8(_("Fichier .flnewsrc modifiÃ©. Remplacer (O/N/A) ?"));
+      if (k==-1) return 0;
+      if (k==0) return -2;
+  }
+  return -1; 
 }
 
 static int tag_and_minmax_article(Article_List *article, void *blah)
@@ -2387,18 +2398,13 @@ int do_save(int res) {
   }
   rc=conversion_to_file(name,&filenom,0,(size_t)(-1));
   if (stat(filenom,&status)==0) {
-      struct key_entry key;
       int k;
       const char *special;
-      key.entry=ENTRY_ERROR_KEY;
       if (res==FLCMD_SAVE_OPT) 
 	  special=_("Ã‰craser le fichier ? ");
       else special=_("Ajouter au folder ? ");
-      Aff_fin_utf8(special);
-      Attend_touche(&key);
-      if (key.entry==ENTRY_SLANG_KEY) k=key.value.slang_key;
-      else k=(int)'n';
-      if ((KeyBoard_Quit) || (strchr(_("yYoO"), k)==NULL))  {
+      k=Ask_yes_no_utf8(special);
+      if (k!=1)  {
 	if (rc==0) free(filenom);
         etat_loop.etat=3;
         return 0;

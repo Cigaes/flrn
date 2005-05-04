@@ -73,6 +73,7 @@ extern time_t Last_check;
 /* les fonctions */
 
 extern void init_groups(void);
+extern int check_last_mod(void);
 extern void free_groups(int /*save_flnewsrc*/);
 extern void new_groups(int /*opt_c*/);
 extern Newsgroup_List *cherche_newsgroup(flrn_char * /*name*/, int /*exact*/,

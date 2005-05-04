@@ -284,6 +284,25 @@ int Aff_error_fin(const flrn_char *str, int s_beep, int short_e) {
    return 0;
 }
 
+/* utilise Aff_fin pour poser une question (version simple) */
+/* (TODO : faire quelque chose de plus général) */
+/* retour : 0 : non, 1 : oui, 2 : entree, -1 : annuler */
+int Ask_yes_no(const flrn_char *str) {
+    struct key_entry key;
+    key.entry=ENTRY_ERROR_KEY;
+    Aff_fin(str);
+    while (1) {
+	Attend_touche(&key);
+	if (KeyBoard_Quit) return -1;
+	if (key.entry==ENTRY_SLANG_KEY) {
+	    if (strchr(_("aA"), key.value.slang_key)) return -1;
+	    if (strchr(_("yYoO"), key.value.slang_key)) return 1;
+	    if (key.value.slang_key=='\r') return 2;
+	    if (strchr(_("nN"), key.value.slang_key)) return 0;
+	}
+    }
+}
+
 #if 0
 int Aff_fin_utf8(const char *str) {
     int rc,ret;

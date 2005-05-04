@@ -44,7 +44,7 @@ int with_direc;
 /* mode a r pour le lire, w+ pour le creer */
 /* flag =1, créer un fichier vide, =2 renvoyer le fichier par défaut de config
 	(lecture seule)
- * flag=0 ne pas créer de fichier */
+ * flag=0 ne pas créer de fichier , flag = -1 n'ouvre rien, juste la date */
 
 FILE *open_flrnfile (char *file,char *mode, int flag, time_t * date)
 {
@@ -97,8 +97,9 @@ FILE *open_flrnfile (char *file,char *mode, int flag, time_t * date)
    if (debug) fprintf(stderr,"On essaie d'ouvrir %s\n",name);
    if (date) {
      if (stat(name, &buf)<0)  *date=0;
-      else *date=buf.st_mtime+Date_offset;
+      else *date=buf.st_mtime;
    }
+   if (flag==-1) return NULL;
 
    if (!(config_file=fopen(name,mode))) {
 /*
