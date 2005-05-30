@@ -117,9 +117,16 @@ void load_history (void) {
        if (strcmp(parcours->name,trad)==0) break;
        parcours=parcours->next;
     }
-    if (rc==0) free(trad);
-    if (parcours==NULL) continue;
-    stag->newsgroup_name=parcours->name;
+    if (parcours==NULL) {
+	if (rc==0) stag->newsgroup_name=trad; else  /* TODO : faudra trouver
+						              un moyen pour
+							      liberer ça */
+	stag->newsgroup_name=safe_flstrdup(trad);
+    }
+    else {
+	stag->newsgroup_name=parcours->name;
+	if (rc==0) free(trad);
+    }
     stag->numero=strtol(buf1,NULL,10);
     stag->article=NULL;
     if (key.entry!=ENTRY_ERROR_KEY) {
