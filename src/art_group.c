@@ -698,11 +698,12 @@ static Article_List *ajoute_message_fin(Article_List *creation) {
 Article_List *ajoute_message (char *msgid, int *should_retry) {
    Article_List *creation;
    char *buf;
+   flrn_char *buf2;
    int res,code;
 
   /* j'espere que stat va marcher */
    *should_retry=0;
-   buf=strchr(msgid,fl_static('>'));
+   buf=strchr(msgid,'>');
    if (buf) *(++buf)='\0'; else return NULL;
    res=write_command(CMD_STAT, 1, &msgid);
    if (res<1) return NULL;
@@ -731,10 +732,16 @@ Article_List *ajoute_message (char *msgid, int *should_retry) {
       /* on veut vérifier si le numéro est autre chose */
       /* seul le XREF le permet. Si le Xref n'existe pas, on abandonne */
       if (creation->headers->k_headers[XREF_HEADER]!=NULL) {
-          if ((buf=strstr(creation->headers->k_headers[XREF_HEADER],
-	        Newsgroup_courant->name))) {
-	      buf=strchr(buf,fl_static(':'));
-	      if (buf) creation->numero=strtol(buf+1, NULL, 10);
+	  buf2 = creation->headers->k_headers[XREF_HEADER];
+	  while ((buf2=fl_strstr(buf2,Newsgroup_courant->name))) {
+	      if ((buf2==creation->headers->k_headers[XREF_HEADER])
+		  || (fl_isblank(*(buf2-1)))) {
+		  buf2+=fl_strlen(Newsgroup_courant->name);
+                  if (*buf2==fl_static(':'))  {
+		       creation->numero=fl_strtol(buf2+1,NULL,10);
+		       break;
+		  }
+	      } else buf2+=fl_strlen(Newsgroup_courant->name);
 	  }
       }
    }
