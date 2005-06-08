@@ -59,7 +59,7 @@ int Index_hex[128] = {
    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0
 };
 
-const char *tspecials = "@<>()[];:.,\\\"?/=\n\r";
+const char *tspecials = "_@<>()[];:.,\\\"?/=\t\n\r";
 
 
 typedef void encode_t (char **, unsigned char *, size_t *, const char *);

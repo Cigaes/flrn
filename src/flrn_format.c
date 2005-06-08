@@ -65,6 +65,27 @@ flrn_char *vrai_nom (flrn_char *nom) {
     return result;
 }
 
+
+/* unfold d'une ligne (cas simple de add_string_bits */
+/* fait un malloc */
+flrn_char *unfold_ligne(flrn_char *str) {
+    flrn_char *result, *buf, *buf2;
+    result=safe_malloc((fl_strlen(str)+1)*sizeof(flrn_char));
+    buf=str; buf2=result;
+    while (*buf) {
+	if (fl_isspace(*buf)) {
+	    *buf2=fl_static(' ');
+	    buf2++;
+            while ((*buf) && (fl_isspace(*buf))) buf++;
+	}
+	else *(buf2++)=*(buf++);
+    }
+    *buf2=fl_static('\0');
+    return result;
+}
+
+
+
 /* Écriture de la date a partir d'une chaine de date */
 /* obsolete */
 #if 0
@@ -661,7 +682,7 @@ flrn_char * Prepare_summary_line(Article_List *article,
 	int out_width, int ini_col, int by_msgid, int with_flag) {
     int deb_num, deb_nom, tai_nom, deb_sub, tai_sub, deb_dat, deb_rep;
     /* tout ces trucs sont de la taille des colonnes */
-    flrn_char *flbuf;
+    flrn_char *flbuf, *flbuf2;
     char buf2[15], *buf;
     char *subject;
     flrn_char *out_ptr=out;
@@ -694,7 +715,8 @@ flrn_char * Prepare_summary_line(Article_List *article,
 	    6,buf2);
     if (tmplen==(size_t)(-1)) return out;
     out_ptr+=tmplen;
-    flbuf=vrai_nom(article->headers->k_headers[FROM_HEADER]);
+    flbuf2=vrai_nom(article->headers->k_headers[FROM_HEADER]);
+    flbuf=unfold_ligne(flbuf2); free(flbuf2);
     len_width=to_make_width_convert(flbuf,deb_nom+tai_nom,&deb_nom,0);
     if (tmplen+len_width>=outlen) return out;   /* TROP PETIT */
     fl_strncpy(out_ptr,flbuf,len_width); out_ptr+=len_width; 
@@ -717,9 +739,11 @@ flrn_char * Prepare_summary_line(Article_List *article,
 	  out_ptr += tai_sub+1; tmplen+=tai_sub+1;
 	}
     } else {
-	len_width=to_make_width_convert(subject,deb_sub+tai_sub,&deb_sub,0);
+	flbuf=unfold_ligne(subject);
+	len_width=to_make_width_convert(flbuf,deb_sub+tai_sub,&deb_sub,0);
 	if (tmplen+len_width>=outlen) return out;   /* TROP PETIT */
-	fl_strncpy(out_ptr,subject,len_width); out_ptr+=len_width;
+	fl_strncpy(out_ptr,flbuf,len_width); out_ptr+=len_width;
+	free(flbuf);
 	*out_ptr=fl_static('\0'); tmplen+=len_width;
 	if (tmplen+(deb_dat-deb_sub)>=outlen) return out;   /* TROP PETIT */
         fl_memset(out_ptr,fl_static(' '),deb_dat-deb_sub);
