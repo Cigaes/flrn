@@ -1353,7 +1353,7 @@ int convert_termchar (const char *str, size_t len, flrn_char **res, size_t lb) {
 	    return 1;
 	} else return 1;
     } else if (rc==(size_t)(-3)) {
-	rc=UCGetUniFromUtf8String(NULL,ptr,strlen(ptr));
+	rc=UCGetUniFromUtf8String(NULL,ptr,len);
 	if ((int)rc==(-1)) return -1;
 	if ((int)rc==(-2)) return 0;
 	if (rc>lb) {

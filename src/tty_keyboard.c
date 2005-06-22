@@ -150,6 +150,7 @@ void Attend_touche(struct key_entry *ke) {
    unsigned char entree[10];
    size_t entree_len=0;
 
+   memset(entree,0,10);
    if (ke && (ke->entry==ENTRY_ALLOCATED_STRING)) free(ke->value.allocstr);
    if (error_fin_displayed==0)
       Screen_refresh(); /* Quasiment le seul endroit où on le met */
