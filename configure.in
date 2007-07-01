@@ -104,7 +104,7 @@ AC_ARG_WITH(slang, [  --with-slang[=DIR]       use S-Lang in dir DIR],
         fi
         AC_MSG_RESULT($flrn_cv_slang)
 )
-LIBS="$LIBS -lslang -lm"
+LIBS="$LIBS -lslang -lm -letpan"
 if test X$freebsd = Xyes; then
    LIBS="$LIBS -lncurses"
 fi

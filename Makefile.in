@@ -2,11 +2,9 @@ DESTDIR=
 
 all:
 	+ cd src && ${MAKE} all
-	+ cd po && ${MAKE} all
 
 clean:
 	+ cd src && ${MAKE} clean
-	+ cd po && ${MAKE} clean
 
 flrn:
 	+ cd src && ${MAKE} flrn
@@ -16,4 +14,3 @@ depend:
 
 install:
 	+ cd src && ${MAKE} install
-	+ cd po && ${MAKE} install

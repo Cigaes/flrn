@@ -19,11 +19,13 @@
 
 static UNUSED char rcsid[]="$Id$";
 
+#define VERSION_TAG "20070701"
+
 char version_string[]=
-"Flrn version 0.9.1 par Damien et Jo, 04/2005.";
+"Flrn version 0.9." VERSION_TAG " par Damien, Jo et Cigaes.";
 
 char short_version_string[]=
-"Flrn (0.9.1 - 05/04)";
+"Flrn (0.9." VERSION_TAG ")";
 
 int version_number=91;
 

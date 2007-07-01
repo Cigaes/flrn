@@ -20,6 +20,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <libetpan/libetpan.h>
 
 #include "flrn.h"
 #include "options.h"
@@ -1979,11 +1980,12 @@ int Aff_headers (int flag) {
 /* Renvoie 0 en fin de message, négatif si un scroll doit etre fait     */
 /* on renvoie alors - la ligne ou nous sommes arrivés...		*/
 /* Si from_file=1, on ne formate pas...					*/
-int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
-   int res, percent;
+int Ajoute_aff_formated_line (char *line, int act_row, int read_line,
+    int from_file) {
+   int percent;
    char *buf, *buf2;
    flrn_char buf3[15];
-   int last_color,deb=1;
+   int last_color;
    flrn_char *trad;
    int rc;
    struct construct_fill cf;
@@ -2011,10 +2013,7 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
 	       0,1,chgrow);
    }
    
-   if ((!from_file) && (tcp_line_read[0]=='.')) {
-      if (tcp_line_read[1]=='.') buf=tcp_line_read+1; else 
-	return (en_deca ? 0 : -act_row+saved_space);
-   } else buf=tcp_line_read; 
+   buf=line; 
    if (*buf==(from_file ? '\n' : '\r')) {
      saved_field=FIELD_NORMAL; /* On enleve le style "signature" */
      saved_space++;
@@ -2037,32 +2036,17 @@ int Ajoute_aff_formated_line (int act_row, int read_line, int from_file) {
       Ajoute_line(fl_static(""),0,FIELD_NORMAL);
       saved_space--;
    }
-   while (1) {
-     buf2=strchr(buf,(from_file ? '\n' : '\r'));
-     if ((!buf2) && (!from_file)) buf2=strchr(buf,'\n');
-     if (buf2) {
-	 *buf2='\0';
-#ifdef USE_CONTENT_ENCODING
-	 if ((isinQP==1) && (buf2!=buf) && (*(buf2-1)=='=')) {
-	     *(buf2-1)='\0';
-	     buf2=NULL;  /* hack pour un soft line break */
-	 }
-#endif
-     }
-     if (from_file) rc=conversion_from_file(buf,&trad,0,(size_t)(-1));
-       else rc=conversion_from_message(buf,&trad,0,(size_t)(-1));
-     if ((!from_file) && (buf2) && (fl_strcmp(trad,fl_static("-- "))==0))
-	 last_color=saved_field=FIELD_SIG;
-     create_Color_line(add_line_aff_line,saved_field,trad,fl_strlen(trad),
-	     saved_field);
-     if (rc==0) free(trad);
-     if (buf2) break;
-     if (from_file) break;
-     res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
-     if (res<2) break;
-     buf=tcp_line_read;
-     deb=0;
-   }
+   buf2=strchr(buf,(from_file ? '\n' : '\r'));
+   if ((!buf2) && (!from_file)) buf2=strchr(buf,'\n');
+   if (buf2)
+       *buf2='\0';
+   if (from_file) rc=conversion_from_file(buf,&trad,0,(size_t)(-1));
+   else rc=conversion_from_message(buf,&trad,0,(size_t)(-1));
+   if ((!from_file) && (buf2) && (fl_strcmp(trad,fl_static("-- "))==0))
+       last_color=saved_field=FIELD_SIG;
+   create_Color_line(add_line_aff_line,saved_field,trad,fl_strlen(trad),
+       saved_field);
+   if (rc==0) free(trad);
    add_line_aff_line(NULL,0,0);
 
    return (cf.row+1);
@@ -2283,6 +2267,169 @@ int Aff_grand_thread(int to_build) {
    return 0;
 }
 
+static unsigned char *
+read_whole_article(unsigned *rsize)
+{
+    int res;
+    unsigned char *article;
+    unsigned size, allocated;
+    unsigned char *actual_line;
+    unsigned actual_res;
+
+    article = safe_malloc(MAX_READ_SIZE);
+    size = 0;
+    allocated = MAX_READ_SIZE;
+    while(1) {
+	res = read_server(tcp_line_read, 1, MAX_READ_SIZE - 1);
+	if(res < 1) { 
+	    free(article);
+	    return(NULL);
+	}
+	actual_line = tcp_line_read;
+	if(tcp_line_read[0] == '.') {
+	    if(tcp_line_read[1] == '\r' || tcp_line_read[1] == '\n' ||
+		tcp_line_read[1] == 0)
+		break;
+	    if(tcp_line_read[1] == '.') {
+		actual_line++;
+		res--;
+	    }
+	}
+	if(allocated - size < res) {
+	    while(allocated - size < res)
+		allocated *= 2;
+	    article = safe_realloc(article, allocated);
+	}
+	memcpy(article + size, actual_line, res);
+	size += res;
+    }
+    if(size < allocated)
+	article = safe_realloc(article, size);
+    *rsize = size;
+    return(article);
+}
+
+static void
+mmap_string_append_len_recode(MMAPString *string, const char *val, size_t len,
+    const char *fromenc, const char *toenc)
+{
+    char *buf;
+    size_t lbuf;
+
+    charconv_buffer(toenc, fromenc, val, len, &buf, &lbuf);
+    mmap_string_append_len(string, buf, lbuf);
+    charconv_buffer_free(buf);
+}
+
+static void
+format_mime_part_text(struct mailmime *msg, MMAPString *dst)
+{
+    struct mailmime_data *d;
+    clistiter *ctps;
+    struct mailmime_parameter *ctp;
+    const char *encoding = "ISO-8859-1" /* urk, hardcoded */;
+
+    for(ctps = clist_begin(msg->mm_content_type->ct_parameters); ctps != NULL;
+	ctps = clist_next(ctps)) {
+	ctp = clist_content(ctps);
+	if(strcasecmp(ctp->pa_name, "charset") == 0)
+	    encoding = ctp->pa_value;
+    }
+    d = msg->mm_data.mm_single;
+    if(d->dt_type != MAILMIME_DATA_TEXT)
+	return;
+    if(d->dt_encoded) {
+	size_t index = 0;
+	char *res;
+	size_t rlen;
+
+	mailmime_part_parse(d->dt_data.dt_text.dt_data,
+	    d->dt_data.dt_text.dt_length, &index, d->dt_encoding, &res, &rlen);
+	mmap_string_append_len_recode(dst, res, rlen, encoding, "UTF-8");
+	mmap_string_unref(res);
+    } else {
+	mmap_string_append_len_recode(dst, d->dt_data.dt_text.dt_data,
+	    d->dt_data.dt_text.dt_length, encoding, "UTF-8");
+    }
+}
+
+static void
+format_mime_part_opaque(struct mailmime *msg, MMAPString *dst)
+{
+    int col = 0;
+    mmap_string_append(dst, "MIME PART\r\n");
+    mmap_string_append(dst, "Content-Type: ");
+    mailmime_content_type_write_mem(dst, &col, msg->mm_content_type);
+    mmap_string_append(dst, "\r\n");
+}
+
+static void
+format_mime_part(struct mailmime *msg, MMAPString *dst)
+{
+    if(dst->len > 0) {
+	mmap_string_append(dst, "\r\n[----------------------------------------"
+	    "-----------------------------------]\r\n\r\n");
+    }
+    if(msg->mm_content_type->ct_type->tp_type == MAILMIME_TYPE_DISCRETE_TYPE &&
+	msg->mm_content_type->ct_type->tp_data.tp_discrete_type->dt_type ==
+	MAILMIME_DISCRETE_TYPE_TEXT &&
+	strcasecmp(msg->mm_content_type->ct_subtype, "plain") == 0) {
+	format_mime_part_text(msg, dst);
+    } else {
+	format_mime_part_opaque(msg, dst);
+    }
+    if(dst->len > 0 && dst->str[dst->len - 1] != '\n')
+	mmap_string_append(dst, "\r\n");
+}
+
+static void
+format_mime_message(struct mailmime *msg, MMAPString *dst)
+{
+    clistiter *h;
+
+    switch(msg->mm_type) {
+	case MAILMIME_NONE:
+	    break;
+	case MAILMIME_SINGLE:
+	    format_mime_part(msg, dst);
+	    break;
+	case MAILMIME_MULTIPLE:
+	    for(h = clist_begin(msg->mm_data.mm_multipart.mm_mp_list);
+		h != NULL; h = clist_next(h)) {
+		format_mime_message(clist_content(h), dst);
+	    }
+	    break;
+	case MAILMIME_MESSAGE:
+	    format_mime_message(msg->mm_data.mm_message.mm_msg_mime, dst);
+	    break;
+    }
+}
+
+static unsigned char *
+format_whole_article(unsigned char *article, unsigned size, unsigned *rsize)
+{
+    struct mailmime *msg;
+    size_t end_parse = 0;
+    MMAPString *dst;
+    unsigned char *r;
+
+    if(mailmime_parse(article, size, &end_parse, &msg) != MAILIMF_NO_ERROR ||
+	end_parse != size) {
+	*rsize = 0;
+	return(NULL);
+    }
+    dst = mmap_string_new(NULL);
+    format_mime_message(msg, dst);
+    r = safe_malloc(dst->len + 1);
+    memcpy(r, dst->str, dst->len);
+    *rsize = dst->len;
+    r[*rsize] = 0;
+
+    mmap_string_free(dst);
+    mailmime_free(msg);
+    return(r);
+}
+
 /* Affichage de l'article courant */
 /* renvoie 1 en cas de commande, 0 sinon */
 /* Note : les appels se font avec le numero de l'article */
@@ -2343,14 +2490,18 @@ int Aff_article_courant(int to_build) {
 #endif
          if (fl_strncasecmp(tmp->header_head,
 		     fl_static("content-type:"),13)==0) {
-	     parse_ContentType_header(tmp->header_body);
+	     //parse_ContentType_header(tmp->header_body);
 	     break;
 	 }
 	 tmp=tmp->next;
       }
-      if (tmp==NULL) parse_ContentType_header(NULL);
+      {
+	  char ct[] = "text/plain; charset=UTF-8";
+	      parse_ContentType_header(ct);
+      }
+      //if (tmp==NULL) parse_ContentType_header(NULL);
 #ifdef USE_CONTENT_ENCODING
-      else if (isinQP==-1) 
+      //else if (isinQP==-1) 
       while (tmp) {
 	 if (fl_strncasecmp(tmp->header_head,
 		     fl_static("content-transfer-encoding:"),26)==0) {
@@ -2377,7 +2528,7 @@ int Aff_article_courant(int to_build) {
    if (Article_courant->numero!=-1) 
      sprintf(num, "%d", Article_courant->numero); else
      strcpy(num, Article_courant->msgid);
-   res=write_command(CMD_BODY, 1, &num);
+   res=write_command(CMD_ARTICLE, 1, &num);
    free(num);
    if (res<0) { if (debug) fprintf(stderr, "erreur en ecriture\n"); 
      free_text_scroll();
@@ -2386,7 +2537,7 @@ int Aff_article_courant(int to_build) {
    if (res==423) { /* Bad article number ? */
       num=safe_malloc(280*sizeof(char));
       strcpy(num, Article_courant->msgid);
-      res=write_command(CMD_BODY, 1, &num);
+      res=write_command(CMD_ARTICLE, 1, &num);
       free(num);
       if (res<0) { if (debug) fprintf(stderr, "erreur en ecriture\n");
         free_text_scroll();
@@ -2415,21 +2566,45 @@ int Aff_article_courant(int to_build) {
      free_text_scroll(); 
      return -1;
    }
-#ifdef USE_CONTENT_ENCODING
-   if (isinQP==1) change_QP_mode(1);
-#endif
-   do {
-      res=read_server(tcp_line_read, 1, MAX_READ_SIZE-1);
-      if (res<1) { 
-	if (debug) fprintf(stderr, "Erreur en lecture...\n"); 
-	free_text_scroll(); return -1; }
-      actual_row=Ajoute_aff_formated_line(actual_row, read_line,0);
-      read_line++;
-   } while (actual_row>0);
-#ifdef USE_CONTENT_ENCODING
-   change_QP_mode(0);
+   {
+       unsigned char *whole_article;
+       unsigned whole_article_size;
+       unsigned char *whole_text;
+       unsigned whole_text_size;
+       unsigned line_start = 0;
+       unsigned line_end, next_line;
+
+       whole_article = read_whole_article(&whole_article_size);
+       if(whole_article == NULL) {
+	   if(debug) fprintf(stderr, "Erreur en lecture...\n"); 
+	   free_text_scroll();
+	   return(-1);
+       }
+       whole_text = format_whole_article(whole_article, whole_article_size,
+	   &whole_text_size);
+       if(whole_text == NULL) {
+	   whole_text = whole_article;
+	   whole_text_size = whole_article_size;
+       } else {
+	   free(whole_article);
+       }
+
+       while(line_start < whole_text_size) {
+	   for(line_end = line_start; line_end < whole_text_size;
+	       line_end++)
+	       if(whole_text[line_end] == '\n')
+		   break;
+	   next_line = line_end + 1;
+	   whole_text[line_end] = 0;
+	   actual_row = Ajoute_aff_formated_line(whole_text + line_start,
+	       actual_row, read_line, 0);
+	   read_line++;
+	   line_start = next_line;
+       }
+       actual_row = en_deca ? 0 : - actual_row + saved_space;
+       free(whole_text);
+   }
    isinQP=-1;
-#endif
    if (actual_row<0)  /* On entame un scrolling */
 	  res=Gere_Scroll_Message(actual_row,
 	    (scroll_headers ? 1+Options.skip_line : first_line), scroll_headers, to_build);
@@ -2458,7 +2633,7 @@ int Aff_file (FILE *file, char *exit_chars, flrn_char *end_mesg,
    num_help_line=4;
    Aff_help_line(Screen_Rows-1);
    while (fgets(tcp_line_read, MAX_READ_SIZE-1, file)) {
-     row=Ajoute_aff_formated_line(row, read_line, 1);
+     row=Ajoute_aff_formated_line(tcp_line_read, row, read_line, 1);
      read_line++;
    }
    if (row>Screen_Rows-1) {  /* On entame un scrolling */
