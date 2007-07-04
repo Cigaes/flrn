@@ -19,7 +19,7 @@
 
 static UNUSED char rcsid[]="$Id$";
 
-#define VERSION_TAG "20070701"
+#define VERSION_TAG "20070704"
 
 char version_string[]=
 "Flrn version 0.9." VERSION_TAG " par Damien, Jo et Cigaes.";
