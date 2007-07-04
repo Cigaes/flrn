@@ -2313,12 +2313,23 @@ static void
 mmap_string_append_len_recode(MMAPString *string, const char *val, size_t len,
     const char *fromenc, const char *toenc)
 {
-    char *buf;
+    char *buf = NULL;
     size_t lbuf;
+    int r;
 
-    charconv_buffer(toenc, fromenc, val, len, &buf, &lbuf);
-    mmap_string_append_len(string, buf, lbuf);
-    charconv_buffer_free(buf);
+    r = charconv_buffer(toenc, fromenc, val, len, &buf, &lbuf);
+    if(r == MAIL_CHARCONV_NO_ERROR && buf != NULL) {
+	mmap_string_append_len(string, buf, lbuf);
+	charconv_buffer_free(buf);
+    } else {
+	r = charconv_buffer(toenc, "ISO-8859-1", val, len, &buf, &lbuf);
+	if(r == MAIL_CHARCONV_NO_ERROR && buf != NULL) {
+	    mmap_string_append_len(string, buf, lbuf);
+	    charconv_buffer_free(buf);
+	} else {
+	    mmap_string_append_len(string, val, len);
+	}
+    }
 }
 
 static void
