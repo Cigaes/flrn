@@ -1,0 +1,14 @@
+<espace>:lire, (R)épondre, poster (m)essage, (l)ister groupes, (q)uitter, ?:aide
+           N:revenir à l'affichage normal,                     (q)uitter, ?:aide
+<espace>:page suivante,    ^C:revenir aux messages,                       ?:aide
+<espace>:lire, (R)épondre, poster (m)essage, (l)ister groupes, (q)uitter, ?:aide
+<espace>:page suivante,    ^C:revenir aux messages
+<entrée>:selectionner un message,                              (q)uitter le menu
+<entrée>:selectionner un message, k:marquer lu, o:non lu       (q)uitter le menu
+<entrée>:selectionner un thread , k:marquer lu                 (q)uitter le menu
+<entrée>:selectionner un message,                              (q)uitter le menu
+                                                               (q)uitter le menu
+<entrée>:selectionner un groupe,                               (q)uitter le menu
+<entrée>:selectionner un groupe,                               (q)uitter le menu
+<entrée>:aller dans groupe,  s'(A)bonner,  se Désabonner (U),  (q)uitter le menu
+<entrée>:modifier la valeur,                                   (q)uitter le menu

@@ -1,0 +1,59 @@
+# Fichier de config pour flrn le plus proche possible de forum.
+
+name forum set server clipper.ens.fr
+name forum set port 2019
+name forum set flnews_ext .forum
+
+name forum set prefixe_groupe ens.forum.
+name forum set forum_mode
+name forum set parse_from
+name forum bind g GOTO
+name forum bind G goto
+bind A subscribe
+name forum bind l LIST
+name forum bind L list
+bind D unsubscribe
+name forum bind pager \13 pgdown
+name forum bind T remove-kill
+name forum bind M add-kill
+bind n next-unread
+
+
+######### Cette partie de la config sert pour un serveur de news "basique"
+# On avertit de l'arrivée de nouveaux groupes
+name flrn set warn_if_new
+# On ne veut s'abonner à aucun nouveau groupe par défaut
+name flrn set nodefault_subscribe
+# On veut avoir un .flnewsrc "de base" au début
+name flrn set default_flnewsfile /opt/flrn/share/flrn/flnewsrc_nef
+# On change les flags
+name flrn set flags_group="M DDm*dd"
+# ... et on met l'alpha-tree
+name flrn set small_tree
+
+my_flags - read
+name forum my_flags * X-Censorship: yes
+
+#### Une réponse à un message censuré est par défaut censuré.
+# Désactivé. (Jérôme, mars 2001)
+# name forum my_hdr X-Censorship: %{X-Censorship}
+
+### On modifie l'abonnement par defaut pour exclure archives
+name forum set auto_ignore="^control|^[^.]+$|archives|archeo-forum"
+### Ici on pourrait ajouter une regle pour s'abonner quand meme a des groupes
+### on met nosubscribe_first pour qu'elle soit bien traitee apres
+# name forum set nosubscribe_first
+# name forum set auto_subscribe=""
+### Le comportement par défaut
+# name forum set default_subscribe
+
+###
+name forum set kill_file_name .flrnkill.forum
+name forum set auto_kill
+### ces lignes doivent être rajoutés si le .flrnkill.forum contient un truc
+### correct
+
+set use_menus
+set nohelp_line
+set help_lines_file /opt/flrn/share/flrn/aide_forum
+
