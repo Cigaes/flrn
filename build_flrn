@@ -1,0 +1,90 @@
+#!/bin/zsh
+
+srcdir=${0:h}
+if [[ ! -e $srcdir/src/flrn.h ]]; then
+  print -u2 "Not in a flrn source tree."
+  exit 1
+fi
+
+tmpdir=/tmp/flrn-build-$USERNAME
+if ! mkdir $tmpdir 2> /dev/null; then
+  l=($tmpdir(UN))
+  if [[ $#l != 1 ]]; then
+    print -u2 "$tmpdir exists and is not yours."
+    exit 1
+  fi
+fi
+
+arch=$(dpkg --print-architecture)
+debian_archive=ftp://archive.debian.org/debian-archive/debian
+[[ $arch == amd64 ]] && debian_archive=$debian_archive-amd64
+
+function install_deb {
+  local package=$1
+  local pack_path=${package}_$arch.deb
+  local pack_file=${pack_path:t}
+  print "Installing $pack_file..."
+  if [[ ! -e $tmpdir/deb/$pack_file ]]; then
+    mkdir $tmpdir/deb 2> /dev/null
+    (cd $tmpdir/deb && wget $debian_archive/$pack_path) || exit 1
+  fi
+  dpkg --fsys-tarfile $tmpdir/deb/$pack_file |
+    (cd $tmpdir && tar x) ||
+    exit 1
+}
+
+if [[ ! -e $tmpdir/usr/include/slang.h ]]; then
+  install_deb pool/main/s/slang/slang1-utf8-dev_1.4.9dbs-8
+fi
+
+rsync -a $srcdir/ $tmpdir/build/ || exit
+
+while [[ $# != 0 ]]; do
+
+  if [[ $1 == configure ]]; then
+    shift
+    configure_options=()
+    configure_cppflags="-I$tmpdir/usr/include -DUTF8"
+    configure_ldflags="-L$tmpdir/usr/lib"
+    while [[ $# != 0 && $1 != -- ]]; do
+      configure_options=($configure_options $1)
+      shift
+    done
+    [[ $1 == -- ]] && shift
+    if [[ $#configure_options == 0 ]]; then
+      version=$(PAGER= git log -1 --pretty=format:%ci+%h)
+      version=${version//-/}
+      version=${version// *+/-}
+      version=${version%-*}
+      configure_options=(--prefix=/opt/flrn-$version --enable-slang)
+    fi
+    (
+      cd $tmpdir/build || exit
+      CPPFLAGS=$configure_cppflags \
+      LDFLAGS=$configure_ldflags \
+      ./configure $configure_options || exit
+      make || exit
+      make DESTDIR=$tmpdir/install install || exit
+    ) || exit
+
+  elif [[ $1 == clean ]]; then
+    shift
+    rm -rf $tmpdir/build
+    rsync -a $srcdir/ $tmpdir/build/ || exit
+
+  elif [[ $1 == build ]]; then
+    shift
+    (cd $tmpdir/build && make -s) || exit
+
+  elif [[ $1 == install ]]; then
+    shift
+    rm -rf $tmpdir/install
+    (cd $tmpdir/build && make -s DESTDIR=$tmpdir/install install) || exit
+    cp extra/{aide_forum,flnewsrc_nef,flrnrc,slang_yaf.sl} \
+      $tmpdir/install/**/share/flrn/
+
+  else
+    print -u2 "$1: what?"
+  fi
+
+done
