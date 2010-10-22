@@ -46,7 +46,7 @@ void sigwinch_while_fork(int sig) {
 }   
 
 int Launch_Editor (int flag, char *name) {
-    char *editor;
+    char *editor, command[16];
     pid_t pid;
     int retval=0, ret;
 
@@ -58,17 +58,15 @@ int Launch_Editor (int flag, char *name) {
     signal(SIGTSTP, SIG_DFL); /* on s'en fout */
     signal(SIGWINCH, sigwinch_while_fork);
 
-    editor=getenv("EDITOR");
-    if (!editor) {
-      editor = getenv("VISUAL");
-      if (!editor)
-        editor = "vi";
-    }
+    editor = getenv("EDITOR") ? "$EDITOR" : getenv("VISUAL") ? "$VISUAL" :
+        "editor";
+    snprintf(command, sizeof(command), "%s \"$1\"", editor);
+    fprintf(stderr, "\n\neditor = [%s]\n", command);
     switch ((pid=fork())) {
        case -1 : retval = -1;
                  break;
        case 0 : close(tcp_fd);
-                execlp(editor, editor, name, NULL);
+                execl("/bin/sh", "sh", "-c", command, editor, name, NULL);
                 _exit(-1);
        default : while ((wait(&ret)<0) && (errno==EINTR));
     }
