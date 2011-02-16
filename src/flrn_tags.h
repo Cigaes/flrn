@@ -37,6 +37,8 @@ extern Flrn_Special_Tag *special_tags;
 
 Flrn_Tag *add_special_tags(struct key_entry *, Flrn_Tag *);
 Flrn_Tag *get_special_tags(struct key_entry *);
+extern void correct_article_in_tags(Article_List *, Article_List *);
+
 extern void save_history(void);
 extern void load_history(void);
 

@@ -245,6 +245,9 @@ int cree_liens() {
 	      parcours->thread->non_lu--;
 	  }
 
+	  /* Avant d'effacer l'article vide, il faut voir s'il est 
+	     tagué dans l'historique */
+	  correct_article_in_tags(parcours,creation);
 	  /* On efface enfin l'article vidé */
 	  if (parcours->prev) parcours->prev->next=parcours->next;
 	     else {

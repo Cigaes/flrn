@@ -60,6 +60,25 @@ Flrn_Tag *get_special_tags(struct key_entry *key) {
   return NULL;
 }
 
+/* remplace toutes les occurences d'un article (sous forme de pointeur)
+   par un autre dans la liste */
+void correct_article_in_tags(Article_List *old_ref, Article_List *new_ref) {
+  Flrn_Special_Tag *parcours=special_tags;
+  int num;
+
+  for (num=0;num<MAX_TAGS;num++) 
+      if ((tags[num].article_deb_key) && (tags[num].article==old_ref)) 
+           put_tag(new_ref,&(tags[num]));
+  /* pas certain que ca puisse exister... */
+  while (parcours) {
+      if ((parcours->tag.article_deb_key) && (parcours->tag.article==old_ref))
+           put_tag(new_ref,&(parcours->tag));
+      parcours = parcours->next;
+  }
+}
+  
+
+
 void load_history (void) {
   FILE *hist_file;
 #define SIZE_HIST_LINE MAX_NEWSGROUP_LEN+20
