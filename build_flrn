@@ -16,7 +16,7 @@ if ! mkdir $tmpdir 2> /dev/null; then
 fi
 
 arch=$(dpkg --print-architecture)
-debian_archive=ftp://archive.debian.org/debian-archive/debian
+debian_archive=http://archive.debian.org/debian-archive/debian
 [[ $arch == amd64 ]] && debian_archive=$debian_archive-amd64
 
 function install_deb {
