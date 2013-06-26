@@ -61,7 +61,6 @@ int Launch_Editor (int flag, char *name) {
     editor = getenv("EDITOR") ? "$EDITOR" : getenv("VISUAL") ? "$VISUAL" :
         "editor";
     snprintf(command, sizeof(command), "%s \"$1\"", editor);
-    fprintf(stderr, "\n\neditor = [%s]\n", command);
     switch ((pid=fork())) {
        case -1 : retval = -1;
                  break;
