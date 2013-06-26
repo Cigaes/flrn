@@ -1128,7 +1128,7 @@ int Aff_arbre (int row, int col, Article_List *init,
 	   if (parcours3->frere_suiv==NULL) {
 	      (table[rw])[c-1]=SYMB_ANTISLASH;
 	      r=rw-1;
-	      while ((r>0) && ((table[r])[c-2]==symb_space))
+	      while ((r>0) && (c>1) && ((table[r])[c-2]==symb_space))
 		(table[r--])[c-2]=SYMB_PIPE;
 	   } else (table[rw])[c-1]=SYMB_DASH;
 	} else if (!remonte) {
