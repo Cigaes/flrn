@@ -475,16 +475,13 @@ Article_Header *cree_header(Article_List *article, int rech_pere, int others, in
 	  }
           header_courant=NULL_HEADER; 
       } else {
-	int tlen = cur_header ? strlen(cur_header) : 0;
-	if (!cur_header)
 	if ((header_courant!=NULL_HEADER) ||
-		( tlen+
+		( (cur_header ? strlen(cur_header) : 0)+
 		  strlen(tcp_line_read)+2>cur_header_len)) {
-	    cur_header_len=tlen+
+	    cur_header_len=(cur_header ? strlen(cur_header) : 0)+
 		strlen(tcp_line_read)+2;
 	    cur_header = safe_realloc(cur_header,
 		    cur_header_len);
-	    cur_header[tlen] = 0;
 	    if (flag & 1) strcat(cur_header, "\n");
 	    strcat(cur_header, tcp_line_read);
 	}
