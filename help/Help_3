@@ -641,6 +641,8 @@ quit_if_nothine=yes|no
 
 server=<string>
 	utilise la machine correspondant à ce nom comme serveur.
+	Si la chaîne commence par '|', la suite est considérée comme une
+	commande à exécuter plutôt qu'un nom d'hôte.
 	(défaut : selon l'installation locale)
 
 short_errors=yes|no

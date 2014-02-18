@@ -55,6 +55,33 @@ static int renvoie_direct; /* on renvoie tcp_line_read à la prochaine lecture */
 			   /* pour un code de retour, ou bien pour une */
 			   /* lecture de liste limitee a une ligne...  */
 
+static int contact_server_pipe(char *host)
+{
+    int sock[2];
+    pid_t child;
+
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, sock) < 0) {
+	perror("socketpair");
+	return -1;
+    }
+    if ((child = fork()) < 0) {
+	perror("fork");
+	exit(1);
+    }
+    if (child == 0) {
+	close(sock[0]);
+	dup2(sock[1], 0);
+	dup2(sock[1], 1);
+	close(sock[1]);
+	execl("/bin/sh", "sh", "-c", host, NULL);
+	perror("exec");
+	exit(1);
+    }
+    close(sock[1]);
+    tcp_fd = sock[0];
+    return tcp_fd;
+}
+
 /* Connection au port d'une machine. La fonction est rudimentaire pour  */
 /* l'instant, mais j'ai peur que ça nécessite quelques améliorations    */
 /* pour l'avenir.							*/
@@ -72,6 +99,9 @@ static int contact_server (char *host, int port) {
    struct protoent *tcpproto;
    int on=1;   		   /* pour setsockopt		*/
 #endif
+
+   if (host[0] == '|')
+       return contact_server_pipe(host + 1);
   
    /* Determination du serveur */
 #ifdef HAVE_INET_ATON
