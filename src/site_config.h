@@ -84,6 +84,7 @@ struct Option_struct Options = {
   NULL,			/* help_line_file */
   NULL,			/* auth_user */
   NULL,			/* auth_pass */
+  NULL,			/* auth_cmd */
   NULL,			/* sign_file */
   0,			/* quote_all */
   0,			/* quote_sig */

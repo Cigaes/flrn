@@ -147,6 +147,7 @@ struct Option_struct {
   flrn_char *help_lines_file;
   flrn_char *auth_user;
   flrn_char *auth_pass;
+  flrn_char *auth_cmd;
   flrn_char *sig_file;
   int quote_all;
   int quote_sig;
@@ -236,6 +237,7 @@ static struct {
   MAKE_STRING_OPT(attribution,N_("Chaîne précédent les citations.")),
   MAKE_STRING_OPT_L(auth_user,N_("Nom de l'utilisateur pour l'authentification par le serveur")),
   MAKE_STRING_OPT_L(auth_pass,N_("Mot de passe pour l'authentification par le serveur")),
+  MAKE_STRING_OPT_L(auth_cmd,N_("Commande pour l'authentification par le serveur")),
   MAKE_OPT_NULL_O(auto_edit,N_("Obsolète (l'éditeur interne est supprimé).")),
   MAKE_STRING_OPT(auto_ignore,N_("Expression régulières de groupes à ignorer.")),
   MAKE_OPT(auto_kill,N_("Met le groupe dans le kill-file au moment de l'abonnement.")),

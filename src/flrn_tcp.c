@@ -407,6 +407,32 @@ int discard_server() {
 }
 
 
+static int
+run_auth_cmd(void)
+{
+    pid_t child = fork();
+    int status;
+
+    if (child < 0) {
+        perror("fork");
+        return -1;
+    }
+    if (child == 0) {
+        dup2(tcp_fd, 0);
+        dup2(tcp_fd, 1);
+        close(tcp_fd);
+        execl("/bin/sh", "sh", "-c", Options.auth_cmd, NULL);
+        perror("sh");
+        _exit(1);
+    }
+
+    if (waitpid(child, &status, 0) != child) {
+        perror("waitpid");
+        return -1;
+    }
+    return status == 0 ? 200 : 481;
+}
+
 /* Ouverture PROPRE de la connexion					*/
 /* Cette fonction se charge d'appeler connect_server, et lit la reponse */
 /* du serveur a la connexion.						*/
@@ -471,6 +497,10 @@ int connect_server (flrn_char *host, int port) {
     }
 */
     /* Authentification */
+    if ((ret<500) && (Options.auth_cmd)) {
+        return run_auth_cmd();
+    }
+
     if ((ret<500) && (Options.auth_user)) {
         char *strvar[2];
 	strvar[0]="user"; 
