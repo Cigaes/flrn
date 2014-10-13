@@ -67,7 +67,7 @@ int Launch_Editor (int flag, char *name) {
        case 0 : close(tcp_fd);
                 execl("/bin/sh", "sh", "-c", command, editor, name, NULL);
                 _exit(-1);
-       default : while ((wait(&ret)<0) && (errno==EINTR));
+       default : while ((waitpid(pid, &ret, 0)<0) && (errno==EINTR));
     }
     if (WIFEXITED(ret) && (WEXITSTATUS(ret)==0xff)) retval=-1;
     Screen_resume();
