@@ -68,9 +68,6 @@ fi
 
 ROOTDIR=`pwd`
 
-CPPFLAGS="-I. $CPPFLAGS"
-
-
 flrn_cv_slang=no
 AC_ARG_WITH(slang, [  --with-slang[=DIR]       use S-Lang in dir DIR],
         AC_MSG_CHECKING(for S-Lang)

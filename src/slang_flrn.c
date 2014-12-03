@@ -33,7 +33,7 @@ avec le langage de script.
 #include "flrn_inter.h"
 #include "version.h"
 #include "options.h"
-#include "enc/enc_strings.h"
+#include "enc_strings.h"
 
 int flrn_SLang_inited=0;
 char *retour_intrinsics=NULL;

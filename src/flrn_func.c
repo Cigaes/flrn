@@ -32,7 +32,7 @@
 #include "flrn_tags.h"
 #include "flrn_regexp.h"
 #include "flrn_func.h"
-#include "enc/enc_strings.h"
+#include "enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 

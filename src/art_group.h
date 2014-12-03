@@ -18,7 +18,7 @@
 #endif
 #include <sys/times.h>
 
-#include "enc/enc_base.h"
+#include "enc_base.h"
 
 typedef struct Flrn_known_headers {
    char *header;

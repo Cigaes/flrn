@@ -41,7 +41,7 @@
 #include "flrn_messages.h"
 #include "flrn_xover.h"
 #include "flrn_func.h"
-#include "enc/enc_strings.h"
+#include "enc_strings.h"
 #ifdef USE_SLANG_LANGUAGE
 #include "slang.h"
 #include "slang_flrn.h"

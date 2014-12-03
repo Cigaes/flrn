@@ -22,7 +22,7 @@
 #include "flrn_slang.h"
 #include "options.h"
 #include "flrn_color.h"
-#include "enc/enc_strings.h"
+#include "enc_strings.h"
 
 static char UNUSED rcsid[]="$Id$";
 

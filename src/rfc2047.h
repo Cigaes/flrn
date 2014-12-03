@@ -14,7 +14,7 @@
 #define FLRN_RFC_2047_H
 
 #include <stdio.h>
-#include "enc/enc_strings.h"
+#include "enc_strings.h"
 
 #define SHORT_STRING 128
 #define ENCQUOTEDPRINTABLE 1

@@ -22,7 +22,7 @@
 #include "tty_keyboard.h"
 #include "art_group.h"
 #include "flrn_format.h"
-#include "enc/enc_strings.h"
+#include "enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 

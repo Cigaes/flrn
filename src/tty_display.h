@@ -13,7 +13,7 @@
 #ifndef FLRN_TTY_DISPLAY_H
 #define FLRN_TTY_DISPLAY_H
 
-#include "enc/enc_base.h"
+#include "enc_base.h"
 #include "group.h"
 #include "art_group.h"
 #include "tty_keyboard.h"

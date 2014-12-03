@@ -17,7 +17,7 @@
 #include "flrn.h"
 #include "flrn_config.h"
 #include "flrn_lists.h"
-#include "enc/enc_strings.h"
+#include "enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 

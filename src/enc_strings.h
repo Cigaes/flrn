@@ -15,7 +15,7 @@
 
 #include <wchar.h>
 
-#include "../flrn.h"
+#include "flrn.h"
 
 /* gestion des charsets */
 extern int read_terminal_charset ();

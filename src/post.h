@@ -14,7 +14,7 @@
 #define FLRN_POST_H
 
 #include "art_group.h"
-#include "enc/enc_base.h"
+#include "enc_base.h"
 
 #define MAX_SUJET_LEN		70
 #define MAX_NB_REF		6

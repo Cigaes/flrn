@@ -13,7 +13,7 @@
 #ifndef FLRN_TTY_KEYBOARD_H
 #define FLRN_TTY_KEYBOARD_H
 
-#include "enc/enc_base.h"
+#include "enc_base.h"
 
 /* entrée */
 struct key_entry {

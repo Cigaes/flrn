@@ -13,7 +13,7 @@
 #ifndef FLRN_FLRN_REGEXP_H
 #define FLRN_FLRN_REGEXP_H
 
-#include "enc/enc_base.h"
+#include "enc_base.h"
 
 /* les fonctions */
 

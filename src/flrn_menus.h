@@ -13,7 +13,7 @@
 #ifndef FLRN_MENUS_H
 #define FLRN_MENUS_H
 
-#include "enc/enc_base.h"
+#include "enc_base.h"
 #include "flrn_slang.h"
 #include "tty_keyboard.h"
 

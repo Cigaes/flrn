@@ -20,7 +20,7 @@
 #include "flrn.h"
 #include "flrn_slang.h"
 #include "flrn_color.h"
-#include "enc/enc_strings.h"
+#include "enc_strings.h"
 #ifdef HAVE_WCHAR_H
 #include <wchar.h>
 #endif

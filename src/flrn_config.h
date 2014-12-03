@@ -15,7 +15,7 @@
 
 #include "pathdef.h"
 #include "config.h"
-#include "enc/enc_base.h"
+#include "enc_base.h"
 
 /* L'utilisateur peut modifier la valeurs qui suivent jusqu'au
    "-- ne rien modifier ensuite --" */

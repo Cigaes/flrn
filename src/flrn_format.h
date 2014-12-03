@@ -16,7 +16,7 @@
 /* Les fonctions */
 
 #include <stdio.h>
-#include "enc/enc_base.h"
+#include "enc_base.h"
 #include "art_group.h"
 
 extern time_t parse_date(flrn_char * /*s*/);

@@ -14,7 +14,7 @@
 #define FLRN_COMP_H
 
 #include "tty_keyboard.h"
-#include "enc/enc_base.h"
+#include "enc_base.h"
 
 typedef struct liste_de_chaine {
   flrn_char *une_chaine;

@@ -1142,9 +1142,6 @@ fi
 
 ROOTDIR=`pwd`
 
-CPPFLAGS="-I. $CPPFLAGS"
-
-
 flrn_cv_slang=no
 # Check whether --with-slang or --without-slang was given.
 if test "${with_slang+set}" = set; then

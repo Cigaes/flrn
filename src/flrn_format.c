@@ -29,7 +29,7 @@
 #ifdef USE_SLANG_LANGUAGE
 #include <slang.h>
 #endif
-#include "enc/enc_strings.h"
+#include "enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 

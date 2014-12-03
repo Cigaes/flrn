@@ -11,7 +11,7 @@
 
 CC = @CC@
 DEBUGFLAGS = 
-CPPFLAGS = $(DEBUGFLAGS) @CPPFLAGS@
+CPPFLAGS = $(DEBUGFLAGS) -I. -I$(SRCDIR) @CPPFLAGS@
 CFLAGS = -D_GNU_SOURCE @CFLAGS@
 LDFLAGS = @LDFLAGS@
 MISCLIBS = @LIBS@
@@ -43,23 +43,23 @@ localedir = $(datadir)/locale
 
 Y_FILES = getdate.y
 
-C_FILES = flrn_tcp.c options.c flrn_files.c group.c art_group.c tty_display.c tty_keyboard.c flrn_inter.c post.c main.c rfc2047.c flrn_help.c flrn_regexp.c flrn_slang.c flrn_xover.c flrn_menus.c flrn_color.c compatibility.c flrn_shell.c flrn_pager.c flrn_format.c flrn_filter.c flrn_lists.c flrn_tags.c flrn_command.c flrn_comp.c flrn_messages.c flrn_func.c slang_flrn.c version.c enc/enc_strings.c
+C_FILES = flrn_tcp.c options.c flrn_files.c group.c art_group.c tty_display.c tty_keyboard.c flrn_inter.c post.c main.c rfc2047.c flrn_help.c flrn_regexp.c flrn_slang.c flrn_xover.c flrn_menus.c flrn_color.c compatibility.c flrn_shell.c flrn_pager.c flrn_format.c flrn_filter.c flrn_lists.c flrn_tags.c flrn_command.c flrn_comp.c flrn_messages.c flrn_func.c slang_flrn.c version.c enc_strings.c
 
-VC_FILES = `echo $(C_FILES) $(Y_FILES) | sed s'&\ \|^& '$(SRCDIR)'/&'g`
+VC_FILES = `echo $(C_FILES) | sed s'&\ \|^& '$(SRCDIR)'/&'g` $(Y_FILES)
 
 #Headers
 
-HDRS = flrn.h options.h flrn_config.h flrn_glob.h group.h art_group.h post.h rfc2047.h pathdef.h version.h site_config.h flrn_slang.h flrn_menus.h flrn_filter.h flrn_pager.h flrn_lists.h flrn_tags.h flrn_tcp.h flrn_macros.h flrn_command.h compatibility.h config.h flrn_color.h flrn_files.h flrn_format.h flrn_help.h flrn_inter.h flrn_regexp.h flrn_shell.h flrn_xover.h tty_display.h tty_keyboard.h flrn_comp.h flrn_messages.h getdate.h flrn_func.h slang_flrn.h enc/enc_base.h enc/enc_strings.h
+HDRS = flrn.h options.h flrn_config.h flrn_glob.h group.h art_group.h post.h rfc2047.h pathdef.h version.h site_config.h flrn_slang.h flrn_menus.h flrn_filter.h flrn_pager.h flrn_lists.h flrn_tags.h flrn_tcp.h flrn_macros.h flrn_command.h compatibility.h config.h flrn_color.h flrn_files.h flrn_format.h flrn_help.h flrn_inter.h flrn_regexp.h flrn_shell.h flrn_xover.h tty_display.h tty_keyboard.h flrn_comp.h flrn_messages.h getdate.h flrn_func.h slang_flrn.h enc_base.h enc_strings.h
 
 #Objets
 
-OBJS = art_group.o compatibility.o flrn_color.o flrn_files.o flrn_format.o flrn_help.o flrn_inter.o flrn_menus.o flrn_pager.o flrn_regexp.o flrn_shell.o flrn_slang.o flrn_tcp.o flrn_xover.o group.o main.o options.o post.o rfc2047.o tty_display.o tty_keyboard.o flrn_filter.o flrn_lists.o flrn_tags.o flrn_command.o flrn_comp.o flrn_messages.o getdate.o flrn_func.o slang_flrn.o version.o enc/enc_strings.o
+OBJS = art_group.o compatibility.o flrn_color.o flrn_files.o flrn_format.o flrn_help.o flrn_inter.o flrn_menus.o flrn_pager.o flrn_regexp.o flrn_shell.o flrn_slang.o flrn_tcp.o flrn_xover.o group.o main.o options.o post.o rfc2047.o tty_display.o tty_keyboard.o flrn_filter.o flrn_lists.o flrn_tags.o flrn_command.o flrn_comp.o flrn_messages.o getdate.o flrn_func.o slang_flrn.o version.o enc_strings.o
 
 TBLS = @TBLS@
 
 # Suite a modifier au cas où
 
-all:  flrn $(ROOTDIR)/man/flrn.1$(MANISO)
+all:  flrn flrn.1$(MANISO)
 
 do_chartrans_stuff: ${TBLS}
 	-cd chrtrans && $(MAKE) tables
@@ -82,16 +82,16 @@ installhelp:
 	$(INSTALL) -d -m 755 ${DESTDIR}$(helpdir)
 	for i in $(ROOTDIR)/help/Help* ; do $(INSTALL) -m 644 $$i ${DESTDIR}$(helpdir); done
 
-installman: $(ROOTDIR)/man/flrn.1$(MANISO)
+installman: flrn.1$(MANISO)
 	$(INSTALL) -d -m 755 ${DESTDIR}$(mandir)/man1
-	$(INSTALL) -m 644 $(ROOTDIR)/man/flrn.1$(MANISO) ${DESTDIR}$(mandir)/man1/flrn.1
+	$(INSTALL) -m 644 flrn.1$(MANISO) ${DESTDIR}$(mandir)/man1/flrn.1
     
 depend: pathdef.h
 	$(MAKEDEPEND) $(CPPFLAGS) $(VC_FILES) -I.
 	+ cd chrtrans && $(MAKE) depend
 
-$(ROOTDIR)/man/flrn.1: $(ROOTDIR)/man/flrn.1.iso
-	+ cd $(ROOTDIR)/man; ${MAKE}
+flrn.1: $(ROOTDIR)/man/flrn.1.iso $(ROOTDIR)/man/zapaccents
+	LC_ALL=C sed -f $(ROOTDIR)/man/zapaccents $< > $@
 
 pathdef.h: Makefile
 	rm -f pathdef.h

@@ -27,9 +27,9 @@
 #include <errno.h>
 #endif
 
-#include "../flrn.h"
-#include "../compatibility.h"
-#include "../flrn_slang.h"  /* pour set_Display_Eight_Bit */
+#include "flrn.h"
+#include "compatibility.h"
+#include "flrn_slang.h"  /* pour set_Display_Eight_Bit */
 #include "enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
@@ -40,21 +40,21 @@ static UNUSED char rcsid[]="$Id$";
 
 /* includes pour chrtrans */
 #define CONST const
-#include "../chrtrans/UCkd.h"
+#include "chrtrans/UCkd.h"
 /* Pages incluses : cf init_charsets */
-#include "../chrtrans/iso01_uni.h"          /* ISO 8859-1 Latin-1   */
-#include "../chrtrans/iso02_uni.h"
-#include "../chrtrans/iso03_uni.h"
-#include "../chrtrans/iso04_uni.h"
-#include "../chrtrans/iso05_uni.h"          /* ISO 8859-5 Cyrillic  */
-#include "../chrtrans/iso06_uni.h"
-#include "../chrtrans/iso07_uni.h"
-#include "../chrtrans/iso08_uni.h"
-#include "../chrtrans/iso09_uni.h"
-#include "../chrtrans/iso10_uni.h"
-#include "../chrtrans/iso15_uni.h"
-#include "../chrtrans/def7_uni.h"           /* 7 bit approximations */
-#include "../chrtrans/utf8_uni.h"           /* utf-8 unicode */
+#include "chrtrans/iso01_uni.h"          /* ISO 8859-1 Latin-1   */
+#include "chrtrans/iso02_uni.h"
+#include "chrtrans/iso03_uni.h"
+#include "chrtrans/iso04_uni.h"
+#include "chrtrans/iso05_uni.h"          /* ISO 8859-5 Cyrillic  */
+#include "chrtrans/iso06_uni.h"
+#include "chrtrans/iso07_uni.h"
+#include "chrtrans/iso08_uni.h"
+#include "chrtrans/iso09_uni.h"
+#include "chrtrans/iso10_uni.h"
+#include "chrtrans/iso15_uni.h"
+#include "chrtrans/def7_uni.h"           /* 7 bit approximations */
+#include "chrtrans/utf8_uni.h"           /* utf-8 unicode */
 
 #define MAXCHARSETS 20               /* max character sets supported */
 

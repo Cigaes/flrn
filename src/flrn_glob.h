@@ -16,7 +16,7 @@
 #include <pwd.h>
 
 #include "flrn_config.h"
-#include "enc/enc_base.h"
+#include "enc_base.h"
 
 #ifdef CHECK_MAIL
 extern char *mailbox;

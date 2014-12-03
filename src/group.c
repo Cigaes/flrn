@@ -30,7 +30,7 @@
 #include "flrn_files.h"
 #include "tty_display.h"
 #include "flrn_filter.h"
-#include "enc/enc_strings.h"
+#include "enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 

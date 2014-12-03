@@ -14,7 +14,7 @@
 #define FLRN_MACROS_H
 
 #include "config.h"
-#include "enc/enc_base.h"
+#include "enc_base.h"
 
 /* on partage les macros entre tous les contextes */
 #define MAX_FL_MACRO 256

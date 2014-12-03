@@ -20,7 +20,7 @@
 #include "options.h"
 #include "flrn_files.h"
 #include "tty_keyboard.h"
-#include "enc/enc_strings.h"
+#include "enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 

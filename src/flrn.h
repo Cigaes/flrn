@@ -16,7 +16,7 @@
 #include "config.h"	    /* Defines de configure */
 #include "flrn_config.h"    /* Defines autres */
 #include "compatibility.h"  /* La compatibilité */
-#include "enc/enc_base.h"   /* fonctions chaînes de base */
+#include "enc_base.h"   /* fonctions chaînes de base */
 #include "flrn_glob.h"      /* Variables externes */
 
 #ifdef HAVE_GETTEXT

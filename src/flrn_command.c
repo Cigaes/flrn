@@ -31,7 +31,7 @@
 #include "tty_keyboard.h"
 #include "flrn_pager.h"
 #include "flrn_menus.h"
-#include "enc/enc_strings.h"
+#include "enc_strings.h"
 #include "flrn_format.h"
 #ifdef USE_SLANG_LANGUAGE
 #include "slang_flrn.h"

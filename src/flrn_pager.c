@@ -24,7 +24,7 @@
 #include "tty_keyboard.h"
 #include "flrn_slang.h"
 #include "flrn_messages.h"
-#include "enc/enc_strings.h"
+#include "enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 

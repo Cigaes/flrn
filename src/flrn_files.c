@@ -28,7 +28,7 @@
 #include "flrn_files.h"
 #include "flrn_filter.h"
 #include "rfc2047.h"
-#include "enc/enc_strings.h"
+#include "enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 

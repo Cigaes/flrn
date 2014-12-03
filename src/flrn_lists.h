@@ -14,7 +14,7 @@
 #define FLRN_FLRN_LISTE_H
 
 #include "flrn_config.h"
-#include "enc/enc_base.h"
+#include "enc_base.h"
 typedef struct _Flrn_liste_els {
   struct _Flrn_liste_els *next;
   flrn_char *ptr;

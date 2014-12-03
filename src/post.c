@@ -33,7 +33,7 @@
 #include "flrn_menus.h"
 #include "rfc2047.h"
 #include "flrn_regexp.h"
-#include "enc/enc_strings.h"
+#include "enc_strings.h"
 
 static UNUSED char rcsid[]="$Id$";
 

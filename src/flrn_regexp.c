@@ -23,7 +23,7 @@
 
 #include "flrn.h"
 #include "flrn_regexp.h"
-#include "enc/enc_base.h"
+#include "enc_base.h"
 
 static UNUSED char rcsid[]="$Id$";
 

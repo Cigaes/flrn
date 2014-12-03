@@ -34,7 +34,7 @@
 #include "flrn_pager.h"
 #include "flrn_filter.h"
 #include "flrn_color.h"
-#include "enc/enc_strings.h"
+#include "enc_strings.h"
 /* les langages. Les #iddef sont directement dans les fichiers inclus */
 #include "slang_flrn.h"
 

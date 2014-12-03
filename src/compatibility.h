@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <ctype.h>
-#include "enc/enc_base.h"
+#include "enc_base.h"
 
 #ifdef HAVE_ERRNO_H
 #include <errno.h>

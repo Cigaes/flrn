@@ -62,7 +62,7 @@ extern File_Line_Type *Text_scroll;
 /* Les fonctions */
 
 #include "flrn_glob.h"
-#include "enc/enc_base.h"
+#include "enc_base.h"
 
 extern void Screen_suspend(void);
 extern void Screen_resume(void);
