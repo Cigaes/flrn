@@ -1,0 +1,7 @@
+#!/bin/sh
+
+remote="$1"
+[ -z "$remote" ] && exit 1
+
+exec socat - ssl:${remote},verify=0
+#exec openssl s_client -quiet -connect $remote
