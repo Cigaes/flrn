@@ -3,6 +3,12 @@ dnl Configuration pour flrn
 dnl 		Jo.
 
 AC_INIT(src/art_group.c)
+
+if test -e configure; then
+  echo "In-tree build not recommended until build system is clean."
+  exit 1
+fi
+
 AC_CONFIG_HEADER(src/config.h)
 
 dnl Checks for programs.
