@@ -65,11 +65,14 @@ do_chartrans_stuff: ${TBLS}
 	-cd chrtrans && $(MAKE) tables
 	touch do_chartrans_stuff
 
+chrtrans/%_uni.h: chrtrans/%_uni.tbl
+	$(MAKE) do_chartrans_stuff
+
 flrn:  do_chartrans_stuff $(OBJS)
 	$(CC) $(LDFLAGS) -o flrn $(OBJS) $(MISCLIBS)
 
 clean:
-	rm -f *.o getdate.c core
+	rm -f *.o getdate.c core do_chartrans_stuff
 	+ cd chrtrans && $(MAKE) clean
 
 install: installbin installhelp installman
