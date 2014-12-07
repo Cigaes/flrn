@@ -11,6 +11,7 @@
 /* $Id$ */
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <strings.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -1279,7 +1280,7 @@ void menu_config_variables() {
   for (i=0; i< NUM_OPTIONS; i++){
     if (All_options[i].flags.obsolete) continue;
     print_option(i,buf,80);
-    courant=ajoute_menu(courant,&fmt_option_menu,&ptr,(void *)i);
+    courant=ajoute_menu(courant,&fmt_option_menu,&ptr,(void *)(intptr_t)i);
     if (!menu) menu=courant;
   }
   num_help_line=13;

@@ -15,6 +15,7 @@
  * la GNU Public License */
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <wchar.h>
 /* Les locales : locale.h et langinfo.h (pour le CODESET) */
 /* puis iconv */
@@ -451,17 +452,17 @@ int change_conversion_etat (struct conversion_etat *ce,
 	return 0;
     }
     ce->cd_in = iconv_open ("UTF-8",strset);
-    if ((int)(ce->cd_in) == -1) {
+    if ((intptr_t)(ce->cd_in) == -1) {
 	ce->cd_in = iconv_open ("UTF-8","US-ASCII");
-	if ((int)(ce->cd_in) == -1) {
+	if ((intptr_t)(ce->cd_in) == -1) {
 	    ce->status=2;
 	    return -1;
 	}
     }
     ce->cd_out = iconv_open (strset,"UTF-8");
-    if ((int)(ce->cd_out) == -1) {
+    if ((intptr_t)(ce->cd_out) == -1) {
 	ce->cd_out = iconv_open ("US-ASCII","UTF-8");
-	if ((int)(ce->cd_out) == -1) {
+	if ((intptr_t)(ce->cd_out) == -1) {
 	    iconv_close(ce->cd_in);
 	    ce->status=2;
 	    return -1;
