@@ -39,7 +39,7 @@ extern struct passwd *flrn_user;
 extern int debug;
 
 /* Stockage de certains signaux */
-volatile int sigwinch_received; /* Pour stoper les posts */
+extern volatile int sigwinch_received; /* Pour stoper les posts */
 
 /* Variables globales de gestion clavier/ecran */
 /* Les attributs SLtt_Char_Type */

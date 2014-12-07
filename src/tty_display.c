@@ -48,6 +48,8 @@
 
 static UNUSED char rcsid[]="$Id$";
 
+volatile int sigwinch_received = 0;
+
 /* place des objets de la barre */
 int screen_inited;
 int name_news_col, num_art_col, num_rest_col, num_col_num, name_fin_col;
