@@ -44,7 +44,7 @@ while [[ $# != 0 ]]; do
   if [[ $1 == configure ]]; then
     shift
     configure_options=()
-    configure_cppflags="-I$tmpdir/usr/include -DUTF8"
+    configure_cppflags="-I$tmpdir/usr/include"
     configure_ldflags="-L$tmpdir/usr/lib"
     while [[ $# != 0 && $1 != -- ]]; do
       configure_options=($configure_options $1)
