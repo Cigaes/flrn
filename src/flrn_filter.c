@@ -865,9 +865,9 @@ static flrn_char *get_header_name(void *ptr, int num) {
 int header_comp(flrn_char *str, size_t len, Liste_Chaine *debut) {
    Liste_Chaine *courant;
    int res,i;
-   int result[NB_KNOWN_HEADERS];
+   int result[NUM_FLAGS_STR*2+NB_KNOWN_HEADERS];
 
-   for (i=0;i<NB_KNOWN_HEADERS;i++) result[i]=0;
+   for (i=0;i<sizeof(result) / sizeof(*result);i++) result[i]=0;
    res = Comp_generic(debut,str,len,(void *)Headers,NB_KNOWN_HEADERS,
       get_header_name,fl_static(" "),result,0);
    if (res==-3) return 0;
