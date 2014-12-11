@@ -612,6 +612,11 @@ hist_file_name=<chaîne>
 	lieu de sauvegarde de l'historique d'une session sur l'autre.
 	(défaut : "")
 
+list_all_groups=yes|no
+	demande la liste complète des groupes en une fois plutôt qu'un par
+	un ; utile si on est abonné à plus d'environ un tiers des groupes et
+	si la latence est élevée.
+
 max_group_size=<nombre>
 	permet de limiter la lecture des gros groupes par flrn aux messages
 	les plus récents. Lorsque cette valeur vaut -1, flrn charge tous

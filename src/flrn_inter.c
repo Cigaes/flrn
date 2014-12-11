@@ -3334,7 +3334,16 @@ int prochain_non_lu(int force_reste, Article_List **debut, int just_entered, int
 /* -2 : erreur */
 int prochain_newsgroup(Newsgroup_List **newgroup ) {
    Newsgroup_List *mygroup=Newsgroup_courant, *last_mygroup;
-   int res;
+    int res, force_get = 1;
+
+    if (Options.list_all_groups) {
+        /* TODO Only refresh the whole list when a full cycle was done
+           without new messages. */
+        res = groups_get_all_unread();
+        if (res < 0)
+            return -2;
+        force_get = 0;
+    }
 
    /* On teste d'abord strictement APRES Newsgroup_courant */
    if (mygroup) 
@@ -3342,7 +3351,7 @@ int prochain_newsgroup(Newsgroup_List **newgroup ) {
    while (mygroup) {
       res=0;
       if (!(mygroup->grp_flags & GROUP_UNSUBSCRIBED )) {
-          res=NoArt_non_lus(mygroup,1);
+          res = NoArt_non_lus(mygroup, force_get);
 	  if (res>0) break;
       }
       last_mygroup=mygroup; 
@@ -3360,7 +3369,7 @@ int prochain_newsgroup(Newsgroup_List **newgroup ) {
    while (mygroup!=Newsgroup_courant) {
       res=0;
       if (!(mygroup->grp_flags & GROUP_UNSUBSCRIBED)) {
-          res=NoArt_non_lus(mygroup,1);
+          res = NoArt_non_lus(mygroup, force_get);
           if (res>0) break;
       }
       last_mygroup=mygroup; 

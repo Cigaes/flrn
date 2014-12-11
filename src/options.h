@@ -159,6 +159,7 @@ struct Option_struct {
   flrn_char *default_domain;
 #endif
   int max_group_size;
+  int list_all_groups;
   flrn_char *alternate;
 };
 
@@ -270,6 +271,7 @@ static struct {
   MAKE_OPT(include_in_edit,N_("Lorsque auto_edit est défini, inclut automatiquement le message d'origine.")),
   MAKE_STRING_OPT(index_string,N_("Caractères précédents un quote.")),
   MAKE_STRING_OPT(kill_file_name,N_("Nom du fichier de kill utilisé.")),
+  MAKE_OPT(list_all_groups,N_("Liste tous les groupes d'un coup.")),
   MAKE_INTEGER_OPT(max_group_size,N_("Taille maximum de gestion d'un groupe.")),
   MAKE_OPT(ordered_summary,N_("Ordonne les résumés suivant leur num�ro.")),
   MAKE_OPT(parse_from,N_("Affiche le \"Auteur:\" et le \"Réponse à:\" plus forum-like.")),

@@ -812,12 +812,95 @@ int cherche_newnews() {
    return 0;
 }
 
+static void
+list_active_parse_unread(Newsgroup_List *group, char *buf)
+{
+    int i, min, max, non_lus;
+    Range_List *actuel;
+   /* SURTOUT ne pas changer group->max et group->min si le groupe est déjà */
+   /* connu : ça fait planter les changement de groupes qui suivent...	    */
+   max=strtol(buf,&buf,10);
+   min=strtol(buf,&buf,10);
+   if (group->Article_deb==NULL) {
+     group->max=max;
+     group->min=min;
+   }
+   while (*buf && (isblank(*buf))) buf++;
+/* TODO : améliorer ce test */
+   switch (*buf) {
+     case 'n' :
+     case 'j' :
+     case '=' :
+     case 'x' : group->grp_flags |=GROUP_READONLY_FLAG;
+                break;
+     case 'm' : group->grp_flags |=GROUP_MODERATED_FLAG;
+                break;
+   }
+   group->grp_flags |= GROUP_MODE_TESTED;
+   
+   non_lus=max-min+1;
+   if (group->max==0) return;
+   actuel=group->read;
+   while (actuel) { 
+      for (i=0; i<RANGE_TABLE_SIZE; i++) {
+	  if (actuel->max[i]<min) continue;
+	  if (actuel->min[i]<min) non_lus-=actuel->max[i]-min+1;
+	     else non_lus-=actuel->max[i]-actuel->min[i]+1;
+      }
+      actuel=actuel->next;
+   }
+   if (non_lus<0) non_lus=0;
+   if (group->not_read<=non_lus) 
+        group->virtual_in_not_read=non_lus-(group->not_read > 0 ? group->not_read : 0);
+	else group->virtual_in_not_read=0;
+   group->not_read=non_lus;
+
+}
+
+int
+groups_get_all_unread(void)
+{
+    Newsgroup_List *group;
+    int res, code;
+    char *tail;
+
+    for (group = Newsgroup_deb; group != NULL; group = group->next)
+        group->not_read = -1;
+
+    res = write_command(CMD_LIST, 0, NULL);
+    if (res < 3)
+        return -1;
+    code = return_code();
+    if (code < 0 || code > 400)
+        return -1;
+
+    while (1) {
+        res = read_server_for_list(tcp_line_read, 1, MAX_READ_SIZE - 1);
+        if (res < 3)
+            return -1;
+        if (tcp_line_read[0] == '.')
+            break;
+        tail = strchr(tcp_line_read, ' ');
+        if (tail == NULL) {
+            fprintf(stderr, "groups_get_all_unread: strange line '%s'\n",
+                tcp_line_read);
+            continue;
+        }
+        *(tail++) = 0;
+        for (group = Newsgroup_deb; group != NULL; group = group->next)
+            if (strcmp(group->name, tcp_line_read) == 0)
+                break;
+        if (group != NULL)
+            list_active_parse_unread(group, tail);
+    }
+    return 0;
+}
+
 /* Renvoie le nombre estimé d'articles non lus dans group */
 /* returne -1 en cas d'erreur de lecture.              */
 /*         -2 si le newsgroup n'existe pas (glup !)    */
 int NoArt_non_lus(Newsgroup_List *group, int force_check) {
-   int i, res, code, non_lus, max, min;
-   Range_List *actuel;
+   int i, res, code;
    char *buf;
    int rc;
    char *trad;
@@ -843,47 +926,9 @@ int NoArt_non_lus(Newsgroup_List *group, int force_check) {
    }
    /* Normalement, une ligne de lecture suffit amplement */
    buf=strchr(tcp_line_read,' ');
-   /* SURTOUT ne pas changer group->max et group->min si le groupe est déjà */
-   /* connu : ça fait planter les changement de groupes qui suivent...	    */
-   max=strtol(buf,&buf,10);
-   min=strtol(buf,&buf,10);
-   if (group->Article_deb==NULL) {
-     group->max=max;
-     group->min=min;
-   }
-   while (*buf && (isblank(*buf))) buf++;
-/* TODO : améliorer ce test */
-   switch (*buf) {
-     case 'n' :
-     case 'j' :
-     case '=' :
-     case 'x' : group->grp_flags |=GROUP_READONLY_FLAG;
-                break;
-     case 'm' : group->grp_flags |=GROUP_MODERATED_FLAG;
-                break;
-   }
-   group->grp_flags |= GROUP_MODE_TESTED;
+   list_active_parse_unread(group, buf);
    discard_server(); /* Si il y a plusieurs newsgroups, BEURK */
-   
-   non_lus=max-min+1;
-   if (group->max==0) { return 0; /* le groupe est vide */
-   }
-   actuel=group->read;
-   while (actuel) { 
-      for (i=0; i<RANGE_TABLE_SIZE; i++) {
-	  if (actuel->max[i]<min) continue;
-	  if (actuel->min[i]<min) non_lus-=actuel->max[i]-min+1;
-	     else non_lus-=actuel->max[i]-actuel->min[i]+1;
-      }
-      actuel=actuel->next;
-   }
-   if (non_lus<0) non_lus=0;
-   if (group->not_read<=non_lus) 
-        group->virtual_in_not_read=non_lus-(group->not_read > 0 ? group->not_read : 0);
-	else group->virtual_in_not_read=0;
-   group->not_read=non_lus;
-
-   return non_lus;
+   return group->not_read;
 }
 
 void test_readonly(Newsgroup_List *groupe) {

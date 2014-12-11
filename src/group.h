@@ -83,6 +83,7 @@ extern Newsgroup_List *cherche_newsgroup_re (flrn_char * /*name*/,
 extern Liste_Menu *menu_newsgroup_re (flrn_char * /*name*/, regex_t /*reg*/,
     int /*avec_reg*/);
 extern void zap_newsgroup(Newsgroup_List * /*group*/);
+extern int groups_get_all_unread(void);
 extern int NoArt_non_lus(Newsgroup_List * /*group*/, int);
 extern int cherche_newnews(void);
 extern void add_read_article(Newsgroup_List * /*group*/, int /*numero*/);
