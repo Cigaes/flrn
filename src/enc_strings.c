@@ -61,14 +61,11 @@ static UNUSED char rcsid[]="$Id$";
 
 struct UC_charset {
         const char *MIMEname;
-        const char *FLRNname;
         const u8* unicount;
         const u16* unitable;
         int num_uni;
         struct unimapdesc_str replacedesc;
-        int lowest_eight;
         int enc;
-        int codepage;   /* codepage number, used by OS/2 font-switching code */
 };
 static struct UC_charset UCInfo[MAXCHARSETS];
 static int UCNumCharsets=0;
@@ -100,14 +97,13 @@ const char default_utf8[]="en_US.utf8";
  * read the codeset from the locale */
 
 /* parsing d'une chaîne codeset */
-int Parse_charset (const char *buf) {
+static int Parse_charset (const char *buf) {
     int i;
     /* cas particulier : "ANSI_X3.4-1968" = "us-ascii" */
     if (strcasecmp(buf,"ANSI_X3.4-1968")==0) 
 	return 0;
     for (i = 0; i < UCNumCharsets; i++) {
-        if ((strcasecmp(UCInfo[i].MIMEname, buf)==0) ||
-             (strcasecmp(UCInfo[i].FLRNname, buf)==0)) {
+        if ((strcasecmp(UCInfo[i].MIMEname, buf)==0)) {
            return i;
         }
     }
@@ -121,7 +117,8 @@ int parse_terminal_charset (char *codeset) {
        if (terminal_charset_string) free(terminal_charset_string);
        terminal_charset_string=NULL;
        terminal_charset=i;
-       set_Display_Eight_Bit(UCInfo[terminal_charset].lowest_eight);
+       /* TODO set to 128 for UTF-8 if necessary */
+       set_Display_Eight_Bit(160);
        return 0;
    }
    terminal_charset=-1;
@@ -193,7 +190,6 @@ void UC_Charset_Setup(
         s = UCNumCharsets;
         UCInfo[s].MIMEname = UC_MIMEcharset;
     }
-    UCInfo[s].FLRNname = UC_FLRNcharset;
     UCInfo[s].unicount = unicount;
     UCInfo[s].unitable = unitable;
     UCInfo[s].num_uni = nnuni;
@@ -201,11 +197,7 @@ void UC_Charset_Setup(
     if (replacedesc.isdefault) {
         default_charset = s;
     }
-    if (UC_rawuni == UCT_ENC_UTF8)
-        lowest_eight = 128;  /* cheat here */
-    UCInfo[s].lowest_eight = lowest_eight;
     UCInfo[s].enc = UC_rawuni;
-    UCInfo[s].codepage = codepage;
     if (found < 0)
         UCNumCharsets++;
     return;
@@ -648,7 +640,7 @@ int fl_revconv_close () {
  * faire les deux, en utilisant iconv */
 /* (-2) : le descripteur n'est pas ouvert. (-1) : erreur */
 /* (-3) : *outbuf est devenu *inbuf */
-size_t fl_conv_from_flstring_ce (struct conversion_etat *ce,
+static size_t fl_conv_from_flstring_ce (struct conversion_etat *ce,
 	const flrn_char **inbuf, size_t *inbl,
         char **outbuf, char **outptr, size_t *outbl) {
 #if 0
@@ -760,7 +752,7 @@ size_t fl_appconv_from_flstring (flrn_char **inbuf, size_t *inbl,
 /* conversion d'un caractère à l'aide des tables de conversion */
 /* peut renvoyer la taille voulue, ou le caractère, selon les cas */
 /* Il *FAUT* qu'il y ait assez de place dans conv, si conv!=NULL */
-size_t approximate_wchar (long uni, char *conv, int le_charset, int *rs) {
+static size_t approximate_wchar (long uni, char *conv, int le_charset, int *rs) {
     int i,a;
     i=(rs ? *rs : 0);
     while (i<UCInfo[le_charset].num_uni) {
@@ -797,7 +789,7 @@ size_t approximate_wchar (long uni, char *conv, int le_charset, int *rs) {
     return -1;
 }
 
-int appr_conv_one (long unichar, 
+static int appr_conv_one (long unichar, 
 	                 char **outptr, size_t *outbl) {
     int tmpi=0;
     int res;
@@ -833,7 +825,7 @@ int appr_conv_one (long unichar,
 /* Conversion partielle "d'affichage", à partir des chaînes internes
  * de flrn, pour l'affichage à l'écran */
 /* -1 : erreur de iconv   -2 : non initialisé.    -3 : inbuf = outbuf. */
-size_t fl_approximate_conv (flrn_char **inbuf, size_t *inbl,
+static size_t fl_approximate_conv (flrn_char **inbuf, size_t *inbl,
 	                    char **outbuf, char **outptr, size_t *outbl) {
      if (conv_base[TERM_CONV].status<=0) return (size_t)(-2);
      if (conv_base[TERM_CONV].status<=2) 

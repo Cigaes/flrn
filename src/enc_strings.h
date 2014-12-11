@@ -46,8 +46,6 @@ extern size_t fl_conv_from_flstring (flrn_char **, size_t *,
 	                             char **, char **, size_t *);
 extern int open_approximate_conversion ();
 extern int close_approximate_conversion ();
-extern size_t fl_approximate_conv (flrn_char **, size_t *,
-	                           char **, char **, size_t *);
 extern int isolate_non_critical_element (flrn_char *, flrn_char*,
 	                                 flrn_char *, flrn_char **,
 					 flrn_char **);
