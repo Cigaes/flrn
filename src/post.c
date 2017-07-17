@@ -1363,7 +1363,8 @@ static int Get_base_headers_supersedes (Article_List *article) {
       }
    }
    /* on garde tout, sauf X-ref, Path, NNTP-Posting_Host,
-      	     X-Trace, NNTP-Posting-Date, X-Complaints-To et Message-ID, To, Cc, Bcc */
+      	     X-Trace, NNTP-Posting-Date, Injection-Date, Injection-Info,
+      	     X-Complaints-To et Message-ID, To, Cc, Bcc */
    for (i=0;i<NB_DECODED_HEADERS;i++) {
       if (i==XREF_HEADER) continue;
       if (i==TO_HEADER) continue;
@@ -1388,6 +1389,10 @@ static int Get_base_headers_supersedes (Article_List *article) {
 		  fl_static("NNTP-Posting-Host:"),18)==0) continue;
       if (fl_strncasecmp(tmp2->header_head,
 		  fl_static("NNTP-Posting-Date:"),18)==0) continue;
+      if (fl_strncasecmp(tmp2->header_head,
+		  fl_static("Injection-Date:"),15)==0) continue;
+      if (fl_strncasecmp(tmp2->header_head,
+		  fl_static("Injection-Info:"),15)==0) continue;
       if (fl_strncasecmp(tmp2->header_head,
 		  fl_static("X-Complaints-To:"),16)==0) continue;
       if (liste==NULL) 

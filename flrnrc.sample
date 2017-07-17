@@ -15,7 +15,7 @@ header list Newsgroups References From Reply-To others Followup-To Subject
 
 # cette ligne donne les entêtes à ne jamais afficher (malgré le others dans
 #   la première ligne). L'ordre est indifférent.
-header hide Message-Id Path NNTP-Posting-Host X-Trace X-Complaints-To NNTP-Posting-Date X-Face X-Server-Date X-Original-Received
+header hide Message-Id Path NNTP-Posting-Host X-Trace X-Complaints-To NNTP-Posting-Date X-Face X-Server-Date X-Original-Received Injection-Date Injection-Info
 
 # cette ligne donne les entêtes qui ne doivent plus être rappelés lorsque
 # le message fait plusieurs pages (les autres restant affichés). L'ordre
