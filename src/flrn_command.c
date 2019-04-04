@@ -551,7 +551,7 @@ int Lit_cmd_key(struct key_entry *, int, int, Cmd_return *);
 int Lit_cmd_explicite(flrn_char *, int, int, Cmd_return *);
 
 static int aff_context(int princip, int second) {
-   flrn_char chaine[18];
+   flrn_char chaine[128];
 
    chaine[0]=fl_static('(');
    fl_strcpy(&(chaine[1]),Noms_contextes[princip]);
